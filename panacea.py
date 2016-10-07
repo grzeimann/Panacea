@@ -27,3 +27,7 @@ class Panacea(object):
     def __init__(self, args=[], kwargs={}):
         self.args = args
         self.kwargs = kwargs
+        
+    def model(self):
+        model = bias + dark * self.time + fiber_weight * spectrum
+        
