@@ -43,6 +43,10 @@ def median_absolute_deviation(a, axis=None):
     See Also
     --------
     numpy.median
+    
+    Note
+    --------
+    Copy of the astropy function with the "axis" argument added appropriately.
 
     """
 
@@ -122,7 +126,10 @@ def biweight_location(a, c=6.0, M=None, axis=None):
     See Also
     --------
     median_absolute_deviation, biweight_midvariance
-
+    
+    Note
+    --------
+    Copy of the astropy function with the "axis" argument added appropriately.
     """
 
     a = np.array(a, copy=False)
@@ -223,6 +230,10 @@ def biweight_midvariance(a, c=9.0, M=None, axis=None):
     See Also
     --------
     median_absolute_deviation, biweight_location
+    
+    Note
+    --------
+    Copy of the astropy function with the "axis" argument added appropriately.
     """
 
     a = np.array(a, copy=False)

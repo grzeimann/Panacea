@@ -19,17 +19,11 @@ from .utils import biweight_location, biweight_midvariance
 
 class Panacea(object):
     """
-    An abstract sampler object that implements various helper functions
+    A reduction object 
     :param dim:
         The number of dimensions in the parameter space.
-    :param lnpostfn:
-        A function that takes a vector in the parameter space as input and
-        returns the natural logarithm of the posterior probability for that
-        position.
-    :param args: (optional)
-        A list of extra positional arguments for ``lnpostfn``. ``lnpostfn``
-        will be called with the sequence ``lnpostfn(p, *args, **kwargs)``.
-    :param kwargs: (optional)
-        A list of extra keyword arguments for ``lnpostfn``. ``lnpostfn``
-        will be called with the sequence ``lnpostfn(p, *args, **kwargs)``.
+
     """
+    def __init__(self, args=[], kwargs={}):
+        self.args = args
+        self.kwargs = kwargs
