@@ -29,5 +29,5 @@ class Panacea(object):
         self.kwargs = kwargs
         
     def model(self):
-        model = bias + dark * self.time + fiber_weight * spectrum
+        model = bias + (dark * self.time + fiber_weight * spectrum) * gain 
         
