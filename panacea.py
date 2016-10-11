@@ -31,3 +31,4 @@ class Panacea(object):
     def model(self):
         model = bias + (dark * self.time + fiber_weight * spectrum) * gain 
         
+        
