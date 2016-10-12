@@ -21,7 +21,7 @@ class Panacea(object):
     """
     A reduction object 
     :param dim:
-        The number of dimensions in the parameter space.
+
 
     """
     def __init__(self, args=[], kwargs={}):
