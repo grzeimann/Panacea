@@ -10,6 +10,7 @@ Built for the VIRUS instrument as well as LRS2 on HET
 
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
+import pandas as pd
 
 __all__ = ["Panacea"]
 
