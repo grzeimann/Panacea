@@ -63,7 +63,8 @@ class Fibers:
         
     def fitpoly(self):
         sel = self.x != self.flag
-        self.polyvals = np.polyfit(self.x[sel] / 1032.,self.y[sel],self.trace_poly_order)
+        self.polyvals = np.polyfit(self.x[sel] / self.D, self.y[sel], 
+                                   self.trace_poly_order)
         
     def evalpoly(self):
-        self.trace = np.polyval(self.polyvals, np.arange(len(self.x)) / 1032.)
+        self.trace = np.polyval(self.polyvals, np.arange(len(self.x)) / self.D)

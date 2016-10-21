@@ -10,12 +10,12 @@ Built for the VIRUS instrument as well as LRS2 on HET
 
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
-import pandas as pd
 
 __all__ = ["Panacea"]
 
 import numpy as np
-from .utils import biweight_location, biweight_midvariance
+import pandas as pd
+from utils import biweight_location, biweight_midvariance
 
 
 class Panacea(object):
