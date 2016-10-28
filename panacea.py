@@ -49,9 +49,26 @@ class Panacea(object):
         self.get_ra_dec()
         self.find_sources()
         
-    def remove_overscan(self):
-        self.image[by1:by2,bx1:bx2]
+
+
+            
         
-        
-        
-        
+    def check_overscan(self, recalculate=False):
+        #TODO define image
+        #TODO Make default overscan value: None
+        if overscan_value is None:
+            overscan = biweight_location(image[by1:by2,bx1:bx2])
+            # TODO place overscan somewhere
+        elif recalculate:
+            overscan = biweight_location(image[by1:by2,bx1:bx2])
+            # TODO place overscan somewhere
+
+    def check_dark(self, recalculate=False):
+        #TODO define image
+        #TODO Make default overscan value: None
+        if dark_mult_value is None:
+            overscan = biweight_location(image[by1:by2,bx1:bx2])
+            # TODO place overscan somewhere
+        elif recalculate:
+            overscan = biweight_location(image[by1:by2,bx1:bx2])
+            # TODO place overscan somewhere            
