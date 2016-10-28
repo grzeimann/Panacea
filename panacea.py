@@ -16,14 +16,12 @@ __all__ = ["Panacea"]
 import numpy as np
 import pandas as pd
 from utils import biweight_location, biweight_midvariance
-
+from astropy.io import fits, ascii
 
 class Panacea(object):
     """
     A reduction object 
     :param dim:
-
-
     """
     def __init__(self, args=[], kwargs={}):
         self.args = args
@@ -31,5 +29,29 @@ class Panacea(object):
         
     def model(self):
         model = bias + (dark * self.time + fiber_weight * spectrum) * gain 
+        
+    def actions(self):
+        self.remove_overscan()
+        
+        #TODO COMBINE THESE
+        self.remove_dark()
+        self.remove_residual_bias()
+        
+        self.join_amps()
+        self.divide_pixelflats()
+
+        self.define_fibers()        
+        self.get_trace()
+        self.get_wavelength()
+        self.get_fiberpars()
+        
+        self.extract_spectra()
+        self.get_ra_dec()
+        self.find_sources()
+        
+    def remove_overscan(self):
+        self.image[by1:by2,bx1:bx2]
+        
+        
         
         
