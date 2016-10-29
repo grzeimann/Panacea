@@ -50,7 +50,11 @@ class Panacea(object):
         self.find_sources()
         
 
-
+# IF then structure
+# scale biases and darks based on sky expectation?
+# gather all data necessary for a given measurement
+# check if evaluated, if not then evaluate
+# don't reproduce unnecessary info, just access it, and let the cpu do the work
             
         
     def check_overscan(self, recalculate=False):
