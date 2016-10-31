@@ -46,8 +46,6 @@ class Fibers:
             Wavelength for each column along the trace.
         :init throughput:
             Fiber throughput.
-        :init weight:
-            Fiber Model Weight over the CCD image.
         '''
         self.N = N
         self.D = D
@@ -67,6 +65,14 @@ class Fibers:
         self.dark_mult = None
         self.bias_mult = None
         self.file = None
+        self.overscan = None
+        self.trimsec = None
+        self.biassec = None
+        self.ifuslot = None
+        self.specid = None
+        self.ifuid = None
+        self.object = None
+        self.datetime = None
         
     def fitpoly(self):
         sel = self.x != self.flag

@@ -58,22 +58,22 @@ class Panacea(object):
 # Use SAO xpaset ds9 to look at things as an option? Masterbias, subtracted frames?
             
         
-    def check_overscan(self, recalculate=False):
+    def check_overscan(fiber, image, recalculate=False):
         #TODO define image
         #TODO Make default overscan value: None
-        if overscan_value is None:
-            overscan = biweight_location(image[by1:by2,bx1:bx2])
+        if fiber.overscan is None:
+            fiber.overscan = biweight_location(image[fiber.biassec[2]:fiber.biassec[3],fiber.biassec[0]:fiber.biassec[1]])
             # TODO place overscan somewhere
         elif recalculate:
-            overscan = biweight_location(image[by1:by2,bx1:bx2])
+            fiber.overscan = biweight_location(image[by1:by2,bx1:bx2])
             # TODO place overscan somewhere
 
     def check_dark(self, recalculate=False):
         #TODO define image
         #TODO Make default overscan value: None
-        if dark_mult_value is None:
-            overscan = biweight_location(image[by1:by2,bx1:bx2])
+        if fiber.dark_mult is None:
+            fiber.dark_mult = biweight_location(image[by1:by2,bx1:bx2])
             # TODO place overscan somewhere
         elif recalculate:
-            overscan = biweight_location(image[by1:by2,bx1:bx2])
+            fiber.dark_mult = biweight_location(image[by1:by2,bx1:bx2])
             # TODO place overscan somewhere            
