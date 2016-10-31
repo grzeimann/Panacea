@@ -55,6 +55,7 @@ class Panacea(object):
 # gather all data necessary for a given measurement
 # check if evaluated, if not then evaluate
 # don't reproduce unnecessary info, just access it, and let the cpu do the work
+# Use SAO xpaset ds9 to look at things as an option? Masterbias, subtracted frames?
             
         
     def check_overscan(self, recalculate=False):

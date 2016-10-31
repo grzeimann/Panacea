@@ -59,7 +59,14 @@ class Fibers:
         self.polyvals = np.zeros((trace_poly_order,))
         self.wave = np.zeros((D,))
         self.throughput = np.zeros((D,))
-        self.weight = np.zeros((N, D))
+        self.RA = None
+        self.Dec = None
+        self.rot = None
+        self.theta = None
+        self.gain = None
+        self.dark_mult = None
+        self.bias_mult = None
+        self.file = None
         
     def fitpoly(self):
         sel = self.x != self.flag
