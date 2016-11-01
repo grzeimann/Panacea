@@ -5,6 +5,7 @@ IFU Reduction Code
 ------------------
 Built for the VIRUS instrument as well as LRS2 on HET
 
+Fibers
 
 """
 
@@ -17,25 +18,21 @@ import numpy as np
 import pandas as pd
 from utils import biweight_location, biweight_midvariance
 from astropy.io import fits, ascii
+import logging
+import fiber_utils
 
 class Panacea(object):
     """
     A reduction object 
     :param dim:
     """
-    def __init__(self, args=[], kwargs={}):
+    def __init__(self, filename, args):
+        self.filename = filename
         self.args = args
-        self.kwargs = kwargs
         
-    def model(self):
-        model = bias + (dark * self.time + fiber_weight * spectrum) * gain 
         
-    def actions(self):
-        self.remove_overscan()
-        
+    def actions(self):        
         #TODO COMBINE THESE
-        self.remove_dark()
-        self.remove_residual_bias()
         
         self.join_amps()
         self.divide_pixelflats()
@@ -49,6 +46,32 @@ class Panacea(object):
         self.get_ra_dec()
         self.find_sources()
         
+    def setup_logging(args):
+        '''Set up a logger for shuffle with a name ``panacea``.
+    
+        Use a StreamHandler to write to stdout and set the level to DEBUG if
+        verbose is set from the command line
+        '''
+        fmt = '[%(levelname)s - %(asctime)s] %(message)s'
+        if args.verbose == 0:
+            level = logging.WARNING
+        elif args.verbose == 1:
+            level = logging.INFO
+        else:
+            level = logging.DEBUG
+            fmt = '[%(levelname)s - %(filename)s - %(asctime)s] %(message)s'
+        fmt = logging.Formatter(fmt)
+    
+        handler = logging.StreamHandler()
+        handler.setFormatter(fmt)
+        handler.setLevel(level)
+    
+        log = logging.getLogger('panacea')
+        log.setLevel(logging.DEBUG)
+        log.addHandler(handler)
+
+
+
 
 # IF then structure
 # scale biases and darks based on sky expectation?
@@ -67,13 +90,4 @@ class Panacea(object):
         elif recalculate:
             fiber.overscan = biweight_location(image[by1:by2,bx1:bx2])
             # TODO place overscan somewhere
-
-    def check_dark(self, recalculate=False):
-        #TODO define image
-        #TODO Make default overscan value: None
-        if fiber.dark_mult is None:
-            fiber.dark_mult = biweight_location(image[by1:by2,bx1:bx2])
-            # TODO place overscan somewhere
-        elif recalculate:
-            fiber.dark_mult = biweight_location(image[by1:by2,bx1:bx2])
-            # TODO place overscan somewhere            
+       

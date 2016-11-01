@@ -50,7 +50,7 @@ class Fibers:
         self.N = N
         self.D = D
         self.trace_poly_order = trace_poly_order
-        self.flag = -99999
+        self.flag = -999
         self.trace_x = self.flag * np.ones((D,),dtype = np.int)
         self.trace_y = np.zeros((D,))
         self.trace = np.zeros((D,))
@@ -73,6 +73,7 @@ class Fibers:
         self.ifuid = None
         self.object = None
         self.datetime = None
+        self.fibnum = None
         
     def fitpoly(self):
         sel = self.x != self.flag
