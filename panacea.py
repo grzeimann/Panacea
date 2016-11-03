@@ -28,6 +28,8 @@ class Panacea(object):
     """
     def __init__(self, filename, args):
         self.filename = filename
+        self.image = fits.open(filename)[0].data
+        self.amp = None
         self.args = args
         
         
@@ -70,8 +72,15 @@ class Panacea(object):
         log.setLevel(logging.DEBUG)
         log.addHandler(handler)
 
-
-
+    def orient(self):
+        '''
+        Orient the images from blue to red (left to right)
+        Fibers are oriented to match configuration files
+        '''
+        if self.amp == "LU":
+            self.image[:] = self.image[::-1,::-1]
+        if self.amp == "RL":
+            self.image[:] = self.image[::-1,::-1]
 
 # IF then structure
 # scale biases and darks based on sky expectation?

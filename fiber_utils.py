@@ -147,7 +147,6 @@ def eval_profile_bins(self, x, nbins, fibers, bins):
                   * np.power(abs(xp), plaw_coeff[3]))
     for fibnum in fibers:
         ix = x-self.f0[fibnum]
-        #Fl[:,:,i] = np.array([b(xi) for xi in ix])
         for j in xrange(nbins):
             fun[j] = 1.0
             Fl[:,j,i] = np.interp(ix,bins,fun,left=0.0,right=0.0)
@@ -180,14 +179,18 @@ def eval_norm_bins(self, x, y, yerr, sel, sol, fibers, xlow, xhigh, Fl, Pl):
  
     return norm, init_model.sum(axis=1), flat, flat_err
         
-def fit_fibermodel_bins_get_norm(image, Fibers, fib=0, xlow=0, xhigh=1032, 
-                                 plot=False, fsize=8., group = 4, bins=11,
+def fit_fibermodel_bins(image, Fibers, fib=0, xlow=0, xhigh=1032, 
+                                 plot=False, fsize=8., group=4, bins=11,
                                  niter=3, debug=False):
+    '''
+    : param Fibers:
+        list of Fiber class objects (length = number of fibers)
+    '''
     if debug:
         t1 = time.time()
-
-
+    # The lowest fiber to be used in modeling
     lowfib = np.max([0,fib-group/2])
+    # The highest fiber to be used in modeling
     highfib = np.min([self.nfib-1,fib+group/2])
     fhigh = Fibers[lowfib]
     flow = self.f0[highfib]
