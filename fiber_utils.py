@@ -94,10 +94,11 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
             if mn2 - val > (max_to_min_dist + 1):
                 mn2 = val + max_to_min_dist + 1
             lwa = ((y[mn1:mn2]*x[mn1:mn2]).sum()/(y[mn1:mn2]).sum())
+            # Iterating and interpolating to refine the centroid
             for k in xrange(first_order_iter):
                 xp = np.linspace(lwa-y_window, lwa+y_window, num=50)
                 yp = np.interp(xp, x[mn1:mn2], y[mn1:mn2],left=0,right=0)
-                lwa = (yp*xp).sum()/(yp.sum())
+                lwa = (yp*xp).sum()/yp.sum()
             peaks_refined[j] = lwa
             peaks_height[j] = y[val]
         mh = biweight_location(peaks_height)
@@ -199,7 +200,7 @@ def fit_fibermodel_bins_get_norm(image, Fibers, fib=0, xlow=0, xhigh=1032,
     nozeros = np.where(~(np.isnan(y) + np.isinf(y) + y==0))[0]
    
     xt = np.linspace(-1*fsize,fsize,501.)
-    yt = self.F.profile.eval(xt,1.,0.,2.7,0.0,0,2.5)
+    yt = np.exp(-1./2.*((xt-0.)/2.7)**2.5)
     yt /= np.sum(yt*(xt[2]-xt[1]))
     cf = np.cumsum(np.abs(np.diff(np.diff(yt))))
     cf /= np.max(cf)
