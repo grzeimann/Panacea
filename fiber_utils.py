@@ -136,17 +136,17 @@ def fit_fibermodel_bins_image(image, Fibers, plot=False, fsize=8.,
         plt.colorbar()
     
         
-def eval_profile_bins(self, x, nbins, fibers, bins):
+def eval_profile_bins(Fibers, x, nbins, fibers, bins):
     Fl = np.zeros((len(x), nbins, len(fibers)))
     Pl = np.zeros((len(x),len(fibers)))
     i = 0
     fun = np.zeros((nbins,))
-    plaw_coeff = np.array(self.F.profile.powerlaw_wings)
+    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
     def plaw(xp, plaw_coeff):
         return plaw_coeff[0] / (plaw_coeff[1] + plaw_coeff[2]
                   * np.power(abs(xp), plaw_coeff[3]))
     for fibnum in fibers:
-        ix = x-self.f0[fibnum]
+        ix = x-Fibers[fibnum].trace
         for j in xrange(nbins):
             fun[j] = 1.0
             Fl[:,j,i] = np.interp(ix,bins,fun,left=0.0,right=0.0)
@@ -178,8 +178,39 @@ def eval_norm_bins(self, x, y, yerr, sel, sol, fibers, xlow, xhigh, Fl, Pl):
         flat_err[xsel] = flat[xsel] / y[xsel] * yerr[xsel]        
  
     return norm, init_model.sum(axis=1), flat, flat_err
+    
+def init_fibermodel(fsize, bins, sigma=2.7, power=2.5):
+    '''
+    Initial fiber model defined using a modified gaussian.
+    The second derivative defines the number of bins used.
+    The number of bins are buffered by 0.0 on either side 
+    indicating the boundary of the profile and that the profile goes to zero
+    at a distance of fsize.
+    
+    :param fsize:
+        The fiber model is defined in the y-direction 
+        over the interval [-fsize, fsize]
+    :param sigma:
+        sigma for the modified gaussian
+    :param power:
+        instead of a power of 2, this is a free parameter for the gaussian
+    '''
+    # Define the bins   
+    xt = np.linspace(-1*fsize,fsize,501.)
+    yt = np.exp(-1./2.*((xt/sigma)**power))
+    yt /= np.sum(yt*(xt[2]-xt[1]))
+    cf = np.cumsum(np.abs(np.diff(np.diff(yt))))
+    cf /= np.max(cf)
+    xtp = xt[1:-1]+(xt[1]-xt[0])/2.
+    binx = np.interp(np.linspace(0,1,bins),cf,xtp)
+    binx = np.hstack([binx[:(bins/2)],-.4,binx[bins/2],0.4,binx[((bins/2)+1):]])
+    bins+=2
+    sol = np.interp(binx,xt,yt)
+    sol[0] = 0.0
+    sol[-1] = 0.0
+    return bins, binx, sol
         
-def fit_fibermodel_bins(image, Fibers, fib=0, xlow=0, xhigh=1032, 
+def fit_fibermodel_bins(image, xgrid, ygrid, Fibers, fib=0, xlow=0, xhigh=1032, 
                                  plot=False, fsize=8., group=4, bins=11,
                                  niter=3, debug=False):
     '''
@@ -192,31 +223,30 @@ def fit_fibermodel_bins(image, Fibers, fib=0, xlow=0, xhigh=1032,
     lowfib = np.max([0,fib-group/2])
     # The highest fiber to be used in modeling
     highfib = np.min([self.nfib-1,fib+group/2])
-    fhigh = Fibers[lowfib]
-    flow = self.f0[highfib]
-    sel1 = (self.f>flow) * (self.f<fhigh)
-    sel2 = (self.x>xlow) * (self.x<xhigh) 
-    sel = np.where(sel1 * sel2)[0] 
-    x = self.f[sel]
-    y = self.twi.ravel()[sel]
-    yerr = self.e_twi.ravel()[sel]
-    nozeros = np.where(~(np.isnan(y) + np.isinf(y) + y==0))[0]
-   
-    xt = np.linspace(-1*fsize,fsize,501.)
-    yt = np.exp(-1./2.*((xt-0.)/2.7)**2.5)
-    yt /= np.sum(yt*(xt[2]-xt[1]))
-    cf = np.cumsum(np.abs(np.diff(np.diff(yt))))
-    cf /= np.max(cf)
-    xtp = xt[1:-1]+(xt[1]-xt[0])/2.
-    binx = np.interp(np.linspace(0,1,bins),cf,xtp)
-    binx = np.hstack([binx[:(bins/2)],-.4,binx[bins/2],0.4,binx[((bins/2)+1):]])
-    bins+=2
-    sol = np.interp(binx,xt,yt)
-    sol[0] = 0.0
-    sol[-1] = 0.0
+    # get low y and high y for fit
+    mn1 = np.min(Fibers[lowfib].trace[xlow:xhigh])
+    mx1 = np.max(Fibers[lowfib].trace[xlow:xhigh])
+    mn2 = np.min(Fibers[highfib].trace[xlow:xhigh])
+    mx2 = np.max(Fibers[highfib].trace[xlow:xhigh])
+    ylow = int(np.min([mn1,mn2,mx1,mx2]))
+    yhigh = int(np.max([m1,mn2,mx1,mx2]))+1
+    
+    bins, binx, sol = init_fibermodel(fsize=fsize, bins=bins)
+    image_cut=image[ylow:yhigh,xlow:xhigh].ravel()
+    xgrid_cut=xgrid[ylow:yhigh,xlow:xhigh].ravel()
+    ygrid_cut=ygrid[ylow:yhigh,xlow:xhigh].ravel()
+    ycutl=np.repeat(Fibers[lowfib].trace[xlow:xhigh],yhigh-ylow)
+    ycuth=np.repeat(Fibers[highfib].trace[xlow:xhigh],yhigh-ylow)
+    sel = (ygrid_cut>=ycutl) * (ygrid_cut<=ycuth)
+    x = ygrid_cut[sel]
+    y = image_cut[sel]
+
+
+    # Normalize the profiles to 1.
     sol /= np.sum(sol[:-1] * np.diff(binx))
     for i in xrange(niter):
-        Fl, Pl = self.eval_profile_bins(x, bins, np.arange(lowfib,highfib+1), binx)
+        Fl, Pl = eval_profile_bins(Fibers, x, bins, 
+                                   np.arange(lowfib,highfib+1), binx)
         norm, model, flat, flat_err = self.eval_norm_bins(x, y, yerr, sel, 
                                              sol, np.arange(lowfib,highfib+1),    
                                              xlow+1, xhigh, Fl, Pl)
