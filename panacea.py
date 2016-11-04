@@ -14,29 +14,45 @@ from __future__ import (division, print_function, absolute_import,
 
 __all__ = ["Panacea"]
 
+import os
+import logging
+import warnings
+
+import argparse as ap
 import numpy as np
 import pandas as pd
+import os.path as op
+import cPickle as pickle
+import fiber_utils as FU
+
 from utils import biweight_location, biweight_midvariance
 from astropy.io import fits, ascii
-import logging
-import fiber_utils
+from fibers import Fibers
+
+from six.moves import configparser
 
 class Panacea(object):
     """
     A reduction object 
     :param dim:
     """
-    def __init__(self, filename, args):
+    def __init__(self, filename, path, config_file):
         self.filename = filename
-        self.image = fits.open(filename)[0].data
+        self.path = path
+        self.config = self.read_config(config_file)
+        self.overscan = None
+        self.fitsfile = fits.open(filename)
+        self.get_trimsec_biassec()
+        self.check_for_fibers()
+        self.image = self.fitsfile[0].data
+        self.check_overscan()
         self.amp = None
-        self.args = args
         
         
     def actions(self):        
         #TODO COMBINE THESE
-        
-        self.join_amps()
+
+        self.orient()
         self.divide_pixelflats()
 
         self.define_fibers()        
@@ -47,6 +63,41 @@ class Panacea(object):
         self.extract_spectra()
         self.get_ra_dec()
         self.find_sources()
+    
+    def check_for_fibers(self):
+        fiber_fn = op.join(self.path, 'fibers_%s' %self.filename[:-5])
+        if op.exists(fiber_fn):
+            with open(fiber_fn, 'r') as f:
+                self.fibers = pickle.read(f)
+                self.overscan = self.fibers[0].overscan
+        else:
+            self.fibers = None
+    
+    
+    def read_config(self, config_file):
+        """Read configuration file
+    
+        Parameters
+        ----------
+        configfile : string
+            name of the configuration file
+    
+        Returns
+        -------
+        config : :class:`~ConfigParser.ConfigParser` instance
+        """
+        self.config = configparser.ConfigParser(defaults={'xpa_method': 
+                                                                      'local'})
+        if not self.config.read(config_file):
+            msg = ("File '{}' does not exist. Using the default one."
+                   " You can get the full set of configuration files with the"
+                   " command: ``shuffle_config``".format(config_file))
+            warnings.warn(msg)
+            config_def = os.path.join(os.path.dirname(__file__), 'configs',
+                                      'shuffle.cfg')
+            if not self.config.read(config_def):
+                msg = ("ERROR: Failed to load the default configuration file.")
+                raise ap.ArgumentTypeError(msg.format(config_file))
         
     def setup_logging(args):
         '''Set up a logger for shuffle with a name ``panacea``.
@@ -82,21 +133,17 @@ class Panacea(object):
         if self.amp == "RL":
             self.image[:] = self.image[::-1,::-1]
 
-# IF then structure
 # scale biases and darks based on sky expectation?
 # gather all data necessary for a given measurement
-# check if evaluated, if not then evaluate
 # don't reproduce unnecessary info, just access it, and let the cpu do the work
 # Use SAO xpaset ds9 to look at things as an option? Masterbias, subtracted frames?
             
         
-    def check_overscan(fiber, image, recalculate=False):
-        #TODO define image
+    def check_overscan(self, recalculate=False):
         #TODO Make default overscan value: None
-        if fiber.overscan is None:
-            fiber.overscan = biweight_location(image[fiber.biassec[2]:fiber.biassec[3],fiber.biassec[0]:fiber.biassec[1]])
-            # TODO place overscan somewhere
-        elif recalculate:
-            fiber.overscan = biweight_location(image[by1:by2,bx1:bx2])
-            # TODO place overscan somewhere
+        if (self.overscan is None) or recalculate:
+            self.overscan = biweight_location(self.image[self.biassec[2]:self.biassec[3],
+                                                         self.biassec[0]:self.biassec[1]])
+        
+
        

@@ -16,7 +16,7 @@ import numpy as np
 __all__ = ["Fibers"]
 
 class Fibers:
-    def __init__(self, N, D, trace_poly_order=3):
+    def __init__(self, N, D, trace_poly_order=3, fibmodel_poly_order=3):
         ''' 
         Initialize class
         ----------------
@@ -50,6 +50,7 @@ class Fibers:
         self.N = N
         self.D = D
         self.trace_poly_order = trace_poly_order
+        self.fibmodel_poly_order = fibmodel_poly_order
         self.flag = -999
         self.trace_x = self.flag * np.ones((D,),dtype = np.int)
         self.trace_y = np.zeros((D,))
@@ -74,6 +75,8 @@ class Fibers:
         self.object = None
         self.datetime = None
         self.fibnum = None
+        self.fibmodel = None
+
         
     def fitpoly(self):
         sel = self.x != self.flag

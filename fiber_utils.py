@@ -7,10 +7,14 @@ To be used in conjuction with IFU reduction code, Panacea
 
 """
 
+import matplotlib
+matplotlib.use('agg')
 from utils import biweight_location
 from scipy.optimize import nnls
+import matplotlib.pyplot as plt
 import numpy as np
 import time
+import sys
 
 def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
                          order=3, mx_cut=0.1, max_to_min_dist=5., debug=False,
@@ -109,75 +113,36 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
         print("Time Taken for Trace: %0.2f" %(t2-t1))
     return allfibers
     
-def fit_fibermodel_bins_image(image, Fibers, plot=False, fsize=8., 
-                              fiber_group=4, bins=15, col_group=24,
-                              debug):
-    a,b = image.shape                        
+def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8., 
+                                 fiber_group=4, bins=15, col_group=24,
+                                 debug=False):
+    a,b = image.shape 
+    ygrid,xgrid = np.indices(image.shape)                       
     nfibs = len(Fibers) 
-    ncols = b
+    ncols = b / col_group
     so = np.zeros((nfibs,ncols,bins+2))
-    if self.debug:
+    if debug:
         t1 = time.time()
+    xcols = np.arange(col_group/2, int((ncols-1/2.)*col_group)+1, ncols)
     for j in xrange(nfibs):
         for i in xrange(ncols):
-            sol = fit_fibermodel_bins_get_norm(fib=j, group=fiber_group, 
+            sol = fit_fibermodel_nonparametric_bins(fib=j, group=fiber_group, 
                                      bins=bins, xlow=i*col_group, 
                                      xhigh=(i+1)*col_group, plot=plot)
-            so[j,i,:] = sol
+            so[j,i,:] = sol         
     if debug:
         t2 = time.time()
-        print("Solution took: %0.3f s" %(t2-t1))  
-    for i in xrange(len(self.sol)):
-        mn = np.percentile(so[:,:,i],10)
-        mx = np.percentile(so[:,:,i],90)
-        fig = plt.figure(figsize=(8,6))
-        plt.imshow(so[:,:,i], vmin=mn, vmax=mx, interpolation='nearest', 
-                   origin='lower',extent=[0,1032,0,2064])
-        plt.colorbar()
-    
+        print("Solution took: %0.3f s" %(t2-t1))
+    if plot:
+        for i in xrange(len(sol)):
+            mn = np.percentile(so[:,:,i],10)
+            mx = np.percentile(so[:,:,i],90)
+            plt.figure(figsize=(8,6))
+            plt.imshow(so[:,:,i], vmin=mn, vmax=mx, interpolation='nearest', 
+                       origin='lower',extent=[0,1032,0,2064])
+            plt.colorbar()
+    return so, xcols
         
-def eval_profile_bins(Fibers, x, nbins, fibers, bins):
-    Fl = np.zeros((len(x), nbins, len(fibers)))
-    Pl = np.zeros((len(x),len(fibers)))
-    i = 0
-    fun = np.zeros((nbins,))
-    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
-    def plaw(xp, plaw_coeff):
-        return plaw_coeff[0] / (plaw_coeff[1] + plaw_coeff[2]
-                  * np.power(abs(xp), plaw_coeff[3]))
-    for fibnum in fibers:
-        ix = x-Fibers[fibnum].trace
-        for j in xrange(nbins):
-            fun[j] = 1.0
-            Fl[:,j,i] = np.interp(ix,bins,fun,left=0.0,right=0.0)
-            fun[j] = 0.0
-        Pl[:,i] = plaw((x-self.f0[fibnum])/2.5,plaw_coeff)
-        i+=1
-    return Fl, Pl
-
-def eval_norm_bins(self, x, y, yerr, sel, sol, fibers, xlow, xhigh, Fl, Pl):
-    init_model = np.zeros((len(x),len(fibers)))
-    flat = np.zeros((len(x),))
-    flat_err = np.zeros((len(x),))
-    norm = np.zeros((len(fibers),xhigh-xlow))
-    normfits = np.zeros((len(x),len(fibers)))
-    full_model = np.zeros((y.shape))
-    for j,v in enumerate(np.arange(xlow,xhigh)):
-        xsel = np.where(self.x[sel]==v)[0]
-        i = 0
-        for fibnum in fibers:
-            init_model[xsel,i] = np.dot(Fl[xsel,:,i],sol) + Pl[xsel,i]
-            i+=1
-        self.fitx = init_model[xsel,:]
-        self.fity = y[xsel]
-        norm[:,j] = nnls(init_model[xsel,:],y[xsel])[0]
-        normfits[xsel,:] = np.ones((len(xsel),1)) * norm[:,j]
-        full_model[xsel] = np.dot(init_model[xsel,:],norm[:,j])
-        flat[xsel] = (y[xsel]/((init_model[xsel,:]*normfits[xsel,:]**2)
-            /(init_model[xsel,:]*normfits[xsel,:]).sum(axis=1)[:,np.newaxis]).sum(axis=1))
-        flat_err[xsel] = flat[xsel] / y[xsel] * yerr[xsel]        
- 
-    return norm, init_model.sum(axis=1), flat, flat_err
     
 def init_fibermodel(fsize, bins, sigma=2.7, power=2.5):
     '''
@@ -210,57 +175,101 @@ def init_fibermodel(fsize, bins, sigma=2.7, power=2.5):
     sol[-1] = 0.0
     return bins, binx, sol
         
-def fit_fibermodel_bins(image, xgrid, ygrid, Fibers, fib=0, xlow=0, xhigh=1032, 
-                                 plot=False, fsize=8., group=4, bins=11,
-                                 niter=3, debug=False):
+def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0, 
+                                      xlow=0, xhigh=1032, plot=False, fsize=8., 
+                                      group=4, bins=11, niter=3, debug=False):
     '''
     : param Fibers:
         list of Fiber class objects (length = number of fibers)
     '''
     if debug:
-        t1 = time.time()
-    # The lowest fiber to be used in modeling
+        t1 = time.time()    
+    # Get initial model        
+    bins, binx, sol = init_fibermodel(fsize=fsize, bins=bins)
+
+    # Normalize the profiles to 1.
+    sol /= np.sum(sol[:-1] * np.diff(binx))
+    
+    # The lowest and highest fiber to be used in modeling
     lowfib = np.max([0,fib-group/2])
-    # The highest fiber to be used in modeling
-    highfib = np.min([self.nfib-1,fib+group/2])
+    highfib = np.min([len(Fibers)-1,fib+group/2])
+    
     # get low y and high y for fit
     mn1 = np.min(Fibers[lowfib].trace[xlow:xhigh])
     mx1 = np.max(Fibers[lowfib].trace[xlow:xhigh])
     mn2 = np.min(Fibers[highfib].trace[xlow:xhigh])
     mx2 = np.max(Fibers[highfib].trace[xlow:xhigh])
     ylow = int(np.min([mn1,mn2,mx1,mx2]))
-    yhigh = int(np.max([m1,mn2,mx1,mx2]))+1
+    yhigh = int(np.max([mn1,mn2,mx1,mx2]))+1
+    ymean = np.mean(Fibers[fib].trace[xlow:xhigh])
     
-    bins, binx, sol = init_fibermodel(fsize=fsize, bins=bins)
-    image_cut=image[ylow:yhigh,xlow:xhigh].ravel()
-    xgrid_cut=xgrid[ylow:yhigh,xlow:xhigh].ravel()
-    ygrid_cut=ygrid[ylow:yhigh,xlow:xhigh].ravel()
+    # Define cutouts and fibers
+    fibers = Fibers[lowfib:highfib+1]
+    x = xgrid[ylow:yhigh,xlow:xhigh].ravel()
+    y = ygrid[ylow:yhigh,xlow:xhigh].ravel()
+    z = image[ylow:yhigh,xlow:xhigh].ravel()
+    # Dummy error
+    zerr = np.sqrt(image[ylow:yhigh,xlow:xhigh].ravel())
+    
+    # selection within cutout
     ycutl=np.repeat(Fibers[lowfib].trace[xlow:xhigh],yhigh-ylow)
     ycuth=np.repeat(Fibers[highfib].trace[xlow:xhigh],yhigh-ylow)
-    sel = (ygrid_cut>=ycutl) * (ygrid_cut<=ycuth)
-    x = ygrid_cut[sel]
-    y = image_cut[sel]
-
-
-    # Normalize the profiles to 1.
-    sol /= np.sum(sol[:-1] * np.diff(binx))
+    sel = np.where((y>=ycutl) * (y<=ycuth))[0]    
+    # Create empty arrays for the fibermodel weights in each given pixel from 
+    Fl = np.zeros((len(x), bins, len(fibers)))
+    Pl = np.zeros((len(x),len(fibers)))
+    fun = np.zeros((bins,))
+    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
+    def plaw(xp, plaw_coeff):
+        return plaw_coeff[0] / (plaw_coeff[1] + plaw_coeff[2]
+                  * np.power(abs(xp), plaw_coeff[3]))
+    i = 0
+    for fiber in fibers:
+        ytrace = np.repeat([fiber.trace[xlow:xhigh]],(yhigh-ylow))
+        ix = y-ytrace
+        for j in xrange(bins):
+            fun[j] = 1.0
+            Fl[:,j,i] = np.interp(ix,bins,fun,left=0.0,right=0.0)
+            fun[j] = 0.0
+        Pl[:,i] = plaw(ix / 2.5, plaw_coeff)
+        i+=1
+        
+    F = Fl.sum(axis=2)
+    P = Pl.sum(axis=1)[sel]    
+    
+    # Solve for fiber model iteratively with the normalization
     for i in xrange(niter):
-        Fl, Pl = eval_profile_bins(Fibers, x, bins, 
-                                   np.arange(lowfib,highfib+1), binx)
-        norm, model, flat, flat_err = self.eval_norm_bins(x, y, yerr, sel, 
-                                             sol, np.arange(lowfib,highfib+1),    
-                                             xlow+1, xhigh, Fl, Pl)
-        F = Fl.sum(axis=2)
-        nozeros = np.where(np.isfinite(flat))[0]
+        init_model = np.zeros((len(x),len(fibers)))
+        flat = np.zeros((len(x),))
+        flat_err = np.zeros((len(x),))
+        norm = np.zeros((len(fibers),xhigh-xlow))
+        normfits = np.zeros((len(x),len(fibers)))
+        for j,v in enumerate(np.arange(xlow,xhigh)):
+            xsel = np.where(x==v)[0]
+            k = 0
+            for fiber in fibers:
+                init_model[xsel,k] = np.dot(Fl[xsel,:,k],sol) + Pl[xsel,k]
+                k+=1
+            # Solve for the normalization of the number of fibers
+            norm[:,j] = nnls(init_model[xsel,:],z[xsel])[0]
+            normfits[xsel,:] = np.ones((len(xsel),1)) * norm[:,j]
+            #full_model[xsel] = np.dot(init_model[xsel,:],norm[:,j])
+            flat[xsel] = (z[xsel]/((init_model[xsel,:]*normfits[xsel,:]**2)
+                         /(init_model[xsel,:]*normfits[xsel,:]).sum(axis=1)
+                                                [:,np.newaxis]).sum(axis=1))
+            flat_err[xsel] = flat[xsel] / z[xsel] * zerr[xsel]        
+     
         try:
-            sol1 = nnls(F[nozeros,1:-1],flat[nozeros]-Pl.sum(axis=1)[nozeros])[0]
+            sol1 = nnls(F[sel,1:-1],flat[sel] - P)[0]
         except ValueError:
-            print(flat[nozeros])
+            print(flat[sel])
+            print("nnls for fiber model solution failed on iteration %i" %i)
             sys.exit(1)
         sol = np.hstack([0.0,sol1,0.0])
         sol /= np.sum(sol[:-1] * np.diff(binx))
-    self.sol = sol * 1.
-    model = np.dot(F,self.sol) + Pl.sum(axis=1)
+    return sol, binx
+    
+    model = np.dot(F,sol) + Pl.sum(axis=1)
     PV = np.array([x,flat_err]).T
     PV = PV[np.argsort(PV[:,0]),:]
     if debug:
@@ -273,26 +282,27 @@ def fit_fibermodel_bins(image, xgrid, ygrid, Fibers, fib=0, xlow=0, xhigh=1032,
         normplot = plt.axes([.55,.1,0.35,0.4])
         fibplot.scatter(x, flat, c=[1.0,0.31,0.31], edgecolor='none', alpha=0.5,
                     s=8)
+        ytrace = np.repeat([Fibers[fib].trace[xlow:xhigh]],(yhigh-ylow))
         for i in xrange(len(Fl[0,0,:])):
-            lmodel = np.dot(Fl[:,:,i],self.sol) + Pl[:,i]
-            fibplot.scatter(x, lmodel, c=[0.41,0.41,0.91],edgecolor='none',
+            lmodel = np.dot(Fl[:,:,i],sol) + Pl[:,i]
+            fibplot.scatter(y-ytrace, lmodel, c=[0.41,0.41,0.91],edgecolor='none',
                     alpha=0.5,s=8)
-        fibplot.scatter(x, model, c=[0.11,0.11,0.91],edgecolor='none',
+        fibplot.scatter(y-ytrace, model, c=[0.11,0.11,0.91],edgecolor='none',
                     alpha=0.5,s=5)
         fibplot.fill_between(PV[:,0], PV[:,1], -1*PV[:,1],
                          facecolor=[1.0,0.5,.52],edgecolor=[0.9,0.3,.32])
-        fibplot.scatter(x, flat - model, c=[0.41,0.41,0.41],edgecolor='none',
+        fibplot.scatter(y-ytrace, flat - model, c=[0.41,0.41,0.41],edgecolor='none',
                     alpha=0.5,s=5)
-        fibplot.axis([flow, fhigh, -0.01, 0.22])
+        fibplot.axis([ylow-ymean, yhigh-ymean, -0.01, 0.22])
         cmap = plt.get_cmap('RdBu_r')
-        cax = implot.scatter(self.x[sel], self.f[sel], c=flat/model, 
+        
+        cax = implot.scatter(x[sel],y[sel]-ytrace[sel], c=flat/model, 
                              cmap=cmap, edgecolor='none', s=5, vmin=0.95, 
                              vmax=1.05,marker='s')
         for i in xrange(lowfib,highfib+1):
-            implot.plot([np.min(self.x[sel]),np.max(self.x[sel])],
-                      [self.f0[i],self.f0[i]],c=[0.3,0.8,0.32],alpha=0.4)
-        implot.axis([np.min(self.x[sel]),np.max(self.x[sel]),
-                     np.min(self.f[sel]),np.max(self.f[sel])])
+            yt = Fibers[i].trace[xlow:xhigh]-Fibers[fib].trace[xlow:xhigh]
+            implot.plot(np.arange(xlow,xhigh), yt, c=[0.3,0.8,0.32], alpha=0.4)
+        implot.axis([xlow, xhigh, ylow-ymean, yhigh-ymean])
         implot.axis('scaled')
         cbaxes = fig.add_axes([0.4, 0.1, 0.03, 0.4]) 
         cb = plt.colorbar(cax, cax = cbaxes)            
@@ -302,5 +312,6 @@ def fit_fibermodel_bins(image, xgrid, ygrid, Fibers, fib=0, xlow=0, xhigh=1032,
             normplot.plot(np.arange(xlow+1,xhigh), norm[i,:], 
                           c=cmap((1.*i)/(mx-1)))
         normplot.set_xlim([xlow+1,xhigh])
-        fig.savefig("fit_bins_cam%s_%i_%i_%i.png" %(self.specid,fib,xlow,xhigh),dpi=150)
+        fig.savefig("fit_bins_cam%s_%i_%i_%i.png" 
+                    %(Fibers[fib].specid, fib, xlow, xhigh), dpi=150)
         plt.close(fig)    
