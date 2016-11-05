@@ -32,6 +32,7 @@ from fibers import Fibers
 from six.moves import configparser
 
 class Panacea(object):
+    # TODO Just be simple at first.
     """
     A reduction object 
     :param dim:
