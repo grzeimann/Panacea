@@ -26,7 +26,7 @@ from fiber import Fiber
 __all__ = ["Amplifier"]
 
 class Amplifier:
-    def __init__(self, filename, path):
+    def __init__(self, filename, path, calpath=None, debug=False):
         ''' 
         Initialize class
         ----------------
@@ -52,6 +52,9 @@ class Amplifier:
         self.fiber_fn = None
         self.fibers = []
         self.image = None
+        self.type = F[0].header['IMAGETYP'].replace(' ', '')
+        self.calpath = calpath
+        self.debug = debug
         
     def check_overscan(self, image, recalculate=False):
         if (self.overscan_value is None) or recalculate:
@@ -65,15 +68,18 @@ class Amplifier:
             os.mkdir(self.path)
         with open(fn, 'wb') as f:
            pickle.dump(self, f)
+           
 
     def load_fibers(self):
-        fn = op.join(self.path, 'fiber_*_%s.pkl' % self.basename)
-        glob.glob(fn)
-        if not op.exists(self.path):
-            os.mkdir(self.path)
-        with open(fn, 'wb') as f:
-           pickle.dump(self, f)
-    
+        if not self.fibers:
+            fn = op.join(self.path, 'fiber_*_%s.pkl' % self.basename)
+            files = sorted(glob.glob(fn))
+            for fiber_fn in files:
+                if op.exists(fiber_fn):
+                    with open(fiber_fn, 'r') as f:
+                        self.fibers.append(pickle.load(f))
+
+      
     def orient(self, image):
         '''
         Orient the images from blue to red (left to right)
@@ -94,43 +100,78 @@ class Amplifier:
     def get_trace(self):
         if self.image is None:
             self.get_image()
-        allfibers, xc = get_trace_from_image(self.image)
-        try:
-            np.vstack(allfibers)
-        except ValueError:
-            print("The traces didn't find the same number of fibers for each "
-                  "column. Going to more complicated mode ...")
-            sys.exit(1)
-            # TODO make smarter for matching to known number of fibers
-        for i, fibery in enumerate(allfibers):
-            append_flag = False
+        if self.type == 'twi':
+            allfibers, xc = get_trace_from_image(self.image, debug=self.debug)
             try:
-                F = self.fibers[i]
-            except IndexError:    
-                F = Fiber(self.D, i+1)
-                append_flag = True
-            F.trace_x[xc] = xc
-            F.trace_y[xc] = fibery
-            F.fit_trace_poly()
-            F.eval_trace_poly()
-            if append_flag:
-                self.fibers.append(F)
+                np.vstack(allfibers)
+            except ValueError:
+                print("The traces didn't find the same number of fibers for each "
+                      "column. Going to more complicated mode ...")
+                sys.exit(1)
+                # TODO make smarter for matching to known number of fibers
+            for i, fibery in enumerate(allfibers):
+                append_flag = False
+                try:
+                    F = self.fibers[i]
+                except IndexError:    
+                    F = Fiber(self.D, i+1)
+                    append_flag = True
+                F.trace_x[xc] = xc
+                F.trace_y[xc] = fibery
+                F.fit_trace_poly()
+                F.eval_trace_poly()
+                if append_flag:
+                    self.fibers.append(F)
+        if self.type == 'sci':
+            fn = op.join(self.calpath, 'fiber_*_%s.pkl' % self.basename)
+            files = sorted(glob.glob(fn))
+            for i, fiber_fn in enumerate(files):
+                append_flag = False
+                try:
+                    F = self.fibers[i]
+                except IndexError:    
+                    F = Fiber(self.D, i+1)
+                    append_flag = True
+                with open(fiber_fn, 'r') as f:
+                    F1 = pickle.load(f)
+                F.trace = F1.trace * 1.
+                if append_flag:
+                    self.fibers.append(F)
+                
                 
     def get_fibermodel(self, poly_order=3):
         if self.image is None:
             self.get_image()
         if not self.fibers:
             self.get_trace()
-        sol, xcol, binx = fit_fibermodel_nonparametric(self.image, self.fibers)
-        nfibs, ncols, nbins = sol.shape
-        for fiber in self.fibers:
-            xf = []
-            for i in xrange(nbins):
-                np.polyfit()
-            fiber.binx = binx
-            fiber.fibmodel = 
-            fiber.fibmodel_poly_order = poly_order
-        
+        if self.type == 'twi':
+            sol, xcol, binx = fit_fibermodel_nonparametric(self.image, 
+                                                           self.fibers,
+                                                           debug=self.debug)
+            nfibs, ncols, nbins = sol.shape
+            for i, fiber in enumerate(self.fibers):
+                fiber.init_fibmodel_info(nbins)
+                fiber.fibmodel_poly_order = poly_order
+                fiber.fibmodel_x[xcol] = xcol
+                fiber.fibmodel_y[xcol,:] = sol[i,:,:]
+                fiber.binx = binx
+                fiber.fit_fibmodel_poly()
+                fiber.eval_fibmodel_poly()
+        if self.type == 'sci':
+            fn = op.join(self.calpath, 'fiber_*_%s.pkl' % self.basename)
+            files = sorted(glob.glob(fn))
+            for i, fiber_fn in enumerate(files):
+                append_flag = False
+                try:
+                    F = self.fibers[i]
+                except IndexError:    
+                    F = Fiber(self.D, i+1)
+                    append_flag = True
+                with open(fiber_fn, 'r') as f:
+                    F1 = pickle.load(f)
+                F.fibmodel = F1.fibmodel * 1.
+                if append_flag:
+                    self.fibers.append(F)        
         
         
         
