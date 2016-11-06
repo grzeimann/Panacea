@@ -43,9 +43,10 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
     allfibers=[]
     a, b = image.shape
     x = np.arange(a)
+    xc = x[x_window, b-1-x_window]
     if debug:
         t1 = time.time()
-    for i in xrange(x_window, b-1-x_window):
+    for i in xc:
         # Average 2*x_windwow columns at a time
         y = biweight_location(image[:,(i-x_window):(i+x_window+1)], axis=(1,))
         
@@ -111,7 +112,7 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
     if debug:
         t2 = time.time()
         print("Time Taken for Trace: %0.2f" %(t2-t1))
-    return allfibers
+    return allfibers, xc
     
 def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8., 
                                  fiber_group=4, bins=15, col_group=24,
