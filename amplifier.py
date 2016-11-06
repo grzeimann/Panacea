@@ -19,7 +19,7 @@ import os
 import sys
 import re
 import cPickle as pickle
-from fiber_utils import get_trace_from_image
+from fiber_utils import get_trace_from_image, fit_fibermodel_nonparametric
 from fiber import Fiber
 
 __all__ = ["Amplifier"]
@@ -79,12 +79,12 @@ class Amplifier:
     def get_image(self):
         image = fits.open(self.filename)[0].data
         self.check_overscan(image)
-        return self.orient(image[self.trimsec[2]:self.trimsec[3], 
-                     self.trimsec[0]:self.trimsec[1]])
+        self.image = self.orient(image[self.trimsec[2]:self.trimsec[3], 
+                                       self.trimsec[0]:self.trimsec[1]])
     
     def get_trace(self):
         if self.image is None:
-            self.image = self.get_image()
+            self.get_image()
         allfibers, xc = get_trace_from_image(self.image)
         try:
             np.vstack(allfibers)
@@ -109,7 +109,13 @@ class Amplifier:
                 
     def get_fibermodel(self):
         if self.image is None:
-            self.image = self.get_image()
+            self.get_image()
+        if not self.fibers:
+            self.get_trace()
+        
+            
+        fit_fibermodel_nonparametric(self.image, self.fibers)
+        
         
         
        

@@ -127,9 +127,13 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
     xcols = np.arange(col_group/2, int((ncols-1/2.)*col_group)+1, ncols)
     for j in xrange(nfibs):
         for i in xrange(ncols):
-            sol = fit_fibermodel_nonparametric_bins(fib=j, group=fiber_group, 
-                                     bins=bins, xlow=i*col_group, 
-                                     xhigh=(i+1)*col_group, plot=plot)
+            sol = fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, 
+                                                    Fibers, fib=j, 
+                                                    group=fiber_group, 
+                                                    bins=bins, 
+                                                    xlow=i*col_group, 
+                                                    xhigh=(i+1)*col_group, 
+                                                    plot=plot)
             so[j,i,:] = sol         
     if debug:
         t2 = time.time()
