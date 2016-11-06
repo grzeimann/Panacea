@@ -102,19 +102,25 @@ class Amplifier:
                 append_flag = True
             F.trace_x[xc] = xc
             F.trace_y[xc] = fibery
-            F.fitpoly()
-            F.evalpoly()
+            F.fit_trace_poly()
+            F.eval_trace_poly()
             if append_flag:
                 self.fibers.append(F)
                 
-    def get_fibermodel(self):
+    def get_fibermodel(self, poly_order=3):
         if self.image is None:
             self.get_image()
         if not self.fibers:
             self.get_trace()
+        sol, xcol = fit_fibermodel_nonparametric(self.image, self.fibers)
+        nfibs, ncols, nbins = sol.shape
+        for fiber in self.fibers:
+            xf = []
+            for i in xrange(nbins):
+                np.polyfit()
+            fiber.fibmodel = 
+            fiber.fibmodel_poly_order = poly_order
         
-            
-        fit_fibermodel_nonparametric(self.image, self.fibers)
         
         
         
