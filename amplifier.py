@@ -14,8 +14,10 @@ from __future__ import (division, print_function, absolute_import,
 from utils import biweight_location
 from astropy.io import fits
 import os.path as op
+import os
 import sys
 import re
+import cPickle as pickle
 
 __all__ = ["Amplifier"]
 
@@ -30,9 +32,9 @@ class Amplifier:
             sys.exit(1)
 
         F = fits.open(filename)
-        self.filename = filename
+        self.filename = op.abspath(filename)
         self.basename = op.basename(filename)[:-5]
-        self.path            
+        self.path = path            
         self.N,self.D = F[0].data.shape
         self.overscan_value = None
         self.gain = F[0].header['GAIN']
@@ -50,7 +52,9 @@ class Amplifier:
                                               self.biassec[0]:self.biassec[1]])
    
     def save(self):
-        fn = op.join(path, 'amp_%.pkl' % basename)
+        fn = op.join(self.path, 'amp_%s.pkl' % self.basename)
+        if not op.exists(self.path):
+            os.mkdir(self.path)
         with open(fn, 'wb') as f:
-           pickle.dump(f, self)
+           pickle.dump(self, f)
        
