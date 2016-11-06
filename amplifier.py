@@ -38,7 +38,10 @@ class Amplifier:
         F = fits.open(filename)
         self.filename = op.abspath(filename)
         self.basename = op.basename(filename)[:-5]
-        self.path = path            
+        self.path = path
+        if not op.exists(self.path):
+            os.mkdir(self.path)
+            
         self.N,self.D = F[0].data.shape
         self.overscan_value = None
         self.gain = F[0].header['GAIN']
@@ -173,6 +176,5 @@ class Amplifier:
                 if append_flag:
                     self.fibers.append(F)        
         
-        
-        
+               
        

@@ -43,7 +43,7 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
     allfibers=[]
     a, b = image.shape
     x = np.arange(a)
-    xc = x[x_window, b-1-x_window]
+    xc = np.arange(b)[x_window:(b-1-x_window)]
     if debug:
         t1 = time.time()
     for i in xc:
