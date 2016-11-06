@@ -18,6 +18,7 @@ import numpy as np
 import os
 import sys
 import re
+import glob
 import cPickle as pickle
 from fiber_utils import get_trace_from_image, fit_fibermodel_nonparametric
 from fiber import Fiber
@@ -60,6 +61,14 @@ class Amplifier:
    
     def save(self):
         fn = op.join(self.path, 'amp_%s.pkl' % self.basename)
+        if not op.exists(self.path):
+            os.mkdir(self.path)
+        with open(fn, 'wb') as f:
+           pickle.dump(self, f)
+
+    def load_fibers(self):
+        fn = op.join(self.path, 'fiber_*_%s.pkl' % self.basename)
+        glob.glob(fn)
         if not op.exists(self.path):
             os.mkdir(self.path)
         with open(fn, 'wb') as f:
@@ -112,12 +121,13 @@ class Amplifier:
             self.get_image()
         if not self.fibers:
             self.get_trace()
-        sol, xcol = fit_fibermodel_nonparametric(self.image, self.fibers)
+        sol, xcol, binx = fit_fibermodel_nonparametric(self.image, self.fibers)
         nfibs, ncols, nbins = sol.shape
         for fiber in self.fibers:
             xf = []
             for i in xrange(nbins):
                 np.polyfit()
+            fiber.binx = binx
             fiber.fibmodel = 
             fiber.fibmodel_poly_order = poly_order
         
