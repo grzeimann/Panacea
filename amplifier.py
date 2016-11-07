@@ -121,20 +121,28 @@ class Amplifier:
                 if append_flag:
                     self.fibers.append(F)
                 self.fibers[i].init_trace_info()
+                self.fibers[i].trace_x[brcol] = brcol
+                self.fibers[i].trace_y[brcol] = standardcol[i]
             for c in cols1:
                 loc = np.where(xc==c)[0]
                 for i in xrange(len(standardcol)):
                     yvals = allfibers[loc]
-                    floc = np.argmin(np.abs(standardcol[i] - yvals))
-                    if np.abs(standardcol[i] - yvals[floc]) < fdist:
+                    xloc = np.argmin(np.abs(self.fibers[i].trace_x - c))
+                    floc = np.argmin(np.abs(self.fibers[i].trace_y[xloc] 
+                                            - yvals))
+                    if (np.abs(self.fibers[i].trace_y[xloc] 
+                                                       - yvals[floc]) < fdist):
                         self.fibers[i].trace_x[c] = c
                         self.fibers[i].trace_y[c] = yvals[floc]
             for c in cols2:
                 loc = np.where(xc==c)[0]
                 for i in xrange(len(standardcol)):
                     yvals = allfibers[loc]
-                    floc = np.argmin(np.abs(standardcol[i] - yvals))
-                    if np.abs(standardcol[i] - yvals[floc]) < fdist:
+                    xloc = np.argmin(np.abs(self.fibers[i].trace_x - c))
+                    floc = np.argmin(np.abs(self.fibers[i].trace_y[xloc] 
+                                            - yvals))
+                    if (np.abs(self.fibers[i].trace_y[xloc] 
+                                                       - yvals[floc]) < fdist):
                         self.fibers[i].trace_x[c] = c
                         self.fibers[i].trace_y[c] = yvals[floc]
             for fiber in self.fibers:

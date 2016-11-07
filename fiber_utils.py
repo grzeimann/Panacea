@@ -115,7 +115,7 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
     return allfibers, xc
     
 def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8., 
-                                 fiber_group=4, bins=15, col_group=24,
+                                 fiber_group=4, bins=15, col_group=48,
                                  debug=False):
     a,b = image.shape 
     ygrid,xgrid = np.indices(image.shape)                       
@@ -168,7 +168,7 @@ def init_fibermodel(fsize, bins, sigma=2.7, power=2.5):
     '''
     # Define the bins   
     xt = np.linspace(-1*fsize,fsize,501.)
-    yt = np.exp(-1./2.*((xt/sigma)**power))
+    yt = np.exp(-1./2.*((np.abs(xt/sigma))**power))
     yt /= np.sum(yt*(xt[2]-xt[1]))
     cf = np.cumsum(np.abs(np.diff(np.diff(yt))))
     cf /= np.max(cf)
@@ -176,7 +176,7 @@ def init_fibermodel(fsize, bins, sigma=2.7, power=2.5):
     binx = np.interp(np.linspace(0,1,bins),cf,xtp)
     binx = np.hstack([binx[:(bins/2)],-.4,binx[bins/2],0.4,binx[((bins/2)+1):]])
     bins+=2
-    sol = np.interp(binx,xt,yt)
+    sol = np.interp(binx,xt,yt,left=0.0,right=0.0)
     sol[0] = 0.0
     sol[-1] = 0.0
     return bins, binx, sol
@@ -208,7 +208,6 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     ylow = int(np.min([mn1,mn2,mx1,mx2]))
     yhigh = int(np.max([mn1,mn2,mx1,mx2]))+1
     ymean = np.mean(Fibers[fib].trace[xlow:xhigh])
-    
     # Define cutouts and fibers
     fibers = Fibers[lowfib:highfib+1]
     x = xgrid[ylow:yhigh,xlow:xhigh].ravel()
@@ -222,8 +221,8 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     ycuth=np.repeat(Fibers[highfib].trace[xlow:xhigh],yhigh-ylow)
     sel = np.where((y>=ycutl) * (y<=ycuth))[0]    
     # Create empty arrays for the fibermodel weights in each given pixel from 
-    Fl = np.zeros((len(x), bins, len(fibers)))
-    Pl = np.zeros((len(x),len(fibers)))
+    Fl = np.zeros((len(y), bins, len(fibers)))
+    Pl = np.zeros((len(y),len(fibers)))
     fun = np.zeros((bins,))
     plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
     def plaw(xp, plaw_coeff):
@@ -235,7 +234,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
         ix = y-ytrace
         for j in xrange(bins):
             fun[j] = 1.0
-            Fl[:,j,i] = np.interp(ix,bins,fun,left=0.0,right=0.0)
+            Fl[:,j,i] = np.interp(ix,binx,fun,left=0.0,right=0.0)
             fun[j] = 0.0
         Pl[:,i] = plaw(ix / 2.5, plaw_coeff)
         i+=1
@@ -273,7 +272,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
             sys.exit(1)
         sol = np.hstack([0.0,sol1,0.0])
         sol /= np.sum(sol[:-1] * np.diff(binx))
-    return sol, binx
+    return sol
     
     model = np.dot(F,sol) + Pl.sum(axis=1)
     PV = np.array([x,flat_err]).T
