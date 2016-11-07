@@ -173,7 +173,8 @@ class Amplifier:
             check_fiber_trace(self.image, self.fibers, outfile)
             
                 
-    def get_fibermodel(self, poly_order=3, use_default=False):
+    def get_fibermodel(self, poly_order=3, use_default=False, 
+                       make_plots=False):
         if self.image is None:
             self.get_image()
         if not self.fibers:
@@ -182,7 +183,10 @@ class Amplifier:
             sol, xcol, binx = fit_fibermodel_nonparametric(self.image, 
                                                            self.fibers,
                                                            debug=self.debug,
-                                                       use_default=use_default)
+                                                       use_default=use_default,
+                                                       plot=make_plots,
+                                                       outfolder=self.path,
+                                                       fiber_group=8)
             nfibs, ncols, nbins = sol.shape
             for i, fiber in enumerate(self.fibers):
                 fiber.init_fibmodel_info(nbins)

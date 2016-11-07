@@ -11,6 +11,8 @@ To be used in conjuction with IFU reduction code, Panacea
 from utils import biweight_location
 from scipy.optimize import nnls
 import matplotlib.pyplot as plt
+import matplotlib
+import os.path as op
 import numpy as np
 import time
 import sys
@@ -115,7 +117,8 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
     
 def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8., 
                                  fiber_group=4, bins=15, col_group=48,
-                                 debug=False, use_default=False):
+                                 debug=False, use_default=False,
+                                 outfolder=None):
     a,b = image.shape 
     ygrid,xgrid = np.indices(image.shape)                       
     nfibs = len(Fibers) 
@@ -134,12 +137,13 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
                                                     bins=bins, fsize=fsize,
                                                     xlow=i*col_group, 
                                                     xhigh=(i+1)*col_group, 
-                                                    plot=plot)                
+                                                    plot=plot,
+                                                    outfolder=outfolder)                
             so[j,i,:] = sol         
     if debug:
         t2 = time.time()
         print("Solution took: %0.3f s" %(t2-t1))
-    if plot:
+    if False:#plot:
         for i in xrange(len(sol)):
             mn = np.percentile(so[:,:,i],10)
             mx = np.percentile(so[:,:,i],90)
@@ -202,7 +206,8 @@ def init_fibermodel(fsize, bins, sigma=2.7, power=2.5):
         
 def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0, 
                                       xlow=0, xhigh=1032, plot=False, fsize=8., 
-                                      group=4, bins=11, niter=3, debug=False):
+                                      group=4, bins=11, niter=3, debug=False,
+                                      outfolder=None):
     '''
     : param Fibers:
         list of Fiber class objects (length = number of fibers)
@@ -291,22 +296,21 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
             sys.exit(1)
         sol = np.hstack([0.0,sol1,0.0])
         sol /= np.sum(sol[:-1] * np.diff(binx))
-    return sol
     
-    model = np.dot(F,sol) + Pl.sum(axis=1)
-    PV = np.array([x,flat_err]).T
-    PV = PV[np.argsort(PV[:,0]),:]
     if debug:
         t2 = time.time()
         print("Solution took: %0.3f s" %(t2-t1))        
     if plot:
+        model = np.dot(F,sol) + Pl.sum(axis=1)
+        PV = np.array([x,flat_err]).T
+        PV = PV[np.argsort(PV[:,0]),:]
         fig = plt.figure(figsize=(8,6))
         fibplot = plt.axes([0.1,0.55,0.8,0.4])
         implot = plt.axes([0.1,0.1,0.28,0.4])
         normplot = plt.axes([.55,.1,0.35,0.4])
-        fibplot.scatter(x, flat, c=[1.0,0.31,0.31], edgecolor='none', alpha=0.5,
-                    s=8)
         ytrace = np.repeat([Fibers[fib].trace[xlow:xhigh]],(yhigh-ylow))
+        fibplot.scatter(y-ytrace, flat, c=[1.0,0.31,0.31], edgecolor='none', 
+                        alpha=0.5, s=8)
         for i in xrange(len(Fl[0,0,:])):
             lmodel = np.dot(Fl[:,:,i],sol) + Pl[:,i]
             fibplot.scatter(y-ytrace, lmodel, c=[0.41,0.41,0.91],edgecolor='none',
@@ -320,7 +324,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
         fibplot.axis([ylow-ymean, yhigh-ymean, -0.01, 0.22])
         cmap = plt.get_cmap('RdBu_r')
         
-        cax = implot.scatter(x[sel],y[sel]-ytrace[sel], c=flat/model, 
+        cax = implot.scatter(x[sel],y[sel]-ytrace[sel], c=flat[sel]/model[sel], 
                              cmap=cmap, edgecolor='none', s=5, vmin=0.95, 
                              vmax=1.05,marker='s')
         for i in xrange(lowfib,highfib+1):
@@ -333,12 +337,14 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
         cmap = matplotlib.cm.get_cmap('viridis')
         mx = highfib+1 - lowfib
         for i in xrange(mx):
-            normplot.plot(np.arange(xlow+1,xhigh), norm[i,:], 
+            normplot.plot(np.arange(xlow,xhigh), norm[i,:], 
                           c=cmap((1.*i)/(mx-1)))
-        normplot.set_xlim([xlow+1,xhigh])
-        fig.savefig("fit_bins_cam%s_%i_%i_%i.png" 
-                    %(Fibers[fib].specid, fib, xlow, xhigh), dpi=150)
+        normplot.set_xlim([xlow,xhigh])
+        if not outfolder:
+            fig.savefig(op.join(outfolder, "fit_bins_cam%s_%i_%i_%i.png" 
+                    %(Fibers[fib].specid, fib, xlow, xhigh)), dpi=150)
         plt.close(fig)    
+    return sol
 
 
 def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0, 
