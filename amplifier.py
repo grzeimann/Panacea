@@ -21,6 +21,7 @@ import re
 import glob
 import cPickle as pickle
 from fiber_utils import get_trace_from_image, fit_fibermodel_nonparametric
+from fiber_utils import get_norm_nonparametric
 from fiber import Fiber
 
 __all__ = ["Amplifier"]
@@ -201,6 +202,18 @@ class Amplifier:
                 F.fibmodel = F1.fibmodel * 1.
                 if append_flag:
                     self.fibers.append(F)        
+
+    def fiberextract(self, poly_order=3, use_default=False):
+        if self.image is None:
+            self.get_image()
+        if not self.fibers:
+            self.get_trace()
+        if not self.fibers[0].fibmodel:
+            self.get_fibermodel(poly_order=poly_order, use_default=use_default)
+        norm = get_norm_nonparametric(self.image, self.fibers, 
+                                      debug=self.debug)
+        for i, fiber in enumerate(self.fibers):
+            fiber.spectrum = norm[i,:]
         
                
        
