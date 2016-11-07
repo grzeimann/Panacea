@@ -17,7 +17,7 @@ import sys
 
 def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
                          order=3, mx_cut=0.1, max_to_min_dist=5., debug=False,
-                         first_order_iter=5):
+                         first_order_iter=5, interp_window=3.):
     '''
     :param image:
         Image [FITS] from which to fit the trace.
@@ -100,7 +100,7 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
             lwa = ((y[mn1:mn2]*x[mn1:mn2]).sum()/(y[mn1:mn2]).sum())
             # Iterating and interpolating to refine the centroid
             for k in xrange(first_order_iter):
-                xp = np.linspace(lwa-y_window, lwa+y_window, num=50)
+                xp = np.linspace(lwa-interp_window, lwa+interp_window, num=50)
                 yp = np.interp(xp, x[mn1:mn2], y[mn1:mn2],left=0,right=0)
                 lwa = (yp*xp).sum()/yp.sum()
             peaks_refined[j] = lwa

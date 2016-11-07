@@ -107,7 +107,8 @@ class Amplifier:
         if self.image is None:
             self.get_image()
         if self.type == 'twi':
-            allfibers, xc = get_trace_from_image(self.image, debug=self.debug)
+            allfibers, xc = get_trace_from_image(self.image, interp_window=2.5,
+                                                 debug=self.debug)
             self.allfibers = allfibers
             brcol = np.argmin(np.abs(xc-self.D*.47))
             standardcol = allfibers[brcol]
@@ -129,7 +130,7 @@ class Amplifier:
             for c in cols1:
                 loc = np.where(xc==c)[0]
                 for i in xrange(len(standardcol)):
-                    yvals = allfibers[loc]
+                    yvals = allfibers[int(loc)]
                     xloc = np.argmin(np.abs(self.fibers[i].trace_x - c))
                     floc = np.argmin(np.abs(self.fibers[i].trace_y[xloc] 
                                             - yvals))
@@ -140,7 +141,7 @@ class Amplifier:
             for c in cols2:
                 loc = np.where(xc==c)[0]
                 for i in xrange(len(standardcol)):
-                    yvals = allfibers[loc]
+                    yvals = allfibers[int(loc)]
                     xloc = np.argmin(np.abs(self.fibers[i].trace_x - c))
                     floc = np.argmin(np.abs(self.fibers[i].trace_y[xloc] 
                                             - yvals))
