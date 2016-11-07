@@ -7,8 +7,7 @@ To be used in conjuction with IFU reduction code, Panacea
 
 """
 
-import matplotlib
-matplotlib.use('agg')
+
 from utils import biweight_location
 from scipy.optimize import nnls
 import matplotlib.pyplot as plt
@@ -163,7 +162,7 @@ def get_norm_nonparametric(image, Fibers, fsize=8., fiber_group=4,
         norm[j,:] = get_norm_nonparametric_bins(image, xgrid, ygrid, 
                                                     Fibers, fib=j, 
                                                     group=fiber_group, xlow=0, 
-                                                    xhigh=ncols)                
+                                                    xhigh=ncols, debug=debug)                
     if debug:
         t2 = time.time()
         print("Solution took: %0.3f s" %(t2-t1))
@@ -410,5 +409,34 @@ def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
         norm[:,j] = nnls(init_model[xsel,:],z[xsel])[0]
     if debug:
         t2 = time.time()
-        print("Solution took: %0.3f s" %(t2-t1))  
+        print("Solution for Fiber %i took: %0.3f s" %(fib, t2-t1))  
     return norm[fid,:]
+    
+def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
+    ylen,xlen = image.shape
+    ypos, xpos = np.indices((ylen,xlen))
+    xpos = xpos.ravel()
+    ypos = ypos.ravel()
+    # initial plot position    
+    fig = plt.figure(figsize=(12, 12))    
+    pos = 0
+    # For plotting purposes of the WaveCheck_{SPECID}_{SIDE}.pdf plots
+    plots = np.arange(1,10)
+    cmap = plt.get_cmap('Blues')
+    for i in [1, 0.5, 0]:
+        for j in [0, 0.5, 1]:
+            sub = fig.add_subplot(3, 3, plots[pos])
+            pos += 1
+            minx = int(j * -1 * xwidth + j * (xlen - 1.))
+            maxx = int((j-1) * -1 * xwidth + j * (xlen - 1.))
+            miny = int(i * -1 * ywidth + i * (ylen - 1.))
+            maxy = int((i-1) * -1 * ywidth + i * (ylen - 1.))
+            sub.imshow(image[miny:maxy,minx:maxx],origin='lower',
+                       extent=[minx,maxx,miny,maxy],interpolation='nearest',
+                       cmap=cmap)
+            for k in xrange(len(Fibers)):
+                sub.plot(np.arange(xlen), Fibers[k].trace+0.5, color=[1.0,0.4,0.35],
+                         linewidth=2)
+            plt.axis([minx, maxx, miny, maxy])
+    fig.savefig(outfile)
+    plt.close(fig) 

@@ -21,7 +21,7 @@ import re
 import glob
 import cPickle as pickle
 from fiber_utils import get_trace_from_image, fit_fibermodel_nonparametric
-from fiber_utils import get_norm_nonparametric
+from fiber_utils import get_norm_nonparametric, check_fiber_trace
 from fiber import Fiber
 
 __all__ = ["Amplifier"]
@@ -96,13 +96,14 @@ class Amplifier:
             image[:] = image[::-1,::-1]
         return image
        
+       
     def get_image(self):
         image = fits.open(self.filename)[0].data
         self.check_overscan(image)
         self.image = self.orient(image[self.trimsec[2]:self.trimsec[3], 
                                        self.trimsec[0]:self.trimsec[1]])
     
-    def get_trace(self, fdist=2.):
+    def get_trace(self, fdist=2., check_trace=True):
         if self.image is None:
             self.get_image()
         if self.type == 'twi':
@@ -166,7 +167,10 @@ class Amplifier:
                 F.trace = F1.trace * 1.
                 if append_flag:
                     self.fibers.append(F)
-                
+        if check_trace:
+            outfile = op.join(self.path,'trace_%s.pdf' %self.basename)
+            check_fiber_trace(self.image, self.fibers, outfile)
+            
                 
     def get_fibermodel(self, poly_order=3, use_default=False):
         if self.image is None:
@@ -202,6 +206,7 @@ class Amplifier:
                 F.fibmodel = F1.fibmodel * 1.
                 if append_flag:
                     self.fibers.append(F)        
+
 
     def fiberextract(self, poly_order=3, use_default_profile=False):
         if self.image is None:
