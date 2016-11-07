@@ -321,7 +321,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
                          facecolor=[1.0,0.5,.52],edgecolor=[0.9,0.3,.32])
         fibplot.scatter(y-ytrace, flat - model, c=[0.41,0.41,0.41],edgecolor='none',
                     alpha=0.5,s=5)
-        fibplot.axis([ylow-ymean, yhigh-ymean, -0.01, 0.22])
+        fibplot.axis([ylow-ymean, yhigh-ymean, -0.01, 0.3])
         cmap = plt.get_cmap('RdBu_r')
         
         cax = implot.scatter(x[sel],y[sel]-ytrace[sel], c=flat[sel]/model[sel], 
@@ -340,9 +340,8 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
             normplot.plot(np.arange(xlow,xhigh), norm[i,:], 
                           c=cmap((1.*i)/(mx-1)))
         normplot.set_xlim([xlow,xhigh])
-        if not outfolder:
-            fig.savefig(op.join(outfolder, "fit_bins_cam%s_%i_%i_%i.png" 
-                    %(Fibers[fib].specid, fib, xlow, xhigh)), dpi=150)
+        fig.savefig(op.join(outfolder, "fit_bins_%s_%i_%i_%i.png" 
+                    %(Fibers[fib].basename, fib, xlow, xhigh)), dpi=150)
         plt.close(fig)    
     return sol
 

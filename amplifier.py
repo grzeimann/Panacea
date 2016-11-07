@@ -100,6 +100,7 @@ class Amplifier:
     def get_image(self):
         image = fits.open(self.filename)[0].data
         self.check_overscan(image)
+        image[:] = image - self.overscan_value
         self.image = self.orient(image[self.trimsec[2]:self.trimsec[3], 
                                        self.trimsec[0]:self.trimsec[1]])
     
