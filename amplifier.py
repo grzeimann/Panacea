@@ -105,11 +105,34 @@ class Amplifier:
             self.get_image()
         if self.type == 'twi':
             allfibers, xc = get_trace_from_image(self.image, debug=self.debug)
+            self.allfibers = allfibers
             try:
                 np.vstack(allfibers)
             except ValueError:
                 print("The traces didn't find the same number of fibers for each "
                       "column. Going to more complicated mode ...")
+                brcol = np.argmin(np.abs(xc-self.D/2.))
+                cols1 = xc[brcol::-1]
+                cols2 = xc[(brcol+1)::1]
+                for j,c in enumerate(cols1):
+                    xloc  = np.argmin(np.abs(allfibers[brcol] - c))
+                    for i in xrange(len(allfibers[])):
+                        yval = np.hstack([fi.y[xloc] for fi in allfibers])
+                        floc = np.argmin(np.abs(pk[i] - yval))
+                        if np.abs(pk[i] - yval[floc]) < fdist:
+                            allfibers[floc].x[c] = c
+                            allfibers[floc].y[c] = pk[i]
+                            allfibers[floc].norm[c] = gs[i]
+                for c in cols2:
+                    vl, gs, pk = self.find_fibers(c, window, step, interactive=False)
+                    xloc  = np.argmin(np.abs(allfibers[0].x - c))
+                    for i in xrange(len(pk)):
+                        yval = np.hstack([fi.y[xloc] for fi in allfibers])
+                        floc = np.argmin(np.abs(pk[i] - yval))
+                        if np.abs(pk[i] - yval[floc]) < fdist:
+                            allfibers[floc].x[c] = c
+                            allfibers[floc].y[c] = pk[i]
+                            allfibers[floc].norm[c] = gs[i]
                 sys.exit(1)
                 # TODO make smarter for matching to known number of fibers
             for i, fibery in enumerate(allfibers):

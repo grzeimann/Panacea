@@ -86,18 +86,18 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
             ind = np.searchsorted(mnkeep,val)
             if ind==len(mnkeep):
                 ind-=1
-                mn1=mnkeep[ind]
-                mn2 = len(y)
+                mn1 = int(mnkeep[ind])
+                mn2 = int(len(y))
             elif ind==0:
-                mn1 = 0
-                mn2 = mnkeep[ind]+1
+                mn1 = int(0)
+                mn2 = int(mnkeep[ind]+1)
             else:
-                mn1 = mnkeep[ind-1]
-                mn2 = mnkeep[ind]+1
+                mn1 = int(mnkeep[ind-1])
+                mn2 = int(mnkeep[ind]+1)
             if val - mn1 > max_to_min_dist:
-                mn1 = val - max_to_min_dist
+                mn1 = int(val - max_to_min_dist)
             if mn2 - val > (max_to_min_dist + 1):
-                mn2 = val + max_to_min_dist + 1
+                mn2 = int(val + max_to_min_dist + 1)
             lwa = ((y[mn1:mn2]*x[mn1:mn2]).sum()/(y[mn1:mn2]).sum())
             # Iterating and interpolating to refine the centroid
             for k in xrange(first_order_iter):
