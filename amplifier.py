@@ -95,7 +95,11 @@ class Amplifier:
         if self.amp == "RL":
             image[:] = image[::-1,::-1]
         return image
-       
+        
+    
+    def save_fibers(self):
+        for fiber in self.fibers:
+            fiber.save()
        
     def get_image(self):
         image = fits.open(self.filename)[0].data
@@ -165,7 +169,8 @@ class Amplifier:
                     append_flag = True
                 with open(fiber_fn, 'r') as f:
                     F1 = pickle.load(f)
-                F.trace = F1.trace * 1.
+                F.trace_polyvals = F1.trace_polyvals * 1.
+                F.eval_trace_poly()
                 if append_flag:
                     self.fibers.append(F)
         if check_trace:
@@ -208,7 +213,8 @@ class Amplifier:
                     append_flag = True
                 with open(fiber_fn, 'r') as f:
                     F1 = pickle.load(f)
-                F.fibmodel = F1.fibmodel * 1.
+                F.fibmodel_polyvals = F1.fibmodel_polyvals * 1.
+                F.eval_fibmodel_poly()
                 if append_flag:
                     self.fibers.append(F)        
 
@@ -218,9 +224,12 @@ class Amplifier:
             self.get_image()
         if not self.fibers:
             self.get_trace()
-        if not self.fibers[0].fibmodel:
+        if not self.fibers[0].fibmodel_polyvals:
             self.get_fibermodel(poly_order=poly_order, 
                                 use_default=use_default_profile)
+        else:
+            for fiber in self.fibers:
+                fiber.eval_fibmodel_poly()
         norm = get_norm_nonparametric(self.image, self.fibers, 
                                       debug=self.debug)
         for i, fiber in enumerate(self.fibers):
