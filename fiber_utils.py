@@ -116,7 +116,7 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
     
 def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8., 
                                  fiber_group=4, bins=15, col_group=48,
-                                 debug=False):
+                                 debug=False, use_default=False):
     a,b = image.shape 
     ygrid,xgrid = np.indices(image.shape)                       
     nfibs = len(Fibers) 
@@ -128,13 +128,14 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
         t1 = time.time()
     for j in xrange(nfibs):
         for i in xrange(ncols):
-            sol = fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, 
+            if not use_default:
+                sol = fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, 
                                                     Fibers, fib=j, 
                                                     group=fiber_group, 
                                                     bins=bins, 
                                                     xlow=i*col_group, 
                                                     xhigh=(i+1)*col_group, 
-                                                    plot=plot)
+                                                    plot=plot)                
             so[j,i,:] = sol         
     if debug:
         t2 = time.time()

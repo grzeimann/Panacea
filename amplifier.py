@@ -167,7 +167,7 @@ class Amplifier:
                     self.fibers.append(F)
                 
                 
-    def get_fibermodel(self, poly_order=3):
+    def get_fibermodel(self, poly_order=3, use_default=False):
         if self.image is None:
             self.get_image()
         if not self.fibers:
@@ -175,7 +175,8 @@ class Amplifier:
         if self.type == 'twi':
             sol, xcol, binx = fit_fibermodel_nonparametric(self.image, 
                                                            self.fibers,
-                                                           debug=self.debug)
+                                                           debug=self.debug,
+                                                       use_default=use_default)
             nfibs, ncols, nbins = sol.shape
             for i, fiber in enumerate(self.fibers):
                 fiber.init_fibmodel_info(nbins)
