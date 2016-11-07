@@ -203,13 +203,14 @@ class Amplifier:
                 if append_flag:
                     self.fibers.append(F)        
 
-    def fiberextract(self, poly_order=3, use_default=False):
+    def fiberextract(self, poly_order=3, use_default_profile=False):
         if self.image is None:
             self.get_image()
         if not self.fibers:
             self.get_trace()
         if not self.fibers[0].fibmodel:
-            self.get_fibermodel(poly_order=poly_order, use_default=use_default)
+            self.get_fibermodel(poly_order=poly_order, 
+                                use_default=use_default_profile)
         norm = get_norm_nonparametric(self.image, self.fibers, 
                                       debug=self.debug)
         for i, fiber in enumerate(self.fibers):

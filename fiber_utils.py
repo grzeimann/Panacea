@@ -160,7 +160,7 @@ def get_norm_nonparametric(image, Fibers, fsize=8., fiber_group=4,
     if debug:
         t1 = time.time()
     for j in xrange(nfibs):
-        norm[j,:] = fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, 
+        norm[j,:] = get_norm_nonparametric_bins(image, xgrid, ygrid, 
                                                     Fibers, fib=j, 
                                                     group=fiber_group, xlow=0, 
                                                     xhigh=ncols)                
