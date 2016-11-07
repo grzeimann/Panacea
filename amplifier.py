@@ -100,54 +100,47 @@ class Amplifier:
         self.image = self.orient(image[self.trimsec[2]:self.trimsec[3], 
                                        self.trimsec[0]:self.trimsec[1]])
     
-    def get_trace(self):
+    def get_trace(self, fdist=2.):
         if self.image is None:
             self.get_image()
         if self.type == 'twi':
             allfibers, xc = get_trace_from_image(self.image, debug=self.debug)
             self.allfibers = allfibers
-            try:
-                np.vstack(allfibers)
-            except ValueError:
-                print("The traces didn't find the same number of fibers for each "
-                      "column. Going to more complicated mode ...")
-                brcol = np.argmin(np.abs(xc-self.D/2.))
-                cols1 = xc[brcol::-1]
-                cols2 = xc[(brcol+1)::1]
-                for j,c in enumerate(cols1):
-                    xloc  = np.argmin(np.abs(allfibers[brcol] - c))
-                    for i in xrange(len(allfibers[])):
-                        yval = np.hstack([fi.y[xloc] for fi in allfibers])
-                        floc = np.argmin(np.abs(pk[i] - yval))
-                        if np.abs(pk[i] - yval[floc]) < fdist:
-                            allfibers[floc].x[c] = c
-                            allfibers[floc].y[c] = pk[i]
-                            allfibers[floc].norm[c] = gs[i]
-                for c in cols2:
-                    vl, gs, pk = self.find_fibers(c, window, step, interactive=False)
-                    xloc  = np.argmin(np.abs(allfibers[0].x - c))
-                    for i in xrange(len(pk)):
-                        yval = np.hstack([fi.y[xloc] for fi in allfibers])
-                        floc = np.argmin(np.abs(pk[i] - yval))
-                        if np.abs(pk[i] - yval[floc]) < fdist:
-                            allfibers[floc].x[c] = c
-                            allfibers[floc].y[c] = pk[i]
-                            allfibers[floc].norm[c] = gs[i]
-                sys.exit(1)
-                # TODO make smarter for matching to known number of fibers
-            for i, fibery in enumerate(allfibers):
+            brcol = np.argmin(np.abs(xc-self.D*.47))
+            standardcol = allfibers[brcol]
+            cols1 = xc[brcol::-1]
+            cols2 = xc[(brcol+1)::1]
+            # Initialize fiber traces
+            for i in xrange(len(standardcol)):
                 append_flag = False
-                try:
+                try: 
                     F = self.fibers[i]
                 except IndexError:    
-                    F = Fiber(self.D, i+1)
+                    F = Fiber(self.D, i+1, self.path, self.filename)
                     append_flag = True
-                F.trace_x[xc] = xc
-                F.trace_y[xc] = fibery
-                F.fit_trace_poly()
-                F.eval_trace_poly()
                 if append_flag:
                     self.fibers.append(F)
+                self.fibers[i].init_trace_info()
+            for c in cols1:
+                loc = np.where(xc==c)[0]
+                for i in xrange(len(standardcol)):
+                    yvals = allfibers[loc]
+                    floc = np.argmin(np.abs(standardcol[i] - yvals))
+                    if np.abs(standardcol[i] - yvals[floc]) < fdist:
+                        self.fibers[i].trace_x[c] = c
+                        self.fibers[i].trace_y[c] = yvals[floc]
+            for c in cols2:
+                loc = np.where(xc==c)[0]
+                for i in xrange(len(standardcol)):
+                    yvals = allfibers[loc]
+                    floc = np.argmin(np.abs(standardcol[i] - yvals))
+                    if np.abs(standardcol[i] - yvals[floc]) < fdist:
+                        self.fibers[i].trace_x[c] = c
+                        self.fibers[i].trace_y[c] = yvals[floc]
+            for fiber in self.fibers:
+                fiber.fit_trace_poly()
+                fiber.eval_trace_poly()
+
         if self.type == 'sci':
             fn = op.join(self.calpath, 'fiber_*_%s.pkl' % self.basename)
             files = sorted(glob.glob(fn))
@@ -156,7 +149,7 @@ class Amplifier:
                 try:
                     F = self.fibers[i]
                 except IndexError:    
-                    F = Fiber(self.D, i+1)
+                    F = Fiber(self.D, i+1, self.path, self.filename)
                     append_flag = True
                 with open(fiber_fn, 'r') as f:
                     F1 = pickle.load(f)
@@ -191,7 +184,7 @@ class Amplifier:
                 try:
                     F = self.fibers[i]
                 except IndexError:    
-                    F = Fiber(self.D, i+1)
+                    F = Fiber(self.D, i+1, self.path, self.filename)
                     append_flag = True
                 with open(fiber_fn, 'r') as f:
                     F1 = pickle.load(f)
