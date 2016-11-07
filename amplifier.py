@@ -110,7 +110,6 @@ class Amplifier:
         if self.type == 'twi':
             allfibers, xc = get_trace_from_image(self.image, interp_window=2.5,
                                                  debug=self.debug)
-            self.allfibers = allfibers
             brcol = np.argmin(np.abs(xc-self.D*.47))
             standardcol = allfibers[brcol]
             cols1 = xc[brcol::-1]

@@ -132,7 +132,7 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
         for i in xrange(ncols):
             if not use_default:
                 sol = fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, 
-                                                    Fibers, fib=j, 
+                                                    Fibers, fib=j, debug=debug, 
                                                     group=fiber_group, 
                                                     bins=bins, fsize=fsize,
                                                     xlow=i*col_group, 
