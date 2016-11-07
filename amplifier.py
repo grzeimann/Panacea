@@ -42,7 +42,8 @@ class Amplifier:
         if not op.exists(self.path):
             os.mkdir(self.path)
             
-        self.N,self.D = F[0].data.shape
+        self.N, self.D = F[0].data.shape
+        self.D -= 64
         self.overscan_value = None
         self.gain = F[0].header['GAIN']
         self.rdnoise = F[0].header['RDNOISE']
