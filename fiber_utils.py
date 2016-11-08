@@ -378,7 +378,6 @@ def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     ycutl=np.repeat(Fibers[lowfib].trace[xlow:xhigh],yhigh-ylow)
     ycuth=np.repeat(Fibers[highfib].trace[xlow:xhigh],yhigh-ylow)
     sel = np.where((y>=ycutl) * (y<=ycuth))[0]
-    bad = is_outlier(z.ravel())
     # Create empty arrays for the fibermodel weights in each given pixel from
     dummy, bins = fibers[0].fibmodel.shape
     binx = fibers[0].binx
@@ -405,7 +404,7 @@ def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     init_model = np.zeros((len(x),len(fibers)))
     norm = np.zeros((len(fibers),xhigh-xlow))
     for j,v in enumerate(np.arange(xlow,xhigh)):
-        xsel = np.intersect1d(np.where((x==v) * (bad<1))[0],sel)
+        xsel = np.intersect1d(np.where(x==v)[0],sel)
         if len(xsel):
             k = 0
             for fiber in fibers:

@@ -45,7 +45,7 @@ class Panacea(object):
         self.fitsfile = fits.open(filename)
         self.get_trimsec_biassec()
         self.check_for_fibers()
-        self.image = self.fitsfile[0].data
+        self.image = np.array(self.fitsfile[0].data,dtype=int)
         self.check_overscan()
         self.amp = None
         

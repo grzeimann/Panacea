@@ -105,7 +105,7 @@ class Amplifier:
             fiber.save(self.specid, self.ifuslot, self.ifuid, self.amp)
        
     def get_image(self):
-        image = fits.open(self.filename)[0].data
+        image = np.array(fits.open(self.filename)[0].data, dtype=int)
         self.check_overscan(image)
         image[:] = image - self.overscan_value
         self.image = self.orient(image[self.trimsec[2]:self.trimsec[3], 
