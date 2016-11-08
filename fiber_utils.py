@@ -377,7 +377,8 @@ def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     # selection within cutout
     ycutl=np.repeat(Fibers[lowfib].trace[xlow:xhigh],yhigh-ylow)
     ycuth=np.repeat(Fibers[highfib].trace[xlow:xhigh],yhigh-ylow)
-    sel = np.where((y>=ycutl) * (y<=ycuth))[0]    
+    sel = np.where((y>=ycutl) * (y<=ycuth))[0]
+    bad = is_outlier(z.ravel())
     # Create empty arrays for the fibermodel weights in each given pixel from
     dummy, bins = fibers[0].fibmodel.shape
     binx = fibers[0].binx
@@ -404,14 +405,17 @@ def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     init_model = np.zeros((len(x),len(fibers)))
     norm = np.zeros((len(fibers),xhigh-xlow))
     for j,v in enumerate(np.arange(xlow,xhigh)):
-        xsel = np.intersect1d(np.where(x==v)[0],sel)
-        k = 0
-        for fiber in fibers:
-            init_model[xsel,k] = (np.dot(Fl[xsel,:,k],fiber.fibmodel[j,:]) 
-                                  + Pl[xsel,k])
-            k+=1
-        # Solve for the normalization of the number of fibers
-        norm[:,j] = nnls(init_model[xsel,:],z[xsel])[0]
+        xsel = np.intersect1d(np.where((x==v) * (bad<1))[0],sel)
+        if len(xsel):
+            k = 0
+            for fiber in fibers:
+                init_model[xsel,k] = (np.dot(Fl[xsel,:,k],fiber.fibmodel[j,:]) 
+                                      + Pl[xsel,k])
+                k+=1
+            # Solve for the normalization of the number of fibers
+            norm[:,j] = nnls(init_model[xsel,:],z[xsel])[0]
+        else:
+            norm[:,j] = 0.0
     if debug:
         t2 = time.time()
         print("Solution for Fiber %i took: %0.3f s" %(fib, t2-t1))  
