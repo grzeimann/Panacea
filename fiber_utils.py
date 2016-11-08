@@ -299,7 +299,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     
     if debug:
         t2 = time.time()
-        print("Solution took: %0.3f s" %(t2-t1))        
+        #print("Solution took: %0.3f s" %(t2-t1))        
     if plot:
         model = np.dot(F,sol) + Pl.sum(axis=1)
         PV = np.array([x,flat_err]).T
