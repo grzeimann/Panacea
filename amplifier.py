@@ -60,6 +60,9 @@ class Amplifier:
         self.type = F[0].header['IMAGETYP'].replace(' ', '')
         self.calpath = calpath
         self.debug = debug
+        self.specid = '%03d' %F[0].header['SPECID']
+        self.ifuid = F[0].header['IFUID'].replace(' ', '')
+        self.ifuslot ='%03d' %F[0].header['IFUSLOT']
         
     def check_overscan(self, image, recalculate=False):
         if (self.overscan_value is None) or recalculate:
@@ -99,7 +102,7 @@ class Amplifier:
     
     def save_fibers(self):
         for fiber in self.fibers:
-            fiber.save()
+            fiber.save(self.specid, self.ifuslot, self.ifuid, self.amp)
        
     def get_image(self):
         image = fits.open(self.filename)[0].data
@@ -158,7 +161,10 @@ class Amplifier:
                 fiber.eval_trace_poly()
 
         if self.type == 'sci':
-            fn = op.join(self.calpath, 'fiber_*_%s.pkl' % self.basename)
+            fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
+                                                                  self.ifuslot,
+                                                                  self.ifuid,
+                                                                  self.amp))
             files = sorted(glob.glob(fn))
             for i, fiber_fn in enumerate(files):
                 append_flag = False
@@ -202,7 +208,10 @@ class Amplifier:
                 fiber.fit_fibmodel_poly()
                 fiber.eval_fibmodel_poly()
         if self.type == 'sci':
-            fn = op.join(self.calpath, 'fiber_*_%s.pkl' % self.basename)
+            fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
+                                                                  self.ifuslot,
+                                                                  self.ifuid,
+                                                                  self.amp))
             files = sorted(glob.glob(fn))
             for i, fiber_fn in enumerate(files):
                 append_flag = False
@@ -214,6 +223,7 @@ class Amplifier:
                 with open(fiber_fn, 'r') as f:
                     F1 = pickle.load(f)
                 F.fibmodel_polyvals = F1.fibmodel_polyvals * 1.
+                F.binx = F1.binx
                 F.eval_fibmodel_poly()
                 if append_flag:
                     self.fibers.append(F)        

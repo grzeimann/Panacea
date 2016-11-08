@@ -8,7 +8,7 @@ To be used in conjuction with IFU reduction code, Panacea
 """
 
 
-from utils import biweight_location
+from utils import biweight_location, is_outlier
 from scipy.optimize import nnls
 import matplotlib.pyplot as plt
 import matplotlib
@@ -436,9 +436,13 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
             maxx = int((j-1) * -1 * xwidth + j * (xlen - 1.))
             miny = int(i * -1 * ywidth + i * (ylen - 1.))
             maxy = int((i-1) * -1 * ywidth + i * (ylen - 1.))
+            zarr = image[miny:maxy,minx:maxx].ravel()
+            good = np.where(is_outlier(zarr)<1)[0]
+            vmin = np.min(zarr[good])
+            vmax = np.max(zarr[good])
             sub.imshow(image[miny:maxy,minx:maxx],origin='lower',
                        extent=[minx,maxx,miny,maxy],interpolation='nearest',
-                       cmap=cmap)
+                       cmap=cmap, vmin=vmin, vmax=vmax)
             for k in xrange(len(Fibers)):
                 sub.plot(np.arange(xlen), Fibers[k].trace+0.5, color=[1.0,0.4,0.35],
                          linewidth=2)
