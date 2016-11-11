@@ -10,6 +10,7 @@ To be used in conjuction with IFU reduction code, Panacea
 
 from utils import biweight_location, is_outlier
 from scipy.optimize import nnls
+from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
 import matplotlib
 import os.path as op
@@ -279,8 +280,9 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
             for fiber in fibers:
                 init_model[xsel,k] = np.dot(Fl[xsel,:,k],sol) + Pl[xsel,k]
                 k+=1
-            # Solve for the normalization of the number of fibers
-            norm[:,j] = nnls(init_model[xsel,:],z[xsel])[0]
+
+            # Solve for the normalization of the number of fibers            
+            norm[:,j] = lstsq(init_model[xsel,:],z[xsel])[0]
             normfits[xsel,:] = np.ones((len(xsel),1)) * norm[:,j]
             #full_model[xsel] = np.dot(init_model[xsel,:],norm[:,j])
             flat[xsel] = (z[xsel]/((init_model[xsel,:]*normfits[xsel,:]**2)
@@ -412,7 +414,7 @@ def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
                                       + Pl[xsel,k])
                 k+=1
             # Solve for the normalization of the number of fibers
-            norm[:,j] = nnls(init_model[xsel,:],z[xsel])[0]
+            norm[:,j] = lstsq(init_model[xsel,:],z[xsel])[0]
         else:
             norm[:,j] = 0.0
     if debug:
