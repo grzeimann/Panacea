@@ -22,6 +22,7 @@ import glob
 import cPickle as pickle
 from fiber_utils import get_trace_from_image, fit_fibermodel_nonparametric
 from fiber_utils import get_norm_nonparametric, check_fiber_trace
+from fiber_utils import calculate_wavelength
 from fiber import Fiber
 
 __all__ = ["Amplifier"]
@@ -244,6 +245,31 @@ class Amplifier:
                                       debug=self.debug)
         for i, fiber in enumerate(self.fibers):
             fiber.spectrum = norm[i,:]
+    
+    
+    def get_wavelength_solution(self, poly_order=3, wave_order=3, 
+                                use_default_profile=False, init_lims=None):
+        if self.image is None:
+            self.get_image()
+        if not self.fibers:
+            self.get_trace()
+        if not self.fibers[0].fibmodel_polyvals:
+            self.get_fibermodel(poly_order=poly_order, 
+                                use_default=use_default_profile)
+        else:
+            for fiber in self.fibers:
+                fiber.eval_fibmodel_poly() 
+        if not self.fibers[0].spectrum:
+            norm = get_norm_nonparametric(self.image, self.fibers, 
+                                          debug=self.debug)
+            for i, fiber in enumerate(self.fibers):
+                fiber.spectrum = norm[i,:]
+        for i, fiber in enumerate(self.fibers):
+            fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
+                                             np.arange(self.D), fiber.spectrum,
+                                             init_lims=init_lims, 
+                                             debug=self.debug)
+        
         
                
        

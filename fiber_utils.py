@@ -7,9 +7,9 @@ To be used in conjuction with IFU reduction code, Panacea
 
 """
 
-
-from utils import biweight_location, is_outlier
+from utils import biweight_location, biweight_midvariance, is_outlier
 from scipy.optimize import nnls
+from scipy.signal import medfilt
 from scipy.linalg import lstsq
 import matplotlib.pyplot as plt
 import matplotlib
@@ -17,6 +17,108 @@ import os.path as op
 import numpy as np
 import time
 import sys
+
+def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
+                first_order_iter=5, max_to_min_dist=5):
+    a = len(y)
+    mxval = np.zeros((a-2-y_window*2+1,))
+    mnval = np.zeros((a-2-y_window*2+1,))
+    k=0
+    for j in xrange(y_window,a - 1 - y_window):
+        mxval[k] = np.argmax(y[(j-y_window):(j+y_window+1)])+j-y_window
+        mnval[k] = np.argmin(y[(j-y_window):(j+y_window+1)])+j-y_window
+        k+=1
+    # Get unique values
+    umnval = np.unique(mnval)
+    umxval = np.unique(mxval)
+    mnkeep = []
+    mxkeep = []
+    # Only keep those which are max/min for at least repeat_length
+    for j in umnval:
+        if (j==mnval).sum() > repeat_length:
+           mnkeep.append(j)
+    for j in umxval:
+        if (j==mxval).sum() > repeat_length:
+           mxkeep.append(j) 
+           
+    # Make lists arrays
+    mnkeep = np.array(mnkeep,dtype=int)
+    mxkeep = np.array(mxkeep,dtype=int)
+    
+    #refined peak values and heights
+    peaks_refined = np.zeros(mxkeep.shape)
+    peaks_height = np.zeros(mxkeep.shape)
+    for j, val in enumerate(mxkeep):
+        ind = np.searchsorted(mnkeep,val)
+        if ind==len(mnkeep):
+            ind-=1
+            mn1 = int(mnkeep[ind])
+            mn2 = int(len(y))
+        elif ind==0:
+            mn1 = int(0)
+            mn2 = int(mnkeep[ind]+1)
+        else:
+            mn1 = int(mnkeep[ind-1])
+            mn2 = int(mnkeep[ind]+1)
+        if val - mn1 > max_to_min_dist:
+            mn1 = int(val - max_to_min_dist)
+        if mn2 - val > (max_to_min_dist + 1):
+            mn2 = int(val + max_to_min_dist + 1)
+        lwa = ((y[mn1:mn2]*x[mn1:mn2]).sum()/(y[mn1:mn2]).sum())
+        # Iterating and interpolating to refine the centroid
+        for k in xrange(first_order_iter):
+            xp = np.linspace(lwa-interp_window, lwa+interp_window, num=50)
+            yp = np.interp(xp, x[mn1:mn2], y[mn1:mn2],left=0,right=0)
+            lwa = (yp*xp).sum()/yp.sum()
+        peaks_refined[j] = lwa
+        peaks_height[j] = y[val]
+    return peaks_refined, peaks_height
+    
+
+def calculate_wavelength(x, y, solar_peaks, max_match_dist=20.,
+                         isolated_distance=30., top=10, init_lims=None, 
+                         smooth_length=31, order=3, debug=False):
+    if debug:
+        t1 = time.time()
+    if init_lims is None:
+        init_lims = [np.min(solar_peaks[:,0]), np.max(solar_peaks[:,0])]
+    # smooth_length has to be odd
+    if smooth_length%2 == 0:
+        smooth_length+=1
+    yp = medfilt(y, smooth_length) / y
+    p_loc, p_height = find_maxima(x, yp)
+    p_sort = np.argsort(p_height)[::-1]
+    ind_sort = np.argsort(solar_peaks[:,1])[::-1]
+    matches = []
+    init_sol = np.array([1.*(init_lims[1]-init_lims[0])/len(x), init_lims[0]])
+    init_match_dist = max_match_dist
+    for i, ind in enumerate(ind_sort[:]):
+        if (np.min(np.abs(solar_peaks[ind,0]-np.delete(solar_peaks[:,0],ind)))
+                          <isolated_distance):
+            continue
+        solar_peaks[ind,0]
+        wv = np.polyval(init_sol, x)
+        if i < top/2:
+            p_loc_wv = np.interp(p_loc[p_sort[:top]], x, wv)
+        else:
+            p_loc_wv = np.interp(p_loc[p_sort[:]], x, wv)            
+        if np.min(np.abs(p_loc_wv-solar_peaks[ind,0]))<init_match_dist:
+            xv = p_loc[p_sort[np.argmin(np.abs(p_loc_wv-solar_peaks[ind,0]))]]
+            matches.append([xv, solar_peaks[ind,0]])
+            if len(matches)>2:
+                matches_array = np.array(matches)
+                order_fit = np.min([len(matches)-2, order])
+                init_sol = np.polyfit(matches_array[:,0], matches_array[:,1], 
+                                      order_fit)                
+                std = biweight_midvariance(np.polyval(init_sol,
+                                                      matches_array[:,0])
+                                           -matches_array[:,1])
+                init_match_dist = np.max([std * 5.,3.])
+    if debug:
+        t2=time.time()
+        print("Time to finish wavelength solution for a single fiber: %0.2f" %(t2-t1))
+    return np.polyval(init_sol,x), init_sol
+    
 
 def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
                          order=3, mx_cut=0.1, max_to_min_dist=5., debug=False,
@@ -116,6 +218,7 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
         print("Time Taken for Trace: %0.2f" %(t2-t1))
     return allfibers, xc
     
+    
 def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8., 
                                  fiber_group=4, bins=15, col_group=48,
                                  debug=False, use_default=False,
@@ -172,7 +275,8 @@ def get_norm_nonparametric(image, Fibers, fsize=8., fiber_group=4,
         t2 = time.time()
         print("Solution took: %0.3f s" %(t2-t1))
 
-    return norm       
+    return norm   
+    
     
 def init_fibermodel(fsize, bins, sigma=2.7, power=2.5):
     '''
@@ -204,6 +308,7 @@ def init_fibermodel(fsize, bins, sigma=2.7, power=2.5):
     sol[0] = 0.0
     sol[-1] = 0.0
     return bins, binx, sol
+    
         
 def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0, 
                                       xlow=0, xhigh=1032, plot=False, fsize=8., 
@@ -421,6 +526,7 @@ def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
         t2 = time.time()
         print("Solution for Fiber %i took: %0.3f s" %(fib, t2-t1))  
     return norm[fid,:]
+    
     
 def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
     ylen,xlen = image.shape
