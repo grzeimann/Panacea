@@ -24,6 +24,8 @@ from fiber_utils import get_trace_from_image, fit_fibermodel_nonparametric
 from fiber_utils import get_norm_nonparametric, check_fiber_trace
 from fiber_utils import calculate_wavelength
 from fiber import Fiber
+from astropy.convolution import Gaussian1DKernel, convolve
+from scipy.signal import medfilt
 
 __all__ = ["Amplifier"]
 
@@ -269,18 +271,23 @@ class Amplifier:
             print("Please provide initial wavelength endpoint guess")
             sys.exit(1)
         solar_peaks = np.loadtxt('/Users/gregz/cure/panacea/solar_lines.dat')
+        solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/medium_sun.spec')
+        gauss = Gaussian1DKernel(13)
+        conv = convolve(solar_spec[:,1],gauss)
+        solar_spec[:,1] = medfilt(conv,301)
         sel = ((solar_peaks[:,1]>1.05) * (solar_peaks[:,0]>(init_lims[0]-100.))
                 * (solar_peaks[:,0]<(init_lims[1]+100.)))
                 
         for i, fiber in enumerate(self.fibers):
-            if i==0:
+            #if i==0:
                 fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
                                              np.arange(self.D), fiber.spectrum,
-                                             solar_peaks[sel,:], init_lims=init_lims, 
+                                             solar_peaks[sel,:], solar_spec, 
+                                             init_lims=init_lims, 
                                              debug=self.debug)
-            else:
-                fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
-                                             np.arange(self.D), fiber.spectrum,
-                                             solar_peaks[sel,:], init_lims=init_lims, 
-                                             debug=self.debug, init_sol=self.fibers[i-1].wave_polyvals)
+            #else:
+            #    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
+            #                                 np.arange(self.D), fiber.spectrum,
+            #                                 solar_peaks[sel,:], init_lims=init_lims, 
+            #                                 debug=self.debug, init_sol=self.fibers[i-1].wave_polyvals)
         

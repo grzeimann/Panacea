@@ -76,10 +76,10 @@ def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
     return peaks_refined, peaks_height
     
 
-def calculate_wavelength(x, y, solar_peaks, max_match_dist=20.,
-                         isolated_distance=30., top=10, init_lims=None, 
-                         smooth_length=31, order=3, init_sol=None,
-                         debug=False):
+def calculate_wavelength(x, y, solar_peaks, window_size=50.,
+                         isolated_distance=30., min_isolated_distance=4., 
+                         init_lims=None, smooth_length=31, order=3, 
+                         init_sol=None, height_clip=1.05, debug=False):
     if debug:
         t1 = time.time()
     if init_lims is None:
@@ -89,34 +89,67 @@ def calculate_wavelength(x, y, solar_peaks, max_match_dist=20.,
         smooth_length+=1
     yp = medfilt(y, smooth_length) / y
     p_loc, p_height = find_maxima(x, yp)
-    p_sort = np.argsort(p_height)[::-1]
     ind_sort = np.argsort(solar_peaks[:,1])[::-1]
     matches = []
     if init_sol is None:
         init_sol = np.array([1.*(init_lims[1]-init_lims[0])/len(x), init_lims[0]])
-    init_match_dist = max_match_dist
     for i, ind in enumerate(ind_sort[:]):
         if (np.min(np.abs(solar_peaks[ind,0]-np.delete(solar_peaks[:,0],ind)))
                           <isolated_distance):
             continue
-        solar_peaks[ind,0]
         wv = np.polyval(init_sol, x)
-        if i < top/2:
-            p_loc_wv = np.interp(p_loc[p_sort[:top]], x, wv)
-        else:
-            p_loc_wv = np.interp(p_loc[p_sort[:]], x, wv)            
-        if np.min(np.abs(p_loc_wv-solar_peaks[ind,0]))<init_match_dist:
-            xv = p_loc[p_sort[np.argmin(np.abs(p_loc_wv-solar_peaks[ind,0]))]]
-            matches.append([xv, solar_peaks[ind,0]])
-            if len(matches)>2:
-                matches_array = np.array(matches)
-                init_sol = np.polyfit(matches_array[:,0], matches_array[:,1],1)                
-                std = biweight_midvariance(np.polyval(init_sol,
-                                                      matches_array[:,0])
-                                           -matches_array[:,1])
+        wvi = solar_peaks[ind,0]
+        p_loc_wv = np.interp(p_loc, x, wv)
+        if interactive:
+            plt.plot(x,y)
+            ax = plt.gca()
+            sel = (x > (loc-pwindow)) * (x< (loc+pwindow))
+            ax.set_xlim([loc-pwindow,loc+pwindow])
+            mn = y[sel].min()
+            mx = y[sel].max()
+            rn = mx - mn
+            ax.set_ylim([-.1*rn + mn, 1.1*rn+mn])
+            plt.show()
+            answer = raw_input("Is there a fiber at {:0.0f} (y pos) in"
+                                " column {:0.0f} (x pos)? ".format(loc, col))
+            plt.close()
 
-                init_match_dist = np.max([std * 5.,8.])
-    init_sol = np.polyfit(matches_array[:,0], matches_array[:,1], order)     
+           if answer.lower() in ("yes", "y", "true", "t", "1"):
+               vals.append(0)
+               guess.append(0)
+               peaks.append(loc)
+               dead.append(1)
+        else:
+            selp = np.where((p_loc_wv > (wvi-window_size)) * (p_loc_wv < (wvi+window_size))
+                    * (p_height > height_clip))[0]
+            if selp.size:
+                s_ind = np.argmin(np.abs(p_loc_wv[selp]-wvi))
+                m_ind = selp[s_ind]
+                if len(selp)>1:
+                    if (np.min(np.abs(p_loc[m_ind]-np.delete(p_loc[selp],s_ind)))
+                              <isolated_distance):
+                        continue
+                xv = p_loc[m_ind]
+                matches.append([xv, wvi])
+                if len(matches)==1:
+                    init_sol  = np.array([1.*(init_lims[1]-init_lims[0])/len(x), 
+                                          wvi-p_loc_wv[m_ind]+init_lims[0]])
+                if len(matches)>1:
+                    matches_array = np.array(matches)
+                    if ((np.max(matches_array[:,0])
+                            -np.min(matches_array[:,0]))/len(x) > 0.7):
+                        order_fit = np.min([len(matches)-1, order])
+                    else:
+                        order_fit = 1
+                    init_sol = np.polyfit(matches_array[:,0], matches_array[:,1],
+                                          order_fit)
+                    if len(matches)>2:
+                        std = biweight_midvariance(np.polyval(init_sol,
+                                                          matches_array[:,0])
+                                               -matches_array[:,1])
+    
+                        isolated_distance = np.max([std * 5., 
+                                                    min_isolated_distance])
     if debug:
         t2=time.time()
         print("Time to finish wavelength solution for a single fiber: %0.2f" %(t2-t1))
