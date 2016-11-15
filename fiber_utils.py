@@ -11,6 +11,7 @@ from utils import biweight_location, biweight_midvariance, is_outlier
 from scipy.optimize import nnls
 from scipy.signal import medfilt
 from scipy.linalg import lstsq
+from astropy.convolution import Gaussian1DKernel, convolve
 import matplotlib.pyplot as plt
 import matplotlib
 import os.path as op
@@ -77,7 +78,8 @@ def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
 
 def calculate_wavelength(x, y, solar_peaks, max_match_dist=20.,
                          isolated_distance=30., top=10, init_lims=None, 
-                         smooth_length=31, order=3, debug=False):
+                         smooth_length=31, order=3, init_sol=None,
+                         debug=False):
     if debug:
         t1 = time.time()
     if init_lims is None:
@@ -90,7 +92,8 @@ def calculate_wavelength(x, y, solar_peaks, max_match_dist=20.,
     p_sort = np.argsort(p_height)[::-1]
     ind_sort = np.argsort(solar_peaks[:,1])[::-1]
     matches = []
-    init_sol = np.array([1.*(init_lims[1]-init_lims[0])/len(x), init_lims[0]])
+    if init_sol is None:
+        init_sol = np.array([1.*(init_lims[1]-init_lims[0])/len(x), init_lims[0]])
     init_match_dist = max_match_dist
     for i, ind in enumerate(ind_sort[:]):
         if (np.min(np.abs(solar_peaks[ind,0]-np.delete(solar_peaks[:,0],ind)))
@@ -107,18 +110,18 @@ def calculate_wavelength(x, y, solar_peaks, max_match_dist=20.,
             matches.append([xv, solar_peaks[ind,0]])
             if len(matches)>2:
                 matches_array = np.array(matches)
-                order_fit = np.min([len(matches)-2, order])
-                init_sol = np.polyfit(matches_array[:,0], matches_array[:,1], 
-                                      order_fit)                
+                init_sol = np.polyfit(matches_array[:,0], matches_array[:,1],1)                
                 std = biweight_midvariance(np.polyval(init_sol,
                                                       matches_array[:,0])
                                            -matches_array[:,1])
-                init_match_dist = np.max([std * 5.,3.])
+
+                init_match_dist = np.max([std * 5.,8.])
+    init_sol = np.polyfit(matches_array[:,0], matches_array[:,1], order)     
     if debug:
         t2=time.time()
         print("Time to finish wavelength solution for a single fiber: %0.2f" %(t2-t1))
     return np.polyval(init_sol,x), init_sol
-    
+        
 
 def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
                          order=3, mx_cut=0.1, max_to_min_dist=5., debug=False,

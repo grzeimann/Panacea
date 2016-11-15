@@ -28,7 +28,7 @@ from fiber import Fiber
 __all__ = ["Amplifier"]
 
 class Amplifier:
-    def __init__(self, filename, path, calpath=None, debug=False):
+    def __init__(self, filename, path, refit=False, calpath=None, debug=False):
         ''' 
         Initialize class
         ----------------
@@ -64,6 +64,7 @@ class Amplifier:
         self.specid = '%03d' %F[0].header['SPECID']
         self.ifuid = F[0].header['IFUID'].replace(' ', '')
         self.ifuslot ='%03d' %F[0].header['IFUSLOT']
+        self.refit = refit
         
     def check_overscan(self, image, recalculate=False):
         if (self.overscan_value is None) or recalculate:
@@ -115,7 +116,7 @@ class Amplifier:
     def get_trace(self, fdist=2., check_trace=True):
         if self.image is None:
             self.get_image()
-        if self.type == 'twi':
+        if self.type == 'twi' and self.refit:
             allfibers, xc = get_trace_from_image(self.image, interp_window=2.5,
                                                  debug=self.debug)
             brcol = np.argmin(np.abs(xc-self.D*.47))
@@ -161,7 +162,7 @@ class Amplifier:
                 fiber.fit_trace_poly()
                 fiber.eval_trace_poly()
 
-        if self.type == 'sci':
+        else:
             fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
                                                                   self.ifuslot,
                                                                   self.ifuid,
@@ -191,7 +192,7 @@ class Amplifier:
             self.get_image()
         if not self.fibers:
             self.get_trace()
-        if self.type == 'twi':
+        if self.type == 'twi' and self.refit:
             sol, xcol, binx = fit_fibermodel_nonparametric(self.image, 
                                                            self.fibers,
                                                            debug=self.debug,
@@ -208,7 +209,7 @@ class Amplifier:
                 fiber.binx = binx
                 fiber.fit_fibmodel_poly()
                 fiber.eval_fibmodel_poly()
-        if self.type == 'sci':
+        else:
             fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
                                                                   self.ifuslot,
                                                                   self.ifuid,
@@ -264,12 +265,22 @@ class Amplifier:
                                           debug=self.debug)
             for i, fiber in enumerate(self.fibers):
                 fiber.spectrum = norm[i,:]
+        if not init_lims:
+            print("Please provide initial wavelength endpoint guess")
+            sys.exit(1)
+        solar_peaks = np.loadtxt('/Users/gregz/cure/panacea/solar_lines.dat')
+        sel = ((solar_peaks[:,1]>1.05) * (solar_peaks[:,0]>(init_lims[0]-100.))
+                * (solar_peaks[:,0]<(init_lims[1]+100.)))
+                
         for i, fiber in enumerate(self.fibers):
-            fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
+            if i==0:
+                fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
                                              np.arange(self.D), fiber.spectrum,
-                                             init_lims=init_lims, 
+                                             solar_peaks[sel,:], init_lims=init_lims, 
                                              debug=self.debug)
+            else:
+                fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
+                                             np.arange(self.D), fiber.spectrum,
+                                             solar_peaks[sel,:], init_lims=init_lims, 
+                                             debug=self.debug, init_sol=self.fibers[i-1].wave_polyvals)
         
-        
-               
-       
