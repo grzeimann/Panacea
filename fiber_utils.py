@@ -76,10 +76,11 @@ def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
     return peaks_refined, peaks_height
     
 
-def calculate_wavelength(x, y, solar_peaks, window_size=50.,
-                         isolated_distance=30., min_isolated_distance=4., 
+def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
+                         isolated_distance=15., min_isolated_distance=4., 
                          init_lims=None, smooth_length=31, order=3, 
-                         init_sol=None, height_clip=1.05, debug=False):
+                         init_sol=None, height_clip=1.02, debug=False,
+                         interactive=False):
     if debug:
         t1 = time.time()
     if init_lims is None:
@@ -92,7 +93,11 @@ def calculate_wavelength(x, y, solar_peaks, window_size=50.,
     ind_sort = np.argsort(solar_peaks[:,1])[::-1]
     matches = []
     if init_sol is None:
-        init_sol = np.array([1.*(init_lims[1]-init_lims[0])/len(x), init_lims[0]])
+        init_sol = np.array([1.*(init_lims[1]-init_lims[0])/len(x), 
+                             init_lims[0]])
+        change_thresh=1
+    else:
+        change_thresh=6
     for i, ind in enumerate(ind_sort[:]):
         if (np.min(np.abs(solar_peaks[ind,0]-np.delete(solar_peaks[:,0],ind)))
                           <isolated_distance):
@@ -100,29 +105,39 @@ def calculate_wavelength(x, y, solar_peaks, window_size=50.,
         wv = np.polyval(init_sol, x)
         wvi = solar_peaks[ind,0]
         p_loc_wv = np.interp(p_loc, x, wv)
-        if interactive:
-            plt.plot(x,y)
-            ax = plt.gca()
-            sel = (x > (loc-pwindow)) * (x< (loc+pwindow))
-            ax.set_xlim([loc-pwindow,loc+pwindow])
-            mn = y[sel].min()
-            mx = y[sel].max()
-            rn = mx - mn
-            ax.set_ylim([-.1*rn + mn, 1.1*rn+mn])
-            plt.show()
-            answer = raw_input("Is there a fiber at {:0.0f} (y pos) in"
-                                " column {:0.0f} (x pos)? ".format(loc, col))
-            plt.close()
-
-           if answer.lower() in ("yes", "y", "true", "t", "1"):
-               vals.append(0)
-               guess.append(0)
-               peaks.append(loc)
-               dead.append(1)
-        else:
-            selp = np.where((p_loc_wv > (wvi-window_size)) * (p_loc_wv < (wvi+window_size))
-                    * (p_height > height_clip))[0]
-            if selp.size:
+        selp = np.where((p_loc_wv > (wvi-window_size)) 
+                        * (p_loc_wv < (wvi+window_size))
+                        * (p_height > height_clip))[0]
+        if selp.size:
+            if interactive:
+                xl = np.searchsorted(solar_spec[:,0],wvi-window_size)
+                xu = np.searchsorted(solar_spec[:,0],wvi+window_size)
+                ax = plt.axes([0.1,0.1,0.8,0.8])
+                ax.step(solar_spec[xl:xu,0],solar_spec[xl:xu,1],where='mid')
+                ax.step(wv,yp,'r-',where='mid')
+                ax.scatter(wvi, solar_peaks[ind,1])
+                ax.scatter(p_loc_wv[selp],p_height[selp],c='r')
+                for s in selp:
+                    ax.text(p_loc_wv[s],p_height[s]+.03,"%0.2f" %p_loc[s])
+                ax.set_xlim([wvi-window_size,wvi+window_size])
+                mn = solar_spec[xl:xu,1].min()
+                mx = np.max([solar_spec[xl:xu,1].max(),np.max(p_height[selp])])
+                rn = mx - mn
+                ax.set_ylim([-.1*rn + mn, 1.1*rn+mn])
+                plt.show()
+                answer = raw_input("What is the xpos for wavelength {:0.0f}?".format(wvi))
+                plt.close()
+                try:
+                    xv = float(answer)
+                    matches.append([xv, wvi])
+                except ValueError:
+                    if answer=='off':
+                        interactive=False
+                    elif answer=='q':
+                        sys.exit(1)
+                    else:
+                        continue                    
+            if not interactive:
                 s_ind = np.argmin(np.abs(p_loc_wv[selp]-wvi))
                 m_ind = selp[s_ind]
                 if len(selp)>1:
@@ -131,25 +146,26 @@ def calculate_wavelength(x, y, solar_peaks, window_size=50.,
                         continue
                 xv = p_loc[m_ind]
                 matches.append([xv, wvi])
-                if len(matches)==1:
-                    init_sol  = np.array([1.*(init_lims[1]-init_lims[0])/len(x), 
-                                          wvi-p_loc_wv[m_ind]+init_lims[0]])
-                if len(matches)>1:
-                    matches_array = np.array(matches)
-                    if ((np.max(matches_array[:,0])
-                            -np.min(matches_array[:,0]))/len(x) > 0.7):
-                        order_fit = np.min([len(matches)-1, order])
-                    else:
-                        order_fit = 1
-                    init_sol = np.polyfit(matches_array[:,0], matches_array[:,1],
-                                          order_fit)
-                    if len(matches)>2:
-                        std = biweight_midvariance(np.polyval(init_sol,
-                                                          matches_array[:,0])
-                                               -matches_array[:,1])
-    
-                        isolated_distance = np.max([std * 5., 
-                                                    min_isolated_distance])
+        matches_array = np.array(matches)
+        if len(matches)>change_thresh:
+            if ((np.max(matches_array[:,0])
+                    -np.min(matches_array[:,0]))/len(x) > 0.7):
+                order_fit = np.min([np.max([len(matches)-2, 1]),order])
+            else:
+                order_fit = 1
+            init_sol = np.polyfit(matches_array[:,0], matches_array[:,1],
+                                  order_fit)
+
+    bad = is_outlier(np.polyval(init_sol,matches_array[:,0])
+                        -matches_array[:,1])
+    print(np.sum(bad<1),np.sum(bad==1))
+    order_fit = np.min([np.max([np.sum(bad<1)-2, 1]),order])
+    init_sol = np.polyfit(matches_array[bad<1,0], matches_array[bad<1,1],
+                              order_fit)
+    std = biweight_midvariance(np.polyval(init_sol,
+                                                  matches_array[bad<1,0])
+                                       -matches_array[bad<1,1])
+    print("Standard Deviation Offset: %0.2f" %std)
     if debug:
         t2=time.time()
         print("Time to finish wavelength solution for a single fiber: %0.2f" %(t2-t1))

@@ -84,7 +84,10 @@ class Amplifier:
 
     def load_fibers(self):
         if not self.fibers:
-            fn = op.join(self.path, 'fiber_*_%s.pkl' % self.basename)
+            fn = op.join(self.path, 'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
+                                                                  self.ifuslot,
+                                                                  self.ifuid,
+                                                                  self.amp))
             files = sorted(glob.glob(fn))
             for fiber_fn in files:
                 if op.exists(fiber_fn):
@@ -238,7 +241,7 @@ class Amplifier:
             self.get_image()
         if not self.fibers:
             self.get_trace()
-        if not self.fibers[0].fibmodel_polyvals:
+        if self.fibers[0].fibmodel_polyvals is None:
             self.get_fibermodel(poly_order=poly_order, 
                                 use_default=use_default_profile)
         else:
@@ -251,18 +254,19 @@ class Amplifier:
     
     
     def get_wavelength_solution(self, poly_order=3, wave_order=3, 
-                                use_default_profile=False, init_lims=None):
+                                use_default_profile=False, init_lims=None,
+                                interactive=False):
         if self.image is None:
             self.get_image()
         if not self.fibers:
             self.get_trace()
-        if not self.fibers[0].fibmodel_polyvals:
+        if self.fibers[0].fibmodel_polyvals is None:
             self.get_fibermodel(poly_order=poly_order, 
                                 use_default=use_default_profile)
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly() 
-        if not self.fibers[0].spectrum:
+        if self.fibers[0].spectrum is None:
             norm = get_norm_nonparametric(self.image, self.fibers, 
                                           debug=self.debug)
             for i, fiber in enumerate(self.fibers):
@@ -274,20 +278,22 @@ class Amplifier:
         solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/medium_sun.spec')
         gauss = Gaussian1DKernel(13)
         conv = convolve(solar_spec[:,1],gauss)
-        solar_spec[:,1] = medfilt(conv,301)
+        solar_spec[:,1] = medfilt(conv,301) / conv
         sel = ((solar_peaks[:,1]>1.05) * (solar_peaks[:,0]>(init_lims[0]-100.))
                 * (solar_peaks[:,0]<(init_lims[1]+100.)))
                 
         for i, fiber in enumerate(self.fibers):
-            #if i==0:
+            if i==0:
                 fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
                                              np.arange(self.D), fiber.spectrum,
                                              solar_peaks[sel,:], solar_spec, 
                                              init_lims=init_lims, 
-                                             debug=self.debug)
-            #else:
-            #    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
-            #                                 np.arange(self.D), fiber.spectrum,
-            #                                 solar_peaks[sel,:], init_lims=init_lims, 
-            #                                 debug=self.debug, init_sol=self.fibers[i-1].wave_polyvals)
-        
+                                             debug=self.debug, 
+                                             interactive=interactive)
+            else:
+                fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
+                                             np.arange(self.D), fiber.spectrum,
+                                             solar_peaks[sel,:], solar_spec, 
+                                             init_lims=init_lims, init_sol=self.fibers[i-1].wave_polyvals, 
+                                             debug=self.debug, 
+                                             interactive=interactive)
