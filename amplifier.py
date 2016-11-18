@@ -47,7 +47,10 @@ class Amplifier:
             os.mkdir(self.path)
             
         self.N, self.D = F[0].data.shape
-        self.D -= 64
+        if self.D == 1064:
+            self.D -= 32
+        if self.D == 2128:
+            self.D -= 64
         self.overscan_value = None
         self.gain = F[0].header['GAIN']
         self.rdnoise = F[0].header['RDNOISE']
@@ -121,7 +124,7 @@ class Amplifier:
     def get_trace(self, fdist=2., check_trace=True):
         if self.image is None:
             self.get_image()
-        if self.type == 'twi' and self.refit:
+        if self.type == 'twi' or self.refit:
             allfibers, xc = get_trace_from_image(self.image, interp_window=2.5,
                                                  debug=self.debug)
             brcol = np.argmin(np.abs(xc-self.D*.47))
@@ -197,7 +200,7 @@ class Amplifier:
             self.get_image()
         if not self.fibers:
             self.get_trace()
-        if self.type == 'twi' and self.refit:
+        if self.type == 'twi' or self.refit:
             sol, xcol, binx = fit_fibermodel_nonparametric(self.image, 
                                                            self.fibers,
                                                            debug=self.debug,
@@ -255,7 +258,7 @@ class Amplifier:
     
     def get_wavelength_solution(self, poly_order=3, wave_order=3, 
                                 use_default_profile=False, init_lims=None,
-                                interactive=False):
+                                interactive=False, group=4):
         if self.image is None:
             self.get_image()
         if not self.fibers:
@@ -291,9 +294,11 @@ class Amplifier:
                                              debug=self.debug, 
                                              interactive=interactive)
             else:
+                print("Working on Fiber %i" %i)
                 fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
                                              np.arange(self.D), fiber.spectrum,
                                              solar_peaks[sel,:], solar_spec, 
                                              init_lims=init_lims, init_sol=self.fibers[i-1].wave_polyvals, 
                                              debug=self.debug, 
-                                             interactive=interactive)
+                                             interactive=interactive,
+                                             constrained_to_initial=True)

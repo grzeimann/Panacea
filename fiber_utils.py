@@ -8,6 +8,7 @@ To be used in conjuction with IFU reduction code, Panacea
 """
 
 from utils import biweight_location, biweight_midvariance, is_outlier
+from utils import biweight_filter
 from scipy.optimize import nnls
 from scipy.signal import medfilt
 from scipy.linalg import lstsq
@@ -80,7 +81,8 @@ def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
                          isolated_distance=15., min_isolated_distance=4., 
                          init_lims=None, smooth_length=31, order=3, 
                          init_sol=None, height_clip=1.02, debug=False,
-                         interactive=False):
+                         interactive=False, constrained_to_initial=False,
+                         maxwavediff=5.):
     if debug:
         t1 = time.time()
     if init_lims is None:
@@ -88,7 +90,7 @@ def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
     # smooth_length has to be odd
     if smooth_length%2 == 0:
         smooth_length+=1
-    yp = medfilt(y, smooth_length) / y
+    yp = biweight_filter(y, smooth_length) / y
     p_loc, p_height = find_maxima(x, yp)
     ind_sort = np.argsort(solar_peaks[:,1])[::-1]
     matches = []
@@ -98,9 +100,15 @@ def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
         change_thresh=1
     else:
         change_thresh=6
+        if constrained_to_initial:
+            init_wave = np.polyval(init_sol,x)
     for i, ind in enumerate(ind_sort[:]):
         if (np.min(np.abs(solar_peaks[ind,0]-np.delete(solar_peaks[:,0],ind)))
                           <isolated_distance):
+            print('Skipped due to proximity: %0.1f' 
+                        %np.min(np.abs(solar_peaks[ind,0]
+                        -np.delete(solar_peaks[:,0],ind))))
+            print(isolated_distance)
             continue
         wv = np.polyval(init_sol, x)
         wvi = solar_peaks[ind,0]
@@ -116,6 +124,9 @@ def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
                 ax.step(solar_spec[xl:xu,0],solar_spec[xl:xu,1],where='mid')
                 ax.step(wv,yp,'r-',where='mid')
                 ax.scatter(wvi, solar_peaks[ind,1])
+                #psel = ((solar_peaks[:,0]>wvi-window_size)*
+                #        (solar_peaks[:,0]<wvi+window_size))
+                #ax.scatter(solar_peaks[psel,0],solar_peaks[psel,1])
                 ax.scatter(p_loc_wv[selp],p_height[selp],c='r')
                 for s in selp:
                     ax.text(p_loc_wv[s],p_height[s]+.03,"%0.2f" %p_loc[s])
@@ -153,8 +164,14 @@ def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
                 order_fit = np.min([np.max([len(matches)-2, 1]),order])
             else:
                 order_fit = 1
-            init_sol = np.polyfit(matches_array[:,0], matches_array[:,1],
+            test_sol = np.polyfit(matches_array[:,0], matches_array[:,1],
                                   order_fit)
+            if constrained_to_initial:                      
+                newwave = np.polyval(test_sol,x)
+                if np.max(newwave-init_wave)<maxwavediff:
+                    init_sol = test_sol
+            else:
+                init_sol = test_sol
 
     bad = is_outlier(np.polyval(init_sol,matches_array[:,0])
                         -matches_array[:,1])

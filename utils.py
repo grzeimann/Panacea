@@ -3,12 +3,21 @@
 Created on Wed Oct  5 18:12:13 2016
 
 @author: gregz
+
+This code relies on original software from:
+Copyright (c) 2011-2016, Astropy Developers    
+Copyright (c) 2012, Free Software Foundation    
+
 """
 
 import numpy as np
+import sys
 
 def median_absolute_deviation(a, axis=None):
-    """Compute the median absolute deviation.
+    """
+    Copyright (c) 2011-2016, Astropy Developers    
+    
+    Compute the median absolute deviation.
 
     Returns the median absolute deviation (MAD) of the array elements.
     The MAD is defined as ``median(abs(a - median(a)))``.
@@ -72,8 +81,44 @@ def median_absolute_deviation(a, axis=None):
     return func(np.abs(a - a_median), axis=axis)
     
 
+def biweight_filter(a, order, c=6.0, M=None):
+    '''
+    Compute the biweight location with a moving window of size "order"
+
+    '''
+    if not isinstance(order, int):
+        print("The order should be an integer")
+        sys.exit(1)
+    if order%2==0:
+        order+=1
+    a = np.array(a, copy=False)
+    if a.ndim != 1:
+        print("Input array/list should be 1-dimensional")
+        sys.exit()
+    
+    half_order = order / 2    
+    A = np.zeros((len(a)-order+1,order))
+    for i in xrange(order):
+        if (order-i-1) == 0:
+            A[:,i] = a[i:]
+        else:
+            A[:,i] = a[i:-(order-i-1)]
+    
+    Ab = biweight_location(A, axis=(1,))
+    A1 = np.zeros((half_order,))
+    A2 = np.zeros((half_order,))
+    for i in xrange(half_order):
+        A1[i] = biweight_location(a[:(half_order+i+1)])
+        A2[i] = biweight_location(a[-(half_order+i+1):])
+    return np.hstack([A1,Ab,A2])
+    
+    
+
 def biweight_location(a, c=6.0, M=None, axis=None):
-    """Compute the biweight location for an array.
+    """
+    Copyright (c) 2011-2016, Astropy Developers        
+    
+    Compute the biweight location for an array.
 
     Returns the biweight location for the array elements.
     The biweight is a robust statistic for determining the central
@@ -165,7 +210,10 @@ def biweight_location(a, c=6.0, M=None, axis=None):
     
     
 def biweight_midvariance(a, c=9.0, M=None, axis=None):
-    """Compute the biweight midvariance for an array.
+    """
+    Copyright (c) 2011-2016, Astropy Developers    
+    
+    Compute the biweight midvariance for an array.
 
     Returns the biweight midvariance for the array elements.
     The biweight midvariance is a robust statistic for determining
@@ -274,6 +322,9 @@ def biweight_midvariance(a, c=9.0, M=None, axis=None):
 
 def is_outlier(points, thresh=3.5):
     """
+    Copyright (c) 2012, Free Software Foundation   
+    
+    
     Returns a boolean array with True if points are outliers and False 
     otherwise.
 
