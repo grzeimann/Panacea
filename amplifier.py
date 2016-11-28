@@ -11,7 +11,7 @@ To be used in conjuction with IFU reduction code, Panacea
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
-from utils import biweight_location
+from utils import biweight_location, biweight_filter
 from astropy.io import fits
 import os.path as op
 import numpy as np
@@ -258,8 +258,7 @@ class Amplifier:
     
     def get_wavelength_solution(self, poly_order=3, wave_order=3, 
                                 use_default_profile=False, init_lims=None,
-                                interactive=False, group=4, 
-                                isolated_distance=15.):
+                                interactive=False):
         if self.image is None:
             self.get_image()
         if not self.fibers:
@@ -313,4 +312,53 @@ class Amplifier:
                 F.wave_polyvals = F1.wave_polyvals * 1.
                 F.eval_wave_poly()
                 if append_flag:
-                    self.fibers.append(F)  
+                    self.fibers.append(F)
+                    
+    def get_fiber_to_fiber(self, poly_order=3, wave_order=3, 
+                                use_default_profile=False, init_lims=None,
+                                interactive=False):
+        if self.image is None:
+            self.get_image()
+        if not self.fibers:
+            self.get_trace()
+        if self.fibers[0].fibmodel_polyvals is None:
+            self.get_fibermodel(poly_order=poly_order, 
+                                use_default=use_default_profile)
+        else:
+            for fiber in self.fibers:
+                fiber.eval_fibmodel_poly()
+        if self.type == 'twi' or self.refit:
+            if self.fibers[0].spectrum is None:
+                self.fiberextract(poly_order=poly_order, 
+                                  use_default_profile=use_default_profile)
+            if self.fibers[0].wave_polyvals is None:
+                self.get_wavelength_solution(poly_order=poly_order, 
+                                             wave_order=wave_order, 
+                                             use_default_profile=use_default_profile, 
+                                             init_lims=init_lims,
+                                             interactive=interactive)
+            else:
+                for fiber in self.fibers:
+                    fiber.eval_wave_poly()
+            
+        else:
+            fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
+                                                                  self.ifuslot,
+                                                                  self.ifuid,
+                                                                  self.amp))
+            files = sorted(glob.glob(fn))
+            for i, fiber_fn in enumerate(files):
+                append_flag = False
+                try:
+                    F = self.fibers[i]
+                except IndexError:    
+                    F = Fiber(self.D, i+1, self.path, self.filename)
+                    append_flag = True
+                with open(fiber_fn, 'r') as f:
+                    F1 = pickle.load(f)
+                F.fiber_to_fiber = F1.fiber_to_fiber * 1.
+                if append_flag:
+                    self.fibers.append(F)            
+        
+
+        

@@ -83,3 +83,7 @@ for i, instr in enumerate(instruments):
     plt.plot(solar_spec[:,0],solar_spec[:,1],'r-')
     plt.plot(masterwave,smoothed,'k-')
     plt.axis([5300,5500,0.75,1.5])
+
+for fib,fiber in enumerate(virus2.fibers):
+    plt.step(fiber.wavelength,fiber.spectrum,color='b',alpha=0.1,where='mid')
+plt.axis([3500,4000,0,800])
