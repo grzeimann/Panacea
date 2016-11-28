@@ -10,7 +10,7 @@ To be used in conjuction with IFU reduction code, Panacea
 from utils import biweight_location, biweight_midvariance, is_outlier
 from utils import biweight_filter
 from scipy.optimize import nnls
-from scipy.signal import medfilt
+import scipy
 from scipy.linalg import lstsq
 from astropy.convolution import Gaussian1DKernel, convolve
 import matplotlib.pyplot as plt
@@ -19,6 +19,52 @@ import os.path as op
 import numpy as np
 import time
 import sys
+
+def str2bool(v):
+  return v.lower() in ("y", "yes", "true", "t", "1")
+
+def get_float(answer, question, previous):
+    try:
+        value = float(answer)
+    except ValueError:
+        if answer =='q':
+            sys.exit(1)
+        if answer =='':
+            value = previous
+        else:
+            answer = raw_input(question)
+            get_float(answer, question, previous)
+    return value
+
+def get_int(answer, question, previous):
+    try:
+        value = int(answer)
+    except ValueError:
+        if answer =='q':
+            sys.exit(1)
+        elif answer =='':
+            value = previous
+        else:
+            answer = raw_input(question)
+            get_float(answer, question, previous)
+    return value
+
+def fit_scale_wave0(init_scale, init_wave0, xi, xe, D, sun_wave, ysun, data, 
+                    fixscale=False):
+    if fixscale:
+        def f(params):
+            wv = init_scale * np.arange(D) + params[0]
+            model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
+            return model - data
+        sol = scipy.optimize.leastsq(f, np.array([init_wave0]))[0]
+    else:
+        def f(params):
+            wv = params[0] * np.arange(D) + params[1]
+            model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
+            return model - data
+        sol = scipy.optimize.leastsq(f, np.array([init_scale, init_wave0]))[0]
+
+    return sol
 
 def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
                 first_order_iter=5, max_to_min_dist=5):
@@ -74,12 +120,11 @@ def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
             lwa = (yp*xp).sum()/yp.sum()
         peaks_refined[j] = lwa
         peaks_height[j] = y[val]
-    return peaks_refined, peaks_height
-    
+    return peaks_refined, peaks_height 
 
 def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
                          isolated_distance=15., min_isolated_distance=4., 
-                         init_lims=None, smooth_length=31, order=3, 
+                         init_lims=None, smooth_length=51, order=3, 
                          init_sol=None, height_clip=1.02, debug=False,
                          interactive=False, constrained_to_initial=False,
                          maxwavediff=5.):
@@ -99,7 +144,7 @@ def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
                              init_lims[0]])
         change_thresh=1
     else:
-        change_thresh=6
+        change_thresh=999
         if constrained_to_initial:
             init_wave = np.polyval(init_sol,x)
     for i, ind in enumerate(ind_sort[:]):
@@ -187,7 +232,95 @@ def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
         t2=time.time()
         print("Time to finish wavelength solution for a single fiber: %0.2f" %(t2-t1))
     return np.polyval(init_sol,x), init_sol
-        
+
+
+def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
+                         init_lims=None, order=3, init_sol=None, debug=False,
+                         interactive=False, nbins=21, wavebuff=100, 
+                         plotbuff=70, fixscale=False):
+    L = len(x)
+    if init_lims is None:
+        init_lims = [np.min(solar_spec[:,0]), np.max(solar_spec[:,0])]
+    if init_sol is not None:
+        init_wave_sol = np.polyval(init_sol, 1. * x / L)
+    y_sun = solar_spec[:,1]
+    y = biweight_filter(y, smooth_length) / y
+    bins = np.linspace(init_lims[0], init_lims[1], nbins)
+    scale = 1.*(init_lims[1] - init_lims[0])/L
+    wv0 = init_lims[0]
+    wave0_save = [] 
+    scale_save = []
+    x_save = []
+    wave_save = []
+    for j in xrange(len(bins)-1):
+        if init_sol is not None:
+            xl = np.searchsorted(init_wave_sol, bins[j])
+            xh = np.searchsorted(init_wave_sol, bins[j+1])
+            p0 = np.polyfit(x[xl:xh+1], init_wave_sol[xl:xh+1], 1)
+            scale = p0[0]
+            wv0 = p0[1]
+        wv = np.arange(L)*scale + wv0
+        xi = np.searchsorted(wv,bins[j])
+        xe = np.searchsorted(wv,bins[j+1])
+        swlow = bins[j]-wavebuff  
+        swup = bins[j+1]+wavebuff
+        xsl = np.searchsorted(solar_spec[:,0],swlow)
+        xsu = np.searchsorted(solar_spec[:,0],swup)
+        sun_wave = solar_spec[xsl:xsu,0]
+        ysun = y_sun[xsl:xsu]
+        flag = np.ones(y[xi:xe+1].shape, dtype=bool)
+        content = False
+        while content is False:
+            sol = fit_scale_wave0(scale, wv0, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
+                                  fixscale=fixscale)
+            if fixscale:
+                wv = np.arange(L) * scale + sol[0]
+                wv0 = sol[0]
+            else:
+                wv = np.arange(L)*sol[0] + sol[1]           
+                scale = sol[0]
+                wv0 = sol[1]                
+            model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
+            flag = is_outlier(model - y[xi:xe+1]) < 1
+            if interactive: 
+                wv = np.arange(L)*scale + wv0
+                ax = plt.axes([0.1,0.1,0.8,0.8])
+                ax.step(sun_wave, ysun, where='mid')
+                ax.step(wv[xi:xe+1],y[xi:xe+1],'r-',where='mid')
+                ax.scatter(wv[xi:xe+1][flag<1], y[xi:xe+1][flag<1],marker='x',color='b')
+                yi = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
+                ax.plot(wv[xi:xe+1], yi,'k-')
+                ax.set_xlim([swlow+plotbuff, swup-plotbuff])
+                mn = np.max([ysun.min(),y[xi:xe+1].min()])
+                mx = np.min([ysun.max(),y[xi:xe+1].max()])
+                rn = mx - mn
+                ax.set_ylim([-.1*rn + mn, 1.1*rn+mn])
+                plt.show()
+                answer = raw_input("Are you happy with the fit [%0.3f, %0.2f]?" %(scale, wv0))
+                if answer == 'q':
+                    sys.exit(1)
+                content = str2bool(answer)
+                if content:
+                    plt.close()
+                    continue
+                question = ("What is the scale" 
+                                "(Current is %0.3f)?" % scale)
+                answer = raw_input(question)
+                scale = get_float(answer, question, scale)            
+                question = ("What wavelength zeropoint" 
+                                "(Current is %0.2f)?" % wv0)
+                answer = raw_input(question)
+                wv0 = get_float(answer, question, wv0)
+                plt.close()
+            else:
+                content=True
+        x_save.append(x[xi:xe+1])
+        wave_save.append(wv[xi:xe+1])
+        wave0_save.append(wv0)
+        scale_save.append(scale)
+    
+    init_sol = np.polyfit(1.*np.hstack(x_save)/L,np.hstack(wave_save), order)
+    return np.polyval(init_sol,1. * x / L), init_sol        
 
 def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
                          order=3, mx_cut=0.1, max_to_min_dist=5., debug=False,

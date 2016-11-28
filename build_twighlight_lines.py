@@ -10,14 +10,24 @@ import matplotlib.pyplot as plt
 from astropy.convolution import Gaussian1DKernel, convolve
 from amplifier import Amplifier
 from utils import biweight_filter
-from fiber_utils import find_maxima
+from fiber_utils import calculate_wavelength_chi2
 
-nbins = 20
+interactive=True
+nbins = 21
+smooth_length=21
+niter = 1
+wavebuff = 100
+plotbuff = 70
 fiber = 55
-solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/medium_sun.spec')
+#solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/medium_sun.spec')
+#gauss = Gaussian1DKernel(13)
+#conv = convolve(solar_spec[:,1],gauss)
+#solar_spec[:,1] = biweight_filter(conv, int(51/(.1))) / conv
+solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/virus_temp.txt')
+#solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/lrs2_orange_temp.txt')
 
 
-orange = Amplifier('/Users/gregz/cure/lrs2_raw/20160806/lrs2/lrs20000001/exp02/lrs2/20160806T020439.7_056RU_twi.fits', 
+orange = Amplifier('/Users/gregz/cure/lrs2_raw/20160806/lrs2/lrs20000001/exp02/lrs2/20160806T020439.7_056RL_twi.fits', 
           '/Users/gregz/cure/lrs2_reductions/twi',
           calpath='/Users/gregz/cure/lrs2_reductions/twi', 
           debug=True, refit=True)
@@ -29,75 +39,47 @@ farred = Amplifier('/Users/gregz/cure/lrs2_raw/20160806/lrs2/lrs20000001/exp02/l
           '/Users/gregz/cure/lrs2_reductions/twi',
           calpath='/Users/gregz/cure/lrs2_reductions/twi', 
           debug=True, refit=True)
-virus = Amplifier('/Users/gregz/cure/virus_raw/20160512/virus/virus0000001/exp01/virus/20160512T020351.1_075LL_sci.fits',
+virus = Amplifier('/Users/gregz/cure/virus_raw/20160512/virus/virus0000001/exp01/virus/20160512T020351.1_084LL_sci.fits',
                   '/Users/gregz/cure/virus_reductions/twi',
                   calpath='/Users/gregz/cure/virus_reductions/twi', 
                   debug=True, refit=True)
-       
-
 
 instruments = [virus]#, orange, red, farred]
-wavelims = [[3500,5500]]#,[4550,7000],[6450,8470],[8230,10500]]
-
-def str2bool(v):
-  return v.lower() in ("y", "yes", "true", "t", "1")  
-
+wavelims = [[3480,5500]]#,[4550,7000],[6425,8440],[8230,10500]]
+    
 for i, instr in enumerate(instruments):
+    instr.load_fibers()
     if not instr.fibers:
-        instr.fiberextract()
+        instr.fiberextract(use_default_profile=True)
         instr.save_fibers()
     else:
         if instr.fibers[0].spectrum is None:
-            instr.fiberextract()
+            instr.fiberextract(use_default_profile=True)
             instr.save_fibers()
-    scale = (wavelims[i][1] - wavelims[i][0])/instr.D
-    
-    y = (biweight_filter(instr.fibers[fiber].spectrum) 
-         / instr.fibers[fiber].spectrum)
-    x = np.arange(instr.D)
-    peaks, heights = find_maxima(x,y)
-    bins = np.linspace(wavelims[i][0], wavelims[i][1], nbins)
-    content = False
-    for j in xrange(len(bins)):
-        while content is False:
-            xl = np.searchsorted(solar_spec[:,0],wvi-window_size)
-            xu = np.searchsorted(solar_spec[:,0],wvi+window_size)
-            ax = plt.axes([0.1,0.1,0.8,0.8])
-            ax.step(solar_spec[xl:xu,0],solar_spec[xl:xu,1],where='mid')
-            ax.step(wv,yp,'r-',where='mid')
-            ax.scatter(wvi, solar_peaks[ind,1])
-            #psel = ((solar_peaks[:,0]>wvi-window_size)*
-            #        (solar_peaks[:,0]<wvi+window_size))
-            #ax.scatter(solar_peaks[psel,0],solar_peaks[psel,1])
-            ax.scatter(p_loc_wv[selp],p_height[selp],c='r')
-            for s in selp:
-                ax.text(p_loc_wv[s],p_height[s]+.03,"%0.2f" %p_loc[s])
-            ax.set_xlim([wvi-window_size,wvi+window_size])
-            mn = solar_spec[xl:xu,1].min()
-            mx = np.max([solar_spec[xl:xu,1].max(),np.max(p_height[selp])])
-            rn = mx - mn
-            ax.set_ylim([-.1*rn + mn, 1.1*rn+mn])
-            plt.show()
-            answer = raw_input("Are you happy with the fit?")
-            content = str2bool(answer)
-            if content:
-                continue
-            answer = raw_input("What is the xpos for wavelength {:0.0f}?".format(wvi))
-            
-            plt.close()
-            try:
-                xv = float(answer)
-                matches.append([xv, wvi])
-            except ValueError:
-                if answer=='off':
-                    interactive=False
-                elif answer=='q':
-                    sys.exit(1)
-                else:
-                    continue 
-gauss = Gaussian1DKernel(13)
-conv = convolve(solar_spec[:,1],gauss)
-    
-# STEP THROUGH THE SOLAR compared with VIRUS, UV, ORANGE, RED, FAR RED for choice of lines
-# So I need all 5 to be reduced.
-
+    masterwave = []
+    masterspec = []
+    for fib, fiber in enumerate(instr.fibers):
+        if fib==0:
+            fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(np.arange(instr.D), fiber.spectrum, solar_spec, 
+                                             init_lims=wavelims[i], 
+                                             interactive=interactive, nbins=nbins,smooth_length=smooth_length,
+                                             fixscale=False)
+        else:
+            fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(np.arange(instr.D), fiber.spectrum, solar_spec, 
+                                             init_lims=wavelims[i], 
+                                             interactive=False,smooth_length=smooth_length,
+                                             init_sol=instr.fibers[fib-1].wave_polyvals)
+        y = (biweight_filter(fiber.spectrum, smooth_length) / fiber.spectrum)
+        masterwave.append(fiber.wavelength)
+        masterspec.append(y)
+        plt.scatter(fiber.wavelength, y, color='b', alpha=0.2, edgecolor='none')
+    instr.save_fibers()
+    masterwave = np.hstack(masterwave)
+    masterspec = np.hstack(masterspec)
+    ind = np.argsort(masterwave)
+    masterwave[:] = masterwave[ind]
+    masterspec[:] = masterspec[ind]
+    smoothed = biweight_filter(masterspec, 51)
+    plt.plot(solar_spec[:,0],solar_spec[:,1],'r-')
+    plt.plot(masterwave,smoothed,'k-')
+    plt.axis([5300,5500,0.75,1.5])

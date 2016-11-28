@@ -22,10 +22,8 @@ import glob
 import cPickle as pickle
 from fiber_utils import get_trace_from_image, fit_fibermodel_nonparametric
 from fiber_utils import get_norm_nonparametric, check_fiber_trace
-from fiber_utils import calculate_wavelength
+from fiber_utils import calculate_wavelength_chi2
 from fiber import Fiber
-from astropy.convolution import Gaussian1DKernel, convolve
-from scipy.signal import medfilt
 
 __all__ = ["Amplifier"]
 
@@ -37,6 +35,7 @@ class Amplifier:
         '''
         if not op.exists(filename):
             #TODO log warning message
+            print("File Does Not Exist: %s" %filename)
             sys.exit(1)
 
         F = fits.open(filename)
@@ -96,6 +95,7 @@ class Amplifier:
                 if op.exists(fiber_fn):
                     with open(fiber_fn, 'r') as f:
                         self.fibers.append(pickle.load(f))
+                        
 
       
     def orient(self, image):
@@ -258,7 +258,8 @@ class Amplifier:
     
     def get_wavelength_solution(self, poly_order=3, wave_order=3, 
                                 use_default_profile=False, init_lims=None,
-                                interactive=False, group=4):
+                                interactive=False, group=4, 
+                                isolated_distance=15.):
         if self.image is None:
             self.get_image()
         if not self.fibers:
@@ -269,36 +270,47 @@ class Amplifier:
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly() 
-        if self.fibers[0].spectrum is None:
-            norm = get_norm_nonparametric(self.image, self.fibers, 
-                                          debug=self.debug)
+        if self.type == 'twi' or self.refit:
+            if self.fibers[0].spectrum is None:
+                norm = get_norm_nonparametric(self.image, self.fibers, 
+                                              debug=self.debug)
+                for i, fiber in enumerate(self.fibers):
+                    fiber.spectrum = norm[i,:]
+            if init_lims is None:
+                print("Please provide initial wavelength endpoint guess")
+                sys.exit(1)            
+            solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/virus_temp.txt')
             for i, fiber in enumerate(self.fibers):
-                fiber.spectrum = norm[i,:]
-        if not init_lims:
-            print("Please provide initial wavelength endpoint guess")
-            sys.exit(1)
-        solar_peaks = np.loadtxt('/Users/gregz/cure/panacea/solar_lines.dat')
-        solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/medium_sun.spec')
-        gauss = Gaussian1DKernel(13)
-        conv = convolve(solar_spec[:,1],gauss)
-        solar_spec[:,1] = medfilt(conv,301) / conv
-        sel = ((solar_peaks[:,1]>1.05) * (solar_peaks[:,0]>(init_lims[0]-100.))
-                * (solar_peaks[:,0]<(init_lims[1]+100.)))
-                
-        for i, fiber in enumerate(self.fibers):
-            if i==0:
-                fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
-                                             np.arange(self.D), fiber.spectrum,
-                                             solar_peaks[sel,:], solar_spec, 
-                                             init_lims=init_lims, 
-                                             debug=self.debug, 
-                                             interactive=interactive)
-            else:
-                print("Working on Fiber %i" %i)
-                fiber.wavelength, fiber.wave_polyvals = calculate_wavelength(
-                                             np.arange(self.D), fiber.spectrum,
-                                             solar_peaks[sel,:], solar_spec, 
-                                             init_lims=init_lims, init_sol=self.fibers[i-1].wave_polyvals, 
-                                             debug=self.debug, 
-                                             interactive=interactive,
-                                             constrained_to_initial=True)
+                if i==0:
+                    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
+                                                 np.arange(self.D), fiber.spectrum, solar_spec, 
+                                                 init_lims=init_lims, 
+                                                 debug=self.debug, 
+                                                 interactive=interactive)
+                else:
+                    print("Working on Fiber %i" %i)
+                    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
+                                                 np.arange(self.D), fiber.spectrum, solar_spec, 
+                                                 init_lims=init_lims, 
+                                                 debug=self.debug, 
+                                                 interactive=False, init_sol=self.fibers[i-1].wave_polyvals)
+            
+        else:            
+            fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
+                                                                  self.ifuslot,
+                                                                  self.ifuid,
+                                                                  self.amp))
+            files = sorted(glob.glob(fn))
+            for i, fiber_fn in enumerate(files):
+                append_flag = False
+                try:
+                    F = self.fibers[i]
+                except IndexError:    
+                    F = Fiber(self.D, i+1, self.path, self.filename)
+                    append_flag = True
+                with open(fiber_fn, 'r') as f:
+                    F1 = pickle.load(f)
+                F.wave_polyvals = F1.wave_polyvals * 1.
+                F.eval_wave_poly()
+                if append_flag:
+                    self.fibers.append(F)  
