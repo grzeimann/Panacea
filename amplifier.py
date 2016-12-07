@@ -343,7 +343,7 @@ class Amplifier:
                                 wave_order=3, use_default_profile=False, 
                                 init_lims=None, interactive=False, 
                                 calculate_shift=False, check_wave=False,
-                                check_fibermodel=False):
+                                check_fibermodel=False, default_fib=0):
                                     
         solar_spec = np.loadtxt('/Users/gregz/cure/virus_early'
                                 '/virus_config/solar_spec/virus_temp.txt')
@@ -367,21 +367,38 @@ class Amplifier:
                     fiber.spectrum = norm[i,:]
             if init_lims is None:
                 print("Please provide initial wavelength endpoint guess")
-                sys.exit(1)            
-            for i, fiber in enumerate(self.fibers):
-                if i==0:
-                    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
+                sys.exit(1)
+            fiber = self.fibers[default_fib]
+            fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
                                                  np.arange(self.D), fiber.spectrum, solar_spec, 
                                                  init_lims=init_lims, 
                                                  debug=self.debug, 
                                                  interactive=interactive)
-                else:
-                    print("Working on Fiber %i" %i)
-                    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
+            fc = np.arange(len(self.fibers))
+            if default_fib==0:
+                fibs1 = []
+            else:
+                fibs1 = fc[(default_fib-1)::-1]
+            if default_fib==(len(self.fibers)-1):
+                fibs2 = []
+            else:
+                fibs2 = fc[(default_fib+1)::1]
+            for fib in fibs1:
+                print("Working on Fiber %i" %fib)
+                fiber = self.fibers[fib]
+                fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
                                                  np.arange(self.D), fiber.spectrum, solar_spec, 
                                                  init_lims=init_lims, 
                                                  debug=self.debug, 
-                                                 interactive=False, init_sol=self.fibers[i-1].wave_polyvals)
+                                                 interactive=False, init_sol=self.fibers[fib+1].wave_polyvals)
+            for fib in fibs2:
+                print("Working on Fiber %i" %fib)
+                fiber = self.fibers[fib]
+                fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
+                                                 np.arange(self.D), fiber.spectrum, solar_spec, 
+                                                 init_lims=init_lims, 
+                                                 debug=self.debug, 
+                                                 interactive=False, init_sol=self.fibers[fib-1].wave_polyvals)
             
         else:
             self.load_cal_property(['wave_polyvals'])

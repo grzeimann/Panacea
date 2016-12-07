@@ -57,13 +57,14 @@ def fit_scale_wave0(init_scale, init_wave0, xi, xe, D, sun_wave, ysun, data,
             model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
             return model - data
         sol = scipy.optimize.leastsq(f, np.array([init_wave0]))[0]
+        chi2 = f(sol)**2
     else:
         def f(params):
             wv = params[0] * np.arange(D) + params[1]
             model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
             return model - data
         sol = scipy.optimize.leastsq(f, np.array([init_scale, init_wave0]))[0]
-    chi2 = f(sol)**2
+        chi2 = f(sol)**2
     return sol, chi2
 
 def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
@@ -273,15 +274,20 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
         while content is False:
             if j==0 and init_sol is None:
                 xwv0 = np.arange(wv0-20,wv0+20,5)
-                chi2 = np.zeros(xwv0.shape)
+                chi2r = np.zeros(xwv0.shape)
                 solk = []
                 for cnt,wv0g in enumerate(xwv0):
-                    sol, chi2[cnt] = fit_scale_wave0(scale, wv0, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
+                    sol, chi2 = fit_scale_wave0(scale, wv0g, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
                                   fixscale=fixscale)
                     solk.append(sol)
-                    print(wv0g, chi2)
-                sol = solk[np.argmin(chi2)]
-                                                
+                    if fixscale:
+                        wv = np.arange(L) * scale + sol[0]
+                    else:
+                        wv = np.arange(L)*sol[0] + sol[1]           
+                    model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
+                    flag = is_outlier(model - y[xi:xe+1])
+                    chi2r[cnt] = np.nansum(chi2[flag<1]) / (np.sum(flag<1)+1-2)
+                sol = solk[np.argmin(chi2r)]
             else:    
                 sol, chi2 = fit_scale_wave0(scale, wv0, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
                                   fixscale=fixscale)
