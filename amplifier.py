@@ -343,7 +343,8 @@ class Amplifier:
                                 wave_order=3, use_default_profile=False, 
                                 init_lims=None, interactive=False, 
                                 calculate_shift=False, check_wave=False,
-                                check_fibermodel=False, default_fib=0):
+                                check_fibermodel=False, default_fib=0,
+                                filt_size_sky=51, filt_size_ind=21):
                                     
         solar_spec = np.loadtxt('/Users/gregz/cure/virus_early'
                                 '/virus_config/solar_spec/virus_temp.txt')
@@ -368,38 +369,44 @@ class Amplifier:
             if init_lims is None:
                 print("Please provide initial wavelength endpoint guess")
                 sys.exit(1)
-            fiber = self.fibers[default_fib]
-            fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
-                                                 np.arange(self.D), fiber.spectrum, solar_spec, 
-                                                 init_lims=init_lims, 
-                                                 debug=self.debug, 
-                                                 interactive=interactive)
-            fc = np.arange(len(self.fibers))
-            if default_fib==0:
-                fibs1 = []
-            else:
-                fibs1 = fc[(default_fib-1)::-1]
-            if default_fib==(len(self.fibers)-1):
-                fibs2 = []
-            else:
-                fibs2 = fc[(default_fib+1)::1]
-            for fib in fibs1:
-                print("Working on Fiber %i" %fib)
-                fiber = self.fibers[fib]
+            for k in xrange(2):
+                fiber = self.fibers[default_fib]
                 fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
-                                                 np.arange(self.D), fiber.spectrum, solar_spec, 
-                                                 init_lims=init_lims, 
-                                                 debug=self.debug, 
-                                                 interactive=False, init_sol=self.fibers[fib+1].wave_polyvals)
-            for fib in fibs2:
-                print("Working on Fiber %i" %fib)
-                fiber = self.fibers[fib]
-                fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
-                                                 np.arange(self.D), fiber.spectrum, solar_spec, 
-                                                 init_lims=init_lims, 
-                                                 debug=self.debug, 
-                                                 interactive=False, init_sol=self.fibers[fib-1].wave_polyvals)
-            
+                                                     np.arange(self.D), fiber.spectrum, solar_spec, 
+                                                     init_lims=init_lims, 
+                                                     debug=self.debug, 
+                                                     interactive=interactive)
+                fc = np.arange(len(self.fibers))
+                if default_fib==0:
+                    fibs1 = []
+                else:
+                    fibs1 = fc[(default_fib-1)::-1]
+                if default_fib==(len(self.fibers)-1):
+                    fibs2 = []
+                else:
+                    fibs2 = fc[(default_fib+1)::1]
+                for fib in fibs1:
+                    print("Working on Fiber %i" %fib)
+                    fiber = self.fibers[fib]
+                    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
+                                                     np.arange(self.D), fiber.spectrum, solar_spec, 
+                                                     init_lims=init_lims, 
+                                                     debug=self.debug, 
+                                                     interactive=False, init_sol=self.fibers[fib+1].wave_polyvals)
+                for fib in fibs2:
+                    print("Working on Fiber %i" %fib)
+                    fiber = self.fibers[fib]
+                    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
+                                                     np.arange(self.D), fiber.spectrum, solar_spec, 
+                                                     init_lims=init_lims, 
+                                                     debug=self.debug, 
+                                                     interactive=False, init_sol=self.fibers[fib-1].wave_polyvals)
+                if k==0:
+                    self.get_master_sky(filt_size_sky=filt_size_sky, filt_size_ind=filt_size_ind,
+                                norm=True)
+                    solar_spec = np.zeros((len(self.masterwave),2))
+                    solar_spec[:,0] = self.masterwave
+                    solar_spec[:,1] = self.mastersmooth
         else:
             self.load_cal_property(['wave_polyvals'])
             for fiber in self.fibers:
@@ -451,24 +458,42 @@ class Amplifier:
                                     filt_size_ind=filt_size_ind,
                                     filt_size_agg=filt_size_agg,
                                     filt_size_final=filt_size_final)
-        masterwave = []
-        masterspec = []
-        for fib, fiber in enumerate(self.fibers):
-            masterwave.append(fiber.wavelength)
-            masterspec.append(fiber.spectrum/fiber.fiber_to_fiber)
-        masterwave = np.hstack(masterwave)
-        smoothspec = np.hstack(masterspec)
-        ind = np.argsort(masterwave)
-        masterwave[:] = masterwave[ind]
-        smoothspec[:] = smoothspec[ind]
-        self.masterwave = masterwave
-        self.mastersky = biweight_filter(smoothspec, filt_size_sky)
+        self.get_master_sky(filt_size_sky=filt_size_sky, filt_size_ind=filt_size_ind,
+                            sky=True)
         for fib, fiber in enumerate(self.fibers):
             fiber.sky_spectrum = (fiber.fiber_to_fiber 
-                     * np.interp(fiber.wavelength, masterwave, self.mastersky))
+                     * np.interp(fiber.wavelength, self.masterwave, self.mastersky))
         self.skyframe = get_model_image(self.image, self.fibers, 'sky_spectrum',
                                         debug=self.debug)
         self.clean_image = self.image - self.skyframe
+        
+        
+    def get_master_sky(self, filt_size_sky=51, filt_size_ind=21, sky=False,
+                       norm=False):
+        masterwave = []
+        if sky:
+            masterspec = []
+        if norm:
+            mastersmooth=[]
+        for fib, fiber in enumerate(self.fibers):
+            if norm:
+                y = biweight_filter(fiber.spectrum, filt_size_ind)
+                mastersmooth.append(y/fiber.spectrum)
+            masterwave.append(fiber.wavelength)
+            if sky:            
+                masterspec.append(fiber.spectrum/fiber.fiber_to_fiber)
+        masterwave = np.hstack(masterwave)
+        ind = np.argsort(masterwave)
+        masterwave[:] = masterwave[ind]
+        self.masterwave = masterwave
+        if sky:
+            masterspec = np.hstack(masterspec)
+            masterspec[:] = masterspec[ind]
+            self.mastersky = biweight_filter(masterspec, filt_size_sky)
+        if norm:
+            mastersmooth = np.hstack(mastersmooth)
+            mastersmooth[:] = mastersmooth[ind]
+            self.mastersmooth = biweight_filter(mastersmooth, filt_size_sky)
                     
     def get_fiber_to_fiber(self, fibmodel_poly_order=3, trace_poly_order=3,
                            calculate_shift=False,
