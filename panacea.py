@@ -17,19 +17,177 @@ __all__ = ["Panacea"]
 import os
 import logging
 import warnings
+import textwrap
 
 import argparse as ap
 import numpy as np
 import pandas as pd
 import os.path as op
-import cPickle as pickle
-import fiber_utils as FU
 
-from utils import biweight_location, biweight_midvariance
-from astropy.io import fits, ascii
-from fibers import Fibers
+from amplifier import Amplifier
 
 from six.moves import configparser
+
+def parse_args(argv=None):
+    """Parse the command line arguments
+
+    Parameters
+    ----------
+    argv : list of string
+        arguments to parse; if ``None``, ``sys.argv`` is used
+
+    Returns
+    -------
+    Namespace
+        parsed arguments
+    """
+    description = textwrap.dedent('''Panacea - 
+    
+                     This script does ....
+                     
+                     ''')
+                     
+    parser = ap.ArgumentParser(description=description,
+                            formatter_class=ap.RawTextHelpFormatter)
+                        
+    parser.add_argument("--specid", nargs='?', type=str, 
+                        help='''List of SPECID's for processing. 
+                        Ex: "020,008".''', default = None)
+
+    parser.add_argument("--output", nargs='?', type=str, 
+                        help='''Output Directory [REQUIRED]''', 
+                        default=None)
+                        
+                        
+    parser.add_argument("-s","--subsky", help='''Subtract sky (no arg nec.)''',
+                        action="store_true")                        
+
+    parser.add_argument("-rc","--remove_cosmics", 
+                        help='''Make new error frame with cosmics set to "-1".''',
+                        action="store_true")  
+
+    parser.add_argument("-f","--fiberextract", 
+                        help='''Fiberextract (no arg nec.)''',
+                        action="store_true") 
+
+    parser.add_argument("-m","--makecube", 
+                        help='''Make 3d Cube (no arg nec.)''',
+                        action="store_true") 
+                        
+    parser.add_argument("-d","--detect", 
+                        help='''Run detect''',
+                        action="store_true") 
+
+    parser.add_argument("--cal_dir", nargs='?', type=str, 
+                        help='''Calibration Directory [REQUIRED]''', 
+                        default=None)
+
+    parser.add_argument("-rmd","--remake_ditherfiles", 
+                        help="Remake the dither files (if they already exist)",
+                        action="store_true") 
+
+    parser.add_argument("--instr", nargs='?', type=str, 
+                        help='''Instrument to process. 
+                        Default: "virus"
+                        Ex: "camra" for lab data.''', default = "virus")
+                        
+    parser.add_argument("--rootdir", nargs='?', type=str, 
+                        help='''Root Directory
+                        Default: \"/work/03946/hetdex/maverick\"''', 
+                        default="/work/03946/hetdex/maverick")
+
+    parser.add_argument("--biasdir", type=str,
+                        help= "Directory of biases to use",
+                        default="/work/00115/gebhardt/maverick/cal/lib_bias")
+                        
+    parser.add_argument("-sd","--scidir_date", nargs='?', type=str,
+                        help='''Science Directory Date.     [REQUIRED]
+                        Ex: \"20160412\"''', default=None)
+
+    parser.add_argument("-so","--scidir_obsid", nargs='?', type=str,
+                        help='''Science Directory ObsID.    [REQUIRED]
+                        Ex: \"3\" or \"102\"''', default=None)
+                        
+    parser.add_argument("-se","--scidir_expnum", nargs='?', type=str,
+                        help='''Science Directory exposure number.
+                        Ex: \"1\" or \"05\"''', default=None) 
+                        
+    parser.add_argument("--suboverscan_options", nargs="?", type=str, 
+                        help='''Set subtract overscan options.
+                        Default: \"-s -a -k 2.8 -t -z\"''', 
+                        default="-s -a -k 2.8 -t -z")        
+ 
+    parser.add_argument("--skysubtract_options", nargs="?", type=str, 
+                        help='''Set sky subtraction options.
+                        Default: \"-J -w 250 --output-both\".''', 
+                        default="-J -w 250 -T 50 --output-both")
+
+    parser.add_argument("--fiberextract_options", nargs="?", type=str, 
+                        help='''Set fiber extract options.
+                        Default: \"-n 1032 -W 3500,5500 -P\".''', 
+                        default="-n 1032 -W 3500,5500 -P")
+
+    parser.add_argument("--makecube_options", nargs="?", type=str, 
+                        help='''Set makecube options.
+                        Default: \"\".''', 
+                        default="")
+ 
+    parser.add_argument("--detect_options", nargs="?", type=str, 
+                        help='''Set detect options.
+                        Default: \" -d -S 2 --psf-size 6,6 -c 2.5 -C 2.5 ".''', 
+                        default="-d -S 2 --psf-size 6,6 -c 2.5 -C 2.5 ")
+                          
+    args = parser.parse_args(args=argv)
+
+    # Check that the arguments are filled
+    if args.specid:
+        args.specid = args.specid.replace(" ", "").split(',')
+    else:
+        args.specid = SPECID
+        
+    if args.run_insitu:
+        args.run_insitu = True
+    else:
+        args.run_insitu = False
+        
+    if args.output is None:
+        msg = 'No output directory was provided'
+        parser.error(msg)    
+
+    if args.cal_dir is None:
+        msg = 'No calibration directory was provided'
+        parser.error(msg)    
+        
+    if args.scidir_date is None:
+        msg = 'No science directory date was provided'
+        parser.error(msg) 
+    else:
+        args.scidir_date = args.scidir_date.replace(" ", "").split(',')
+
+    if args.scidir_obsid is None:
+        msg = 'No science directory ObsID was provided'
+        parser.error(msg) 
+    else:
+        args.scidir_obsid = args.scidir_obsid.replace(" ", "").split(',')
+
+    if args.scidir_expnum is not None:
+        args.scidir_expnum = args.zrodir_expnum.replace(" ", "").split(',')
+    
+    args.sci_file_loc = []
+    for date in args.scidir_date:
+        for obsid in args.scidir_obsid:
+            if args.scidir_expnum is not None:   
+                for expnum in args.scidir_expnum:
+                    args.sci_file_loc.append(op.join(args.rootdir, date, 
+                                    args.instr, 
+                                    "{:s}{:07d}".format(args.instr,int(obsid)), 
+                                    "exp{:02d}".format(int(expnum))))
+            else:
+                args.sci_file_loc.append(op.join(args.rootdir, date, 
+                                   args.instr,
+                                   "{:s}{:07d}".format(args.instr,int(obsid))))
+                
+    return args 
 
 class Panacea(object):
     # TODO Just be simple at first.
@@ -39,40 +197,10 @@ class Panacea(object):
     """
     def __init__(self, filename, path, config_file):
         self.filename = filename
-        self.path = path
-        self.config = self.read_config(config_file)
-        self.overscan = None
-        self.fitsfile = fits.open(filename)
-        self.get_trimsec_biassec()
-        self.check_for_fibers()
-        self.image = np.array(self.fitsfile[0].data,dtype=int)
-        self.check_overscan()
-        self.amp = None
-        
-        
-    def actions(self):        
-        #TODO COMBINE THESE
-
-        self.orient()
-        self.divide_pixelflats()
-
-        self.define_fibers()        
-        self.get_trace()
-        self.get_wavelength()
-        self.get_fiberpars()
-        
-        self.extract_spectra()
-        self.get_ra_dec()
-        self.find_sources()
     
-    def check_for_fibers(self):
-        fiber_fn = op.join(self.path, 'fibers_%s' %self.filename[:-5])
-        if op.exists(fiber_fn):
-            with open(fiber_fn, 'r') as f:
-                self.fibers = pickle.read(f)
-                self.overscan = self.fibers[0].overscan
-        else:
-            self.fibers = None
+    # ORGANIZE THE FILES, THEN RUN THEM AND PUT THEM IN A LOGICAL PLACE
+    # USE THE FILESYSTEM.
+    
     
     
     def read_config(self, config_file):
@@ -124,27 +252,7 @@ class Panacea(object):
         log.setLevel(logging.DEBUG)
         log.addHandler(handler)
 
-    def orient(self):
-        '''
-        Orient the images from blue to red (left to right)
-        Fibers are oriented to match configuration files
-        '''
-        if self.amp == "LU":
-            self.image[:] = self.image[::-1,::-1]
-        if self.amp == "RL":
-            self.image[:] = self.image[::-1,::-1]
 
-# scale biases and darks based on sky expectation?
-# gather all data necessary for a given measurement
-# don't reproduce unnecessary info, just access it, and let the cpu do the work
-# Use SAO xpaset ds9 to look at things as an option? Masterbias, subtracted frames?
-            
-        
-    def check_overscan(self, recalculate=False):
-        #TODO Make default overscan value: None
-        if (self.overscan is None) or recalculate:
-            self.overscan = biweight_location(self.image[self.biassec[2]:self.biassec[3],
-                                                         self.biassec[0]:self.biassec[1]])
         
 
        

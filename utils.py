@@ -109,7 +109,7 @@ def biweight_filter(a, order, c=6.0, M=None):
     A2 = np.zeros((half_order,))
     for i in xrange(half_order):
         A1[i] = biweight_location(a[:(half_order+i+1)])
-        A2[i] = biweight_location(a[-(half_order+i+1):])
+        A2[-(i+1)] = biweight_location(a[-(half_order+i+1):])
     return np.hstack([A1,Ab,A2])
     
     

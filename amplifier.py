@@ -22,13 +22,17 @@ import glob
 import cPickle as pickle
 from fiber_utils import get_trace_from_image, fit_fibermodel_nonparametric
 from fiber_utils import get_norm_nonparametric, check_fiber_trace
-from fiber_utils import calculate_wavelength_chi2
+from fiber_utils import calculate_wavelength_chi2, get_model_image
+from fiber_utils import check_fiber_profile, check_wavelength_fit
 from fiber import Fiber
 
 __all__ = ["Amplifier"]
 
 class Amplifier:
-    def __init__(self, filename, path, refit=False, calpath=None, debug=False):
+    def __init__(self, filename, path, refit=False, calpath=None, debug=False,
+                 darkpath="/Users/gregz/cure/virus_early/virus_config/lib_dark",
+                 biaspath="/Users/gregz/cure/virus_early/virus_config/lib_bias",
+                 dark_mult=1., bias_mult=0.):
         ''' 
         Initialize class
         ----------------
@@ -64,6 +68,10 @@ class Amplifier:
         self.image = None
         self.type = F[0].header['IMAGETYP'].replace(' ', '')
         self.calpath = calpath
+        self.darkpath = darkpath
+        self.biaspath = biaspath
+        self.dark_mult = dark_mult
+        self.bias_mult = bias_mult
         self.debug = debug
         self.specid = '%03d' %F[0].header['SPECID']
         self.ifuid = F[0].header['IFUID'].replace(' ', '')
@@ -96,7 +104,44 @@ class Amplifier:
                     with open(fiber_fn, 'r') as f:
                         self.fibers.append(pickle.load(f))
                         
-
+    def load_cal_property(self, prop):
+        fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
+                                                                  self.ifuslot,
+                                                                  self.ifuid,
+                                                                  self.amp))
+        if isinstance(prop, basestring):
+            prop = [prop]
+        files = sorted(glob.glob(fn))
+        for i, fiber_fn in enumerate(files):
+            fcheck = op.join(self.calpath,'fiber_%03d_%s_%s_%s_%s.pkl' %(i+1, 
+                                                                  self.specid, 
+                                                                  self.ifuslot,
+                                                                  self.ifuid,
+                                                                  self.amp))
+            if fcheck != fiber_fn:
+                print("Mismatch in loading fiber files from cal directory.")
+                print("The %i fiber did not match %s" %(i,fiber_fn))
+                sys.exit(1)
+            append_flag = False
+            try:
+                F = self.fibers[i]
+            except IndexError:    
+                F = Fiber(self.D, i+1, self.path, self.filename)
+                append_flag = True
+            with open(fiber_fn, 'r') as f:
+                F1 = pickle.load(f)
+            for pro in prop:
+                setattr(F, pro, 1. * getattr(F1, pro))
+            if append_flag:
+                self.fibers.append(F)
+    
+    def load_all_cal(self):
+        self.load_cal_property(['trace','fibmodel_polyvals',
+                                'fibmodel_x','fibmodel_y','binx',
+                                'wave_polyvals','fiber_to_fiber'])
+        for fiber in self.fibers:
+            fiber.eval_fibmodel_poly()
+            fiber.eval_wave_poly()
       
     def orient(self, image):
         '''
@@ -115,13 +160,56 @@ class Amplifier:
             fiber.save(self.specid, self.ifuslot, self.ifuid, self.amp)
        
     def get_image(self):
-        image = np.array(fits.open(self.filename)[0].data, dtype=int)
+        image = np.array(fits.open(self.filename)[0].data, dtype=float)
         self.check_overscan(image)
         image[:] = image - self.overscan_value
-        self.image = self.orient(image[self.trimsec[2]:self.trimsec[3], 
-                                       self.trimsec[0]:self.trimsec[1]])
+        image = image[self.trimsec[2]:self.trimsec[3], 
+                                       self.trimsec[0]:self.trimsec[1]]
+        darkimage = np.array(fits.open(op.join(self.darkpath, 
+                                                'masterdark_%s_%s.fits' 
+                                                %(self.specid, self.amp)))[0].data, 
+                              dtype=float)
+        biasimage = np.array(fits.open(op.join(self.biaspath, 
+                                                'masterbias_%s_%s.fits' 
+                                                %(self.specid, self.amp)))[0].data, 
+                              dtype=float)                  
+        image[:] = (image - self.dark_mult * darkimage - self.bias_mult * biasimage)
+        self.image = self.orient(image)
     
-    def get_trace(self, fdist=2., check_trace=True):
+    def find_shift(self):
+        fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
+                                                                  self.ifuslot,
+                                                                  self.ifuid,
+                                                                  self.amp))
+        files = sorted(glob.glob(fn))
+        shift = []
+        for i, fiber_fn in enumerate(files):
+            fcheck = op.join(self.calpath,'fiber_%03d_%s_%s_%s_%s.pkl' %(i+1, 
+                                                                  self.specid, 
+                                                                  self.ifuslot,
+                                                                  self.ifuid,
+                                                                  self.amp))
+            if fcheck != fiber_fn:
+                print("Mismatch in loading fiber files from cal directory.")
+                print("The %i fiber did not match %s" %(i,fiber_fn))
+                sys.exit(1)
+            try:
+                F = self.fibers[i]
+            except IndexError:    
+                print("No trace measured yet, so no shift measured")
+                return None
+            with open(fiber_fn, 'r') as f:
+                F1 = pickle.load(f)
+            F1.eval_trace_poly()
+            col = self.D/2
+            width = 20
+            shift.append(biweight_location(F.trace[(col-width):(col+width+1)] 
+                              - F1.trace[(col-width):(col+width+1)]))
+        return biweight_location(np.array(shift))
+                        
+       
+    def get_trace(self, fdist=2., check_trace=True, calculate_shift=False, 
+                  trace_poly_order=3):
         if self.image is None:
             self.get_image()
         if self.type == 'twi' or self.refit:
@@ -141,6 +229,7 @@ class Amplifier:
                     append_flag = True
                 if append_flag:
                     self.fibers.append(F)
+                self.fibers[i].trace_poly_order = trace_poly_order
                 self.fibers[i].init_trace_info()
                 self.fibers[i].trace_x[brcol] = brcol
                 self.fibers[i].trace_y[brcol] = standardcol[i]
@@ -148,6 +237,8 @@ class Amplifier:
                 loc = np.where(xc==c)[0]
                 for i in xrange(len(standardcol)):
                     yvals = allfibers[int(loc)]
+                    if not yvals.size:
+                        continue
                     xloc = np.argmin(np.abs(self.fibers[i].trace_x - c))
                     floc = np.argmin(np.abs(self.fibers[i].trace_y[xloc] 
                                             - yvals))
@@ -159,6 +250,8 @@ class Amplifier:
                 loc = np.where(xc==c)[0]
                 for i in xrange(len(standardcol)):
                     yvals = allfibers[int(loc)]
+                    if not yvals.size:
+                        continue
                     xloc = np.argmin(np.abs(self.fibers[i].trace_x - c))
                     floc = np.argmin(np.abs(self.fibers[i].trace_y[xloc] 
                                             - yvals))
@@ -169,83 +262,73 @@ class Amplifier:
             for fiber in self.fibers:
                 fiber.fit_trace_poly()
                 fiber.eval_trace_poly()
-
+            if calculate_shift:
+                self.net_trace_shift = self.find_shift()
+                if self.net_trace_shift is not None:
+                    for fiber in self.fibers:
+                        fiber.trace_polyvals[-1] += self.net_trace_shift
+                        fiber.eval_trace_poly()
+            
         else:
-            fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
-                                                                  self.ifuslot,
-                                                                  self.ifuid,
-                                                                  self.amp))
-            files = sorted(glob.glob(fn))
-            for i, fiber_fn in enumerate(files):
-                append_flag = False
-                try:
-                    F = self.fibers[i]
-                except IndexError:    
-                    F = Fiber(self.D, i+1, self.path, self.filename)
-                    append_flag = True
-                with open(fiber_fn, 'r') as f:
-                    F1 = pickle.load(f)
-                F.trace_polyvals = F1.trace_polyvals * 1.
-                F.eval_trace_poly()
-                if append_flag:
-                    self.fibers.append(F)
+            self.load_cal_property('trace_polyvals')
+            for fiber in self.fibers:
+                fiber.eval_trace_poly()
+                
         if check_trace:
-            outfile = op.join(self.path,'trace_%s.pdf' %self.basename)
+            outfile = op.join(self.path,'trace_%s.png' %self.basename)
             check_fiber_trace(self.image, self.fibers, outfile)
             
                 
-    def get_fibermodel(self, poly_order=3, use_default=False, 
-                       make_plots=False):
+    def get_fibermodel(self, fibmodel_poly_order=3, trace_poly_order=3, 
+                       use_default=False, bins=15, 
+                       make_ind_plots=False, calculate_shift=False, 
+                       check_fibermodel=False):
         if self.image is None:
             self.get_image()
         if not self.fibers:
-            self.get_trace()
+            self.get_trace(calculate_shift=calculate_shift,
+                           trace_poly_order=trace_poly_order)
         if self.type == 'twi' or self.refit:
             sol, xcol, binx = fit_fibermodel_nonparametric(self.image, 
                                                            self.fibers,
                                                            debug=self.debug,
                                                        use_default=use_default,
-                                                       plot=make_plots,
+                                                       plot=make_ind_plots,
                                                        outfolder=self.path,
-                                                       fiber_group=8)
+                                                       fiber_group=8,
+                                                       bins=bins)
             nfibs, ncols, nbins = sol.shape
             for i, fiber in enumerate(self.fibers):
-                fiber.init_fibmodel_info(nbins)
-                fiber.fibmodel_poly_order = poly_order
-                fiber.fibmodel_x[xcol] = xcol
-                fiber.fibmodel_y[xcol,:] = sol[i,:,:]
+                fiber.fibmodel_poly_order = fibmodel_poly_order
+                fiber.fibmodel_x = xcol
+                fiber.fibmodel_y = sol[i,:,:]
                 fiber.binx = binx
                 fiber.fit_fibmodel_poly()
                 fiber.eval_fibmodel_poly()
         else:
-            fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
-                                                                  self.ifuslot,
-                                                                  self.ifuid,
-                                                                  self.amp))
-            files = sorted(glob.glob(fn))
-            for i, fiber_fn in enumerate(files):
-                append_flag = False
-                try:
-                    F = self.fibers[i]
-                except IndexError:    
-                    F = Fiber(self.D, i+1, self.path, self.filename)
-                    append_flag = True
-                with open(fiber_fn, 'r') as f:
-                    F1 = pickle.load(f)
-                F.fibmodel_polyvals = F1.fibmodel_polyvals * 1.
-                F.binx = F1.binx
-                F.eval_fibmodel_poly()
-                if append_flag:
-                    self.fibers.append(F)        
+            self.load_cal_property(['fibmodel_polyvals','binx'])
+            for fiber in self.fibers:
+                fiber.eval_fibmodel_poly()
+                
+        if check_fibermodel:
+            if self.fibers[0].spectrum is None:
+                norm = get_norm_nonparametric(self.image, self.fibers, 
+                                              debug=self.debug)
+                for i, fiber in enumerate(self.fibers):
+                    fiber.spectrum = norm[i,:]
+            outfile = op.join(self.path,'fibmodel_%s.png' %self.basename)
+            check_fiber_profile(self.image, self.fibers, outfile)
 
 
-    def fiberextract(self, poly_order=3, use_default_profile=False):
+    def fiberextract(self, fibmodel_poly_order=3, use_default_profile=False, 
+                     calculate_shift=False, trace_poly_order=3):
         if self.image is None:
             self.get_image()
         if not self.fibers:
-            self.get_trace()
+            self.get_trace(calculate_shift=calculate_shift,
+                           trace_poly_order=trace_poly_order)
         if self.fibers[0].fibmodel_polyvals is None:
-            self.get_fibermodel(poly_order=poly_order, 
+            self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
                                 use_default=use_default_profile)
         else:
             for fiber in self.fibers:
@@ -256,16 +339,23 @@ class Amplifier:
             fiber.spectrum = norm[i,:]
     
     
-    def get_wavelength_solution(self, poly_order=3, wave_order=3, 
-                                use_default_profile=False, init_lims=None,
-                                interactive=False):
+    def get_wavelength_solution(self, fibmodel_poly_order=3, trace_poly_order=3, 
+                                wave_order=3, use_default_profile=False, 
+                                init_lims=None, interactive=False, 
+                                calculate_shift=False, check_wave=False,
+                                check_fibermodel=False):
+                                    
+        solar_spec = np.loadtxt('/Users/gregz/cure/virus_early'
+                                '/virus_config/solar_spec/virus_temp.txt')
         if self.image is None:
             self.get_image()
         if not self.fibers:
-            self.get_trace()
+            self.get_trace(calculate_shift=calculate_shift,
+                           trace_poly_order=trace_poly_order)
         if self.fibers[0].fibmodel_polyvals is None:
-            self.get_fibermodel(poly_order=poly_order, 
-                                use_default=use_default_profile)
+            self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
+                                use_default=use_default_profile,
+                                check_fibermodel=check_fibermodel)
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly() 
@@ -278,7 +368,6 @@ class Amplifier:
             if init_lims is None:
                 print("Please provide initial wavelength endpoint guess")
                 sys.exit(1)            
-            solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/virus_temp.txt')
             for i, fiber in enumerate(self.fibers):
                 if i==0:
                     fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
@@ -294,71 +383,123 @@ class Amplifier:
                                                  debug=self.debug, 
                                                  interactive=False, init_sol=self.fibers[i-1].wave_polyvals)
             
-        else:            
-            fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
-                                                                  self.ifuslot,
-                                                                  self.ifuid,
-                                                                  self.amp))
-            files = sorted(glob.glob(fn))
-            for i, fiber_fn in enumerate(files):
-                append_flag = False
-                try:
-                    F = self.fibers[i]
-                except IndexError:    
-                    F = Fiber(self.D, i+1, self.path, self.filename)
-                    append_flag = True
-                with open(fiber_fn, 'r') as f:
-                    F1 = pickle.load(f)
-                F.wave_polyvals = F1.wave_polyvals * 1.
-                F.eval_wave_poly()
-                if append_flag:
-                    self.fibers.append(F)
-                    
-    def get_fiber_to_fiber(self, poly_order=3, wave_order=3, 
-                                use_default_profile=False, init_lims=None,
-                                interactive=False):
+        else:
+            self.load_cal_property(['wave_polyvals'])
+            for fiber in self.fibers:
+                fiber.eval_wave_poly()
+        if check_wave:
+            if self.fibers[0].spectrum is None:
+                norm = get_norm_nonparametric(self.image, self.fibers, 
+                                                  debug=self.debug)
+                for i, fiber in enumerate(self.fibers):
+                    fiber.spectrum = norm[i,:]
+            outfile = op.join(self.path,'wavesolution_%s.png' %self.basename)
+            check_wavelength_fit(self.fibers, solar_spec, outfile)
+                
+    def sky_subtraction(self, fibmodel_poly_order=3, trace_poly_order=3, 
+                        wave_order=3, use_default_profile=False, 
+                        init_lims=None, interactive=False, 
+                        filt_size_ind=21, filt_size_agg=51, 
+                        filt_size_final=51, filt_size_sky=51, 
+                        calculate_shift=False):
         if self.image is None:
             self.get_image()
         if not self.fibers:
-            self.get_trace()
+            self.get_trace(calculate_shift=calculate_shift,
+                           trace_poly_order=trace_poly_order)
         if self.fibers[0].fibmodel_polyvals is None:
-            self.get_fibermodel(poly_order=poly_order, 
+            self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
                                 use_default=use_default_profile)
+        else:
+            for fiber in self.fibers:
+                fiber.eval_fibmodel_poly()
+        if self.fibers[0].fiber_to_fiber is None:
+            self.load_cal_property(['fiber_to_fiber'])
+        if self.fibers[0].spectrum is None:
+            self.fiberextract(poly_order=poly_order, 
+                              use_default_profile=use_default_profile)
+        if self.fibers[0].wave_polyvals is None:
+            self.get_wavelength_solution(wave_order=wave_order, 
+                                         use_default_profile=use_default_profile, 
+                                         init_lims=init_lims,
+                                         interactive=interactive)
+        else:
+            for fiber in self.fibers:
+                fiber.eval_wave_poly()
+        if self.fibers[0].fiber_to_fiber is None:
+            self.get_fiber_to_fiber(wave_order=wave_order, 
+                                    use_default_profile=use_default_profile, 
+                                    init_lims=init_lims,
+                                    interactive=interactive,
+                                    filt_size_ind=filt_size_ind,
+                                    filt_size_agg=filt_size_agg,
+                                    filt_size_final=filt_size_final)
+        masterwave = []
+        masterspec = []
+        for fib, fiber in enumerate(self.fibers):
+            masterwave.append(fiber.wavelength)
+            masterspec.append(fiber.spectrum/fiber.fiber_to_fiber)
+        masterwave = np.hstack(masterwave)
+        smoothspec = np.hstack(masterspec)
+        ind = np.argsort(masterwave)
+        masterwave[:] = masterwave[ind]
+        smoothspec[:] = smoothspec[ind]
+        self.masterwave = masterwave
+        self.mastersky = biweight_filter(smoothspec, filt_size_sky)
+        for fib, fiber in enumerate(self.fibers):
+            fiber.sky_spectrum = (fiber.fiber_to_fiber 
+                     * np.interp(fiber.wavelength, masterwave, self.mastersky))
+        self.skyframe = get_model_image(self.image, self.fibers, 'sky_spectrum',
+                                        debug=self.debug)
+        self.clean_image = self.image - self.skyframe
+                    
+    def get_fiber_to_fiber(self, fibmodel_poly_order=3, trace_poly_order=3,
+                           calculate_shift=False,
+                           wave_order=3, use_default_profile=False, 
+                           init_lims=None, interactive=False, filt_size_ind=21, 
+                           filt_size_agg=51, filt_size_final=51, check_wave=False,
+                           check_fibermodel=False):
+        if self.image is None:
+            self.get_image()
+        if not self.fibers:
+            self.get_trace(calculate_shift=calculate_shift,
+                           trace_poly_order=trace_poly_order)
+        if self.fibers[0].fibmodel_polyvals is None:
+            self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
+                                use_default=use_default_profile, 
+                                check_fibermodel=check_fibermodel)
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly()
         if self.type == 'twi' or self.refit:
             if self.fibers[0].spectrum is None:
-                self.fiberextract(poly_order=poly_order, 
-                                  use_default_profile=use_default_profile)
+                self.fiberextract()
             if self.fibers[0].wave_polyvals is None:
-                self.get_wavelength_solution(poly_order=poly_order, 
-                                             wave_order=wave_order, 
+                self.get_wavelength_solution(wave_order=wave_order, 
                                              use_default_profile=use_default_profile, 
                                              init_lims=init_lims,
-                                             interactive=interactive)
+                                             interactive=interactive,
+                                             check_wave=check_wave)
             else:
                 for fiber in self.fibers:
                     fiber.eval_wave_poly()
-            
+            masterwave = []
+            masterspec = []
+            for fib, fiber in enumerate(self.fibers):
+                masterwave.append(fiber.wavelength)
+                masterspec.append(fiber.spectrum)
+            masterwave = np.hstack(masterwave)
+            smoothspec = np.hstack(masterspec)
+            ind = np.argsort(masterwave)
+            masterwave[:] = masterwave[ind]
+            smoothspec[:] = smoothspec[ind]
+            self.averagespec = biweight_filter(smoothspec, filt_size_agg)
+            for fib, fiber in enumerate(self.fibers):
+                fiber.fiber_to_fiber = biweight_filter(masterspec[fib] 
+                        / np.interp(fiber.wavelength, masterwave, self.averagespec),filt_size_final)
+
         else:
-            fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
-                                                                  self.ifuslot,
-                                                                  self.ifuid,
-                                                                  self.amp))
-            files = sorted(glob.glob(fn))
-            for i, fiber_fn in enumerate(files):
-                append_flag = False
-                try:
-                    F = self.fibers[i]
-                except IndexError:    
-                    F = Fiber(self.D, i+1, self.path, self.filename)
-                    append_flag = True
-                with open(fiber_fn, 'r') as f:
-                    F1 = pickle.load(f)
-                F.fiber_to_fiber = F1.fiber_to_fiber * 1.
-                if append_flag:
-                    self.fibers.append(F)            
+            self.load_cal_property(['fiber_to_fiber'])         
         
 
         

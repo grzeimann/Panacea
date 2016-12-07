@@ -63,8 +63,8 @@ def fit_scale_wave0(init_scale, init_wave0, xi, xe, D, sun_wave, ysun, data,
             model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
             return model - data
         sol = scipy.optimize.leastsq(f, np.array([init_scale, init_wave0]))[0]
-
-    return sol
+    chi2 = f(sol)**2
+    return sol, chi2
 
 def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
                 first_order_iter=5, max_to_min_dist=5):
@@ -271,7 +271,19 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
         flag = np.ones(y[xi:xe+1].shape, dtype=bool)
         content = False
         while content is False:
-            sol = fit_scale_wave0(scale, wv0, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
+            if j==0 and init_sol is None:
+                xwv0 = np.arange(wv0-20,wv0+20,5)
+                chi2 = np.zeros(xwv0.shape)
+                solk = []
+                for cnt,wv0g in enumerate(xwv0):
+                    sol, chi2[cnt] = fit_scale_wave0(scale, wv0, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
+                                  fixscale=fixscale)
+                    solk.append(sol)
+                    print(wv0g, chi2)
+                sol = solk[np.argmin(chi2)]
+                                                
+            else:    
+                sol, chi2 = fit_scale_wave0(scale, wv0, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
                                   fixscale=fixscale)
             if fixscale:
                 wv = np.arange(L) * scale + sol[0]
@@ -299,6 +311,8 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
                 answer = raw_input("Are you happy with the fit [%0.3f, %0.2f]?" %(scale, wv0))
                 if answer == 'q':
                     sys.exit(1)
+                if answer == 'Y':
+                    interactive=False
                 content = str2bool(answer)
                 if content:
                     plt.close()
@@ -448,7 +462,7 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
             so[j,i,:] = sol         
     if debug:
         t2 = time.time()
-        print("Solution took: %0.3f s" %(t2-t1))
+        print("Fibermodel Solution took: %0.3f s" %(t2-t1))
     if False:#plot:
         for i in xrange(len(sol)):
             mn = np.percentile(so[:,:,i],10)
@@ -510,6 +524,7 @@ def init_fibermodel(fsize, bins, sigma=2.7, power=2.5):
     sol[0] = 0.0
     sol[-1] = 0.0
     return bins, binx, sol
+
     
         
 def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0, 
@@ -520,6 +535,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     : param Fibers:
         list of Fiber class objects (length = number of fibers)
     '''
+    buf = 0.
     if debug:
         t1 = time.time()    
     # Get initial model        
@@ -533,10 +549,10 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     highfib = np.min([len(Fibers)-1,fib+group/2])
     
     # get low y and high y for fit
-    mn1 = np.min(Fibers[lowfib].trace[xlow:xhigh])
-    mx1 = np.max(Fibers[lowfib].trace[xlow:xhigh])
-    mn2 = np.min(Fibers[highfib].trace[xlow:xhigh])
-    mx2 = np.max(Fibers[highfib].trace[xlow:xhigh])
+    mn1 = np.min(Fibers[lowfib].trace[xlow:xhigh])-buf
+    mx1 = np.max(Fibers[lowfib].trace[xlow:xhigh])+buf
+    mn2 = np.min(Fibers[highfib].trace[xlow:xhigh])-buf
+    mx2 = np.max(Fibers[highfib].trace[xlow:xhigh])+buf
     ylow = int(np.min([mn1,mn2,mx1,mx2]))
     yhigh = int(np.max([mn1,mn2,mx1,mx2]))+1
     ymean = np.mean(Fibers[fib].trace[xlow:xhigh])
@@ -549,8 +565,8 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     zerr = np.sqrt(image[ylow:yhigh,xlow:xhigh].ravel())
     
     # selection within cutout
-    ycutl=np.repeat(Fibers[lowfib].trace[xlow:xhigh],yhigh-ylow)
-    ycuth=np.repeat(Fibers[highfib].trace[xlow:xhigh],yhigh-ylow)
+    ycutl = ((Fibers[lowfib].trace[xlow:xhigh]-buf)*np.ones((yhigh-ylow,1))).ravel()
+    ycuth = ((Fibers[highfib].trace[xlow:xhigh]+buf)*np.ones((yhigh-ylow,1))).ravel()
     sel = np.where((y>=ycutl) * (y<=ycuth))[0]    
     # Create empty arrays for the fibermodel weights in each given pixel from 
     Fl = np.zeros((len(y), bins, len(fibers)))
@@ -562,7 +578,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
                   * np.power(abs(xp), plaw_coeff[3]))
     i = 0
     for fiber in fibers:
-        ytrace = np.repeat([fiber.trace[xlow:xhigh]],(yhigh-ylow))
+        ytrace = (fiber.trace[xlow:xhigh]*np.ones((yhigh-ylow,1))).ravel()
         ix = y-ytrace
         for j in xrange(bins):
             fun[j] = 1.0
@@ -617,7 +633,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
         fibplot = plt.axes([0.1,0.55,0.8,0.4])
         implot = plt.axes([0.1,0.1,0.28,0.4])
         normplot = plt.axes([.55,.1,0.35,0.4])
-        ytrace = np.repeat([Fibers[fib].trace[xlow:xhigh]],(yhigh-ylow))
+        ytrace = (Fibers[fib].trace[xlow:xhigh]*np.ones((yhigh-ylow,1))).ravel()
         fibplot.scatter(y-ytrace, flat, c=[1.0,0.31,0.31], edgecolor='none', 
                         alpha=0.5, s=8)
         for i in xrange(len(Fl[0,0,:])):
@@ -633,13 +649,13 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
         fibplot.axis([ylow-ymean, yhigh-ymean, -0.01, 0.3])
         cmap = plt.get_cmap('RdBu_r')
         
-        cax = implot.scatter(x[sel],y[sel]-ytrace[sel], c=flat[sel]/model[sel], 
+        cax = implot.scatter(x[sel], y[sel], c=flat[sel]/model[sel], 
                              cmap=cmap, edgecolor='none', s=5, vmin=0.95, 
                              vmax=1.05,marker='s')
         for i in xrange(lowfib,highfib+1):
-            yt = Fibers[i].trace[xlow:xhigh]-Fibers[fib].trace[xlow:xhigh]
+            yt = Fibers[i].trace[xlow:xhigh]
             implot.plot(np.arange(xlow,xhigh), yt, c=[0.3,0.8,0.32], alpha=0.4)
-        implot.axis([xlow, xhigh, ylow-ymean, yhigh-ymean])
+        implot.axis([xlow, xhigh, ylow, yhigh])
         implot.axis('scaled')
         cbaxes = fig.add_axes([0.4, 0.1, 0.03, 0.4]) 
         cb = plt.colorbar(cax, cax = cbaxes)            
@@ -649,7 +665,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
             normplot.plot(np.arange(xlow,xhigh), norm[i,:], 
                           c=cmap((1.*i)/(mx-1)))
         normplot.set_xlim([xlow,xhigh])
-        fig.savefig(op.join(outfolder, "fit_bins_%s_%i_%i_%i.png" 
+        fig.savefig(op.join(outfolder, "fit_bins_%s_%03d_%04d_%04d.png" 
                     %(Fibers[fib].basename, fib, xlow, xhigh)), dpi=150)
         plt.close(fig)    
     return sol
@@ -684,8 +700,8 @@ def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     z = image[ylow:yhigh,xlow:xhigh].ravel()
     
     # selection within cutout
-    ycutl=np.repeat(Fibers[lowfib].trace[xlow:xhigh],yhigh-ylow)
-    ycuth=np.repeat(Fibers[highfib].trace[xlow:xhigh],yhigh-ylow)
+    ycutl = (Fibers[lowfib].trace[xlow:xhigh]*np.ones((yhigh-ylow,1))).ravel()
+    ycuth = (Fibers[highfib].trace[xlow:xhigh]*np.ones((yhigh-ylow,1))).ravel()
     sel = np.where((y>=ycutl) * (y<=ycuth))[0]
     # Create empty arrays for the fibermodel weights in each given pixel from
     dummy, bins = fibers[0].fibmodel.shape
@@ -699,7 +715,7 @@ def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
                   * np.power(abs(xp), plaw_coeff[3]))
     i = 0
     for fiber in fibers:
-        ytrace = np.repeat([fiber.trace[xlow:xhigh]],(yhigh-ylow))
+        ytrace = (fiber.trace[xlow:xhigh]*np.ones((yhigh-ylow,1))).ravel()
         ix = y-ytrace
         for j in xrange(bins):
             fun[j] = 1.0
@@ -726,9 +742,50 @@ def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
             norm[:,j] = 0.0
     if debug:
         t2 = time.time()
-        print("Solution for Fiber %i took: %0.3f s" %(fib, t2-t1))  
+        print("Fiberextract solution for Fiber %i took: %0.3f s" %(fib, t2-t1))  
     return norm[fid,:]
+ 
+
+def get_model_image(image, fibers, prop, debug=False):
+    '''
+    : param Fibers:
+        list of Fiber class objects (length = number of fibers)
+    '''
+    if debug:
+        t1 = time.time()    
     
+
+    # Create empty arrays for the fibermodel weights in each given pixel from
+    dummy, bins = fibers[0].fibmodel.shape
+    binx = fibers[0].binx
+    low = binx.min()-1
+    high = binx.max()+1
+    fun = np.zeros((bins,))
+    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
+    def plaw(xp, plaw_coeff):
+        return plaw_coeff[0] / (plaw_coeff[1] + plaw_coeff[2]
+                  * np.power(abs(xp), plaw_coeff[3]))
+    model = np.zeros(image.shape)
+    a,b = image.shape
+    y = np.arange(a,dtype=float)
+    for i in xrange(b):
+        Fl = np.zeros((a, bins))
+        for fib, fiber in enumerate(fibers):
+            ix = y - fiber.trace[i]
+            li = np.searchsorted(ix,low)
+            hi = np.searchsorted(ix,high)
+            for j in xrange(bins):
+                fun[j] = 1.0
+                Fl[li:hi,j] = np.interp(ix[li:hi],binx,fun,left=0.0,right=0.0)
+                fun[j] = 0.0
+            model[li:hi,i] += (getattr(fiber,prop)[i] 
+                               * (np.dot(Fl[li:hi,:],fiber.fibmodel[i,:]) 
+                                  + plaw(ix[li:hi] / 2.5, plaw_coeff)))
+    
+    if debug:
+        t2 = time.time()
+        print("Solution for model image took: %0.3f s" %(t2-t1))  
+    return model   
     
 def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
     ylen,xlen = image.shape
@@ -761,4 +818,126 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
                          linewidth=2)
             plt.axis([minx, maxx, miny, maxy])
     fig.savefig(outfile)
+    plt.close(fig)     
+
+def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107], 
+                        xwidth=75., ywidth=75., yplot_high=0.25, 
+                        yplot_low=-0.01, plotbuf=4):
+    ylen,xlen = image.shape
+    ypos, xpos = np.indices((ylen,xlen))
+    # initial plot position    
+    fig = plt.figure(figsize=(12, 12))    
+    pos = 0
+    # For plotting purposes of the WaveCheck_{SPECID}_{SIDE}.pdf plots
+    plots = np.arange(1,10)
+    fiber_sel = np.sort(np.array(fiber_sel))[::-1]
+    dummy, bins = Fibers[0].fibmodel.shape
+    binx = Fibers[0].binx
+    low = binx.min()-8
+    high = binx.max()+8
+    fun = np.zeros((bins,))
+    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
+    def plaw(xp, plaw_coeff):
+        return plaw_coeff[0] / (plaw_coeff[1] + plaw_coeff[2]
+                                 * np.power(abs(xp), plaw_coeff[3]))
+    for i in fiber_sel:
+        for j in [0, 0.5, 1]:
+            sub = fig.add_subplot(3, 3, plots[pos])
+            pos += 1
+            minx = int(j * -1 * xwidth + j * (xlen - 1.))
+            maxx = int((j-1) * -1 * xwidth + j * (xlen - 1.))
+            lowfib = np.max([0,i-1])
+            highfib = np.min([len(Fibers)-1,i+1])
+            fibers = Fibers[np.max([0,i-2]):np.min([len(Fibers),i+3])]
+            fibers = Fibers
+            # get low y and high y for fit
+            mn1 = np.min(Fibers[lowfib].trace[minx:maxx])-plotbuf
+            mx1 = np.max(Fibers[lowfib].trace[minx:maxx])+plotbuf
+            mn2 = np.min(Fibers[highfib].trace[minx:maxx])-plotbuf
+            mx2 = np.max(Fibers[highfib].trace[minx:maxx])+plotbuf
+            miny = np.max([int(np.min([mn1,mn2,mx1,mx2])),0])
+            maxy = np.min([ylen, int(np.max([mn1,mn2,mx1,mx2]))+1])
+                        
+            indx = (maxx-minx) / 2
+            yhigh = Fibers[highfib].trace[indx] - Fibers[i].trace[indx]+plotbuf
+            ylow = Fibers[lowfib].trace[indx] - Fibers[i].trace[indx]-plotbuf
+
+            model = np.zeros(image.shape)
+            flat = np.zeros(image.shape)
+            normfits = np.zeros((image.shape + (len(Fibers),)))
+            for k in xpos[0,minx:maxx]:
+                Fl = np.zeros((ylen, bins))
+                lmodel = []
+                for fib, fiber in enumerate(fibers):
+                    ix = ypos[:,k] - fiber.trace[k]
+                    li = np.searchsorted(ix,low)
+                    hi = np.searchsorted(ix,high)
+                    ytrace = ypos[li:hi,k] - Fibers[i].trace[k] 
+                    for l in xrange(bins):
+                        fun[l] = 1.0
+                        Fl[li:hi,l] = np.interp(ix[li:hi],binx,fun,left=0.0,right=0.0)
+                        fun[l] = 0.0
+                    
+                    lmodel.append(np.dot(Fl[li:hi,:],fiber.fibmodel[k,:])+plaw(ix[li:hi] / 2.5, plaw_coeff))
+                    model[li:hi,k] += lmodel[-1]
+                    normfits[li:hi,k,fib] = fiber.spectrum[k]
+                flat[miny:maxy,k] = (image[miny:maxy,k]/((model[miny:maxy,k][:,np.newaxis]*normfits[miny:maxy,k,:]**2)
+                         /(model[miny:maxy,k][:,np.newaxis]*normfits[miny:maxy,k,:]).sum(axis=1)
+                                                [:,np.newaxis]).sum(axis=1))
+                    #sub.scatter(ytrace, lmodel[-1], c=[0.41,0.41,0.91], 
+                    #            edgecolor='none', alpha=0.5,s=8)
+                                
+            ytrace = ypos[miny:maxy,minx:maxx] - Fibers[i].trace[minx:maxx]
+            
+            sub.scatter(ytrace.ravel(), flat[miny:maxy,minx:maxx].ravel(), 
+                        c=[1.0,0.31,0.31], edgecolor='none', alpha=0.5, s=8)
+            sub.scatter(ytrace.ravel(), model[miny:maxy,minx:maxx].ravel(), 
+                         c=[0.11,0.11,0.91],edgecolor='none', alpha=0.5,s=5)
+            sub.scatter(ytrace.ravel(), flat[miny:maxy,minx:maxx].ravel() 
+                        - model[miny:maxy,minx:maxx].ravel(), 
+                        c=[0.41,0.41,0.41], edgecolor='none', alpha=0.5,s=5)
+            sub.plot([ylow, yhigh], [0.0, 0.0],'k-',lw=2)
+            sub.text(ylow+1, yplot_high-0.03, 
+                     "Fiber: %03d, X: %04d-%04d" %(i,minx+1,maxx+1), 
+                     fontsize=14)
+            sub.set_xlim([ylow, yhigh])
+            sub.set_ylim([yplot_low, yplot_high])
+    fig.savefig(outfile)
     plt.close(fig) 
+    
+def check_wavelength_fit(Fibers, sun, outfile, fiber_sel=[5,58,107], 
+                        xwidth=75., fwidth=10, smooth_length=21):
+    xlen = len(Fibers[0].wavelength)
+    flen = len(Fibers)
+    fig = plt.figure(figsize=(12, 12))    
+    pos = 0
+    plots = np.arange(1,10)                       
+    for i in fiber_sel:
+        for j in [0, 0.5, 1]:
+            sub = fig.add_subplot(3, 3, plots[pos])
+            pos += 1
+            minx = np.max([0, int(j * -1 * xwidth + j * (xlen - 1.))])
+            maxx = np.min([xlen, int((j-1) * -1 * xwidth + j * (xlen - 1.))])
+            minf = np.max([0, i-fwidth])
+            maxf = np.min([flen, i+fwidth+1])
+            minw = Fibers[i].wavelength[minx] - 10.
+            maxw = Fibers[i].wavelength[maxx] + 10.
+            xl = np.searchsorted(sun[:,0], minw)
+            xh = np.searchsorted(sun[:,0], maxw)
+            sub.step(sun[xl:xh,0], sun[xl:xh,1],'r-', lw=3, where='mid')
+            for fib in xrange(int(minf),int(maxf)):
+                y = Fibers[fib].spectrum
+                y = biweight_filter(y, smooth_length) / y
+                sub.step(Fibers[fib].wavelength[minx:maxx], y[minx:maxx], 'b-',
+                         alpha=0.1, where='mid', lw=2)
+            sub.set_xlim([minw+10, maxw-10])
+            ypl = np.percentile(sun[xl:xh,1],1)
+            yph = np.percentile(sun[xl:xh,1],99)
+            ran = yph - ypl
+            ylow = ypl - 0.2*ran
+            yhigh = ypl + 1.2*ran
+            sub.text(minw+15,yhigh-0.1*ran, 'Fibers: %03d-%03d' %(minf+1,maxf),
+                     fontsize=12)
+            sub.set_ylim([ylow, yhigh])
+    fig.savefig(outfile)
+    plt.close(fig)         
