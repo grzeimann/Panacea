@@ -50,21 +50,26 @@ def get_int(answer, question, previous):
     return value
 
 def fit_scale_wave0(init_scale, init_wave0, xi, xe, D, sun_wave, ysun, data, 
-                    fixscale=False):
+                    fixscale=False): 
     if fixscale:
-        def f(params):
+        def f(params, sel1):
             wv = init_scale * np.arange(D) + params[0]
             model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
-            return model - data
-        sol = scipy.optimize.leastsq(f, np.array([init_wave0]))[0]
-        chi2 = f(sol)**2
+            return model[sel1] - data[sel1]
+        params0 = np.array([init_wave0])
+        sel = is_outlier(f(params0,np.ones(data.shape,dtype=bool)))<1
+        sol = scipy.optimize.leastsq(f, params0, args=(sel))[0]
+        chi2 = f(sol, sel+True )**2
     else:
-        def f(params):
+        def f(params, sel1):
             wv = params[0] * np.arange(D) + params[1]
             model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
-            return model - data
-        sol = scipy.optimize.leastsq(f, np.array([init_scale, init_wave0]))[0]
-        chi2 = f(sol)**2
+            return model[sel1] - data[sel1]
+                
+        params0 = np.array([init_scale, init_wave0])
+        sel = is_outlier(f(params0, np.ones(data.shape,dtype=bool)))<1
+        sol = scipy.optimize.leastsq(f, params0, args=(sel))[0]
+        chi2 = f(sol, sel+True )**2
     return sol, chi2
 
 def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
@@ -248,6 +253,7 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
     y = biweight_filter(y, smooth_length) / y
     bins = np.linspace(init_lims[0], init_lims[1], nbins)
     scale = 1.*(init_lims[1] - init_lims[0])/L
+    scale0 = scale*1.
     wv0 = init_lims[0]
     wave0_save = [] 
     scale_save = []
@@ -259,6 +265,7 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
             xh = np.searchsorted(init_wave_sol, bins[j+1])
             p0 = np.polyfit(x[xl:xh+1], init_wave_sol[xl:xh+1], 1)
             scale = p0[0]
+            scale0 = scale*1.        
             wv0 = p0[1]
         wv = np.arange(L)*scale + wv0
         xi = np.searchsorted(wv,bins[j])
@@ -297,7 +304,8 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
             else:
                 wv = np.arange(L)*sol[0] + sol[1]           
                 scale = sol[0]
-                wv0 = sol[1]                
+                wv0 = sol[1] 
+                    
             model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
             flag = is_outlier(model - y[xi:xe+1]) < 1
             if interactive: 
