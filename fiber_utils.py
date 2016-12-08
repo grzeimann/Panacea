@@ -576,7 +576,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     y = ygrid[ylow:yhigh,xlow:xhigh].ravel()
     z = image[ylow:yhigh,xlow:xhigh].ravel()
     # Dummy error
-    zerr = np.sqrt(image[ylow:yhigh,xlow:xhigh].ravel())
+    #zerr = np.sqrt(image[ylow:yhigh,xlow:xhigh].ravel())
     
     # selection within cutout
     ycutl = ((Fibers[lowfib].trace[xlow:xhigh]-buf)*np.ones((yhigh-ylow,1))).ravel()
@@ -608,7 +608,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     for i in xrange(niter):
         init_model = np.zeros((len(x),len(fibers)))
         flat = np.zeros((len(x),))
-        flat_err = np.zeros((len(x),))
+        #flat_err = np.zeros((len(x),))
         norm = np.zeros((len(fibers),xhigh-xlow))
         normfits = np.zeros((len(x),len(fibers)))
         for j,v in enumerate(np.arange(xlow,xhigh)):
@@ -629,7 +629,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
             flat[xsel] = (z[xsel]/((init_model[xsel,:]*normfits[xsel,:]**2)
                          /(init_model[xsel,:]*normfits[xsel,:]).sum(axis=1)
                                                 [:,np.newaxis]).sum(axis=1))
-            flat_err[xsel] = flat[xsel] / z[xsel] * zerr[xsel]        
+            #flat_err[xsel] = flat[xsel] / z[xsel] * zerr[xsel]        
      
         try:
             sol1 = nnls(F[sel,1:-1],flat[sel] - P)[0]
@@ -645,8 +645,8 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
         #print("Solution took: %0.3f s" %(t2-t1))        
     if plot:
         model = np.dot(F,sol) + Pl.sum(axis=1)
-        PV = np.array([x,flat_err]).T
-        PV = PV[np.argsort(PV[:,0]),:]
+        #PV = np.array([x,flat_err]).T
+        #PV = PV[np.argsort(PV[:,0]),:]
         fig = plt.figure(figsize=(8,6))
         fibplot = plt.axes([0.1,0.55,0.8,0.4])
         implot = plt.axes([0.1,0.1,0.28,0.4])
@@ -660,8 +660,8 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
                     alpha=0.5,s=8)
         fibplot.scatter(y-ytrace, model, c=[0.11,0.11,0.91],edgecolor='none',
                     alpha=0.5,s=5)
-        fibplot.fill_between(PV[:,0], PV[:,1], -1*PV[:,1],
-                         facecolor=[1.0,0.5,.52],edgecolor=[0.9,0.3,.32])
+        #fibplot.fill_between(PV[:,0], PV[:,1], -1*PV[:,1],
+        #                 facecolor=[1.0,0.5,.52],edgecolor=[0.9,0.3,.32])
         fibplot.scatter(y-ytrace, flat - model, c=[0.41,0.41,0.41],edgecolor='none',
                     alpha=0.5,s=5)
         fibplot.axis([ylow-ymean, yhigh-ymean, -0.01, 0.3])

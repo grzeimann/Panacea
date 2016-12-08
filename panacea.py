@@ -292,8 +292,8 @@ def main():
                 twi2.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=[3490,5500], interactive=False,
                                check_fibermodel=True, check_wave=True)
-                image1 = get_model_image(twi1.image, twi1.fibers, 'sky_spectrum',
-                                        debug=self.debug)
+                image1 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
+                                        debug=twi1.debug)
                 twi1.save_fibers()
                 twi2.save_fibers()
 
