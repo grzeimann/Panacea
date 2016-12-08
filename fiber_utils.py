@@ -924,7 +924,7 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
     plt.close(fig) 
     
 def check_wavelength_fit(Fibers, sun, outfile, fiber_sel=[5,58,107], 
-                        xwidth=75., fwidth=10, smooth_length=21):
+                        xwidth=50., fwidth=10, smooth_length=21):
     xlen = len(Fibers[0].wavelength)
     flen = len(Fibers)
     fig = plt.figure(figsize=(12, 12))    

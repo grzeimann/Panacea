@@ -5,7 +5,7 @@ IFU Reduction Code
 ------------------
 Built for the VIRUS instrument as well as LRS2 on HET
 
-Fibers
+Incomplete Documentation
 
 """
 
@@ -44,7 +44,7 @@ def parse_args(argv=None):
     """
     description = textwrap.dedent('''Panacea - 
     
-                     This script does ....
+                     This script does ... (Fill in Later)
                      
                      ''')
                      
@@ -79,11 +79,13 @@ def parse_args(argv=None):
                         default="/work/03946/hetdex/maverick/virus_config")
 
     parser.add_argument("--biasdir", type=str,
-                        help= "Directory of biases to use",
+                        help='''Bias Library
+                        Default: \"/work/03946/hetdex/maverick/virus_config/lib_bias\"''', 
                         default="/work/03946/hetdex/maverick/virus_config/lib_bias")
  
     parser.add_argument("--darkdir", type=str,
-                        help= "Directory of darks to use",
+                        help='''Dark Library
+                        Default: \"/work/03946/hetdex/maverick/virus_config/lib_dark\"''',
                         default="/work/03946/hetdex/maverick/virus_config/lib_dark")
                        
     parser.add_argument("-sd","--scidir_date", nargs='?', type=str,
@@ -120,51 +122,50 @@ def parse_args(argv=None):
         msg = 'No SPECID was provided.'
         parser.error(msg)   
 
-    if args.scidir_date is None:
-        msg = 'No science directory date was provided'
-        parser.error(msg) 
-    else:
-        args.scidir_date = args.scidir_date.replace(" ", "").split(',')
-
-    if args.scidir_obsid is None:
-        msg = 'No science directory ObsID was provided'
-        parser.error(msg) 
-    else:
-        args.scidir_obsid = args.scidir_obsid.replace(" ", "").split(',')
-
-    if args.scidir_expnum is not None:
-        args.scidir_expnum = args.zrodir_expnum.replace(" ", "").split(',')
-    
-    args.sci_df = pd.DataFrame(columns=['Files', 'Output', 'Amp', 'Specid', 
-                                        'Ifuslot', 'Ifuid'])     
-    cnt=0
-    for date in args.scidir_date:
-        for obsid in args.scidir_obsid:
-            if args.scidir_expnum is not None:   
-                for expnum in args.scidir_expnum:
-                    folder = op.join(date, 
-                                    args.instr, 
-                                    "{:s}{:07d}".format(args.instr,int(obsid)), 
-                                    "exp{:02d}".format(int(expnum)),
-                                    args.instr)
-                    files = sorted(glob.glob(op.join(args.rootdir, folder, '*')))
-                    if files:
-                        mkpath(op.join(args.output,folder))   
-                    for fn in files:
-                        F = fits.open(fn)
-                        outfolder = op.join(args.output,folder)    
-                        amp = (F[0].header['CCDPOS'].replace(' ', '') 
+    labels = ['dir_date', 'dir_obsid', 'dir_expnum']
+    observations = ['sci', 'twi']
+    for obs in observations:
+        for label in labels[:2]:
+            getattr(args, obs+label)
+            if getattr(args, obs+label) is None:
+                msg = 'No %s was provided for %s' %(label, obs)
+                parser.error(msg) 
+            else:
+                setattr(args, obs+label, 
+                        getattr(args, obs+label).replace(" ", "").split(','))
+        if getattr(args, obs+labels[2]) is not None:
+            setattr(args, obs+labels[2], 
+                    getattr(args, obs+labels[2]).replace(" ", "").split(','))
+        DF =  pd.DataFrame(columns=['Files', 'Output', 'Amp', 'Specid', 
+                                    'Ifuslot', 'Ifuid'])     
+        cnt=0
+        for date in getattr(args, obs+labels[0]):
+            for obsid in getattr(args, obs+labels[1]):
+                if getattr(args, obs+labels[2]) is not None:   
+                    for expnum in getattr(args, obs+labels[2]):
+                        folder = op.join(date, 
+                                         args.instr, 
+                                         "{:s}{:07d}".format(args.instr,int(obsid)), 
+                                         "exp{:02d}".format(int(expnum)),
+                                         args.instr)
+                        files = sorted(glob.glob(op.join(args.rootdir, folder, '*')))
+                        if files:
+                            mkpath(op.join(args.output,folder))   
+                        for fn in files:
+                            F = fits.open(fn)
+                            outfolder = op.join(args.output,folder)    
+                            amp = (F[0].header['CCDPOS'].replace(' ', '') 
                                          + F[0].header['CCDHALF'].replace(' ', ''))
-                        sp = '%03d' %F[0].header['SPECID']
-                        ifuid = F[0].header['IFUID'].replace(' ', '')
-                        ifuslot = '%03d' %F[0].header['IFUSLOT']
-                        args.sci_df.loc[cnt] = pd.Series({'Files':fn, 
-                                                          'Output':outfolder, 
-                                                          'Specid':sp,
-                                                          'Ifuslot': ifuslot,
-                                                          'Ifuid': ifuid, 
-                                                          'Amp': amp})
-                        cnt+=1
+                            sp = '%03d' %F[0].header['SPECID']
+                            ifuid = F[0].header['IFUID'].replace(' ', '')
+                            ifuslot = '%03d' %F[0].header['IFUSLOT']
+                            DF.loc[cnt] = pd.Series({'Files':fn, 
+                                                     'Output':outfolder, 
+                                                     'Specid':sp,
+                                                     'Ifuslot': ifuslot,
+                                                     'Ifuid': ifuid, 
+                                                     'Amp': amp})
+                            cnt+=1
             else:
                 folder = op.join(date, args.instr,
                                  "{:s}{:07d}".format(args.instr,int(obsid)))
@@ -183,85 +184,12 @@ def parse_args(argv=None):
                     sp = '%03d' %F[0].header['SPECID']
                     ifuid = F[0].header['IFUID'].replace(' ', '')
                     ifuslot = '%03d' %F[0].header['IFUSLOT']
-                    args.sci_df.loc[cnt] = pd.Series({'Files':fn, 
-                                                      'Output':outfolder, 
-                                                      'Specid':sp,
-                                                      'Ifuslot': ifuslot,
-                                                      'Ifuid': ifuid, 
-                                                      'Amp': amp})
-                    cnt+=1 
-
-    if args.twidir_date is None:
-        msg = 'No twi directory date was provided'
-        parser.error(msg) 
-    else:
-        args.twidir_date = args.twidir_date.replace(" ", "").split(',')
-
-    if args.twidir_obsid is None:
-        msg = 'No twi directory ObsID was provided'
-        parser.error(msg) 
-    else:
-        args.twidir_obsid = args.twidir_obsid.replace(" ", "").split(',')
-
-    if args.twidir_expnum is not None:
-        args.twidir_expnum = args.zrodir_expnum.replace(" ", "").split(',')
-        
-        
-    args.twi_df = pd.DataFrame(columns=['Files', 'Output', 'Amp', 'Specid', 
-                                        'Ifuslot', 'Ifuid']) 
-    cnt=0
-    for date in args.twidir_date:
-        for obsid in args.twidir_obsid:
-            if args.twidir_expnum is not None:   
-                for expnum in args.twidir_expnum:
-                    folder = op.join(date, 
-                                    args.instr, 
-                                    "{:s}{:07d}".format(args.instr,int(obsid)), 
-                                    "exp{:02d}".format(int(expnum)),
-                                    args.instr)
-                    files = sorted(glob.glob(op.join(args.rootdir, folder, '*')))
-                    if files:
-                        mkpath(op.join(args.output,folder))                        
-                    for fn in files:
-                        F = fits.open(fn)
-                        outfolder = op.join(args.output,folder)
-                        amp = (F[0].header['CCDPOS'].replace(' ', '') 
-                                         + F[0].header['CCDHALF'].replace(' ', ''))
-                        sp = '%03d' %F[0].header['SPECID']
-                        ifuid = F[0].header['IFUID'].replace(' ', '')
-                        ifuslot = '%03d' %F[0].header['IFUSLOT']
-                        args.twi_df.loc[cnt] = pd.Series({'Files':fn,
-                                                          'Output':outfolder, 
-                                                          'Specid':sp,
-                                                          'Ifuslot': ifuslot,
-                                                          'Ifuid': ifuid, 
-                                                          'Amp': amp})
-                        cnt+=1 
-            else:
-                folder = op.join(date, args.instr,
-                                 "{:s}{:07d}".format(args.instr,int(obsid)))
-                files = sorted(glob.glob(op.join(args.rootdir, folder, '*', args.instr, 
-                                                 '*')))
-                if files:
-                    nfiles = sorted(glob.glob(op.join(args.output, folder, '*')))
-                    for nfile in nfiles:
-                        mkpath(op.join(nfile, args.instr))
-                for fn in files:
-                    F = fits.open(fn)
-                    exp = op.basename(op.dirname(op.dirname(fn)))
-                    outfolder = op.join(args.output,folder, exp, args.instr)
-                    amp = (F[0].header['CCDPOS'].replace(' ', '') 
-                                     + F[0].header['CCDHALF'].replace(' ', ''))
-                    sp = '%03d' %F[0].header['SPECID']
-                    ifuid = F[0].header['IFUID'].replace(' ', '')
-                    ifuslot = '%03d' %F[0].header['IFUSLOT']
-                    args.twi_df.loc[cnt] = pd.Series({'Files':fn, 
-                                                      'Output':outfolder,
-                                                      'Specid':sp,
-                                                      'Ifuslot': ifuslot,
-                                                      'Ifuid': ifuid, 
-                                                      'Amp': amp})
+                    DF.loc[cnt] = pd.Series({'Files':fn, 'Output':outfolder, 
+                                             'Specid':sp, 'Ifuslot': ifuslot,
+                                             'Ifuid': ifuid, 'Amp': amp})
                     cnt+=1
+        setattr(args, obs+'_df', DF)    
+
     return args 
 
 def main():
@@ -282,7 +210,7 @@ def main():
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
                                  debug=True, refit=True, dark_mult=0.0,
-                                 darkpath=args.darkdir, darkpath=args.biasdir,
+                                 darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir)
                 twi1.load_fibers()
                 if twi1.fibers:
@@ -297,7 +225,7 @@ def main():
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
                                  debug=True, refit=True, dark_mult=0.0,
-                                 darkpath=args.darkdir, darkpath=args.biasdir,
+                                 darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir)
                 twi2.load_fibers()
                 if twi2.fibers:
