@@ -15,6 +15,7 @@ from __future__ import (division, print_function, absolute_import,
 import textwrap
 import glob
 from distutils.dir_util import mkpath
+import time
 
 import argparse as ap
 import numpy as np
@@ -58,6 +59,9 @@ def parse_args(argv=None):
                         help='''Instrument to process. 
                         Default: "virus"
                         Ex: "camra" for lab data.''', default = "virus")
+
+    parser.add_argument("-d","--debug", help='''Debug.''',
+                        action="count", default=0)
 
     parser.add_argument("--output", nargs='?', type=str, 
                         help='''Output Directory
@@ -262,6 +266,8 @@ def parse_args(argv=None):
 
 def main():
     args = parse_args()
+    if args.debug:
+        t1 = time.time()
     for spec in args.specid:
         spec_ind_twi = np.where(args.twi_df['Specid'] == spec)[0]
         spec_ind_sci = np.where(args.sci_df['Specid'] == spec)[0]
@@ -279,7 +285,12 @@ def main():
                                  darkpath=args.darkdir, darkpath=args.biasdir,
                                  virusconfig=args.configdir)
                 twi1.load_fibers()
-                twi1.get_fiber_to_fiber(use_default_profile=False, 
+                if twi1.fibers:
+                    if twi1.fibers[0].fiber_to_fiber is not None:
+                        print("Loading Cal for %s, %s: %s" %(spec, amp, 
+                                                    args.twi_df['Files'][ind]))
+                else:
+                    twi1.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=[3490,5500], interactive=False,
                                check_fibermodel=True, check_wave=True)
                 twi2 = Amplifier(args.twi_df['Files'][ind].replace(amp, Amp_dict[amp][0]),
@@ -289,13 +300,33 @@ def main():
                                  darkpath=args.darkdir, darkpath=args.biasdir,
                                  virusconfig=args.configdir)
                 twi2.load_fibers()
-                twi2.get_fiber_to_fiber(use_default_profile=False, 
+                if twi2.fibers:
+                    if twi2.fibers[0].fiber_to_fiber is not None:
+                        print("Loading Cal for %s, %s: %s" %(spec, Amp_dict[amp][0], 
+                                                    args.twi_df['Files'][ind]))
+                else:
+                    twi2.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=[3490,5500], interactive=False,
                                check_fibermodel=True, check_wave=True)
                 image1 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
                                         debug=twi1.debug)
+                image2 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
+                                        debug=twi1.debug)
+                a,b = image1.shape
+                new = np.zeros((a*2,b))
+                new[:a,:] = image1
+                new[a:,:] = image2
+                hdu = fits.PrimaryHDU(new, header=twi1.header)
+                outname = op.join(args.twi_df['Output'][ind], 
+                                  'mastertrace_%s_%s.fits' 
+                                  %(args.twi_df['Specid'][ind],
+                                    Amp_dict[amp][1]))
+                hdu.writeto(outname)
                 twi1.save_fibers()
                 twi2.save_fibers()
+    if args.debug:
+        t2=time.time()
+        print("Total Time taken: %0.2f s" %(t2-t1))
 
     
         
