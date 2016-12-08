@@ -43,6 +43,7 @@ class Amplifier:
             sys.exit(1)
 
         F = fits.open(filename)
+        self.header = F[0].header
         self.filename = op.abspath(filename)
         self.basename = op.basename(filename)[:-5]
         self.path = path
