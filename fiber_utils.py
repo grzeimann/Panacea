@@ -610,8 +610,12 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
                 init_model[xsel,k] = np.dot(Fl[xsel,:,k],sol) + Pl[xsel,k]
                 k+=1
 
-            # Solve for the normalization of the number of fibers            
-            norm[:,j] = lstsq(init_model[xsel,:],z[xsel])[0]
+            # Solve for the normalization of the number of fibers  
+            try:          
+                norm[:,j] = lstsq(init_model[xsel,:],z[xsel])[0]
+            except ValueError:
+                print(lowfib, highfib, ylow, yhigh, xlow, xhigh, ycutl, ycuth)
+                sys.exit(1)
             normfits[xsel,:] = np.ones((len(xsel),1)) * norm[:,j]
             #full_model[xsel] = np.dot(init_model[xsel,:],norm[:,j])
             flat[xsel] = (z[xsel]/((init_model[xsel,:]*normfits[xsel,:]**2)

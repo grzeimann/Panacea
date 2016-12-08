@@ -209,7 +209,7 @@ class Amplifier:
                         
        
     def get_trace(self, fdist=2., check_trace=True, calculate_shift=False, 
-                  trace_poly_order=3):
+                  trace_poly_order=3, guess_diff=8.7):
         if self.image is None:
             self.get_image()
         if self.type == 'twi' or self.refit:
@@ -261,7 +261,38 @@ class Amplifier:
                         self.fibers[i].trace_y[c] = yvals[floc]
             for fiber in self.fibers:
                 fiber.fit_trace_poly()
-                fiber.eval_trace_poly()
+                if np.sum(fiber.trace_x != fiber.flag)>(0.9*self.D):
+                    fiber.eval_trace_poly()
+            for fib, fiber in enumerate(self.fibers):
+                if np.sum(fiber.trace_x != fiber.flag)<=(0.9*self.D):
+                    sel = fiber.trace_x != fiber.flag
+                    k=1
+                    done = False
+                    while done==False:
+                        if fib<(len(self.fibers)-1):
+                            if (self.fibers[fib+k].trace == 0).sum()==0:
+                                if np.sum(sel)>10:
+                                    dif = biweight_location(fiber.trace_y[sel] 
+                                               - self.fibers[fib+k].trace_y[sel])
+                                else:
+                                    dif = guess_diff
+                                fiber.trace = self.fibers[fib+k].trace+dif
+                                done = True
+                            else:
+                                k+=1
+                        else:
+                            if (self.fibers[fib-k].trace == 0).sum()==0:
+                                if np.sum(sel)>10:
+                                    dif = biweight_location(fiber.trace_y[sel] 
+                                               - self.fibers[fib-k].trace_y[sel])
+                                else:
+                                    dif = guess_diff
+                                fiber.trace = self.fibers[fib-k].trace+dif
+                                done = True
+                            else:
+                                k+=1
+                        
+
             if calculate_shift:
                 self.net_trace_shift = self.find_shift()
                 if self.net_trace_shift is not None:
@@ -370,12 +401,25 @@ class Amplifier:
                 print("Please provide initial wavelength endpoint guess")
                 sys.exit(1)
             for k in xrange(2):
-                fiber = self.fibers[default_fib]
-                fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
+                content=False
+                cnting = 0
+                while content==False:
+                    fiber = self.fibers[default_fib]
+                    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
                                                      np.arange(self.D), fiber.spectrum, solar_spec, 
                                                      init_lims=init_lims, 
                                                      debug=self.debug, 
                                                      interactive=interactive)
+                    # Boundary check:
+                    if (np.abs(fiber.wavelength.min()-init_lims[0])>100. 
+                          or np.abs(fiber.wavelength.max()-init_lims[1])>100.):
+                        default_fib = np.random.choice(112) 
+                        cnting+=1
+                    else:
+                        content=True
+                    if cnting>9:
+                        print("Ran through 9 loops to find good solution, but couldn't")
+                        sys.exit(1)
                 fc = np.arange(len(self.fibers))
                 if default_fib==0:
                     fibs1 = []
@@ -440,7 +484,7 @@ class Amplifier:
         if self.fibers[0].fiber_to_fiber is None:
             self.load_cal_property(['fiber_to_fiber'])
         if self.fibers[0].spectrum is None:
-            self.fiberextract(poly_order=poly_order, 
+            self.fiberextract( trace_poly_order= trace_poly_order, 
                               use_default_profile=use_default_profile)
         if self.fibers[0].wave_polyvals is None:
             self.get_wavelength_solution(wave_order=wave_order, 
