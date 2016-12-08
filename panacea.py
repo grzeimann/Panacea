@@ -69,6 +69,11 @@ def parse_args(argv=None):
                         Default: \"/work/03946/hetdex/maverick\"''', 
                         default="/work/03946/hetdex/maverick")
 
+    parser.add_argument("--configdir", nargs='?', type=str, 
+                        help='''Config Directory
+                        Default: \"/work/03946/hetdex/maverick/virus_config\"''', 
+                        default="/work/03946/hetdex/maverick/virus_config")
+
     parser.add_argument("--biasdir", type=str,
                         help= "Directory of biases to use",
                         default="/work/03946/hetdex/maverick/virus_config/lib_bias")
@@ -271,7 +276,8 @@ def main():
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
                                  debug=True, refit=True, dark_mult=0.0,
-                                 darkpath=args.darkdir, darkpath=args.biasdir)
+                                 darkpath=args.darkdir, darkpath=args.biasdir,
+                                 virusconfig=args.configdir)
                 twi1.load_fibers()
                 twi1.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=[3490,5500], interactive=False,
@@ -280,7 +286,8 @@ def main():
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
                                  debug=True, refit=True, dark_mult=0.0,
-                                 darkpath=args.darkdir, darkpath=args.biasdir)
+                                 darkpath=args.darkdir, darkpath=args.biasdir,
+                                 virusconfig=args.configdir)
                 twi2.load_fibers()
                 twi2.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=[3490,5500], interactive=False,

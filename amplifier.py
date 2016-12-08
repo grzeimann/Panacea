@@ -11,6 +11,7 @@ To be used in conjuction with IFU reduction code, Panacea
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
+from distutils.dir_util import mkpath
 from utils import biweight_location, biweight_filter
 from astropy.io import fits
 import os.path as op
@@ -32,6 +33,7 @@ class Amplifier:
     def __init__(self, filename, path, refit=False, calpath=None, debug=False,
                  darkpath="/Users/gregz/cure/virus_early/virus_config/lib_dark",
                  biaspath="/Users/gregz/cure/virus_early/virus_config/lib_bias",
+                 virusconfig="/Users/gregz/cure/virus_early/virus_config/",
                  dark_mult=1., bias_mult=0.):
         ''' 
         Initialize class
@@ -46,9 +48,10 @@ class Amplifier:
         self.header = F[0].header
         self.filename = op.abspath(filename)
         self.basename = op.basename(filename)[:-5]
+        self.virusconfig = virusconfig
         self.path = path
         if not op.exists(self.path):
-            os.mkdir(self.path)
+            mkpath(self.path)
             
         self.N, self.D = F[0].data.shape
         if self.D == 1064:
@@ -378,8 +381,7 @@ class Amplifier:
                                 check_fibermodel=False, default_fib=0,
                                 filt_size_sky=51, filt_size_ind=21):
                                     
-        solar_spec = np.loadtxt('/Users/gregz/cure/virus_early'
-                                '/virus_config/solar_spec/virus_temp.txt')
+        solar_spec = np.loadtxt(op.join(self.virusconfig,'solar_spec/virus_temp.txt'))
         if self.image is None:
             self.get_image()
         if not self.fibers:
