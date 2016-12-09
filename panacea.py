@@ -341,7 +341,7 @@ def reduce_twighlight(args):
                                   'mastertrace_%s_%s.fits' 
                                   %(args.twi_df['Specid'][ind],
                                     Amp_dict[amp][1]))
-                hdu.writeto(outname)
+                hdu.writeto(outname, clobber=True)
                 D = recalculate_dist_coeff(D, twi1, twi2)
                 outname2 = op.join(args.twi_df['Output'][ind], 
                                   'mastertrace_%s_%s.dist' 
