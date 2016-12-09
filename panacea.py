@@ -291,7 +291,18 @@ def reduce_science(args):
                 a,b = sci1.clean_image.shape
                 new = np.zeros((a*2,b))
                 new[:a,:] = sci1.clean_image
-                new[a:,:] = sci2.clean_image                
+                new[a:,:] = sci2.clean_image   
+                
+def make_image(image1, image2, header, outname):
+    a,b = image1.shape
+    new = np.zeros((a*2,b))
+    new[:a,:] = image1
+    new[a:,:] = image2
+    hdu = fits.PrimaryHDU(new, header=header)
+    hdu.header.remove('BIASSEC')
+    hdu.header.remove('TRIMSEC')
+    hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
+    hdu.writeto(outname, clobber=True)    
 
 def reduce_twighlight(args):
     D = Distortion(op.join(args.configdir, 'DeformerDefaults', 
@@ -329,19 +340,16 @@ def reduce_twighlight(args):
                                         debug=twi1.debug)
                 image2 = get_model_image(twi2.image, twi2.fibers, 'fiber_to_fiber',
                                         debug=twi1.debug)
-                a,b = image1.shape
-                new = np.zeros((a*2,b))
-                new[:a,:] = image1
-                new[a:,:] = image2
-                hdu = fits.PrimaryHDU(new, header=twi1.header)
-                hdu.header.remove('BIASSEC')
-                hdu.header.remove('TRIMSEC')
-                hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
                 outname = op.join(args.twi_df['Output'][ind], 
                                   'mastertrace_%s_%s.fits' 
                                   %(args.twi_df['Specid'][ind],
                                     Amp_dict[amp][1]))
-                hdu.writeto(outname, clobber=True)
+                make_image(image1, image2, twi1.header, outname)
+                outname = op.join(args.twi_df['Output'][ind], 
+                                  'mastertwi_%s_%s.fits' 
+                                  %(args.twi_df['Specid'][ind],
+                                    Amp_dict[amp][1]))  
+                make_image(twi1.image, twi2.image, twi1.header, outname)
                 D = recalculate_dist_coeff(D, twi1, twi2)
                 outname2 = op.join(args.twi_df['Output'][ind], 
                                   'mastertrace_%s_%s.dist' 
