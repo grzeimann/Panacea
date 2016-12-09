@@ -321,6 +321,7 @@ def reduce_science(args):
         for amp in Amps:
             amp_ind_sci = np.where(args.sci_df['Amp'] == amp)[0]
             sci_sel = np.intersect1d(spec_ind_sci, amp_ind_sci) 
+            print(args.cal_dir)
             for ind in sci_sel:
                 sci1 = Amplifier(args.sci_df['Files'][ind],
                                  args.sci_df['Output'][ind],
@@ -362,9 +363,6 @@ def reduce_twighlight(args):
         for amp in Amps:
             amp_ind_twi = np.where(args.twi_df['Amp'] == amp)[0]
             twi_sel = np.intersect1d(spec_ind_twi, amp_ind_twi)
-            if args.debug:
-                for ind in twi_sel:
-                    print(args.twi_df['Files'][ind])
             for ind in twi_sel:                    
                 twi1 = Amplifier(args.twi_df['Files'][ind],
                                  args.twi_df['Output'][ind],
