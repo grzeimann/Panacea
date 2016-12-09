@@ -17,6 +17,7 @@ import glob
 from distutils.dir_util import mkpath
 import time
 
+import sys
 import argparse as ap
 import numpy as np
 import pandas as pd
@@ -202,8 +203,45 @@ def parse_args(argv=None):
                                                  'Specid':sp, 'Ifuslot': ifuslot,
                                                  'Ifuid': ifuid, 'Amp': amp})
                         cnt+=1
-        setattr(args, obs+'_df', DF)    
-
+        setattr(args, obs+'_df', DF)
+        
+    if args.reduce_sci:
+        if getattr(args, 'twi'+labels[0]) is None:
+            print("Please provide one"+"twi"+labels[0])
+            sys.exit(1) 
+        if len(getattr(args, 'twi'+labels[0]))>1:
+            print("Please provide only one"+"twi"+labels[0])
+            print("I am cowardly quitting instead of making a smart program.")
+            sys.exit(1)
+        if getattr(args, 'twi'+labels[1]) is None:
+            print("Please provide one"+"twi"+labels[1])
+            sys.exit(1) 
+        if len(getattr(args, 'twi'+labels[1]))>1:
+            print("Please provide only one"+"twi"+labels[1])
+            print("I am cowardly quitting instead of making a smart program.")
+            sys.exit(1)
+        if getattr(args, 'twi'+labels[2]) is None:
+            print("Please provide one"+"twi"+labels[2])
+            sys.exit(1) 
+        if len(getattr(args, 'twi'+labels[2]))>1:
+            print("Please provide only one"+"twi"+labels[2])
+            print("I am cowardly quitting instead of making a smart program.")
+            sys.exit(1)             
+        for date in getattr(args, 'twi'+labels[0]):
+            for obsid in getattr(args, 'twi'+labels[1]):
+                if getattr(args, 'twi'+labels[2]) is not None:   
+                    for expnum in getattr(args, obs+labels[2]):
+                        args.cal_dir = op.join(date, args.instr, 
+                                               "{:s}{:07d}".format(args.instr,int(obsid)), 
+                                               "exp{:02d}".format(int(expnum)),
+                                               args.instr)
+                        
+                else:
+                    print("You need to provide an exposure number for twi if "
+                          "you are reducing science frames.")
+                    print("I am cowardly quitting instead of making a smart "
+                          "program.")
+                    sys.exit(1)
     return args
 
 def matrixCheby2D_7(x, y):
@@ -265,6 +303,17 @@ def recalculate_dist_coeff(D, instr1, instr2):
     D.x_offsets = f0*0.
     D.wave_offsets = f0*0.
     return D
+    
+def make_image(image1, image2, header, outname):
+    a,b = image1.shape
+    new = np.zeros((a*2,b))
+    new[:a,:] = image1
+    new[a:,:] = image2
+    hdu = fits.PrimaryHDU(new, header=header)
+    hdu.header.remove('BIASSEC')
+    hdu.header.remove('TRIMSEC')
+    hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
+    hdu.writeto(outname, clobber=True)    
             
 def reduce_science(args):
     for spec in args.specid:
@@ -275,7 +324,7 @@ def reduce_science(args):
             for ind in sci_sel:
                 sci1 = Amplifier(args.sci_df['Files'][ind],
                                  args.sci_df['Output'][ind],
-                                 calpath=args.twi_df['Output'][ind], 
+                                 calpath=args.cal_dir, 
                                  debug=True, refit=False, dark_mult=1.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir)
@@ -292,18 +341,18 @@ def reduce_science(args):
                 a,b = sci1.clean_image.shape
                 new = np.zeros((a*2,b))
                 new[:a,:] = sci1.clean_image
-                new[a:,:] = sci2.clean_image   
+                new[a:,:] = sci2.clean_image 
+                hdu = fits.PrimaryHDU(new, header=sci1.header)
+                hdu.header.remove('BIASSEC')
+                hdu.header.remove('TRIMSEC')
+                hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
+                op.basename(args.sci_df['Files'][ind]).split('_')[0]
+                outname = op.join(args.sci_df['Output'][ind],
+                                  'S%s_%s_sci_%s.fits' %(
+                                  op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                  args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
+                hdu.writeto(outname, clobber=True)                    
                 
-def make_image(image1, image2, header, outname):
-    a,b = image1.shape
-    new = np.zeros((a*2,b))
-    new[:a,:] = image1
-    new[a:,:] = image2
-    hdu = fits.PrimaryHDU(new, header=header)
-    hdu.header.remove('BIASSEC')
-    hdu.header.remove('TRIMSEC')
-    hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
-    hdu.writeto(outname, clobber=True)    
 
 def reduce_twighlight(args):
     D = Distortion(op.join(args.configdir, 'DeformerDefaults', 
