@@ -52,23 +52,29 @@ def parse_args(argv=None):
                      
     parser = ap.ArgumentParser(description=description,
                             formatter_class=ap.RawTextHelpFormatter)
+                            
+    parser.add_argument("-rt","--reduce_twi", 
+                        help='''Reduce Twighlight frames for calibration''',
+                        action="count", default=0)
+
+    parser.add_argument("-rs","--reduce_sci", 
+                        help='''Reduce Science frames''',
+                        action="count", default=0)
                         
     parser.add_argument("--specid", nargs='?', type=str, 
-                        help='''List of SPECID's for processing. 
+                        help='''List of SPECID's for processing. [REQUIRED]
                         Ex: "020,008".''', default = None)
 
     parser.add_argument("--instr", nargs='?', type=str, 
                         help='''Instrument to process. 
                         Default: "virus"
-                        Ex: "camra" for lab data.''', default = "virus")
-
-    parser.add_argument("-d","--debug", help='''Debug.''',
-                        action="count", default=0)
+                        Ex: "camra" for lab data,
+                            "lrs2" for lrs2.''', default = "virus")
 
     parser.add_argument("--output", nargs='?', type=str, 
                         help='''Output Directory
-                        Default: \"virus_reductions"''', 
-                        default="virus_reductions")
+                        Default: \"reductions"''', 
+                        default="reductions")
                         
     parser.add_argument("--rootdir", nargs='?', type=str, 
                         help='''Root Directory
@@ -89,14 +95,6 @@ def parse_args(argv=None):
                         help='''Dark Library
                         Default: \"/work/03946/hetdex/maverick/virus_config/lib_dark\"''',
                         default="/work/03946/hetdex/maverick/virus_config/lib_dark")
-                        
-    parser.add_argument("-rt","--reduce_twi", 
-                        help='''Reduce Twighlight frames for calibration''',
-                        action="count", default=0)
-
-    parser.add_argument("-rs","--reduce_sci", 
-                        help='''Reduce Science frames''',
-                        action="count", default=0)
                        
     parser.add_argument("-sd","--scidir_date", nargs='?', type=str,
                         help='''Science Directory Date.     [REQUIRED, if --reduce_sci]
@@ -122,6 +120,8 @@ def parse_args(argv=None):
                         help='''Twi Directory exposure number.
                         Ex: \"1\" or \"05\"''', default=None) 
 
+    parser.add_argument("-d","--debug", help='''Debug.''',
+                        action="count", default=0)
                           
     args = parser.parse_args(args=argv)
 
@@ -142,7 +142,7 @@ def parse_args(argv=None):
         for label in labels[:2]:
             getattr(args, obs+label)
             if getattr(args, obs+label) is None:
-                msg = 'No %s was provided for %s' %(label, obs)
+                msg = '%s%s was not provided' %(obs, label)
                 parser.error(msg) 
             else:
                 setattr(args, obs+label, 
@@ -264,7 +264,6 @@ def recalculate_dist_coeff(D, instr1, instr2):
     D.x_offsets = f0*0.
     D.wave_offsets = f0*0.
     return D
-
             
 def reduce_science(args):
     for spec in args.specid:
@@ -295,7 +294,7 @@ def reduce_science(args):
                 new[a:,:] = sci2.clean_image                
 
 def reduce_twighlight(args):
-    D = Distortion(op.join(args.virusconfig, 'DeformerDefaults', 
+    D = Distortion(op.join(args.configdir 'DeformerDefaults', 
                                         'mastertrace_twi_027_L.dist'))   
     for spec in args.specid:
         spec_ind_twi = np.where(args.twi_df['Specid'] == spec)[0]
@@ -363,18 +362,10 @@ def main():
     if args.reduce_twi:
         reduce_twighlight(args)
     if args.reduce_sci:
-        reduce_science(args)
-                                        
-    
-           
+        reduce_science(args)                                        
     if args.debug:
         t2=time.time()
         print("Total Time taken: %0.2f s" %(t2-t1))
-
-    
-        
-    
-
 
 if __name__ == '__main__':
     main()    
