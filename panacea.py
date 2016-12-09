@@ -180,28 +180,28 @@ def parse_args(argv=None):
                                                      'Ifuid': ifuid, 
                                                      'Amp': amp})
                             cnt+=1
-            else:
-                folder = op.join(date, args.instr,
-                                 "{:s}{:07d}".format(args.instr,int(obsid)))
-                files = sorted(glob.glob(op.join(args.rootdir, folder, '*', args.instr, 
-                                                 '*')))
-                if files:
-                    nfiles = sorted(glob.glob(op.join(args.output, folder, '*')))
-                    for nfile in nfiles:
-                        mkpath(op.join(nfile, args.instr))
-                for fn in files:
-                    F = fits.open(fn)
-                    exp = op.basename(op.dirname(op.dirname(fn)))
-                    outfolder = op.join(args.output,folder, exp, args.instr)
-                    amp = (F[0].header['CCDPOS'].replace(' ', '') 
-                                     + F[0].header['CCDHALF'].replace(' ', ''))
-                    sp = '%03d' %F[0].header['SPECID']
-                    ifuid = F[0].header['IFUID'].replace(' ', '')
-                    ifuslot = '%03d' %F[0].header['IFUSLOT']
-                    DF.loc[cnt] = pd.Series({'Files':fn, 'Output':outfolder, 
-                                             'Specid':sp, 'Ifuslot': ifuslot,
-                                             'Ifuid': ifuid, 'Amp': amp})
-                    cnt+=1
+                else:
+                    folder = op.join(date, args.instr,
+                                     "{:s}{:07d}".format(args.instr,int(obsid)))
+                    files = sorted(glob.glob(op.join(args.rootdir, folder, '*', args.instr, 
+                                                     '*')))
+                    if files:
+                        nfiles = sorted(glob.glob(op.join(args.output, folder, '*')))
+                        for nfile in nfiles:
+                            mkpath(op.join(nfile, args.instr))
+                    for fn in files:
+                        F = fits.open(fn)
+                        exp = op.basename(op.dirname(op.dirname(fn)))
+                        outfolder = op.join(args.output,folder, exp, args.instr)
+                        amp = (F[0].header['CCDPOS'].replace(' ', '') 
+                                         + F[0].header['CCDHALF'].replace(' ', ''))
+                        sp = '%03d' %F[0].header['SPECID']
+                        ifuid = F[0].header['IFUID'].replace(' ', '')
+                        ifuslot = '%03d' %F[0].header['IFUSLOT']
+                        DF.loc[cnt] = pd.Series({'Files':fn, 'Output':outfolder, 
+                                                 'Specid':sp, 'Ifuslot': ifuslot,
+                                                 'Ifuid': ifuid, 'Amp': amp})
+                        cnt+=1
         setattr(args, obs+'_df', DF)    
 
     return args
