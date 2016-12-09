@@ -294,7 +294,7 @@ def reduce_science(args):
                 new[a:,:] = sci2.clean_image                
 
 def reduce_twighlight(args):
-    D = Distortion(op.join(args.configdir 'DeformerDefaults', 
+    D = Distortion(op.join(args.configdir, 'DeformerDefaults', 
                                         'mastertrace_twi_027_L.dist'))   
     for spec in args.specid:
         spec_ind_twi = np.where(args.twi_df['Specid'] == spec)[0]
