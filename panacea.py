@@ -233,7 +233,8 @@ def matrixCheby2D_7(x, y):
     
 def recalculate_dist_coeff(D, instr1, instr2):
     col = int(instr1.D / 2)
-    ypos = np.array([fiber.trace+1 for instr in [instr1,instr2] 
+    intv = [1, 1+instr1.D]
+    ypos = np.array([fiber.trace+intv[v] for v,instr in enumerate([instr1,instr2]) 
                                    for fiber in instr.fibers])
     xpos = np.array([np.arange(fiber.D) for instr in [instr1,instr2] 
                                         for fiber in instr.fibers])
