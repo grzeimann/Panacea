@@ -349,12 +349,13 @@ def reduce_science(args):
                 hdu.header.remove('BIASSEC')
                 hdu.header.remove('TRIMSEC')
                 hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
-                op.basename(args.sci_df['Files'][ind]).split('_')[0]
                 outname = op.join(args.sci_df['Output'][ind],
                                   'S%s_%s_sci_%s.fits' %(
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
-                hdu.writeto(outname, clobber=True)                    
+                hdu.writeto(outname, clobber=True)
+                sci1.save_fibers()
+                sci2.save_fibers()                    
                 
 
 def reduce_twighlight(args):
