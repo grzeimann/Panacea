@@ -437,7 +437,8 @@ class Amplifier:
                 else:
                     fibs2 = fc[(default_fib+1)::1]
                 for fib in fibs1:
-                    print("Working on Fiber %i" %fib)
+                    if self.debug:
+                        print("Working on Fiber %i" %fib)
                     fiber = self.fibers[fib]
                     fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
                                                      np.arange(self.D), fiber.spectrum, solar_spec, 
@@ -445,7 +446,8 @@ class Amplifier:
                                                      debug=self.debug, 
                                                      interactive=False, init_sol=self.fibers[fib+1].wave_polyvals)
                 for fib in fibs2:
-                    print("Working on Fiber %i" %fib)
+                    if self.debug:
+                        print("Working on Fiber %i" %fib)
                     fiber = self.fibers[fib]
                     fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
                                                      np.arange(self.D), fiber.spectrum, solar_spec, 

@@ -331,7 +331,7 @@ def reduce_science(args):
                 sci1 = Amplifier(args.sci_df['Files'][ind],
                                  args.sci_df['Output'][ind],
                                  calpath=args.cal_dir, 
-                                 debug=True, refit=False, dark_mult=1.0,
+                                 debug=False, refit=False, dark_mult=1.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir)
                 sci1.load_all_cal()
@@ -339,7 +339,7 @@ def reduce_science(args):
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, Amp_dict[amp][0]),
                                  args.sci_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
-                                 debug=True, refit=False, dark_mult=1.0,
+                                 debug=False, refit=False, dark_mult=1.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir)
                 sci2.load_all_cal()
