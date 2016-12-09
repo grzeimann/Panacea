@@ -312,12 +312,7 @@ def reduce_twighlight(args):
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir)
                 twi1.load_fibers()
-                if twi1.fibers:
-                    if twi1.fibers[0].fiber_to_fiber is not None:
-                        print("Loaded Cal for %s, %s: %s" %(spec, amp, 
-                                                    args.twi_df['Files'][ind]))
-                else:
-                    twi1.get_fiber_to_fiber(use_default_profile=False, 
+                twi1.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=[3490,5500], interactive=False,
                                check_fibermodel=True, check_wave=True)
                 twi2 = Amplifier(args.twi_df['Files'][ind].replace(amp, Amp_dict[amp][0]),
@@ -327,12 +322,7 @@ def reduce_twighlight(args):
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir)
                 twi2.load_fibers()
-                if twi2.fibers:
-                    if twi2.fibers[0].fiber_to_fiber is not None:
-                        print("Loaded Cal for %s, %s: %s" %(spec, Amp_dict[amp][0], 
-                                                    args.twi_df['Files'][ind]))
-                else:
-                    twi2.get_fiber_to_fiber(use_default_profile=False, 
+                twi2.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=[3490,5500], interactive=False,
                                check_fibermodel=True, check_wave=True)
                 image1 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
