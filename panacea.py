@@ -89,13 +89,21 @@ def parse_args(argv=None):
                         help='''Dark Library
                         Default: \"/work/03946/hetdex/maverick/virus_config/lib_dark\"''',
                         default="/work/03946/hetdex/maverick/virus_config/lib_dark")
+                        
+    parser.add_argument("-rt","--reduce_twi", 
+                        help='''Reduce Twighlight frames for calibration''',
+                        action="count", default=0)
+
+    parser.add_argument("-rs","--reduce_sci", 
+                        help='''Reduce Science frames''',
+                        action="count", default=0)
                        
     parser.add_argument("-sd","--scidir_date", nargs='?', type=str,
-                        help='''Science Directory Date.     [REQUIRED]
+                        help='''Science Directory Date.     [REQUIRED, if --reduce_sci]
                         Ex: \"20160412\"''', default=None)
 
     parser.add_argument("-so","--scidir_obsid", nargs='?', type=str,
-                        help='''Science Directory ObsID.    [REQUIRED]
+                        help='''Science Directory ObsID.    [REQUIRED, if --reduce_sci]
                         Ex: \"3\" or \"102\"''', default=None)
                         
     parser.add_argument("-se","--scidir_expnum", nargs='?', type=str,
@@ -103,11 +111,11 @@ def parse_args(argv=None):
                         Ex: \"1\" or \"05\"''', default=None) 
 
     parser.add_argument("-td","--twidir_date", nargs='?', type=str,
-                        help='''Twi Directory Date.     [REQUIRED]
+                        help='''Twi Directory Date.     [REQUIRED, if --reduce_twi]
                         Ex: \"20160412\"''', default=None)
 
     parser.add_argument("-to","--twidir_obsid", nargs='?', type=str,
-                        help='''Twi Directory ObsID.    [REQUIRED]
+                        help='''Twi Directory ObsID.    [REQUIRED, if --reduce_twi]
                         Ex: \"3\" or \"102\"''', default=None)
                         
     parser.add_argument("-te","--twidir_expnum", nargs='?', type=str,
@@ -125,7 +133,11 @@ def parse_args(argv=None):
         parser.error(msg)   
 
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
-    observations = ['sci', 'twi']
+    observations=[]
+    if args.reduce_sci:
+        observations.append('sci')
+    if args.reduce_twi:
+        observations.append('twi')
     for obs in observations:
         for label in labels[:2]:
             getattr(args, obs+label)
@@ -253,23 +265,43 @@ def recalculate_dist_coeff(D, instr1, instr2):
     D.wave_offsets = f0*0.
     return D
 
+            
+def reduce_science(args):
+    for spec in args.specid:
+        spec_ind_sci = np.where(args.sci_df['Specid'] == spec)[0]
+        for amp in Amps:
+            amp_ind_sci = np.where(args.sci_df['Amp'] == amp)[0]
+            sci_sel = np.intersect1d(spec_ind_sci, amp_ind_sci) 
+            for ind in sci_sel:
+                sci1 = Amplifier(args.sci_df['Files'][ind],
+                                 args.sci_df['Output'][ind],
+                                 calpath=args.twi_df['Output'][ind], 
+                                 debug=True, refit=False, dark_mult=1.0,
+                                 darkpath=args.darkdir, biaspath=args.biasdir,
+                                 virusconfig=args.configdir)
+                sci1.load_all_cal()
+                sci1.sky_subtraction()
+                sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, Amp_dict[amp][0]),
+                                 args.sci_df['Output'][ind],
+                                 calpath=args.twi_df['Output'][ind], 
+                                 debug=True, refit=False, dark_mult=1.0,
+                                 darkpath=args.darkdir, biaspath=args.biasdir,
+                                 virusconfig=args.configdir)
+                sci2.load_all_cal()
+                sci2.sky_subtraction()
+                a,b = sci1.clean_image.shape
+                new = np.zeros((a*2,b))
+                new[:a,:] = sci1.clean_image
+                new[a:,:] = sci2.clean_image                
 
-def main():
-    args = parse_args()
-    if args.debug:
-        t1 = time.time()
+def reduce_twighlight(args):
     D = Distortion(op.join(args.virusconfig, 'DeformerDefaults', 
-                                        'mastertrace_twi_027_L.dist'))
-                                        
+                                        'mastertrace_twi_027_L.dist'))   
     for spec in args.specid:
         spec_ind_twi = np.where(args.twi_df['Specid'] == spec)[0]
-        spec_ind_sci = np.where(args.sci_df['Specid'] == spec)[0]
-        # Calibration
         for amp in Amps:
             amp_ind_twi = np.where(args.twi_df['Amp'] == amp)[0]
             twi_sel = np.intersect1d(spec_ind_twi, amp_ind_twi)
-            amp_ind_sci = np.where(args.sci_df['Amp'] == amp)[0]
-            sci_sel = np.intersect1d(spec_ind_sci, amp_ind_sci)
             for ind in twi_sel:
                 twi1 = Amplifier(args.twi_df['Files'][ind],
                                  args.twi_df['Output'][ind],
@@ -323,6 +355,18 @@ def main():
                 D.writeto(outname2)
                 twi1.save_fibers()
                 twi2.save_fibers()
+                
+def main():
+    args = parse_args()
+    if args.debug:
+        t1 = time.time()
+    if args.reduce_twi:
+        reduce_twighlight(args)
+    if args.reduce_sci:
+        reduce_science(args)
+                                        
+    
+           
     if args.debug:
         t2=time.time()
         print("Total Time taken: %0.2f s" %(t2-t1))
