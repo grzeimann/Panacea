@@ -22,6 +22,8 @@ import numpy as np
 import pandas as pd
 import os.path as op
 from astropy.io import fits
+from pyhetdex.cure.distortion import Distortion
+
 
 from amplifier import Amplifier
 from fiber_utils import get_model_image
@@ -190,12 +192,75 @@ def parse_args(argv=None):
                     cnt+=1
         setattr(args, obs+'_df', DF)    
 
-    return args 
+    return args
+
+def matrixCheby2D_7(x, y):
+    if isinstance(x, (tuple, list)):
+        x = np.asarray(x)
+    if isinstance(y, (tuple, list)):
+        y = np.asarray(y)
+
+    T2x = 2. * x**2 - 1.
+    T3x = 4. * x**3 - 3. * x
+    T4x = 8. * x**4 - 8. * x**2 + 1.
+    T5x = 16. * x**5 - 20. * x**3 + 5. * x
+    T6x = 32. * x**6 - 48. * x**4 + 18. * x**2 - 1.
+    T7x = 64. * x**7 - 112. * x**5 + 56. * x**3 - 7. * x
+    T2y = 2. * y**2 - 1.
+    T3y = 4. * y**3 - 3. * y
+    T4y = 8. * y**4 - 8. * y**2 + 1.
+    T5y = 16. * y**5 - 20. * y**3 + 5. * y
+    T6y = 32. * y**6 - 48. * y**4 + 18. * y**2 - 1
+    T7y = 64. * y**7 - 112. * y**5 + 56. * y**3 - 7 * y
+    
+    return np.vstack((T7x, T6x, T5x, T4x, T3x, T2x, x, T7y, T6y, T5y, 
+                      T4y, T3y, T2y, y, T6x*y, x*T6y, T5x*T2y, T2x*T5y,
+                      T4x*T3y, T3x*T4y, T5x*y, x*T5y, T4x*T2y, T2x*T4y, 
+                      T3x*T3y, T4x*y, x*T4y, T3x*T2y, T2x*T3y, T3x*y, 
+                      x*T3y, T2x*T2y, T2x*y, x*T2y, x*y, np.ones(x.shape))).swapaxes(0,1)
+    
+def recalculate_dist_coeff(D, instr1, instr2):
+    col = instr1.D / 2
+    ypos = np.array([fiber.trace+1 for instr in [instr1,instr2] 
+                                   for fiber in instr.fibers])
+    xpos = np.array([np.arange(fiber.D) for instr in [instr1,instr2] 
+                                        for fiber in instr.fibers])
+    f1 = ypos[:,col]
+    f0 = np.sort(f1)[::-1]
+    fpos = np.zeros((ypos.shape))
+    k=0
+    for instr in [instr1,instr2]:
+        for fiber in instr.fibers:
+            fpos[k,:] = f1[k]
+            k+=1
+            
+    wpos = np.array([fiber.wavelength for instr in [instr1,instr2] 
+                                      for fiber in instr.fibers])    
+    
+    Vxy = matrixCheby2D_7(D._scal_x(xpos.ravel()), 
+                             D._scal_y(ypos.ravel()))
+    Vwf = matrixCheby2D_7(D._scal_w(wpos.ravel()), 
+                             D._scal_f(fpos.ravel()))
+    Vxf = matrixCheby2D_7(D._scal_x(xpos.ravel()), 
+                             D._scal_f(fpos.ravel())) 
+    D.reference_f_.data = f0*1.
+    D.fiber_par_.data = np.linalg.lstsq(Vxy, fpos.ravel())[0]
+    D.wave_par_.data = np.linalg.lstsq(Vxy, wpos.ravel())[0]
+    D.x_par_.data = np.linalg.lstsq(Vwf, xpos.ravel())[0]
+    D.y_par_.data = np.linalg.lstsq(Vwf, ypos.ravel())[0]
+    D.fy_par_.data = np.linalg.lstsq(Vxf, ypos.ravel())[0]
+    D.x_offsets = f0*0.
+    D.wave_offsets = f0*0.
+    return D
+
 
 def main():
     args = parse_args()
     if args.debug:
         t1 = time.time()
+    D = Distortion(op.join(args.virusconfig, 'DeformerDefaults', 
+                                        'mastertrace_twi_027_L.dist'))
+                                        
     for spec in args.specid:
         spec_ind_twi = np.where(args.twi_df['Specid'] == spec)[0]
         spec_ind_sci = np.where(args.sci_df['Specid'] == spec)[0]
@@ -250,6 +315,12 @@ def main():
                                   %(args.twi_df['Specid'][ind],
                                     Amp_dict[amp][1]))
                 hdu.writeto(outname)
+                D = recalculate_dist_coeff(D, twi1, twi2)
+                outname2 = op.join(args.twi_df['Output'][ind], 
+                                  'mastertrace_%s_%s.dist' 
+                                  %(args.twi_df['Specid'][ind],
+                                    Amp_dict[amp][1]))
+                D.writeto(outname2)
                 twi1.save_fibers()
                 twi2.save_fibers()
     if args.debug:
