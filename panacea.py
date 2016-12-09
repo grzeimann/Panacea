@@ -327,7 +327,7 @@ def reduce_twighlight(args):
                                check_fibermodel=True, check_wave=True)
                 image1 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
                                         debug=twi1.debug)
-                image2 = get_model_image(twi2.image, twi1.fibers, 'fiber_to_fiber',
+                image2 = get_model_image(twi2.image, twi2.fibers, 'fiber_to_fiber',
                                         debug=twi1.debug)
                 a,b = image1.shape
                 new = np.zeros((a*2,b))
