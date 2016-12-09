@@ -137,6 +137,8 @@ def parse_args(argv=None):
     observations=[]
     if args.reduce_sci:
         observations.append('sci')
+        if not args.reduce_twi:
+            observations.append('twi')
     if args.reduce_twi:
         observations.append('twi')
     for obs in observations:
@@ -207,24 +209,24 @@ def parse_args(argv=None):
         
     if args.reduce_sci:
         if getattr(args, 'twi'+labels[0]) is None:
-            print("Please provide one"+"twi"+labels[0])
+            print("Please provide one "+"twi"+labels[0])
             sys.exit(1) 
         if len(getattr(args, 'twi'+labels[0]))>1:
-            print("Please provide only one"+"twi"+labels[0])
+            print("Please provide only one "+"twi"+labels[0])
             print("I am cowardly quitting instead of making a smart program.")
             sys.exit(1)
         if getattr(args, 'twi'+labels[1]) is None:
-            print("Please provide one"+"twi"+labels[1])
+            print("Please provide one "+"twi"+labels[1])
             sys.exit(1) 
         if len(getattr(args, 'twi'+labels[1]))>1:
-            print("Please provide only one"+"twi"+labels[1])
+            print("Please provide only one "+"twi"+labels[1])
             print("I am cowardly quitting instead of making a smart program.")
             sys.exit(1)
         if getattr(args, 'twi'+labels[2]) is None:
-            print("Please provide one"+"twi"+labels[2])
+            print("Please provide one "+"twi"+labels[2])
             sys.exit(1) 
         if len(getattr(args, 'twi'+labels[2]))>1:
-            print("Please provide only one"+"twi"+labels[2])
+            print("Please provide only one "+"twi"+labels[2])
             print("I am cowardly quitting instead of making a smart program.")
             sys.exit(1)             
         for date in getattr(args, 'twi'+labels[0]):
