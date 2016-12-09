@@ -232,7 +232,7 @@ def matrixCheby2D_7(x, y):
                       x*T3y, T2x*T2y, T2x*y, x*T2y, x*y, np.ones(x.shape))).swapaxes(0,1)
     
 def recalculate_dist_coeff(D, instr1, instr2):
-    col = instr1.D / 2
+    col = int(instr1.D / 2)
     ypos = np.array([fiber.trace+1 for instr in [instr1,instr2] 
                                    for fiber in instr.fibers])
     xpos = np.array([np.arange(fiber.D) for instr in [instr1,instr2] 
@@ -301,7 +301,10 @@ def reduce_twighlight(args):
         for amp in Amps:
             amp_ind_twi = np.where(args.twi_df['Amp'] == amp)[0]
             twi_sel = np.intersect1d(spec_ind_twi, amp_ind_twi)
-            for ind in twi_sel:
+            if args.debug:
+                for ind in twi_sel:
+                    print(args.twi_df['Files'][ind])
+            for ind in twi_sel:                    
                 twi1 = Amplifier(args.twi_df['Files'][ind],
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
@@ -311,7 +314,7 @@ def reduce_twighlight(args):
                 twi1.load_fibers()
                 if twi1.fibers:
                     if twi1.fibers[0].fiber_to_fiber is not None:
-                        print("Loading Cal for %s, %s: %s" %(spec, amp, 
+                        print("Loaded Cal for %s, %s: %s" %(spec, amp, 
                                                     args.twi_df['Files'][ind]))
                 else:
                     twi1.get_fiber_to_fiber(use_default_profile=False, 
@@ -326,7 +329,7 @@ def reduce_twighlight(args):
                 twi2.load_fibers()
                 if twi2.fibers:
                     if twi2.fibers[0].fiber_to_fiber is not None:
-                        print("Loading Cal for %s, %s: %s" %(spec, Amp_dict[amp][0], 
+                        print("Loaded Cal for %s, %s: %s" %(spec, Amp_dict[amp][0], 
                                                     args.twi_df['Files'][ind]))
                 else:
                     twi2.get_fiber_to_fiber(use_default_profile=False, 
@@ -334,13 +337,16 @@ def reduce_twighlight(args):
                                check_fibermodel=True, check_wave=True)
                 image1 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
                                         debug=twi1.debug)
-                image2 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
+                image2 = get_model_image(twi2.image, twi1.fibers, 'fiber_to_fiber',
                                         debug=twi1.debug)
                 a,b = image1.shape
                 new = np.zeros((a*2,b))
                 new[:a,:] = image1
                 new[a:,:] = image2
                 hdu = fits.PrimaryHDU(new, header=twi1.header)
+                hdu.header.remove('BIASSEC')
+                hdu.header.remove('TRIMSEC')
+                hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
                 outname = op.join(args.twi_df['Output'][ind], 
                                   'mastertrace_%s_%s.fits' 
                                   %(args.twi_df['Specid'][ind],

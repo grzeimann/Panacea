@@ -107,6 +107,8 @@ class Amplifier:
                 if op.exists(fiber_fn):
                     with open(fiber_fn, 'r') as f:
                         self.fibers.append(pickle.load(f))
+                        self.fibers[-1].eval_fibmodel_poly()
+                        self.fibers[-1].eval_wave_poly()
                         
     def load_cal_property(self, prop):
         fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
