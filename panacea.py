@@ -326,6 +326,8 @@ def reduce_science(args):
             amp_ind_sci = np.where(args.sci_df['Amp'] == amp)[0]
             sci_sel = np.intersect1d(spec_ind_sci, amp_ind_sci) 
             for ind in sci_sel:
+                if args.debug:
+                    print("Working on Sci for %s, %s" %(spec, amp))   
                 sci1 = Amplifier(args.sci_df['Files'][ind],
                                  args.sci_df['Output'][ind],
                                  calpath=args.cal_dir, 
@@ -356,7 +358,9 @@ def reduce_science(args):
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
                 hdu.writeto(outname, clobber=True)
                 sci1.save_fibers()
-                sci2.save_fibers()                    
+                sci2.save_fibers()  
+                if args.debug:
+                    print("Finished working on Sci for %s, %s" %(spec, amp))                    
                 
 
 def reduce_twighlight(args):
@@ -367,11 +371,13 @@ def reduce_twighlight(args):
         for amp in Amps:
             amp_ind_twi = np.where(args.twi_df['Amp'] == amp)[0]
             twi_sel = np.intersect1d(spec_ind_twi, amp_ind_twi)
-            for ind in twi_sel:                    
+            for ind in twi_sel:
+                if args.debug:
+                    print("Working on Cal for %s, %s" %(spec, amp))                    
                 twi1 = Amplifier(args.twi_df['Files'][ind],
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
-                                 debug=True, refit=True, dark_mult=0.0,
+                                 debug=False, refit=True, dark_mult=0.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir)
                 twi1.load_fibers()
@@ -381,7 +387,7 @@ def reduce_twighlight(args):
                 twi2 = Amplifier(args.twi_df['Files'][ind].replace(amp, Amp_dict[amp][0]),
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
-                                 debug=True, refit=True, dark_mult=0.0,
+                                 debug=False, refit=True, dark_mult=0.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir)
                 twi2.load_fibers()
@@ -410,6 +416,8 @@ def reduce_twighlight(args):
                 D.writeto(outname2)
                 twi1.save_fibers()
                 twi2.save_fibers()
+                if args.debug:
+                    print("Finished working on Twi for %s, %s" %(spec, amp))  
                 
 def main():
     args = parse_args()
