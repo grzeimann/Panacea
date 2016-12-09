@@ -11,7 +11,9 @@ Incomplete Documentation
 
 from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
-
+                        
+import matplotlib
+matplotlib.use('agg')
 import textwrap
 import glob
 from distutils.dir_util import mkpath
@@ -323,7 +325,6 @@ def reduce_science(args):
         for amp in Amps:
             amp_ind_sci = np.where(args.sci_df['Amp'] == amp)[0]
             sci_sel = np.intersect1d(spec_ind_sci, amp_ind_sci) 
-            print(args.cal_dir)
             for ind in sci_sel:
                 sci1 = Amplifier(args.sci_df['Files'][ind],
                                  args.sci_df['Output'][ind],
