@@ -145,7 +145,7 @@ class Fiber:
         self.fibmodel = None
         self.trace_x = None
         self.trace_y = None
-        #self.spectrum = None
+        self.spectrum = None
         self.wavelength = None
         self.fn = op.join(self.path, 'fiber_%03d_%s_%s_%s_%s.pkl' 
                                 % (self.fibnum, specid, ifuslot, ifuid, amp))

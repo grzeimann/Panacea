@@ -177,7 +177,9 @@ class Amplifier:
                                                 'masterbias_%s_%s.fits' 
                                                 %(self.specid, self.amp)))[0].data, 
                               dtype=float)                  
-        image[:] = (image - self.dark_mult * darkimage - self.bias_mult * biasimage)
+        image[:] = ((image - self.dark_mult * darkimage 
+                           - self.bias_mult * biasimage)
+                    *self.gain)
         self.image = self.orient(image)
     
     def find_shift(self):
