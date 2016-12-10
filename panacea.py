@@ -398,7 +398,7 @@ def reduce_science(args):
                 hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
                 hdu.header['CRVAL1'] = 3500
                 hdu.header['CDELT1'] = 1.9
-                hdu.writeto(outname)
+                hdu.writeto(outname, clobber=True)
                 sci1.save_fibers()
                 sci2.save_fibers()  
                 if args.debug:
