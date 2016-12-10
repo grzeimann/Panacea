@@ -274,18 +274,30 @@ def matrixCheby2D_7(x, y):
                       x*T3y, T2x*T2y, T2x*y, x*T2y, x*y, np.ones(x.shape))).swapaxes(0,1)
                       
                       
-def recreate_fiberextract(instr1, instr2, wavelim):
+def recreate_fiberextract(instr1, instr2, wavelim, disp):
     col = int(instr1.D / 2)
     intv = [1, 1+instr1.D]
     ypos = np.array([fiber.trace+intv[v] for v,instr in enumerate([instr1,instr2]) 
                                    for fiber in instr.fibers])
     allspec = np.array([fiber.spectrum for v,instr in enumerate([instr1,instr2]) 
                                    for fiber in instr.fibers])
+    allwave = np.array([fiber.wavelength for v,instr in enumerate([instr1,instr2]) 
+                                   for fiber in instr.fibers])
     f1 = ypos[:,col]
     order = np.argsort(f1)[::-1]
     orderspec = allspec[order,:]
-    
-    
+    orderwave = allwave[order,:]
+    newspec = np.zeros(orderspec.shape)
+    wv = np.arange(wavelim[0], wavelim[1]+disp, disp)
+    a,b = orderspec.shape
+    for i in xrange(a):
+        diff_wave = np.diff(orderwave[i,:-1])
+        wi = orderwave[i,:-1]
+        df = np.interp(wv, wi, diff_wave, left=0.0, right=0.0)
+        fl = np.interp(wv, wi, orderspec[i,1:])
+        newspec[i,:] = np.where(df!=0, fl/df*disp, 0.0)
+    return newspec
+        
     
 def recalculate_dist_coeff(D, instr1, instr2):
     col = int(instr1.D / 2)
@@ -373,6 +385,16 @@ def reduce_science(args):
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
                 hdu.writeto(outname, clobber=True)
+                Fe = recreate_fiberextract(sci1, sci2, wavelim=[3500,5500], 
+                                      disp=1.9)
+                outname = op.join(args.sci_df['Output'][ind],
+                                  'Fe%s_%s_sci_%s.fits' %(
+                                  op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                  args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
+                hdu = fits.PrimaryHDU(Fe, header=sci1.header)
+                hdu.header['CRVAL1'] = 3500
+                hdu.header['CDELT1'] = 1.9
+                hdu.writeto(outname)
                 sci1.save_fibers()
                 sci2.save_fibers()  
                 if args.debug:
