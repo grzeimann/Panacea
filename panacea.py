@@ -272,6 +272,20 @@ def matrixCheby2D_7(x, y):
                       T4x*T3y, T3x*T4y, T5x*y, x*T5y, T4x*T2y, T2x*T4y, 
                       T3x*T3y, T4x*y, x*T4y, T3x*T2y, T2x*T3y, T3x*y, 
                       x*T3y, T2x*T2y, T2x*y, x*T2y, x*y, np.ones(x.shape))).swapaxes(0,1)
+                      
+                      
+def recreate_fiberextract(instr1, instr2, wavelim):
+    col = int(instr1.D / 2)
+    intv = [1, 1+instr1.D]
+    ypos = np.array([fiber.trace+intv[v] for v,instr in enumerate([instr1,instr2]) 
+                                   for fiber in instr.fibers])
+    allspec = np.array([fiber.spectrum for v,instr in enumerate([instr1,instr2]) 
+                                   for fiber in instr.fibers])
+    f1 = ypos[:,col]
+    order = np.argsort(f1)[::-1]
+    orderspec = allspec[order,:]
+    
+    
     
 def recalculate_dist_coeff(D, instr1, instr2):
     col = int(instr1.D / 2)
