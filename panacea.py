@@ -392,6 +392,10 @@ def reduce_science(args):
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
                 hdu = fits.PrimaryHDU(Fe, header=sci1.header)
+                a,b = Fe.shape
+                hdu.header.remove('BIASSEC')
+                hdu.header.remove('TRIMSEC')
+                hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
                 hdu.header['CRVAL1'] = 3500
                 hdu.header['CDELT1'] = 1.9
                 hdu.writeto(outname)
