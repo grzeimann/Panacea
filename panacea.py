@@ -291,7 +291,7 @@ def recreate_fiberextract(instr1, instr2, wavelim, disp):
     wv = np.arange(wavelim[0], wavelim[1]+disp, disp)
     a,b = orderspec.shape
     for i in xrange(a):
-        diff_wave = np.diff(orderwave[i,:-1])
+        diff_wave = np.diff(orderwave[i,:])
         wi = orderwave[i,:-1]
         df = np.interp(wv, wi, diff_wave, left=0.0, right=0.0)
         fl = np.interp(wv, wi, orderspec[i,1:])
