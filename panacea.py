@@ -279,24 +279,32 @@ def recreate_fiberextract(instr1, instr2, wavelim, disp):
     intv = [1, 1+instr1.D]
     ypos = np.array([fiber.trace+intv[v] for v,instr in enumerate([instr1,instr2]) 
                                    for fiber in instr.fibers])
-    allspec = np.array([fiber.spectrum for v,instr in enumerate([instr1,instr2]) 
+    allspec = np.array([fiber.spectrum 
+                                   for v,instr in enumerate([instr1,instr2]) 
+                                   for fiber in instr.fibers])                                       
+    allskys = np.array([(fiber.spectrum-fiber.sky_spectrum)/fiber.fiber_to_fiber 
+                                   for v,instr in enumerate([instr1,instr2]) 
                                    for fiber in instr.fibers])
     allwave = np.array([fiber.wavelength for v,instr in enumerate([instr1,instr2]) 
                                    for fiber in instr.fibers])
     f1 = ypos[:,col]
     order = np.argsort(f1)[::-1]
     orderspec = allspec[order,:]
+    orderskys = allskys[order,:]
     orderwave = allwave[order,:]
     wv = np.arange(wavelim[0], wavelim[1]+disp, disp)
     a,b = orderspec.shape
     newspec = np.zeros((a, len(wv)))
+    newskys = np.zeros((a, len(wv)))
     for i in xrange(a):
         diff_wave = np.diff(orderwave[i,:])
         wi = orderwave[i,:-1]
         df = np.interp(wv, wi, diff_wave, left=0.0, right=0.0)
         fl = np.interp(wv, wi, orderspec[i,:-1], left=0.0, right=0.0)
+        fs = np.interp(wv, wi, orderskys[i,:-1], left=0.0, right=0.0)
         newspec[i,:] = np.where(df!=0, fl/df*disp, 0.0)
-    return newspec
+        newskys[i,:] = np.where(df!=0, fs/df*disp, 0.0)
+    return newspec, newskys
         
     
 def recalculate_dist_coeff(D, instr1, instr2):
@@ -385,13 +393,25 @@ def reduce_science(args):
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
                 hdu.writeto(outname, clobber=True)
-                Fe = recreate_fiberextract(sci1, sci2, wavelim=[3500,5500], 
+                Fe, FeS = recreate_fiberextract(sci1, sci2, wavelim=[3500,5500], 
                                       disp=1.9)
                 outname = op.join(args.sci_df['Output'][ind],
                                   'Fe%s_%s_sci_%s.fits' %(
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
                 hdu = fits.PrimaryHDU(Fe, header=sci1.header)
+                a,b = Fe.shape
+                hdu.header.remove('BIASSEC')
+                hdu.header.remove('TRIMSEC')
+                hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
+                hdu.header['CRVAL1'] = 3500
+                hdu.header['CDELT1'] = 1.9
+                hdu.writeto(outname, clobber=True)
+                outname = op.join(args.sci_df['Output'][ind],
+                                  'FeS%s_%s_sci_%s.fits' %(
+                                  op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                  args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
+                hdu = fits.PrimaryHDU(FeS, header=sci1.header)
                 a,b = Fe.shape
                 hdu.header.remove('BIASSEC')
                 hdu.header.remove('TRIMSEC')
