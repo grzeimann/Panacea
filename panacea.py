@@ -279,7 +279,7 @@ def recreate_fiberextract(instr1, instr2, wavelim, disp):
     intv = [1, 1+instr1.D]
     ypos = np.array([fiber.trace+intv[v] for v,instr in enumerate([instr1,instr2]) 
                                    for fiber in instr.fibers])
-    allspec = np.array([fiber.spectrum 
+    allspec = np.array([fiber.spectrum/fiber.fiber_to_fiber 
                                    for v,instr in enumerate([instr1,instr2]) 
                                    for fiber in instr.fibers])                                       
     allskys = np.array([(fiber.spectrum-fiber.sky_spectrum)/fiber.fiber_to_fiber 
