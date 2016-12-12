@@ -137,7 +137,12 @@ class Amplifier:
             with open(fiber_fn, 'r') as f:
                 F1 = pickle.load(f)
             for pro in prop:
-                setattr(F, pro, 1. * getattr(F1, pro))
+                try:
+                    setattr(F, pro, 1. * getattr(F1, pro))
+                except AttributeError:
+                    if self.debug:
+                        print("Cannot load attribute %s from %s" %(pro, 
+                                                                   fiber_fn))
             if append_flag:
                 self.fibers.append(F)
     
@@ -284,7 +289,7 @@ class Amplifier:
                                                - self.fibers[fib+k].trace_y[sel])
                                 else:
                                     dif = guess_diff
-                                fiber.trace = self.fibers[fib+k].trace+dif
+                                fiber.trace[:] = self.fibers[fib+k].trace+dif
                                 done = True
                             else:
                                 k+=1
@@ -295,21 +300,22 @@ class Amplifier:
                                                - self.fibers[fib-k].trace_y[sel])
                                 else:
                                     dif = guess_diff
-                                fiber.trace = self.fibers[fib-k].trace+dif
+                                fiber.trace[:] = self.fibers[fib-k].trace+dif
                                 done = True
                             else:
                                 k+=1
                         
-
             if calculate_shift:
                 self.net_trace_shift = self.find_shift()
                 if self.net_trace_shift is not None:
                     for fiber in self.fibers:
                         fiber.trace_polyvals[-1] += self.net_trace_shift
                         fiber.eval_trace_poly()
+                        fiber.trace[:] = self.trace + self.net_trace_shift
             
         else:
             self.load_cal_property('trace_polyvals')
+            self.load_cal_property('trace')
             for fiber in self.fibers:
                 fiber.eval_trace_poly()
                 

@@ -107,23 +107,20 @@ class Fiber:
                                    
     def eval_trace_poly(self, use_poly=False, smoothing_length=15):
         sel = self.trace_x != self.flag
-        if use_poly:
-            self.trace = np.polyval(self.trace_polyvals, 
+        self.trace_poly = np.polyval(self.trace_polyvals, 
                                     1. * np.arange(self.D) / self.D)
-        else:
-            self.trace = np.zeros((self.D,))
-            init_x = np.where(sel)[0][0]
-            fin_x = np.where(sel)[0][-1]
-            self.trace[sel] = biweight_filter(self.trace_y[sel], 
-                                              smoothing_length)
-            ix = int(init_x+smoothing_length/2+1)
-            fx = int(init_x+smoothing_length/2+1 + smoothing_length*2)
-            p1 = np.polyfit(np.arange(ix,fx), self.trace[ix:fx], 1)
-            self.trace[:ix] = np.polyval(p1, np.arange(ix))
-            ix = int(fin_x-smoothing_length/2-1 - smoothing_length*2)
-            fx = int(fin_x-smoothing_length/2) 
-            pf = np.polyfit(np.arange(ix,fx), self.trace[ix:fx], 1)
-            self.trace[fx:self.D] = np.polyval(pf, np.arange(fx,self.D))
+        self.trace = np.zeros((self.D,))
+        init_x = np.where(sel)[0][0]
+        fin_x = np.where(sel)[0][-1]
+        self.trace[sel] = biweight_filter(self.trace_y[sel], smoothing_length)
+        ix = int(init_x+smoothing_length/2+1)
+        fx = int(init_x+smoothing_length/2+1 + smoothing_length*2)
+        p1 = np.polyfit(np.arange(ix,fx), self.trace[ix:fx], 1)
+        self.trace[:ix] = np.polyval(p1, np.arange(ix))
+        ix = int(fin_x-smoothing_length/2-1 - smoothing_length*2)
+        fx = int(fin_x-smoothing_length/2) 
+        pf = np.polyfit(np.arange(ix,fx), self.trace[ix:fx], 1)
+        self.trace[fx:self.D] = np.polyval(pf, np.arange(fx,self.D))
             
     
     def eval_fibmodel_poly(self, use_poly=False):
