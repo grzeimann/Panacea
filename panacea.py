@@ -7,6 +7,8 @@ Built for the VIRUS instrument as well as LRS2 on HET
 
 Incomplete Documentation
 
+
+
 """
 
 from __future__ import (division, print_function, absolute_import,
@@ -342,7 +344,7 @@ def recalculate_dist_coeff(D, instr1, instr2):
     D.wave_offsets = f0*0.
     return D
     
-def make_fiberimage(Fe, header, outname):
+def make_fiber_image(Fe, header, outname):
     a,b = Fe.shape
     hdu = fits.PrimaryHDU(Fe, header=header)
     hdu.header.remove('BIASSEC')
@@ -353,7 +355,7 @@ def make_fiberimage(Fe, header, outname):
     hdu.header['CD1_1'] = 1.9
     hdu.writeto(outname, clobber=True)    
     
-def make_image(image1, image2, header, outname):
+def make_spectrograph_image(image1, image2, header, outname):
     a,b = image1.shape
     new = np.zeros((a*2,b))
     new[:a,:] = image1
@@ -395,7 +397,7 @@ def reduce_science(args):
                                   'S%s_%s_sci_%s.fits' %(
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
-                make_image(sci1.clean_image, sci2.clean_image, sci1.header, 
+                make_spectrograph_image(sci1.clean_image, sci2.clean_image, sci1.header, 
                            outname)
                
                 Fe, FeS = recreate_fiberextract(sci1, sci2, wavelim=[3500,5500], 
@@ -404,12 +406,12 @@ def reduce_science(args):
                                   'Fe%s_%s_sci_%s.fits' %(
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
-                make_fiberimage(Fe, sci1.header, outname)
+                make_fiber_image(Fe, sci1.header, outname)
                 outname = op.join(args.sci_df['Output'][ind],
                                   'FeS%s_%s_sci_%s.fits' %(
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
-                make_fiberimage(FeS, sci1.header, outname)
+                make_fiber_image(FeS, sci1.header, outname)
                 sci1.save_fibers()
                 sci2.save_fibers()  
                 if args.debug:
@@ -455,12 +457,12 @@ def reduce_twighlight(args):
                                   'mastertrace_%s_%s.fits' 
                                   %(args.twi_df['Specid'][ind],
                                     Amp_dict[amp][1]))
-                make_image(image1, image2, twi1.header, outname)
+                make_spectrograph_image(image1, image2, twi1.header, outname)
                 outname = op.join(args.twi_df['Output'][ind], 
                                   'mastertwi_%s_%s.fits' 
                                   %(args.twi_df['Specid'][ind],
                                     Amp_dict[amp][1]))  
-                make_image(twi1.image, twi2.image, twi1.header, outname)
+                make_spectrograph_image(twi1.image, twi2.image, twi1.header, outname)
                 D = recalculate_dist_coeff(D, twi1, twi2)
                 outname2 = op.join(args.twi_df['Output'][ind], 
                                   'mastertrace_%s_%s.dist' 

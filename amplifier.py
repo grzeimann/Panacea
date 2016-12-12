@@ -34,7 +34,7 @@ class Amplifier:
                  darkpath="/Users/gregz/cure/virus_early/virus_config/lib_dark",
                  biaspath="/Users/gregz/cure/virus_early/virus_config/lib_bias",
                  virusconfig="/Users/gregz/cure/virus_early/virus_config/",
-                 dark_mult=1., bias_mult=0.):
+                 dark_mult=1., bias_mult=0., use_pixelflat=False):
         ''' 
         Initialize class
         ----------------
@@ -81,6 +81,7 @@ class Amplifier:
         self.ifuid = F[0].header['IFUID'].replace(' ', '')
         self.ifuslot ='%03d' %F[0].header['IFUSLOT']
         self.refit = refit
+        self.use_pixelflat = use_pixelflat
         
     def check_overscan(self, image, recalculate=False):
         if (self.overscan_value is None) or recalculate:
@@ -183,10 +184,17 @@ class Amplifier:
         biasimage = np.array(fits.open(op.join(self.biaspath, 
                                                 'masterbias_%s_%s.fits' 
                                                 %(self.specid, self.amp)))[0].data, 
-                              dtype=float)                  
+                              dtype=float)
+        if self.use_pixelflat:
+            pixelflat = np.array(fits.open(op.join(self.virusconfig, 'PixelFlats',
+                                                   'pixelflat_cam%s_%s.fits' 
+                                                   %(self.specid, self.amp)))[0].data,
+                                  dtype=float)
         image[:] = ((image - self.dark_mult * darkimage 
                            - self.bias_mult * biasimage)
                     *self.gain)
+        if self.use_pixelflat:
+            image[:] = np.where(pixelflat != 0, image / pixelflat, 0.0)
         self.image = self.orient(image)
     
     def find_shift(self):
