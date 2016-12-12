@@ -342,6 +342,17 @@ def recalculate_dist_coeff(D, instr1, instr2):
     D.wave_offsets = f0*0.
     return D
     
+def make_fiberimage(Fe, header, outname):
+    a,b = Fe.shape
+    hdu = fits.PrimaryHDU(Fe, header=header)
+    hdu.header.remove('BIASSEC')
+    hdu.header.remove('TRIMSEC')
+    hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
+    hdu.header['CRVAL1'] = 3500
+    hdu.header['CDELT1'] = 1.9
+    hdu.header['CD1_1'] = 1.9
+    hdu.writeto(outname, clobber=True)    
+    
 def make_image(image1, image2, header, outname):
     a,b = image1.shape
     new = np.zeros((a*2,b))
@@ -380,47 +391,25 @@ def reduce_science(args):
                 sci1.load_fibers()
                 sci2.load_all_cal()
                 sci2.sky_subtraction()
-                a,b = sci1.clean_image.shape
-                new = np.zeros((a*2,b))
-                new[:a,:] = sci1.clean_image
-                new[a:,:] = sci2.clean_image 
-                hdu = fits.PrimaryHDU(new, header=sci1.header)
-                hdu.header.remove('BIASSEC')
-                hdu.header.remove('TRIMSEC')
-                hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
                 outname = op.join(args.sci_df['Output'][ind],
                                   'S%s_%s_sci_%s.fits' %(
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
-                hdu.writeto(outname, clobber=True)
+                make_image(sci1.clean_image, sci2.clean_image, sci1.header, 
+                           outname)
+               
                 Fe, FeS = recreate_fiberextract(sci1, sci2, wavelim=[3500,5500], 
                                       disp=1.9)
                 outname = op.join(args.sci_df['Output'][ind],
                                   'Fe%s_%s_sci_%s.fits' %(
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
-                hdu = fits.PrimaryHDU(Fe, header=sci1.header)
-                a,b = Fe.shape
-                hdu.header.remove('BIASSEC')
-                hdu.header.remove('TRIMSEC')
-                hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
-                hdu.header['CRVAL1'] = 3500
-                hdu.header['CDELT1'] = 1.9
-                hdu.header['CD1_1'] = 1.9
-                hdu.writeto(outname, clobber=True)
+                make_fiberimage(Fe, sci1.header, outname)
                 outname = op.join(args.sci_df['Output'][ind],
                                   'FeS%s_%s_sci_%s.fits' %(
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], Amp_dict[amp][1]))
-                hdu = fits.PrimaryHDU(FeS, header=sci1.header)
-                a,b = Fe.shape
-                hdu.header.remove('BIASSEC')
-                hdu.header.remove('TRIMSEC')
-                hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
-                hdu.header['CRVAL1'] = 3500
-                hdu.header['CDELT1'] = 1.9
-                hdu.header['CD1_1'] = 1.9
-                hdu.writeto(outname, clobber=True)
+                make_fiberimage(FeS, sci1.header, outname)
                 sci1.save_fibers()
                 sci2.save_fibers()  
                 if args.debug:
