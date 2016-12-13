@@ -280,7 +280,7 @@ class Amplifier:
                                                        - yvals[floc]) < fdist):
                         self.fibers[i].trace_x[c] = c
                         self.fibers[i].trace_y[c] = yvals[floc]
-            for fiber in self.fibers:
+            for fib, fiber in enumerate(self.fibers):
                 if np.sum(fiber.trace_x != fiber.flag)==len(xc):
                     fiber.fit_trace_poly()
                     fiber.eval_trace_poly()
@@ -288,36 +288,31 @@ class Amplifier:
                 if np.sum(fiber.trace_x != fiber.flag)!=len(xc):
                     sel = np.where(fiber.trace_x != fiber.flag)[0]
                     setdiff = np.setdiff1d(xc, sel)
+                    fiber.fit_trace_poly()
                     k=1
-                    done = False
-                    while done==False:
-                        print(fib, k, len(sel), len(xc))
-                        if (fib+k)<=(len(self.fibers)-1):
-                            if np.all(self.fibers[fib+k].trace > 0):
-                                dif = np.interp(setdiff, fiber.trace_x[sel], 
-                                                fiber.trace_y[sel] - 
-                                                self.fibers[fib+k].trace[sel])
-                                fiber.trace_x[setdiff] = setdiff
-                                fiber.trace_y[setdiff] = self.fibers[fib+k].trace[setdiff] + dif
-                                fiber.eval_trace_poly()
-                                done = True
-                            else:
-                                k+=1
-                        else:
-                            if fib-k < 0:
-                                print("Ran out of fibers for neighbors.")
-                                fiber.eval_trace_poly(use_poly=True)
-                                done = True
-                            elif np.all(self.fibers[fib-k].trace > 0):
-                                dif = np.interp(setdiff, fiber.trace_x[sel], 
-                                                fiber.trace_y[sel] - 
-                                                self.fibers[fib-k].trace[sel])
-                                fiber.trace_x[setdiff] = setdiff
-                                fiber.trace_y[setdiff] = self.fibers[fib-k].trace[setdiff] + dif
-                                fiber.eval_trace_poly()
-                                done = True
-                            else:
-                                k+=1
+                    print(fib, k, len(sel), len(xc))
+                    if (fib+k)<=(len(self.fibers)-1):
+                        if np.all(self.fibers[fib+k].trace > 0):
+                            dif = np.interp(setdiff, fiber.trace_x[sel], 
+                                            fiber.trace_y[sel] - 
+                                            self.fibers[fib+k].trace[sel])
+                            fiber.trace_x[setdiff] = setdiff
+                            fiber.trace_y[setdiff] = self.fibers[fib+k].trace[setdiff] + dif
+                            fiber.eval_trace_poly()
+                        
+                    elif fib-k >=0:
+                        if np.all(self.fibers[fib-k].trace > 0):
+                            dif = np.interp(setdiff, fiber.trace_x[sel], 
+                                            fiber.trace_y[sel] - 
+                                            self.fibers[fib-k].trace[sel])
+                            fiber.trace_x[setdiff] = setdiff
+                            fiber.trace_y[setdiff] = self.fibers[fib-k].trace[setdiff] + dif
+                            fiber.eval_trace_poly()
+                    else:
+                        fiber.trace_x[setdiff] = setdiff
+                        fiber.trace_y[setdiff] = np.polyval(fiber.trace_polyvals, 
+                                                            setdiff / self.D)
+                        fiber.eval_trace_poly()
 
                         
             if calculate_shift:
