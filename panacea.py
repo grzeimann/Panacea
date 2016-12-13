@@ -473,7 +473,7 @@ def reduce_twighlight(args):
                 twi1.save_fibers()
                 twi2.save_fibers()
                 if args.debug:
-                    print("Finished working on Twi for %s, %s" %(spec, amp))  
+                    print("Finished working on Cal for %s, %s" %(spec, amp))  
                 
 def main():
     args = parse_args()
