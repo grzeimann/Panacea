@@ -303,7 +303,11 @@ class Amplifier:
                             else:
                                 k+=1
                         else:
-                            if (self.fibers[fib-k].trace == 0).sum()==0:
+                            if fib-k <0:
+                                print("Ran out of fibers for neighbors.")
+                                fiber.eval_trace_poly(use_poly=True)
+                                done = True
+                            elif (self.fibers[fib-k].trace == 0).sum()==0:
                                 dif = np.interp(setdiff, fiber.trace_x[sel], 
                                                 fiber.trace_y[sel] - 
                                                 self.fibers[fib-k].trace[sel])
@@ -313,9 +317,7 @@ class Amplifier:
                                 done = True
                             else:
                                 k+=1
-                        if fib-k <0:
-                            print("Ran out of fibers for neighbors.")
-                            fiber.eval_trace_poly(use_poly=True)
+
                         
             if calculate_shift:
                 self.net_trace_shift = self.find_shift()
