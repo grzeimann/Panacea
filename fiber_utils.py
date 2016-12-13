@@ -68,8 +68,12 @@ def fit_scale_wave0(init_scale, init_wave0, xi, xe, D, sun_wave, ysun, data,
                 
         params0 = np.array([init_scale, init_wave0])
         sel = is_outlier(f(params0, np.ones(data.shape,dtype=bool)))<1
-        sol = scipy.optimize.leastsq(f, params0, args=(sel))[0]
-        chi2 = f(sol, sel+True )**2
+        if np.sum(sel)>3:
+            sol = scipy.optimize.leastsq(f, params0, args=(sel))[0]
+            chi2 = f(sol, sel+True )**2
+        else:
+            sol = params0
+            chi2 = 1e6*np.ones(data.shape)
     return sol, chi2
 
 def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
