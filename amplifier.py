@@ -281,11 +281,11 @@ class Amplifier:
                         self.fibers[i].trace_x[c] = c
                         self.fibers[i].trace_y[c] = yvals[floc]
             for fiber in self.fibers:
-                fiber.fit_trace_poly()
-                if np.sum(fiber.trace_x != fiber.flag)>(0.9*self.D):
+                if np.sum(fiber.trace_x != fiber.flag)==len(xc):
+                    fiber.fit_trace_poly()
                     fiber.eval_trace_poly()
             for fib, fiber in enumerate(self.fibers):
-                if np.sum(fiber.trace_x != fiber.flag)<=(0.9*self.D):
+                if np.sum(fiber.trace_x != fiber.flag)!=len(xc):
                     sel = fiber.trace_x != fiber.flag
                     k=1
                     done = False

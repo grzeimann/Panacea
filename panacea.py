@@ -353,6 +353,7 @@ def make_fiber_image(Fe, header, outname):
     hdu.header['CRVAL1'] = 3500
     hdu.header['CDELT1'] = 1.9
     hdu.header['CD1_1'] = 1.9
+    hdu.header['CRPIX1'] = 1
     hdu.writeto(outname, clobber=True)    
     
 def make_spectrograph_image(image1, image2, header, outname):
