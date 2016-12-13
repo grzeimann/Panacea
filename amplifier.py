@@ -286,29 +286,30 @@ class Amplifier:
                     fiber.eval_trace_poly()
             for fib, fiber in enumerate(self.fibers):
                 if np.sum(fiber.trace_x != fiber.flag)!=len(xc):
-                    sel = fiber.trace_x != fiber.flag
+                    sel = np.where(fiber.trace_x != fiber.flag)[0]
+                    setdiff = np.setdiff1d(xc, sel)
                     k=1
                     done = False
                     while done==False:
                         if fib<(len(self.fibers)-1):
                             if (self.fibers[fib+k].trace == 0).sum()==0:
-                                if np.sum(sel)>10:
-                                    dif = biweight_location(fiber.trace_y[sel] 
-                                               - self.fibers[fib+k].trace_y[sel])
-                                else:
-                                    dif = guess_diff
-                                fiber.trace[:] = self.fibers[fib+k].trace+dif
+                                dif = np.interp(setdiff, fiber.trace_x[sel], 
+                                                fiber.trace_y[sel] - 
+                                                self.fibers[fib+k].trace[sel])
+                                fiber.trace_x[setdiff] = setdiff
+                                fiber.trace_y[setdiff] = self.fibers[fib+k].trace[setdiff] + dif
+                                fiber.eval_trace_poly()
                                 done = True
                             else:
                                 k+=1
                         else:
                             if (self.fibers[fib-k].trace == 0).sum()==0:
-                                if np.sum(sel)>10:
-                                    dif = biweight_location(fiber.trace_y[sel] 
-                                               - self.fibers[fib-k].trace_y[sel])
-                                else:
-                                    dif = guess_diff
-                                fiber.trace[:] = self.fibers[fib-k].trace+dif
+                                dif = np.interp(setdiff, fiber.trace_x[sel], 
+                                                fiber.trace_y[sel] - 
+                                                self.fibers[fib-k].trace[sel])
+                                fiber.trace_x[setdiff] = setdiff
+                                fiber.trace_y[setdiff] = self.fibers[fib-k].trace[setdiff] + dif
+                                fiber.eval_trace_poly()
                                 done = True
                             else:
                                 k+=1

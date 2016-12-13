@@ -114,6 +114,9 @@ class Fiber:
             self.trace = np.zeros((self.D,))
             init_x = np.where(sel)[0][0]
             fin_x = np.where(sel)[0][-1]
+            self.trace[init_x:fin_x] = np.interp(np.arange(init_x,fin_x), 
+                                                self.trace_x[sel],
+                                                self.trace_y[sel])
             self.trace[sel] = biweight_filter(self.trace_y[sel], 
                                               smoothing_length)
             ix = int(init_x+smoothing_length/2+1)
