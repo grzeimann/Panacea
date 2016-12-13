@@ -291,8 +291,9 @@ class Amplifier:
                     k=1
                     done = False
                     while done==False:
-                        if (fib+k)<(len(self.fibers)-1):
-                            if (self.fibers[fib+k].trace == 0).sum()==0:
+                        print(fib, k, len(sel), len(xc))
+                        if (fib+k)<=(len(self.fibers)-1):
+                            if np.all(self.fibers[fib+k].trace > 0):
                                 dif = np.interp(setdiff, fiber.trace_x[sel], 
                                                 fiber.trace_y[sel] - 
                                                 self.fibers[fib+k].trace[sel])
@@ -303,11 +304,11 @@ class Amplifier:
                             else:
                                 k+=1
                         else:
-                            if fib-k <0:
+                            if fib-k < 0:
                                 print("Ran out of fibers for neighbors.")
                                 fiber.eval_trace_poly(use_poly=True)
                                 done = True
-                            elif (self.fibers[fib-k].trace == 0).sum()==0:
+                            elif np.all(self.fibers[fib-k].trace > 0):
                                 dif = np.interp(setdiff, fiber.trace_x[sel], 
                                                 fiber.trace_y[sel] - 
                                                 self.fibers[fib-k].trace[sel])
