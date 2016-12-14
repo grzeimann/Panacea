@@ -26,6 +26,8 @@ from fiber_utils import get_norm_nonparametric, check_fiber_trace
 from fiber_utils import calculate_wavelength_chi2, get_model_image
 from fiber_utils import check_fiber_profile, check_wavelength_fit
 from fiber import Fiber
+import cosmics
+
 
 __all__ = ["Amplifier"]
 
@@ -539,6 +541,13 @@ class Amplifier:
                                         debug=self.debug)
         self.clean_image = self.image - self.skyframe
         
+    def clean_cosmics(self):
+         cc = cosmics.cosmicsimage(self.clean_image, gain=1.0, 
+                                   readnoise=self.rdnoise, 
+                                   sigclip=25.0, sigfrac=0.001, objlim=0.001,
+                                   satlevel=-1.0)
+         cc.run(maxiter=4)
+         
         
     def get_master_sky(self, filt_size_sky=51, filt_size_ind=21, sky=False,
                        norm=False):
