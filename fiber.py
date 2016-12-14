@@ -119,6 +119,7 @@ class Fiber:
                                                 self.trace_y[sel])
             self.trace[sel] = biweight_filter(self.trace_y[sel], 
                                               smoothing_length)
+            self.trace[sel] = biweight_filter(self.trace[sel], smoothing_length*5)
             ix = int(init_x+smoothing_length/2+1)
             fx = int(init_x+smoothing_length/2+1 + smoothing_length*2)
             p1 = np.polyfit(np.arange(ix,fx), self.trace[ix:fx], 1)
