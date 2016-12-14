@@ -387,7 +387,7 @@ def reduce_science(args):
                 sci1.sky_subtraction()
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, Amp_dict[amp][0]),
                                  args.sci_df['Output'][ind],
-                                 calpath=args.twi_df['Output'][ind], 
+                                 calpath=args.sci_df['Output'][ind], 
                                  debug=False, refit=False, dark_mult=1.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir)
