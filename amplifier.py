@@ -290,6 +290,7 @@ class Amplifier:
                     setdiff = np.setdiff1d(xc, sel)
                     fiber.fit_trace_poly()
                     k=1
+                    done=False
                     if (fib+k)<=(len(self.fibers)-1):
                         if np.all(self.fibers[fib+k].trace > 0):
                             dif = np.interp(setdiff, fiber.trace_x[sel], 
@@ -298,8 +299,8 @@ class Amplifier:
                             fiber.trace_x[setdiff] = setdiff
                             fiber.trace_y[setdiff] = self.fibers[fib+k].trace[setdiff] + dif
                             fiber.eval_trace_poly()
-                        
-                    elif (fib - k) >= 0:
+                            done=True
+                    if (fib-k) >= 0 and not done:
                         if np.all(self.fibers[fib-k].trace > 0):
                             dif = np.interp(setdiff, fiber.trace_x[sel], 
                                             fiber.trace_y[sel] - 
@@ -307,11 +308,11 @@ class Amplifier:
                             fiber.trace_x[setdiff] = setdiff
                             fiber.trace_y[setdiff] = self.fibers[fib-k].trace[setdiff] + dif
                             fiber.eval_trace_poly()
-                    else:
+                            done=True
+                    if not done:
                         fiber.trace_x[setdiff] = setdiff
                         fiber.trace_y[setdiff] = np.polyval(fiber.trace_polyvals, 
                                                             setdiff / self.D)
-                        print(fiber.trace_polynomials, fiber.trace_y[setdiff])
                         fiber.eval_trace_poly()
 
                         
