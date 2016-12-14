@@ -492,8 +492,10 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
     return so, xcols, binx
 
 def get_norm_nonparametric(image, Fibers, fsize=8., fiber_group=4, 
-                           debug=False):
+                           debug=False, mask=None):
     a,b = image.shape 
+    if mask is None:
+        mask = np.zeros(image.shape)
     ygrid,xgrid = np.indices(image.shape)                       
     nfibs = len(Fibers) 
     ncols = b 
@@ -501,7 +503,7 @@ def get_norm_nonparametric(image, Fibers, fsize=8., fiber_group=4,
     if debug:
         t1 = time.time()
     for j in xrange(nfibs):
-        norm[j,:] = get_norm_nonparametric_bins(image, xgrid, ygrid, 
+        norm[j,:] = get_norm_nonparametric_bins(image, mask, xgrid, ygrid, 
                                                     Fibers, fib=j, 
                                                     group=fiber_group, xlow=0, 
                                                     xhigh=ncols, debug=debug)                
@@ -693,7 +695,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     return sol
 
 
-def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0, 
+def get_norm_nonparametric_bins(image, mask, xgrid, ygrid, Fibers, fib=0, 
                                       xlow=0, xhigh=1032, fsize=8., 
                                       group=4, debug=False):
     '''
@@ -720,11 +722,12 @@ def get_norm_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     x = xgrid[ylow:yhigh,xlow:xhigh].ravel()
     y = ygrid[ylow:yhigh,xlow:xhigh].ravel()
     z = image[ylow:yhigh,xlow:xhigh].ravel()
+    msk = mask[ylow:yhigh,xlow:xhigh].ravel()
     
     # selection within cutout
     ycutl = (Fibers[lowfib].trace[xlow:xhigh]*np.ones((yhigh-ylow,1))).ravel()
     ycuth = (Fibers[highfib].trace[xlow:xhigh]*np.ones((yhigh-ylow,1))).ravel()
-    sel = np.where((y>=ycutl) * (y<=ycuth))[0]
+    sel = np.where((y>=ycutl) * (y<=ycuth) * (msk==0))[0]
     # Create empty arrays for the fibermodel weights in each given pixel from
     dummy, bins = fibers[0].fibmodel.shape
     binx = fibers[0].binx

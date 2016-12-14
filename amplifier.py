@@ -381,7 +381,7 @@ class Amplifier:
 
 
     def fiberextract(self, fibmodel_poly_order=3, use_default_profile=False, 
-                     calculate_shift=False, trace_poly_order=3):
+                     calculate_shift=False, trace_poly_order=3, mask=None):
         if self.image is None:
             self.get_image()
         if not self.fibers:
@@ -394,7 +394,7 @@ class Amplifier:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly()
         norm = get_norm_nonparametric(self.image, self.fibers, 
-                                      debug=self.debug)
+                                      debug=self.debug, mask=mask)
         for i, fiber in enumerate(self.fibers):
             fiber.spectrum = norm[i,:]
     
@@ -547,8 +547,11 @@ class Amplifier:
                                    sigclip=25.0, sigfrac=0.001, objlim=0.001,
                                    satlevel=-1.0)
          cc.run(maxiter=4)
-         
-        
+         c = np.where(cc.mask == True)
+         self.mask = np.zeros(self.image.shape)
+         for x, y in zip(c[0], c[1]):
+             self.mask[x][y] = -1.0 
+             
     def get_master_sky(self, filt_size_sky=51, filt_size_ind=21, sky=False,
                        norm=False):
         masterwave = []

@@ -385,6 +385,9 @@ def reduce_science(args):
                 sci1.load_fibers()
                 sci1.load_all_cal()
                 sci1.sky_subtraction()
+                sci1.clean_cosmics()
+                sci1.fiberextract(mask=sci1.mask)
+                sci1.sky_subtraction()
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, Amp_dict[amp][0]),
                                  args.sci_df['Output'][ind],
                                  calpath=args.cal_dir, 
@@ -393,6 +396,9 @@ def reduce_science(args):
                                  virusconfig=args.configdir)
                 sci2.load_fibers()
                 sci2.load_all_cal()
+                sci2.sky_subtraction()
+                sci2.clean_cosmics()
+                sci2.fiberextract(mask=sci2.mask)
                 sci2.sky_subtraction()
                 outname = op.join(args.sci_df['Output'][ind],
                                   'S%s_%s_sci_%s.fits' %(
