@@ -501,7 +501,7 @@ class Amplifier:
         if not self.fibers:
             self.get_trace(calculate_shift=calculate_shift,
                            trace_poly_order=trace_poly_order)
-        if self.fibers[0].fibmodel_polyvals is None:
+        if self.fibers[0].fibmodel is None:
             self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
                                 use_default=use_default_profile)
         else:
@@ -576,7 +576,7 @@ class Amplifier:
         if not self.fibers:
             self.get_trace(calculate_shift=calculate_shift,
                            trace_poly_order=trace_poly_order)
-        if self.fibers[0].fibmodel_polyvals is None:
+        if self.fibers[0].fibmodel is None:
             self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
                                 use_default=use_default_profile, 
                                 check_fibermodel=check_fibermodel)
