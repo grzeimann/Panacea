@@ -236,7 +236,7 @@ def parse_args(argv=None):
         for date in getattr(args, 'twi'+labels[0]):
             for obsid in getattr(args, 'twi'+labels[1]):
                 if getattr(args, 'twi'+labels[2]) is not None:   
-                    for expnum in getattr(args, obs+labels[2]):
+                    for expnum in getattr(args, 'twi'+labels[2]):
                         args.cal_dir = op.join(args.output, date, args.instr, 
                                                "{:s}{:07d}".format(args.instr,int(obsid)), 
                                                "exp{:02d}".format(int(expnum)),
