@@ -393,8 +393,6 @@ def reduce_science(args):
                                  virusconfig=args.configdir)
                 sci2.load_fibers()
                 sci2.load_all_cal()
-                print(len(sci2.fibers),args.sci_df['Files'][ind].replace(amp, Amp_dict[amp][0]),
-                      args.cal_dir)
                 sci2.sky_subtraction()
                 outname = op.join(args.sci_df['Output'][ind],
                                   'S%s_%s_sci_%s.fits' %(
