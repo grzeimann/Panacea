@@ -391,7 +391,7 @@ def reduce_science(args):
                                  debug=False, refit=False, dark_mult=1.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir)
-                sci1.load_fibers()
+                sci2.load_fibers()
                 sci2.load_all_cal()
                 sci2.sky_subtraction()
                 outname = op.join(args.sci_df['Output'][ind],
