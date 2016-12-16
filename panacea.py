@@ -36,7 +36,7 @@ from fiber_utils import get_model_image
 Amps = ["LL", "RU"]
 Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}
 virus_wl = {"LL": [3490,5500], "RU": [3490,5500]}
-lrs2b_wl = {"LL": [3633,4655], "RU": [3490,5500]}
+lrs2b_wl = {"LL": [3633,4655], "RU": [4550,7000]}
 lrs2r_wl = {"LL": [3490,5500], "RU": [3490,5500]}
 
 def parse_args(argv=None):
