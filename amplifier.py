@@ -36,7 +36,7 @@ class Amplifier:
                  darkpath="/Users/gregz/cure/virus_early/virus_config/lib_dark",
                  biaspath="/Users/gregz/cure/virus_early/virus_config/lib_bias",
                  virusconfig="/Users/gregz/cure/virus_early/virus_config/",
-                 dark_mult=1., bias_mult=0., use_pixelflat=False):
+                 dark_mult=1., bias_mult=0., use_pixelflat=False, specname=None):
         ''' 
         Initialize class
         ----------------
@@ -84,6 +84,7 @@ class Amplifier:
         self.ifuslot ='%03d' %F[0].header['IFUSLOT']
         self.refit = refit
         self.use_pixelflat = use_pixelflat
+        self.specname = specname
         
     def check_overscan(self, image, recalculate=False):
         if (self.overscan_value is None) or recalculate:
@@ -240,7 +241,7 @@ class Amplifier:
             self.get_image()
         if self.type == 'twi' or self.refit:
             allfibers, xc = get_trace_from_image(self.image, interp_window=2.5,
-                                                 debug=self.debug)
+                                                 debug=False)
             brcol = np.argmin(np.abs(xc-self.D*.47))
             standardcol = allfibers[brcol]
             cols1 = xc[brcol::-1]
@@ -352,7 +353,7 @@ class Amplifier:
         if self.type == 'twi' or self.refit:
             sol, xcol, binx = fit_fibermodel_nonparametric(self.image, 
                                                            self.fibers,
-                                                           debug=self.debug,
+                                                           debug=False,
                                                        use_default=use_default,
                                                        plot=make_ind_plots,
                                                        outfolder=self.path,
@@ -374,7 +375,7 @@ class Amplifier:
         if check_fibermodel:
             if self.fibers[0].spectrum is None:
                 norm = get_norm_nonparametric(self.image, self.fibers, 
-                                              debug=self.debug)
+                                              debug=False)
                 for i, fiber in enumerate(self.fibers):
                     fiber.spectrum = norm[i,:]
             outfile = op.join(self.path,'fibmodel_%s.png' %self.basename)
@@ -395,7 +396,7 @@ class Amplifier:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly()
         norm = get_norm_nonparametric(self.image, self.fibers, 
-                                      debug=self.debug, mask=mask)
+                                      debug=False, mask=mask)
         for i, fiber in enumerate(self.fibers):
             fiber.spectrum = norm[i,:]
     
@@ -407,7 +408,9 @@ class Amplifier:
                                 check_fibermodel=False, default_fib=0,
                                 filt_size_sky=51, filt_size_ind=21):
                                     
-        solar_spec = np.loadtxt(op.join(self.virusconfig,'solar_spec/virus_temp.txt'))
+        solar_spec = np.loadtxt(op.join(self.virusconfig,
+                                        'solar_spec/%s_temp.txt' 
+                                        %self.specname))
         if self.image is None:
             self.get_image()
         if not self.fibers:
@@ -423,7 +426,7 @@ class Amplifier:
         if self.type == 'twi' or self.refit:
             if self.fibers[0].spectrum is None:
                 norm = get_norm_nonparametric(self.image, self.fibers, 
-                                              debug=self.debug)
+                                              debug=False)
                 for i, fiber in enumerate(self.fibers):
                     fiber.spectrum = norm[i,:]
             if init_lims is None:
@@ -437,7 +440,7 @@ class Amplifier:
                     fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
                                                      np.arange(self.D), fiber.spectrum, solar_spec, 
                                                      init_lims=init_lims, 
-                                                     debug=self.debug, 
+                                                     debug=False, 
                                                      interactive=interactive)
                     # Boundary check:
                     if (np.abs(fiber.wavelength.min()-init_lims[0])>100. 
@@ -465,7 +468,7 @@ class Amplifier:
                     fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
                                                      np.arange(self.D), fiber.spectrum, solar_spec, 
                                                      init_lims=init_lims, 
-                                                     debug=self.debug, 
+                                                     debug=False, 
                                                      interactive=False, init_sol=self.fibers[fib+1].wave_polyvals)
                 for fib in fibs2:
                     if self.debug:
@@ -474,7 +477,7 @@ class Amplifier:
                     fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
                                                      np.arange(self.D), fiber.spectrum, solar_spec, 
                                                      init_lims=init_lims, 
-                                                     debug=self.debug, 
+                                                     debug=False, 
                                                      interactive=False, init_sol=self.fibers[fib-1].wave_polyvals)
                 if k==0:
                     self.get_master_sky(filt_size_sky=filt_size_sky, filt_size_ind=filt_size_ind,
@@ -489,7 +492,7 @@ class Amplifier:
         if check_wave:
             if self.fibers[0].spectrum is None:
                 norm = get_norm_nonparametric(self.image, self.fibers, 
-                                                  debug=self.debug)
+                                                  debug=False)
                 for i, fiber in enumerate(self.fibers):
                     fiber.spectrum = norm[i,:]
             outfile = op.join(self.path,'wavesolution_%s.png' %self.basename)
@@ -539,7 +542,7 @@ class Amplifier:
             fiber.sky_spectrum = (fiber.fiber_to_fiber 
                      * np.interp(fiber.wavelength, self.masterwave, self.mastersky))
         self.skyframe = get_model_image(self.image, self.fibers, 'sky_spectrum',
-                                        debug=self.debug)
+                                        debug=False)
         self.clean_image = self.image - self.skyframe
         
     def clean_cosmics(self):
@@ -587,11 +590,17 @@ class Amplifier:
                            filt_size_agg=51, filt_size_final=51, check_wave=False,
                            check_fibermodel=False):
         if self.image is None:
+            if self.debug:
+                print("Building image for %s" %self.basename)
             self.get_image()
         if not self.fibers:
+            if self.debug:
+                print("Getting trace for %s" %self.basename)
             self.get_trace(calculate_shift=calculate_shift,
                            trace_poly_order=trace_poly_order)
         if self.fibers[0].fibmodel is None:
+            if self.debug:
+                print("Getting fibermodel for %s" %self.basename)
             self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
                                 use_default=use_default_profile, 
                                 check_fibermodel=check_fibermodel)
@@ -600,8 +609,12 @@ class Amplifier:
                 fiber.eval_fibmodel_poly()
         if self.type == 'twi' or self.refit:
             if self.fibers[0].spectrum is None:
+                if self.debug:
+                    print("Fiberextracting %s" %self.basename)
                 self.fiberextract()
             if self.fibers[0].wave_polyvals is None:
+                if self.debug:
+                    print("Getting Wavelength solution for %s" %self.basename)
                 self.get_wavelength_solution(wave_order=wave_order, 
                                              use_default_profile=use_default_profile, 
                                              init_lims=init_lims,
@@ -610,6 +623,8 @@ class Amplifier:
             else:
                 for fiber in self.fibers:
                     fiber.eval_wave_poly()
+            if self.debug:
+                print("Getting Fiber to Fiber for %s" %self.basename)
             masterwave = []
             masterspec = []
             for fib, fiber in enumerate(self.fibers):

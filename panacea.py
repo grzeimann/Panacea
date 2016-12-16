@@ -36,8 +36,12 @@ from fiber_utils import get_model_image
 Amps = ["LL", "RU"]
 Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}
 virus_wl = {"LL": [3490,5500], "RU": [3490,5500]}
+virus_sn = {"LL": "virus", "RU": "virus"}
 lrs2b_wl = {"LL": [3633,4655], "RU": [4550,7000]}
+lrs2b_sn = {"LL": "lrs2_uv", "RU": "lrs2_orange"}
 lrs2r_wl = {"LL": [3490,5500], "RU": [3490,5500]}
+lrs2r_sn = {"LL": "lrs2_red", "RU": "lrs2_farred"}
+
 
 def parse_args(argv=None):
     """Parse the command line arguments
@@ -149,11 +153,14 @@ def parse_args(argv=None):
     
     if args.instr.lower() == 'virus':
         args.wvl_dict = virus_wl
+        args.specname = virus_sn
     if args.instr.lower() == 'lrs2':
         if args.instr_side.lower() == 'blue':
             args.wvl_dict = lrs2b_wl
+            args.specname = lrs2b_sn
         else:
             args.wvl_dict = lrs2r_wl
+            args.specname = lrs2b_sn
             
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
     observations=[]
@@ -399,7 +406,7 @@ def reduce_science(args):
                                  calpath=args.cal_dir, 
                                  debug=False, refit=False, dark_mult=1.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir)
+                                 virusconfig=args.configdir, specname=args.specname[amp])
                 sci1.load_fibers()
                 sci1.load_all_cal()
                 sci1.sky_subtraction()
@@ -411,7 +418,7 @@ def reduce_science(args):
                                  calpath=args.cal_dir, 
                                  debug=False, refit=False, dark_mult=1.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir)
+                                 virusconfig=args.configdir, specname=args.specname[amp])
                 sci2.load_fibers()
                 sci2.load_all_cal()
                 sci2.sky_subtraction()
@@ -457,9 +464,9 @@ def reduce_twighlight(args):
                 twi1 = Amplifier(args.twi_df['Files'][ind],
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
-                                 debug=False, refit=True, dark_mult=0.0,
+                                 debug=True, refit=True, dark_mult=0.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir)
+                                 virusconfig=args.configdir, specname=args.specname[amp])
                 twi1.load_fibers()
                 twi1.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=args.wvl_dict[amp], interactive=False,
@@ -467,9 +474,9 @@ def reduce_twighlight(args):
                 twi2 = Amplifier(args.twi_df['Files'][ind].replace(amp, Amp_dict[amp][0]),
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
-                                 debug=False, refit=True, dark_mult=0.0,
+                                 debug=True, refit=True, dark_mult=0.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir)
+                                 virusconfig=args.configdir, specname=args.specname[amp])
                 twi2.load_fibers()
                 twi2.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=args.wvl_dict[amp], interactive=False,
