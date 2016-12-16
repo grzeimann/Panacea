@@ -35,6 +35,9 @@ from fiber_utils import get_model_image
 
 Amps = ["LL", "RU"]
 Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}
+virus_wl = {"LL": [3490,5500], "RU": [3490,5500]}
+lrs2b_wl = {"LL": [3633,4655], "RU": [3490,5500]}
+lrs2r_wl = {"LL": [3490,5500], "RU": [3490,5500]}
 
 def parse_args(argv=None):
     """Parse the command line arguments
@@ -75,6 +78,13 @@ def parse_args(argv=None):
                         Default: "virus"
                         Ex: "camra" for lab data,
                             "lrs2" for lrs2.''', default = "virus")
+                            
+    parser.add_argument("--instr_side", nargs='?', type=str, 
+                        help='''Instrument side to process. 
+                        Default: "blue"
+                        Ex: "blue" for LRS2B,
+                            "red" for LRS2R.''', default = "blue")
+
 
     parser.add_argument("--output", nargs='?', type=str, 
                         help='''Output Directory
@@ -136,7 +146,15 @@ def parse_args(argv=None):
     else:
         msg = 'No SPECID was provided.'
         parser.error(msg)   
-
+    
+    if args.instr.lower() == 'virus':
+        args.wvl_dict = virus_wl
+    if args.instr.lower() == 'lrs2':
+        if args.instr_side.lower() == 'blue':
+            args.wvl_dict = lrs2b_wl
+        else:
+            args.wvl_dict = lrs2r_wl
+            
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
     observations=[]
     if args.reduce_sci:
