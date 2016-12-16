@@ -462,7 +462,7 @@ def reduce_twighlight(args):
                                  virusconfig=args.configdir)
                 twi1.load_fibers()
                 twi1.get_fiber_to_fiber(use_default_profile=False, 
-                               init_lims=[3490,5500], interactive=False,
+                               init_lims=args.wvl_dict[amp], interactive=False,
                                check_fibermodel=True, check_wave=True)
                 twi2 = Amplifier(args.twi_df['Files'][ind].replace(amp, Amp_dict[amp][0]),
                                  args.twi_df['Output'][ind],
@@ -472,7 +472,7 @@ def reduce_twighlight(args):
                                  virusconfig=args.configdir)
                 twi2.load_fibers()
                 twi2.get_fiber_to_fiber(use_default_profile=False, 
-                               init_lims=[3490,5500], interactive=False,
+                               init_lims=args.wvl_dict[amp], interactive=False,
                                check_fibermodel=True, check_wave=True)
                 image1 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
                                         debug=twi1.debug)

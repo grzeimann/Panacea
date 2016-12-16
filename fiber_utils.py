@@ -314,7 +314,7 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
             flag = is_outlier(model - y[xi:xe+1]) < 1
             if interactive: 
                 wv = np.arange(L)*scale + wv0
-                plt.figure(figsize=(12,10))
+                plt.figure(figsize=(8,6))
                 ax = plt.axes([0.1,0.1,0.8,0.8])
                 ax.step(sun_wave, ysun, where='mid')
                 ax.step(wv[xi:xe+1],y[xi:xe+1],'r-',where='mid')
