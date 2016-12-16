@@ -81,7 +81,7 @@ def median_absolute_deviation(a, axis=None):
     return func(np.abs(a - a_median), axis=axis)
     
 
-def biweight_filter(a, order, c=6.0, M=None):
+def biweight_filter(a, order, ignore_central=3, c=6.0, M=None, func=None):
     '''
     Compute the biweight location with a moving window of size "order"
 
@@ -89,27 +89,52 @@ def biweight_filter(a, order, c=6.0, M=None):
     if not isinstance(order, int):
         print("The order should be an integer")
         sys.exit(1)
+    if not isinstance(ignore_central, int):
+        print("The ignore_central value should be an integer")
+        sys.exit(1)        
     if order%2==0:
         order+=1
+    if ignore_central%2==0:
+        ignore_central+=1
+    if order-3 <= ignore_central:
+        print("The order-3 should be larger than ignore_central.")
+        sys.exit(1)
+    if func is None:
+        func = biweight_location
     a = np.array(a, copy=False)
     if a.ndim != 1:
         print("Input array/list should be 1-dimensional")
         sys.exit()
-    
+    ignore = [order/2]
+    for i in xrange(ignore_central/2):
+        ignore.append(order/2 - i - 1)
+        ignore.append(order/2 + i + 1)
     half_order = order / 2    
-    A = np.zeros((len(a)-order+1,order))
-    for i in xrange(order):
+    order_array = np.delete(np.arange(order), ignore)
+    A = np.zeros((len(a)-order+1, len(order_array)))
+    k=0
+    for i in order_array:
         if (order-i-1) == 0:
-            A[:,i] = a[i:]
+            A[:,k] = a[i:]
         else:
-            A[:,i] = a[i:-(order-i-1)]
+            A[:,k] = a[i:-(order-i-1)]
+        k+=1
     
-    Ab = biweight_location(A, axis=(1,))
+    Ab = func(A, axis=(1,))
     A1 = np.zeros((half_order,))
     A2 = np.zeros((half_order,))
     for i in xrange(half_order):
-        A1[i] = biweight_location(a[:(half_order+i+1)])
-        A2[-(i+1)] = biweight_location(a[-(half_order+i+1):])
+        ignore_l = [i]
+        ignore_h = [half_order]
+        for j in xrange(ignore_central/2):
+            if (i - j - 1) >=0:
+                ignore_l.append(i - j - 1)
+            ignore_l.append(i + j + 1)
+            if i > j:
+                ignore_h.append(half_order+j+1)
+            ignore_h.append(half_order-j-1)
+        A1[i] = func(np.delete(a[:(half_order+i+1)], ignore_l))
+        A2[-(i+1)] = func(np.delete(a[-(half_order+i+1):], ignore_h))
     return np.hstack([A1,Ab,A2])
     
     

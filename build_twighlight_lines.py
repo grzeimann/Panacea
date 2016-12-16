@@ -13,20 +13,23 @@ from utils import biweight_filter
 from fiber_utils import calculate_wavelength_chi2
 
 interactive=True
-nbins = 21
+nbins = 15
 smooth_length=21
 niter = 1
 wavebuff = 100
 plotbuff = 70
 fiber = 55
 #solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/medium_sun.spec')
-#gauss = Gaussian1DKernel(13)
+#gauss = Gaussian1DKernel(5)
 #conv = convolve(solar_spec[:,1],gauss)
-#solar_spec[:,1] = biweight_filter(conv, int(51/(.1))) / conv
-solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/virus_temp.txt')
-#solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/lrs2_orange_temp.txt')
+#solar_spec[:,1] = (biweight_filter(conv, int(11/(.1))) / conv - 1)/1.5 + 1
+#solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/virus_temp.txt')
+solar_spec = np.loadtxt('/Users/gregz/cure/virus_early/virus_config/solar_spec/lrs2_uv_temp.txt')
 
-
+uv = Amplifier('/Users/gregz/cure/lrs2_raw/20161213/lrs2/lrs20000001/exp01/lrs2/20161213T001016.5_056LU_twi.fits', 
+          '/Users/gregz/cure/lrs2_reductions/twi',
+          calpath='/Users/gregz/cure/lrs2_reductions/twi', 
+          debug=True, refit=True)
 orange = Amplifier('/Users/gregz/cure/lrs2_raw/20160806/lrs2/lrs20000001/exp02/lrs2/20160806T020439.7_056RL_twi.fits', 
           '/Users/gregz/cure/lrs2_reductions/twi',
           calpath='/Users/gregz/cure/lrs2_reductions/twi', 
@@ -44,13 +47,13 @@ virus = Amplifier('/Users/gregz/cure/virus_raw/20160512/virus/virus0000001/exp01
                   calpath='/Users/gregz/cure/virus_reductions/twi', 
                   debug=True, refit=True)
 
-instruments = [virus]#, orange, red, farred]
-wavelims = [[3480,5500]]#,[4550,7000],[6425,8440],[8230,10500]]
+instruments = [uv]#, orange, red, farred]
+wavelims = [[3633,4655]]#,[4550,7000],[6425,8440],[8230,10500]]
     
 for i, instr in enumerate(instruments):
     instr.load_fibers()
     if not instr.fibers:
-        instr.fiberextract(use_default_profile=True)
+        instr.fiberextract(use_default_profile=False)
         instr.save_fibers()
     else:
         if instr.fibers[0].spectrum is None:
@@ -79,11 +82,11 @@ for i, instr in enumerate(instruments):
     ind = np.argsort(masterwave)
     masterwave[:] = masterwave[ind]
     masterspec[:] = masterspec[ind]
-    smoothed = biweight_filter(masterspec, 51)
+    smoothed = biweight_filter(masterspec, 151)
     plt.plot(solar_spec[:,0],solar_spec[:,1],'r-')
     plt.plot(masterwave,smoothed,'k-')
-    plt.axis([5300,5500,0.75,1.5])
+    plt.axis([3650,3700,0.75,2.0])
 
-for fib,fiber in enumerate(virus2.fibers):
-    plt.step(fiber.wavelength,fiber.spectrum,color='b',alpha=0.1,where='mid')
-plt.axis([3500,4000,0,800])
+#for fib,fiber in enumerate(virus2.fibers):
+#    plt.step(fiber.wavelength,fiber.spectrum,color='b',alpha=0.1,where='mid')
+#plt.axis([3500,4000,0,800])
