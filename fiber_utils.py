@@ -311,7 +311,7 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
             model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
             flag = is_outlier(model - y[xi:xe+1]) < 1
             std = biweight_midvariance(model-y[xi:xe+1])
-            if std*4>model.max():
+            if (std*4)>model.max():
                 save=False
             if save:
                 if fixscale:
