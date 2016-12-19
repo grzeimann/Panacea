@@ -6,7 +6,9 @@ Built for the VIRUS instrument as well as LRS2 on HET
 
 @author: gregz
 """
+
 import pandas as pd
+import numpy as np
 import argparse as ap
 from distutils.dir_util import mkpath
 import textwrap
@@ -130,17 +132,22 @@ def parse_args(argv=None):
         args.specname = config.virus_sn
         args.fsize = config.virus_fs
         args.disp = config.virus_di
+        args.fplane_fn = config.virus_fn
     if args.instr.lower() == 'lrs2':
         if args.instr_side.lower() == 'blue':
             args.wvl_dict = config.lrs2b_wl
             args.specname = config.lrs2b_sn
             args.fsize = config.lrs2b_fs
             args.disp = config.lrs2b_di
+            args.fplane_fn = config.lrs2b_fn
+
         else:
             args.wvl_dict = config.lrs2r_wl
             args.specname = config.lrs2r_sn
             args.fsize = config.lrs2r_fs
-            args.disp = config.lrs2r_di            
+            args.disp = config.lrs2r_di    
+            args.fplane_fn = config.lrs2r_fn
+
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
     observations=[]
     if args.reduce_sci:
@@ -252,4 +259,6 @@ def parse_args(argv=None):
                     print("I am cowardly quitting instead of making a smart "
                           "program.")
                     sys.exit(1)
+                    
+
     return args

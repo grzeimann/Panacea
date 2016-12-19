@@ -99,6 +99,29 @@ def recalculate_dist_coeff(D, instr1, instr2):
     D.wave_offsets = f0*0.
     return D
     
+def make_cube_file(filename, fplane1, scale):
+    F = fits.open(filename)
+    data = F[0].data
+    a,b = data.shape
+    x = np.arange(fplane1[:,1].min()-scale, fplane1[:,1].max()+scale, scale)
+    y = np.arange(fplane1[:,2].min()-scale, fplane1[:,2].max()+scale, scale)
+    xgrid, ygrid = np.meshgrid(x, y)
+    zgrid = np.zeros((b,)+xgrid.shape)
+    for k in xrange(b):
+        for i in xrange(len(x)):
+            for j in xrange(len(y)):
+                d = np.sqrt((fplane1[:,1] - xgrid[j,i])**2 + 
+                            (fplane1[:,2] - ygrid[j,i])**2)
+                w = np.exp(-1./2.*(d/1.)**2)
+                sel = w > 1e-3
+                zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
+    hdu = fits.PrimaryHDU(zgrid)
+    hdu.header['CDELT3'] = F[0].header['CDELT1']
+    hdu.header['CRVAL3'] = F[0].header['CRVAL1']
+    hdu.header['CRPIX3'] = F[0].header['CRPIX1']
+    outname = op.join(op.dirname(filename),'Cu' + op.basename(filename))
+    hdu.writeto(outname, clobber=True)
+    
 def make_fiber_image(Fe, header, outname, args, amp):
     a,b = Fe.shape
     hdu = fits.PrimaryHDU(Fe, header=header)
