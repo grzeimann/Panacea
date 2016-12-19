@@ -160,9 +160,9 @@ def make_cube_file(args, filename, ifucen, scale, side):
                     sel = w > 1e-3
                     zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
         hdu = fits.PrimaryHDU(zgrid)
-        hdu.header['CDELT3'] = F[0].header['CDELT1']
-        hdu.header['CRVAL3'] = F[0].header['CRVAL1']
-        hdu.header['CRPIX3'] = F[0].header['CRPIX1']
+        hdu.header['CDELT3'] = F1[0].header['CDELT1']
+        hdu.header['CRVAL3'] = F1[0].header['CRVAL1']
+        hdu.header['CRPIX3'] = F1[0].header['CRPIX1']
         hdu.writeto(outname, clobber=True)
     
 def make_error_frame(image1, image2, mask1, mask2, header, outname):
