@@ -26,7 +26,7 @@ lrs2r_sn = {"LL": "lrs2_red", "RU": "lrs2_farred"}
 # Name of the IFUcen file for fiber positions
 virus_fn = {"LL": "IFUcen_HETDEX.txt", "RU": "IFUcen_HETDEX.txt"}
 lrs2b_fn = {"LL": "LRS2_B_UV_mapping.txt", "RU": "LRS2_B_OR_mapping.txt"}
-lrs2r_fn = {"LL": "LRS2_R_RED_mapping.txt", "RU": "LRS2_R_FAR_mapping.txt"}
+lrs2r_fn = {"LL": "LRS2_R_NR_mapping.txt", "RU": "LRS2_R_FR_mapping.txt"}
 
 # Pixel width in radius over which the fibermodel is defined
 virus_fs = 8.
