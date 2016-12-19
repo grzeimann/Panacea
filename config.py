@@ -8,7 +8,7 @@ Built for the VIRUS instrument as well as LRS2 on HET
 """
 
 # Bottom Amplifier for each side ---
-Amps = ["LL", "RU"]
+Amps = ["RU"]
 
 # Connecting the bottom ampliefer with the top and total side
 Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}
@@ -37,3 +37,8 @@ lrs2r_fs = 6.
 virus_di = {"LL": 1.9, "RU": 1.9}
 lrs2b_di = {"LL": 0.5, "RU": 1.2}
 lrs2r_di = {"LL": 1.2, "RU": 1.2}
+
+# Cube pixel scale
+virus_cs = 1.0
+lrs2b_cs = 0.4
+lrs2r_cs = 0.4

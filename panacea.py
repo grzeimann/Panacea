@@ -26,7 +26,7 @@ from pyhetdex.cure.distortion import Distortion
 from args import parse_args
 from amplifier import Amplifier
 from fiber_utils import get_model_image
-from utils import matrixCheby2D_7
+from utils import matrixCheby2D_7, biweight_filter, biweight_midvariance
 import config
 
                       
@@ -99,30 +99,95 @@ def recalculate_dist_coeff(D, instr1, instr2):
     D.wave_offsets = f0*0.
     return D
     
-def make_cube_file(filename, fplane1, scale):
-    F = fits.open(filename)
-    data = F[0].data
-    a,b = data.shape
-    x = np.arange(fplane1[:,1].min()-scale, fplane1[:,1].max()+scale, scale)
-    y = np.arange(fplane1[:,2].min()-scale, fplane1[:,2].max()+scale, scale)
-    xgrid, ygrid = np.meshgrid(x, y)
-    zgrid = np.zeros((b,)+xgrid.shape)
-    for k in xrange(b):
-        for i in xrange(len(x)):
-            for j in xrange(len(y)):
-                d = np.sqrt((fplane1[:,1] - xgrid[j,i])**2 + 
-                            (fplane1[:,2] - ygrid[j,i])**2)
-                w = np.exp(-1./2.*(d/1.)**2)
-                sel = w > 1e-3
-                zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
-    hdu = fits.PrimaryHDU(zgrid)
-    hdu.header['CDELT3'] = F[0].header['CDELT1']
-    hdu.header['CRVAL3'] = F[0].header['CRVAL1']
-    hdu.header['CRPIX3'] = F[0].header['CRPIX1']
-    outname = op.join(op.dirname(filename),'Cu' + op.basename(filename))
-    hdu.writeto(outname, clobber=True)
+def make_cube_file(args, filename, ifucen, scale, side):
+    if args.instr.lower() == "lrs2":
+        outname = op.join(op.dirname(filename),'Cu' + op.basename(filename))
+        print("Making Cube image for %s" %op.basename(outname))
+        try:
+            F = fits.open(filename)
+        except IOError:
+            print("Could not open %s" %filename)
+            return None
+        data = F[0].data
+        a,b = data.shape
+        x = np.arange(ifucen[:,1].min()-scale, ifucen[:,1].max()+scale, scale)
+        y = np.arange(ifucen[:,2].min()-scale, ifucen[:,2].max()+scale, scale)
+        xgrid, ygrid = np.meshgrid(x, y)
+        zgrid = np.zeros((b,)+xgrid.shape)
+        for k in xrange(b):
+            for i in xrange(len(x)):
+                for j in xrange(len(y)):
+                    d = np.sqrt((ifucen[:,1] - xgrid[j,i])**2 + 
+                                (ifucen[:,2] - ygrid[j,i])**2)
+                    w = np.exp(-1./2.*(d/1.)**2)
+                    sel = w > 1e-3
+                    zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
+        hdu = fits.PrimaryHDU(zgrid)
+        hdu.header['CDELT3'] = F[0].header['CDELT1']
+        hdu.header['CRVAL3'] = F[0].header['CRVAL1']
+        hdu.header['CRPIX3'] = F[0].header['CRPIX1']
+        hdu.writeto(outname, clobber=True)
+    if args.instr.lower() == "virus":
+        if side == "R":
+            file2 =filename
+            file1 = filename[:-6] + "L.fits"
+        else:
+            return None
+        if not op.exists(file2):
+            print("Could not open %s" %file2)
+            return None
+        if not op.exists(file1):
+            print("Could not open %s" %file1)
+            return None
+        outname = op.join(op.dirname(filename),'Cu' + op.basename(filename))
+        print("Making Cube image for %s" %op.basename(outname))
+        F2 = fits.open(file2)
+        F1 = fits.open(file1)
+        data1 = F1[0].data
+        data2 = F2[0].data
+        a,b = data1.shape
+        data = np.vstack([data1,data2])
+        x = np.arange(ifucen[:,1].min()-scale, ifucen[:,1].max()+scale, scale)
+        y = np.arange(ifucen[:,2].min()-scale, ifucen[:,2].max()+scale, scale)
+        xgrid, ygrid = np.meshgrid(x, y)
+        zgrid = np.zeros((b,)+xgrid.shape)
+        for k in xrange(b):
+            for i in xrange(len(x)):
+                for j in xrange(len(y)):
+                    d = np.sqrt((ifucen[:,1] - xgrid[j,i])**2 + 
+                                (ifucen[:,2] - ygrid[j,i])**2)
+                    w = np.exp(-1./2.*(d/1.)**2)
+                    sel = w > 1e-3
+                    zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
+        hdu = fits.PrimaryHDU(zgrid)
+        hdu.header['CDELT3'] = F[0].header['CDELT1']
+        hdu.header['CRVAL3'] = F[0].header['CRVAL1']
+        hdu.header['CRPIX3'] = F[0].header['CRPIX1']
+        hdu.writeto(outname, clobber=True)
+    
+def make_error_frame(image1, image2, mask1, mask2, header, outname):
+    print("Making error image for %s" %op.basename(outname))
+    a,b = image1.shape
+    new = np.zeros((a*2,b))
+    mas = np.zeros((a*2,b))
+
+    new[:a,:] = image1
+    new[a:,:] = image2
+    mas[:a,:] = mask1
+    mas[a:,:] = mask2
+    err = np.zeros(new.shape)
+    for i in xrange(2*a):
+        err[i,:] = np.where(mas[i,:]<0, mas[i,:], 
+                            biweight_filter(new[i,:], 21, 
+                                            func=biweight_midvariance))
+    hdu = fits.PrimaryHDU(err, header=header)
+    hdu.header.remove('BIASSEC')
+    hdu.header.remove('TRIMSEC')
+    hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
+    hdu.writeto(outname, clobber=True)   
     
 def make_fiber_image(Fe, header, outname, args, amp):
+    print("Making Fiberextract image for %s" %op.basename(outname))
     a,b = Fe.shape
     hdu = fits.PrimaryHDU(Fe, header=header)
     hdu.header.remove('BIASSEC')
@@ -135,6 +200,7 @@ def make_fiber_image(Fe, header, outname, args, amp):
     hdu.writeto(outname, clobber=True)    
     
 def make_spectrograph_image(image1, image2, header, outname):
+    print("Making spectrograph image for %s" %op.basename(outname))
     a,b = image1.shape
     new = np.zeros((a*2,b))
     new[:a,:] = image1
@@ -149,6 +215,9 @@ def reduce_science(args):
     for spec in args.specid:
         spec_ind_sci = np.where(args.sci_df['Specid'] == spec)[0]
         for amp in config.Amps:
+            ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
+                                        args.ifucen_fn[amp]), 
+                                usecols=[0,1,2], skiprows=4)
             amp_ind_sci = np.where(args.sci_df['Amp'] == amp)[0]
             sci_sel = np.intersect1d(spec_ind_sci, amp_ind_sci) 
             for ind in sci_sel:
@@ -161,11 +230,17 @@ def reduce_science(args):
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir, specname=args.specname[amp])
                 sci1.load_fibers()
-                sci1.load_all_cal()
-                sci1.sky_subtraction()
-                sci1.clean_cosmics()
-                sci1.fiberextract(mask=sci1.mask)
-                sci1.sky_subtraction()
+                if sci1.fibers and not args.start_from_scratch:
+                    if sci1.fibers[0].spectrum is not None:
+                        sci1.get_image()
+                        sci1.sky_subtraction()
+                        sci1.clean_cosmics()
+                else:                        
+                    sci1.load_all_cal()
+                    sci1.sky_subtraction()
+                    sci1.clean_cosmics()
+                    sci1.fiberextract(mask=sci1.mask)
+                    sci1.sky_subtraction()
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, config.Amp_dict[amp][0]),
                                  args.sci_df['Output'][ind],
                                  calpath=args.cal_dir, 
@@ -173,18 +248,38 @@ def reduce_science(args):
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir, specname=args.specname[amp])
                 sci2.load_fibers()
-                sci2.load_all_cal()
-                sci2.sky_subtraction()
-                sci2.clean_cosmics()
-                sci2.fiberextract(mask=sci2.mask)
-                sci2.sky_subtraction()
+                if sci2.fibers and not args.start_from_scratch:
+                    if sci2.fibers[0].spectrum is not None:
+                        sci2.get_image()
+                        sci2.sky_subtraction()
+                        sci2.clean_cosmics()
+                else:
+                    sci2.load_all_cal()
+                    sci2.sky_subtraction()
+                    sci2.clean_cosmics()
+                    sci2.fiberextract(mask=sci2.mask)
+                    sci2.sky_subtraction()
                 outname = op.join(args.sci_df['Output'][ind],
                                   'S%s_%s_sci_%s.fits' %(
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
                 make_spectrograph_image(sci1.clean_image, sci2.clean_image, sci1.header, 
                            outname)
-               
+                outname = op.join(args.sci_df['Output'][ind],
+                                  'e.S%s_%s_sci_%s.fits' %(
+                                  op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                  args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
+                make_error_frame(sci1.clean_image, sci2.clean_image, sci1.mask,
+                                 sci2.mask, sci1.header, outname)
+                outname = op.join(args.sci_df['Output'][ind],
+                                  'cS%s_%s_sci_%s.fits' %(
+                                  op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                  args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
+                make_spectrograph_image(np.where(sci1.mask==0, 
+                                                 sci1.clean_image, 0.0),
+                                        np.where(sci2.mask==0, 
+                                                 sci2.clean_image, 0.0),
+                                        sci1.header, outname)
                 Fe, FeS = recreate_fiberextract(sci1, sci2, wavelim=args.wvl_dict[amp], 
                                       disp=args.disp[amp])
                 outname = op.join(args.sci_df['Output'][ind],
@@ -192,11 +287,15 @@ def reduce_science(args):
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
                 make_fiber_image(Fe, sci1.header, outname, args, amp)
+                make_cube_file(args, outname, ifucen, args.cube_scale, 
+                               config.Amp_dict[amp][1])
                 outname = op.join(args.sci_df['Output'][ind],
                                   'FeS%s_%s_sci_%s.fits' %(
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
                 make_fiber_image(FeS, sci1.header, outname, args, amp)
+                make_cube_file(args, outname, ifucen, args.cube_scale, 
+                               config.Amp_dict[amp][1])
                 sci1.save_fibers()
                 sci2.save_fibers()  
                 if args.debug:
@@ -275,9 +374,3 @@ def main():
 
 if __name__ == '__main__':
     main()    
-
-
-
-        
-
-       

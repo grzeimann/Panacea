@@ -48,6 +48,10 @@ def parse_args(argv=None):
     parser.add_argument("-rs","--reduce_sci", 
                         help='''Reduce Science frames''',
                         action="count", default=0)
+
+    parser.add_argument("-sfs","--start_from_scratch", 
+                        help='''Re-fiberextract, sky-subtract, cosmic ray reject.''',
+                        action="count", default=0)
                         
     parser.add_argument("--specid", nargs='?', type=str, 
                         help='''List of SPECID's for processing. [REQUIRED]
@@ -64,7 +68,6 @@ def parse_args(argv=None):
                         Default: "blue"
                         Ex: "blue" for LRS2B,
                             "red" for LRS2R.''', default = "blue")
-
 
     parser.add_argument("--output", nargs='?', type=str, 
                         help='''Output Directory
@@ -132,21 +135,24 @@ def parse_args(argv=None):
         args.specname = config.virus_sn
         args.fsize = config.virus_fs
         args.disp = config.virus_di
-        args.fplane_fn = config.virus_fn
+        args.ifucen_fn = config.virus_fn
+        args.cube_scale = config.virus_cs
     if args.instr.lower() == 'lrs2':
         if args.instr_side.lower() == 'blue':
             args.wvl_dict = config.lrs2b_wl
             args.specname = config.lrs2b_sn
             args.fsize = config.lrs2b_fs
             args.disp = config.lrs2b_di
-            args.fplane_fn = config.lrs2b_fn
-
+            args.ifucen_fn = config.lrs2b_fn
+            args.cube_scale = config.lrs2b_cs
         else:
             args.wvl_dict = config.lrs2r_wl
             args.specname = config.lrs2r_sn
             args.fsize = config.lrs2r_fs
             args.disp = config.lrs2r_di    
-            args.fplane_fn = config.lrs2r_fn
+            args.ifucen_fn = config.lrs2r_fn
+            args.cube_scale = config.lrs2r_cs
+
 
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
     observations=[]
