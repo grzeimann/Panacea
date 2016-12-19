@@ -1,4 +1,5 @@
-# Panacea (WARNING - despite the name, Panacea does not cure all VIRUS issues)
+# Panacea 
+## (WARNING - despite the name, Panacea does not cure all VIRUS issues)
 
 An IFU reduction script specific to VIRUS and LRS2 on the Hobby Eberly Telescope
 
