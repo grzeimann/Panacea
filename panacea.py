@@ -216,8 +216,8 @@ def reduce_science(args):
         spec_ind_sci = np.where(args.sci_df['Specid'] == spec)[0]
         for amp in config.Amps:
             ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
-                                        args.ifucen_fn[amp]), 
-                                usecols=[0,1,2], skiprows=4)
+                                        args.ifucen_fn[amp][0]), 
+                                usecols=[0,1,2], skiprows=args.ifucen_fn[amp][1])
             amp_ind_sci = np.where(args.sci_df['Amp'] == amp)[0]
             sci_sel = np.intersect1d(spec_ind_sci, amp_ind_sci) 
             for ind in sci_sel:
