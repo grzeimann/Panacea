@@ -344,7 +344,8 @@ class Amplifier:
     def get_fibermodel(self, fibmodel_poly_order=3, trace_poly_order=3, 
                        use_default=False, bins=15, 
                        make_ind_plots=False, calculate_shift=False, 
-                       check_fibermodel=False):
+                       check_fibermodel=False,
+                       fsize=8.):
         if self.image is None:
             self.get_image()
         if not self.fibers:
@@ -355,10 +356,11 @@ class Amplifier:
                                                            self.fibers,
                                                            debug=False,
                                                        use_default=use_default,
-                                                       plot=make_ind_plots,
-                                                       outfolder=self.path,
-                                                       fiber_group=8,
-                                                       bins=bins)
+                                                           plot=make_ind_plots,
+                                                           outfolder=self.path,
+                                                           fiber_group=8,
+                                                           bins=bins,
+                                                           fsize=fsize)
             nfibs, ncols, nbins = sol.shape
             for i, fiber in enumerate(self.fibers):
                 fiber.fibmodel_poly_order = fibmodel_poly_order
@@ -383,7 +385,8 @@ class Amplifier:
 
 
     def fiberextract(self, fibmodel_poly_order=3, use_default_profile=False, 
-                     calculate_shift=False, trace_poly_order=3, mask=None):
+                     calculate_shift=False, trace_poly_order=3, mask=None,
+                     check_fibermodel=False, fsize=8., bins=15):
         if self.image is None:
             self.get_image()
         if not self.fibers:
@@ -391,7 +394,9 @@ class Amplifier:
                            trace_poly_order=trace_poly_order)
         if self.fibers[0].fibmodel_polyvals is None:
             self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
-                                use_default=use_default_profile)
+                                use_default=use_default_profile,
+                                check_fibermodel=check_fibermodel,
+                                fsize=fsize, bins=bins)
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly()
@@ -406,7 +411,7 @@ class Amplifier:
                                 init_lims=None, interactive=False, 
                                 calculate_shift=False, check_wave=False,
                                 check_fibermodel=False, default_fib=0,
-                                filt_size_sky=51, filt_size_ind=21):
+                                filt_size_sky=51, filt_size_ind=21, nbins=21):
                                     
         solar_spec = np.loadtxt(op.join(self.virusconfig,
                                         'solar_spec/%s_temp.txt' 
@@ -441,7 +446,8 @@ class Amplifier:
                                                      np.arange(self.D), fiber.spectrum, solar_spec, 
                                                      init_lims=init_lims, 
                                                      debug=False, 
-                                                     interactive=interactive)
+                                                     interactive=interactive,
+                                                     nbins=nbins)
                     # Boundary check:
                     if (np.abs(fiber.wavelength.min()-init_lims[0])>100. 
                           or np.abs(fiber.wavelength.max()-init_lims[1])>100.):
@@ -462,22 +468,22 @@ class Amplifier:
                 else:
                     fibs2 = fc[(default_fib+1)::1]
                 for fib in fibs1:
-                    if self.debug:
-                        print("Working on Fiber %i" %fib)
                     fiber = self.fibers[fib]
                     fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
                                                      np.arange(self.D), fiber.spectrum, solar_spec, 
                                                      init_lims=init_lims, 
                                                      debug=False, 
-                                                     interactive=False, init_sol=self.fibers[fib+1].wave_polyvals)
+                                                     interactive=False,
+                                                     nbins=nbins,
+                                                     init_sol=self.fibers[fib+1].wave_polyvals,)
                 for fib in fibs2:
-                    if self.debug:
-                        print("Working on Fiber %i" %fib)
+
                     fiber = self.fibers[fib]
                     fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
                                                      np.arange(self.D), fiber.spectrum, solar_spec, 
                                                      init_lims=init_lims, 
-                                                     debug=False, 
+                                                     debug=False,
+                                                     nbins=nbins,
                                                      interactive=False, init_sol=self.fibers[fib-1].wave_polyvals)
                 if k==0:
                     self.get_master_sky(filt_size_sky=filt_size_sky, filt_size_ind=filt_size_ind,
@@ -588,7 +594,7 @@ class Amplifier:
                            wave_order=3, use_default_profile=False, 
                            init_lims=None, interactive=False, filt_size_ind=21, 
                            filt_size_agg=51, filt_size_final=51, check_wave=False,
-                           check_fibermodel=False):
+                           check_fibermodel=False, fsize=8., bins=15):
         if self.image is None:
             if self.debug:
                 print("Building image for %s" %self.basename)
@@ -603,7 +609,8 @@ class Amplifier:
                 print("Getting fibermodel for %s" %self.basename)
             self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
                                 use_default=use_default_profile, 
-                                check_fibermodel=check_fibermodel)
+                                check_fibermodel=check_fibermodel,
+                                fsize=fsize, bins=bins)
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly()

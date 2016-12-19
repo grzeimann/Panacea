@@ -256,6 +256,7 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
     y_sun = solar_spec[:,1]
     y = biweight_filter(y, smooth_length) / y
     bins = np.linspace(init_lims[0], init_lims[1], nbins)
+    bins = bins[1:-1]
     scale = 1.*(init_lims[1] - init_lims[0])/L
     scale0 = scale*1.
     wv0 = init_lims[0]
@@ -282,8 +283,9 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
         ysun = y_sun[xsl:xsu]
         flag = np.ones(y[xi:xe+1].shape, dtype=bool)
         content = False
+        save=True
         while content is False:
-            if j==0 and init_sol is None:
+            if init_sol is None:
                 xwv0 = np.arange(wv0-20,wv0+20,5)
                 chi2r = np.zeros(xwv0.shape)
                 solk = []
@@ -303,15 +305,22 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
                 sol, chi2 = fit_scale_wave0(scale, wv0, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
                                   fixscale=fixscale)
             if fixscale:
-                wv = np.arange(L) * scale + sol[0]
-                wv0 = sol[0]
+                wv = np.arange(L) * scale + sol[0] 
             else:
-                wv = np.arange(L)*sol[0] + sol[1]           
-                scale = sol[0]
-                wv0 = sol[1] 
-                    
+                wv = np.arange(L)*sol[0] + sol[1]                                   
             model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
             flag = is_outlier(model - y[xi:xe+1]) < 1
+            std = biweight_midvariance(model-y[xi:xe+1])
+            if std*4>model.max():
+                save=False
+            if save:
+                if fixscale:
+                    wv0 = sol[0]
+                else:
+                    scale = sol[0]
+                    wv0 = sol[1] 
+                    
+
             if interactive: 
                 wv = np.arange(L)*scale + wv0
                 plt.figure(figsize=(8,6))
@@ -326,6 +335,7 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
                 mx = np.min([ysun.max(),y[xi:xe+1].max()])
                 rn = mx - mn
                 ax.set_ylim([-.1*rn + mn, 1.1*rn+mn])
+                ax.text(swlow+plotbuff+10,1.0*rn+mn, "STD: %0.5f" %std)
                 plt.show()
                 answer = raw_input("Are you happy with the fit [%0.3f, %0.2f]?" %(scale, wv0))
                 if answer == 'q':
@@ -347,10 +357,11 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
                 plt.close()
             else:
                 content=True
-        x_save.append(x[xi:xe+1])
-        wave_save.append(wv[xi:xe+1])
-        wave0_save.append(wv0)
-        scale_save.append(scale)
+        if save:
+            x_save.append(x[xi:xe+1])
+            wave_save.append(wv[xi:xe+1])
+            wave0_save.append(wv0)
+            scale_save.append(scale)
     
     init_sol = np.polyfit(1.*np.hstack(x_save)/L,np.hstack(wave_save), order)
     return np.polyval(init_sol,1. * x / L), init_sol        
@@ -515,7 +526,7 @@ def get_norm_nonparametric(image, Fibers, fsize=8., fiber_group=4,
     return norm   
     
     
-def init_fibermodel(fsize, bins, sigma=2.7, power=2.5):
+def init_fibermodel(fsize, bins, sigma=1.5, power=2.0):
     '''
     Initial fiber model defined using a modified gaussian.
     The second derivative defines the number of bins used.
@@ -539,7 +550,9 @@ def init_fibermodel(fsize, bins, sigma=2.7, power=2.5):
     cf /= np.max(cf)
     xtp = xt[1:-1]+(xt[1]-xt[0])/2.
     binx = np.interp(np.linspace(0,1,bins),cf,xtp)
-    binx = np.hstack([binx[:(bins/2)],-.4,binx[bins/2],0.4,binx[((bins/2)+1):]])
+    binx = np.hstack([binx[:(bins/2)], binx[bins/2]/2.+binx[bins/2-1]/2.,
+                      binx[bins/2], binx[bins/2]/2.+binx[bins/2+1]/2.,
+                      binx[((bins/2)+1):]])
     bins+=2
     sol = np.interp(binx,xt,yt,left=0.0,right=0.0)
     sol[0] = 0.0
@@ -637,7 +650,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
                          /(init_model[xsel,:]*normfits[xsel,:]).sum(axis=1)
                                                 [:,np.newaxis]).sum(axis=1))
             #flat_err[xsel] = flat[xsel] / z[xsel] * zerr[xsel]        
-     
+        
         try:
             sol1 = nnls(F[sel,1:-1],flat[sel] - P)[0]
         except ValueError:
@@ -847,7 +860,7 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
     plt.close(fig)     
 
 def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107], 
-                        xwidth=75., ywidth=75., yplot_high=0.25, 
+                        xwidth=75., ywidth=75., yplot_high=0.35, 
                         yplot_low=-0.01, plotbuf=4):
     ylen,xlen = image.shape
     ypos, xpos = np.indices((ylen,xlen))

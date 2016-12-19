@@ -380,3 +380,28 @@ def is_outlier(points, thresh=3.5):
     modified_z_score = 0.6745 * diff / med_abs_deviation
 
     return modified_z_score > thresh
+    
+def matrixCheby2D_7(x, y):
+    if isinstance(x, (tuple, list)):
+        x = np.asarray(x)
+    if isinstance(y, (tuple, list)):
+        y = np.asarray(y)
+
+    T2x = 2. * x**2 - 1.
+    T3x = 4. * x**3 - 3. * x
+    T4x = 8. * x**4 - 8. * x**2 + 1.
+    T5x = 16. * x**5 - 20. * x**3 + 5. * x
+    T6x = 32. * x**6 - 48. * x**4 + 18. * x**2 - 1.
+    T7x = 64. * x**7 - 112. * x**5 + 56. * x**3 - 7. * x
+    T2y = 2. * y**2 - 1.
+    T3y = 4. * y**3 - 3. * y
+    T4y = 8. * y**4 - 8. * y**2 + 1.
+    T5y = 16. * y**5 - 20. * y**3 + 5. * y
+    T6y = 32. * y**6 - 48. * y**4 + 18. * y**2 - 1
+    T7y = 64. * y**7 - 112. * y**5 + 56. * y**3 - 7 * y
+    
+    return np.vstack((T7x, T6x, T5x, T4x, T3x, T2x, x, T7y, T6y, T5y, 
+                      T4y, T3y, T2y, y, T6x*y, x*T6y, T5x*T2y, T2x*T5y,
+                      T4x*T3y, T3x*T4y, T5x*y, x*T5y, T4x*T2y, T2x*T4y, 
+                      T3x*T3y, T4x*y, x*T4y, T3x*T2y, T2x*T3y, T3x*y, 
+                      x*T3y, T2x*T2y, T2x*y, x*T2y, x*y, np.ones(x.shape))).swapaxes(0,1)
