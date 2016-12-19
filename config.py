@@ -24,7 +24,7 @@ lrs2b_sn = {"LL": "lrs2_uv", "RU": "lrs2_orange"}
 lrs2r_sn = {"LL": "lrs2_red", "RU": "lrs2_farred"}
 
 # Name of the IFUcen file for fiber positions
-virus_fn = {"LL": ["IFUcen_HETDEX.txt",30], "RU": ["IFUcen_HETDEX.txt",30]}
+virus_fn = {"LL": ["IFUcen_VIFU",30], "RU": ["IFUcen_VIFU",30]}
 lrs2b_fn = {"LL": ["LRS2_B_UV_mapping.txt",4], "RU": ["LRS2_B_OR_mapping.txt",4]}
 lrs2r_fn = {"LL": "LRS2_R_NR_mapping.txt", "RU": "LRS2_R_FR_mapping.txt"}
 

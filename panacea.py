@@ -139,7 +139,8 @@ def make_cube_file(args, filename, ifucen, scale, side):
         if not op.exists(file1):
             print("Could not open %s" %file1)
             return None
-        outname = op.join(op.dirname(filename),'Cu' + op.basename(filename))
+        outname = op.join(op.dirname(filename),'Cu' 
+                                          + op.basename(filename)[:-6]+'.fits')
         print("Making Cube image for %s" %op.basename(outname))
         F2 = fits.open(file2)
         F1 = fits.open(file1)
@@ -215,12 +216,19 @@ def reduce_science(args):
     for spec in args.specid:
         spec_ind_sci = np.where(args.sci_df['Specid'] == spec)[0]
         for amp in config.Amps:
-            ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
-                                        args.ifucen_fn[amp][0]), 
-                                usecols=[0,1,2], skiprows=args.ifucen_fn[amp][1])
             amp_ind_sci = np.where(args.sci_df['Amp'] == amp)[0]
             sci_sel = np.intersect1d(spec_ind_sci, amp_ind_sci) 
             for ind in sci_sel:
+                if args.instr == "virus":
+                    ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
+                                                args.ifucen_fn[amp][0]
+                                                +args.sci_df['Ifuid'][ind]+'.txt'), 
+                                                usecols=[0,1,2], 
+                                                skiprows=args.ifucen_fn[amp][1])
+                else:
+                    ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
+                                        args.ifucen_fn[amp][0]), 
+                                usecols=[0,1,2], skiprows=args.ifucen_fn[amp][1])
                 if args.debug:
                     print("Working on Sci for %s, %s" %(spec, amp))   
                 sci1 = Amplifier(args.sci_df['Files'][ind],
