@@ -140,7 +140,7 @@ def make_cube_file(args, filename, ifucen, scale, side):
             print("Could not open %s" %file1)
             return None
         outname = op.join(op.dirname(filename),'Cu' 
-                                          + op.basename(filename)[:-6]+'.fits')
+                                          + op.basename(filename)[:-7]+'.fits')
         print("Making Cube image for %s" %op.basename(outname))
         F2 = fits.open(file2)
         F1 = fits.open(file1)
