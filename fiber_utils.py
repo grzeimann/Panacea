@@ -468,14 +468,15 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
 def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8., 
                                  fiber_group=4, bins=15, col_group=48,
                                  debug=False, use_default=False,
-                                 outfolder=None):
+                                 outfolder=None, sigma=2.5, power=2.5):
     a,b = image.shape 
     ygrid,xgrid = np.indices(image.shape)                       
     nfibs = len(Fibers) 
     ncols = b / col_group
     so = np.zeros((nfibs, ncols, bins+2))
     xcols = np.arange(col_group/2, int((ncols-1/2.)*col_group)+1, col_group)
-    bins1, binx, sol = init_fibermodel(fsize=fsize, bins=bins)
+    bins1, binx, sol = init_fibermodel(fsize=fsize, bins=bins, sigma=sigma,
+                                       power=power)
     if debug:
         t1 = time.time()
     for j in xrange(nfibs):
@@ -484,11 +485,12 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
                 sol = fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, 
                                                     Fibers, fib=j, debug=debug, 
                                                     group=fiber_group, 
-                                                    bins=bins, fsize=fsize,
+                                                    bins=bins1, fsize=fsize,
                                                     xlow=i*col_group, 
                                                     xhigh=(i+1)*col_group, 
                                                     plot=plot,
-                                                    outfolder=outfolder)                
+                                                    outfolder=outfolder,
+                                                    sol=sol, binx=binx)                
             so[j,i,:] = sol         
     if debug:
         t2 = time.time()
@@ -526,7 +528,7 @@ def get_norm_nonparametric(image, Fibers, fsize=8., fiber_group=4,
     return norm   
     
     
-def init_fibermodel(fsize, bins, sigma=1.5, power=2.0):
+def init_fibermodel(fsize, bins, sigma=2.5, power=2.5):
     '''
     Initial fiber model defined using a modified gaussian.
     The second derivative defines the number of bins used.
@@ -564,7 +566,7 @@ def init_fibermodel(fsize, bins, sigma=1.5, power=2.0):
 def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0, 
                                       xlow=0, xhigh=1032, plot=False, fsize=8., 
                                       group=4, bins=11, niter=3, debug=False,
-                                      outfolder=None):
+                                      outfolder=None, sol=None, binx=None):
     '''
     : param Fibers:
         list of Fiber class objects (length = number of fibers)
@@ -573,7 +575,6 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     if debug:
         t1 = time.time()    
     # Get initial model        
-    bins, binx, sol = init_fibermodel(fsize=fsize, bins=bins)
 
     # Normalize the profiles to 1.
     sol /= np.sum(sol[:-1] * np.diff(binx))

@@ -323,7 +323,8 @@ def reduce_twighlight(args):
                 twi1.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=args.wvl_dict[amp], interactive=False,
                                check_fibermodel=True, check_wave=True,
-                               fsize=args.fsize, bins=11)
+                               fsize=args.fsize, bins=args.fibmodel_bins,
+                               sigma=args.fibmodel_sig, power=args.fibmodel_pow)
                 twi2 = Amplifier(args.twi_df['Files'][ind].replace(amp, config.Amp_dict[amp][0]),
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
@@ -334,7 +335,8 @@ def reduce_twighlight(args):
                 twi2.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=args.wvl_dict[amp], interactive=False,
                                check_fibermodel=True, check_wave=True, 
-                               fsize=args.fsize, bins=11)
+                               fsize=args.fsize, bins=args.fibmodel_bins,
+                               sigma=args.fibmodel_sig, power=args.fibmodel_pow)
                 image1 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
                                         debug=twi1.debug)
                 image2 = get_model_image(twi2.image, twi2.fibers, 'fiber_to_fiber',

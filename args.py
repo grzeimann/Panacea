@@ -137,6 +137,9 @@ def parse_args(argv=None):
         args.disp = config.virus_di
         args.ifucen_fn = config.virus_fn
         args.cube_scale = config.virus_cs
+        args.fibmodel_bins = config.virus_bn
+        args.fibmodel_sig = config.virus_sig
+        args.fibmodel_pow = config.virus_pow
     if args.instr.lower() == 'lrs2':
         if args.instr_side.lower() == 'blue':
             args.wvl_dict = config.lrs2b_wl
@@ -145,6 +148,9 @@ def parse_args(argv=None):
             args.disp = config.lrs2b_di
             args.ifucen_fn = config.lrs2b_fn
             args.cube_scale = config.lrs2b_cs
+            args.fibmodel_bins = config.lrs2b_bn
+            args.fibmodel_sig = config.lrs2b_sig
+            args.fibmodel_pow = config.lrs2b_pow
         else:
             args.wvl_dict = config.lrs2r_wl
             args.specname = config.lrs2r_sn
@@ -152,6 +158,9 @@ def parse_args(argv=None):
             args.disp = config.lrs2r_di    
             args.ifucen_fn = config.lrs2r_fn
             args.cube_scale = config.lrs2r_cs
+            args.fibmodel_bins = config.lrs2r_bn
+            args.fibmodel_sig = config.lrs2r_sig
+            args.fibmodel_pow = config.lrs2r_pow
 
 
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']

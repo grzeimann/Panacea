@@ -8,7 +8,7 @@ Built for the VIRUS instrument as well as LRS2 on HET
 """
 
 # Bottom Amplifier for each side ---
-Amps = ["RU"]
+Amps = ["LL", "RU"]
 
 # Connecting the bottom ampliefer with the top and total side
 Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}
@@ -32,6 +32,21 @@ lrs2r_fn = {"LL": "LRS2_R_RED_mapping.txt", "RU": "LRS2_R_FAR_mapping.txt"}
 virus_fs = 8.
 lrs2b_fs = 6.
 lrs2r_fs = 6.
+
+# Number of bins for fibermodel fit
+virus_bn = 15
+lrs2b_bn = 11
+lrs2r_bn = 11
+
+# The initial fibermodel sigma for initializing bins
+virus_sig = 2.5
+lrs2b_sig = 1.4
+lrs2r_sig = 1.4
+
+# The initial fibermodel power for initializing bins
+virus_pow = 2.5
+lrs2b_pow = 2.0
+lrs2r_pow = 2.0
 
 # Dispersion scale for making the Fe/CuFe files
 virus_di = {"LL": 1.9, "RU": 1.9}

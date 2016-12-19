@@ -345,7 +345,7 @@ class Amplifier:
                        use_default=False, bins=15, 
                        make_ind_plots=False, calculate_shift=False, 
                        check_fibermodel=False,
-                       fsize=8.):
+                       fsize=8., sigma=2.5, power=2.5):
         if self.image is None:
             self.get_image()
         if not self.fibers:
@@ -360,7 +360,9 @@ class Amplifier:
                                                            outfolder=self.path,
                                                            fiber_group=8,
                                                            bins=bins,
-                                                           fsize=fsize)
+                                                           fsize=fsize,
+                                                           sigma=sigma,
+                                                           power=power)
             nfibs, ncols, nbins = sol.shape
             for i, fiber in enumerate(self.fibers):
                 fiber.fibmodel_poly_order = fibmodel_poly_order
@@ -594,7 +596,8 @@ class Amplifier:
                            wave_order=3, use_default_profile=False, 
                            init_lims=None, interactive=False, filt_size_ind=21, 
                            filt_size_agg=51, filt_size_final=51, check_wave=False,
-                           check_fibermodel=False, fsize=8., bins=15):
+                           check_fibermodel=False, fsize=8., bins=15,
+                           sigma=2.5, power=2.5):
         if self.image is None:
             if self.debug:
                 print("Building image for %s" %self.basename)
@@ -610,7 +613,8 @@ class Amplifier:
             self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
                                 use_default=use_default_profile, 
                                 check_fibermodel=check_fibermodel,
-                                fsize=fsize, bins=bins)
+                                fsize=fsize, bins=bins, sigma=sigma,
+                                power=power)
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly()
