@@ -194,9 +194,11 @@ class Amplifier:
                                                    'pixelflat_cam%s_%s.fits' 
                                                    %(self.specid, self.amp)))[0].data,
                                   dtype=float)
-        image[:] = ((image - self.dark_mult * darkimage 
-                           - self.bias_mult * biasimage)
-                    *self.gain)
+        if self.dark_mult>0.0:
+            image[:] = image - self.dark_mult * darkimage
+        if self.bias_mult>0.0:
+            image[:] = image - self.bias_mult * biasimage
+        image[:] = image * self.gain
         if self.use_pixelflat:
             image[:] = self.orient(image)
             self.image = np.where(pixelflat != 0, image / pixelflat, 0.0)
