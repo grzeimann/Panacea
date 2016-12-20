@@ -147,6 +147,8 @@ def make_cube_file(args, filename, ifucen, scale, side):
         data1 = F1[0].data
         data2 = F2[0].data
         a,b = data1.shape
+        if a != len(ifucen[:,1]):
+            return None
         data = np.vstack([data1,data2])
         x = np.arange(ifucen[:,1].min()-scale, ifucen[:,1].max()+scale, scale)
         y = np.arange(ifucen[:,2].min()-scale, ifucen[:,2].max()+scale, scale)
