@@ -48,6 +48,10 @@ def parse_args(argv=None):
     parser.add_argument("-rs","--reduce_sci", 
                         help='''Reduce Science frames''',
                         action="count", default=0)
+                        
+    parser.add_argument("-uos","--use_other_sky", 
+                        help='''Use another frame for the sky_spectrum''',
+                        action="count", default=0)
 
     parser.add_argument("-sfs","--start_from_scratch", 
                         help='''Re-fiberextract, sky-subtract, cosmic ray reject.''',
@@ -116,6 +120,18 @@ def parse_args(argv=None):
                         
     parser.add_argument("-te","--twidir_expnum", nargs='?', type=str,
                         help='''Twi Directory exposure number.
+                        Ex: \"1\" or \"05\"''', default=None) 
+
+    parser.add_argument("-skd","--skydir_date", nargs='?', type=str,
+                        help='''Sky Directory Date.     [REQUIRED, --use_other_sky]
+                        Ex: \"20160412\"''', default=None)
+
+    parser.add_argument("-sko","--skydir_obsid", nargs='?', type=str,
+                        help='''Sky Directory ObsID.    [REQUIRED, --use_other_sky]
+                        Ex: \"3\" or \"102\"''', default=None)
+                        
+    parser.add_argument("-ske","--skydir_expnum", nargs='?', type=str,
+                        help='''Sky Directory exposure number.
                         Ex: \"1\" or \"05\"''', default=None) 
 
     parser.add_argument("-d","--debug", help='''Debug.''',
@@ -242,42 +258,41 @@ def parse_args(argv=None):
         setattr(args, obs+'_df', DF)
         
     if args.reduce_sci:
-        if getattr(args, 'twi'+labels[0]) is None:
-            print("Please provide one "+"twi"+labels[0])
-            sys.exit(1) 
-        if len(getattr(args, 'twi'+labels[0]))>1:
-            print("Please provide only one "+"twi"+labels[0])
-            print("I am cowardly quitting instead of making a smart program.")
-            sys.exit(1)
-        if getattr(args, 'twi'+labels[1]) is None:
-            print("Please provide one "+"twi"+labels[1])
-            sys.exit(1) 
-        if len(getattr(args, 'twi'+labels[1]))>1:
-            print("Please provide only one "+"twi"+labels[1])
-            print("I am cowardly quitting instead of making a smart program.")
-            sys.exit(1)
-        if getattr(args, 'twi'+labels[2]) is None:
-            print("Please provide one "+"twi"+labels[2])
-            sys.exit(1) 
-        if len(getattr(args, 'twi'+labels[2]))>1:
-            print("Please provide only one "+"twi"+labels[2])
-            print("I am cowardly quitting instead of making a smart program.")
-            sys.exit(1)             
-        for date in getattr(args, 'twi'+labels[0]):
-            for obsid in getattr(args, 'twi'+labels[1]):
-                if getattr(args, 'twi'+labels[2]) is not None:   
-                    for expnum in getattr(args, 'twi'+labels[2]):
-                        args.cal_dir = op.join(args.output, date, args.instr, 
-                                               "{:s}{:07d}".format(args.instr,int(obsid)), 
-                                               "exp{:02d}".format(int(expnum)),
-                                               args.instr)
-                        
-                else:
-                    print("You need to provide an exposure number for twi if "
-                          "you are reducing science frames.")
-                    print("I am cowardly quitting instead of making a smart "
-                          "program.")
-                    sys.exit(1)
+        cals=['twi']
+        if args.use_other_sky:
+            cals.append('sky')
+        else: 
+            args.sky_dir = None
+        for cal in cals:
+            if getattr(args, cal+labels[0]) is None:
+                print("Please provide one "+cal+labels[0])
+                sys.exit(1) 
+            if len(getattr(args, cal+labels[0]))>1:
+                print("Please provide only one "+cal+labels[0])
+                print("I am cowardly quitting instead of making a smart program.")
+                sys.exit(1)
+            if getattr(args, cal+labels[1]) is None:
+                print("Please provide one "+cal+labels[1])
+                sys.exit(1) 
+            if len(getattr(args, cal+labels[1]))>1:
+                print("Please provide only one "+cal+labels[1])
+                print("I am cowardly quitting instead of making a smart program.")
+                sys.exit(1)
+            if getattr(args, cal+labels[2]) is None:
+                print("Please provide one "+cal+labels[2])
+                sys.exit(1) 
+            if len(getattr(args, cal+labels[2]))>1:
+                print("Please provide only one "+cal+labels[2])
+                print("I am cowardly quitting instead of making a smart program.")
+                sys.exit(1)             
+            for date in getattr(args, cal+labels[0]):
+                for obsid in getattr(args, cal+labels[1]):
+                    if getattr(args, cal+labels[2]) is not None:   
+                        for expnum in getattr(args, cal+labels[2]):
+                            setattr(args, cal+'_dir', op.join(args.output, date, args.instr, 
+                                                   "{:s}{:07d}".format(args.instr,int(obsid)), 
+                                                   "exp{:02d}".format(int(expnum)),
+                                                   args.instr))
                     
 
     return args

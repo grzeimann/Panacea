@@ -235,7 +235,7 @@ def reduce_science(args):
                     print("Working on Sci for %s, %s" %(spec, amp))   
                 sci1 = Amplifier(args.sci_df['Files'][ind],
                                  args.sci_df['Output'][ind],
-                                 calpath=args.cal_dir, 
+                                 calpath=args.twi_dir, skypath=args.sky_dir,
                                  debug=False, refit=False, dark_mult=args.dark_mult[amp],
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir, specname=args.specname[amp])
@@ -253,7 +253,7 @@ def reduce_science(args):
                     sci1.sky_subtraction()
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, config.Amp_dict[amp][0]),
                                  args.sci_df['Output'][ind],
-                                 calpath=args.cal_dir, 
+                                 calpath=args.twi_dir, skypath=args.sky_dir, 
                                  debug=False, refit=False, 
                                  dark_mult=args.dark_mult[config.Amp_dict[amp][0]],
                                  darkpath=args.darkdir, biaspath=args.biasdir,

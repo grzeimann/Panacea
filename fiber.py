@@ -25,33 +25,44 @@ class Fiber:
         ''' 
         Initialize class
         ----------------
-        :param N:
-            The number of rows in the spectrograph detector image.
         :param D:
-            The number of columns in the spectrograph detector  image.
+            The number of columns in the spectrograph detector image.
+        :param fibnum:
+            The fiber number starting at 1 related to initialization.  This
+            serves as a place holder until there is a mapping to sky.
+        :param path:
+            The directory path name for where this fiber file is saved
+        :param filename:
+            The full filename of the raw frame from which the fiber was 
+            extracted
         :param trace_poly_order:
-            The order of the polynomial used to fit the trace.   
-        :init N:
-            Same as described above.             
-        :init D:
-            Same as described above.
-        :init trace_poly_order:
-            Same as described above.
+            The order of the polynomial used to fit the trace across the 
+            columns of the image
+        :param fibmodel_poly_order:
+            The order of the polynomial used to fit the fibmodel bins across
+            the columns of the image.  Not necessarily used.  
+        :param wave_poly_order:
+            The order of the polynomial used to fit the wavelength across
+            the columns of the image.                          
         :init flag:
-            Flag value for undefined values.
+            Flag value for undefined values in trace, fibmodel, or wavelength
         :init trace_x:
-            Columns values for trace.
+            Columns values for trace to be filled in through 
+            Amplifier.get_trace()
         :init trace_y:
-            Row values for the trace.
+            Row values for trace to be filled in through 
+            Amplifier.get_trace()
         :init trace: 
-            Polynomial fitted values for the trace.
-        :init polyvals:
-            Polynomial coefficients for trace fit.
+            Full trace solution to be solved for using Amplifier.get_trace()
         :init wavelength:
-            Wavelength for each column along the trace.
+            Wavelength for each column along the trace
+        :init fiber_to_fiber:
+            This is solved for in Amplifier.get_fiber_to_fiber().
         :init throughput:
             Fiber throughput.
         '''
+        
+        # Taking inputs and initializing the properties for this fiber.
         self.D = D
         self.fibnum = fibnum
         self.filename = filename
@@ -60,9 +71,11 @@ class Fiber:
         self.trace_poly_order = trace_poly_order
         self.fibmodel_poly_order = fibmodel_poly_order
         self.wave_poly_order = wave_poly_order
+        
+        # Other initilized variables. Mostly defaulting to None for processing.
         self.flag = -999
         self.init_trace_info()
-        self.wave = None
+        self.wavelength = None
         self.throughput = None
         self.fiber_to_fiber = None
         self.amp_to_amp = None

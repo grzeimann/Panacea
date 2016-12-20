@@ -32,7 +32,8 @@ import cosmics
 __all__ = ["Amplifier"]
 
 class Amplifier:
-    def __init__(self, filename, path, refit=False, calpath=None, debug=False,
+    def __init__(self, filename, path, refit=False, calpath=None, skypath=None,
+                 debug=False,
                  darkpath="/Users/gregz/cure/virus_early/virus_config/lib_dark",
                  biaspath="/Users/gregz/cure/virus_early/virus_config/lib_bias",
                  virusconfig="/Users/gregz/cure/virus_early/virus_config/",
@@ -74,6 +75,7 @@ class Amplifier:
         self.image = None
         self.type = F[0].header['IMAGETYP'].replace(' ', '')
         self.calpath = calpath
+        self.skypath = skypath
         self.darkpath = darkpath
         self.biaspath = biaspath
         self.dark_mult = dark_mult
@@ -129,8 +131,9 @@ class Amplifier:
         else:
             return 1.* getattr(F1, prop)       
                              
-    def load_cal_property(self, prop):
-        fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
+    def load_cal_property(self, prop, pathkind='calpath'):
+        path = getattr(self, pathkind)
+        fn = op.join(path,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
                                                                   self.ifuslot,
                                                                   self.ifuid,
                                                                   self.amp))
@@ -138,7 +141,7 @@ class Amplifier:
             prop = [prop]
         files = sorted(glob.glob(fn))
         for i, fiber_fn in enumerate(files):
-            fcheck = op.join(self.calpath,'fiber_%03d_%s_%s_%s_%s.pkl' %(i+1, 
+            fcheck = op.join(path,'fiber_%03d_%s_%s_%s_%s.pkl' %(i+1, 
                                                                   self.specid, 
                                                                   self.ifuslot,
                                                                   self.ifuid,
@@ -560,11 +563,14 @@ class Amplifier:
                                     filt_size_ind=filt_size_ind,
                                     filt_size_agg=filt_size_agg,
                                     filt_size_final=filt_size_final)
-        self.get_master_sky(filt_size_sky=filt_size_sky, filt_size_ind=filt_size_ind,
-                            sky=True)
-        for fib, fiber in enumerate(self.fibers):
-            fiber.sky_spectrum = (fiber.fiber_to_fiber 
-                     * np.interp(fiber.wavelength, self.masterwave, self.mastersky))
+        if self.skypath is None:
+            self.get_master_sky(filt_size_sky=filt_size_sky, filt_size_ind=filt_size_ind,
+                                sky=True)
+            for fib, fiber in enumerate(self.fibers):
+                fiber.sky_spectrum = (fiber.fiber_to_fiber 
+                         * np.interp(fiber.wavelength, self.masterwave, self.mastersky))
+        else:
+            self.load_cal_property('sky_spectrum', pathkind='skypath')
         self.skyframe = get_model_image(self.image, self.fibers, 'sky_spectrum',
                                         debug=False)
         self.clean_image = self.image - self.skyframe
