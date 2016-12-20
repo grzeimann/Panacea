@@ -112,6 +112,7 @@ class Amplifier:
                     with open(fiber_fn, 'r') as f:
                         self.fibers.append(pickle.load(f))
                         self.fibers[-1].eval_fibmodel_poly()
+                        self.fibers[-1].path = self.path
                         if self.fibers[-1].wave_polyvals is not None:
                             self.fibers[-1].eval_wave_poly()
     
