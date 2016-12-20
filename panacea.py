@@ -27,6 +27,7 @@ from args import parse_args
 from amplifier import Amplifier
 from fiber_utils import get_model_image
 from utils import matrixCheby2D_7, biweight_filter, biweight_midvariance
+from utils import biweight_location
 import config
 
                       
@@ -102,6 +103,7 @@ def recalculate_dist_coeff(D, instr1, instr2):
 def make_cube_file(args, filename, ifucen, scale, side):
     if args.instr.lower() == "lrs2":
         outname = op.join(op.dirname(filename),'Cu' + op.basename(filename))
+        outname2 = op.join(op.dirname(filename),'Co' + op.basename(filename))
         print("Making Cube image for %s" %op.basename(outname))
         try:
             F = fits.open(filename)
@@ -123,10 +125,13 @@ def make_cube_file(args, filename, ifucen, scale, side):
                     sel = w > 1e-3
                     zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
         hdu = fits.PrimaryHDU(zgrid)
+        zcol = biweight_location(zgrid[b/3:(2*b/3),:,:],axis=(0,))
         hdu.header['CDELT3'] = F[0].header['CDELT1']
         hdu.header['CRVAL3'] = F[0].header['CRVAL1']
         hdu.header['CRPIX3'] = F[0].header['CRPIX1']
         hdu.writeto(outname, clobber=True)
+        hdu = fits.PrimaryHDU(zcol)
+        hdu.writeto(outname2, clobber=True)
     if args.instr.lower() == "virus":
         if side == "R":
             file2 =filename
@@ -140,6 +145,8 @@ def make_cube_file(args, filename, ifucen, scale, side):
             print("Could not open %s" %file1)
             return None
         outname = op.join(op.dirname(filename),'Cu' 
+                                          + op.basename(filename)[:-7]+'.fits')
+        outname2 = op.join(op.dirname(filename),'Co' 
                                           + op.basename(filename)[:-7]+'.fits')
         print("Making Cube image for %s" %op.basename(outname))
         F2 = fits.open(file2)
@@ -163,10 +170,13 @@ def make_cube_file(args, filename, ifucen, scale, side):
                     sel = w > 1e-3
                     zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
         hdu = fits.PrimaryHDU(zgrid)
+        zcol = biweight_location(zgrid[b/3:(2*b/3),:,:],axis=(0,))
         hdu.header['CDELT3'] = F1[0].header['CDELT1']
         hdu.header['CRVAL3'] = F1[0].header['CRVAL1']
         hdu.header['CRPIX3'] = F1[0].header['CRPIX1']
         hdu.writeto(outname, clobber=True)
+        hdu = fits.PrimaryHDU(zcol)
+        hdu.writeto(outname2, clobber=True)
     
 def make_error_frame(image1, image2, mask1, mask2, header, outname):
     print("Making error image for %s" %op.basename(outname))
