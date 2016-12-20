@@ -191,6 +191,8 @@ def parse_args(argv=None):
             observations.append('twi')
     if args.reduce_twi:
         observations.append('twi')
+    if args.use_other_sky:
+        observations.append('sky')
     for obs in observations:
         for label in labels[:2]:
             getattr(args, obs+label)
