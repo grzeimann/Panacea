@@ -236,7 +236,7 @@ def reduce_science(args):
                 sci1 = Amplifier(args.sci_df['Files'][ind],
                                  args.sci_df['Output'][ind],
                                  calpath=args.cal_dir, 
-                                 debug=False, refit=False, dark_mult=1.0,
+                                 debug=False, refit=False, dark_mult=args.dark_mult[amp],
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir, specname=args.specname[amp])
                 sci1.load_fibers()
@@ -254,7 +254,8 @@ def reduce_science(args):
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, config.Amp_dict[amp][0]),
                                  args.sci_df['Output'][ind],
                                  calpath=args.cal_dir, 
-                                 debug=False, refit=False, dark_mult=1.0,
+                                 debug=False, refit=False, 
+                                 dark_mult=args.dark_mult[config.Amp_dict[amp][0]],
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir, specname=args.specname[amp])
                 sci2.load_fibers()
