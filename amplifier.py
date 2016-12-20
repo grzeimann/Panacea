@@ -114,7 +114,20 @@ class Amplifier:
                         self.fibers[-1].eval_fibmodel_poly()
                         if self.fibers[-1].wave_polyvals is not None:
                             self.fibers[-1].eval_wave_poly()
-                        
+    
+
+    def convert_binning(self, F1, prop):
+        if prop == 'fibmodel_x':
+            values = getattr(F1, prop)
+            return (1.* values) / F1.D * self.D
+        elif prop in ['trace', 'fiber_to_fiber']:
+            values = getattr(F1, prop)
+            return np.interp((1.*np.arange(self.D))/self.D, 
+                             (1.*np.arange(F1.D))/F1.D, values)
+            
+        else:
+            return 1.* getattr(F1, prop)       
+                             
     def load_cal_property(self, prop):
         fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
                                                                   self.ifuslot,
@@ -143,7 +156,7 @@ class Amplifier:
                 F1 = pickle.load(f)
             for pro in prop:
                 try:
-                    setattr(F, pro, 1. * getattr(F1, pro))
+                    setattr(F, pro, self.convert_binning(F1,pro))
                 except AttributeError:
                     if self.debug:
                         print("Cannot load attribute %s from %s" %(pro, 
