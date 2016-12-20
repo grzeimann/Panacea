@@ -563,14 +563,20 @@ class Amplifier:
                                     filt_size_ind=filt_size_ind,
                                     filt_size_agg=filt_size_agg,
                                     filt_size_final=filt_size_final)
+        if self.skypath is not None:
+            self.load_cal_property('sky_spectrum', pathkind='skypath')
+            if self.fibers[0].sky_spectrum is None:
+                print("Loading sky spectrum from %s did not work." 
+                      %self.skypath)
+                print("Setting skypath to None for this amplifier.")
+                self.skypath = None
         if self.skypath is None:
             self.get_master_sky(filt_size_sky=filt_size_sky, filt_size_ind=filt_size_ind,
                                 sky=True)
             for fib, fiber in enumerate(self.fibers):
                 fiber.sky_spectrum = (fiber.fiber_to_fiber 
                          * np.interp(fiber.wavelength, self.masterwave, self.mastersky))
-        else:
-            self.load_cal_property('sky_spectrum', pathkind='skypath')
+         
         self.skyframe = get_model_image(self.image, self.fibers, 'sky_spectrum',
                                         debug=False)
         self.clean_image = self.image - self.skyframe

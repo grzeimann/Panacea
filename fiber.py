@@ -100,6 +100,7 @@ class Fiber:
         self.trace_polyvals = None
         self.spectrum = None
         self.wave_polyvals = None
+        self.sky_spectrum = None
         
     def init_trace_info(self):
         self.trace_x = self.flag * np.ones((self.D,),dtype = np.int)
