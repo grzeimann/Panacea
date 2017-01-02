@@ -351,7 +351,8 @@ def reduce_twighlight(args):
                                  calpath=args.twi_df['Output'][ind], 
                                  debug=True, refit=True, dark_mult=0.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir, specname=args.specname[amp])
+                                 virusconfig=args.configdir, specname=args.specname[amp],
+                                 use_pixelflat=(args.pixelflats<1))
                 twi1.load_fibers()
                 twi1.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=args.wvl_dict[amp], interactive=False,
@@ -364,7 +365,8 @@ def reduce_twighlight(args):
                                  calpath=args.twi_df['Output'][ind], 
                                  debug=True, refit=True, dark_mult=0.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir, specname=args.specname[amp])
+                                 virusconfig=args.configdir, specname=args.specname[amp],
+                                 use_pixelflat=(args.pixelflats<1))
                 twi2.load_fibers()
                 twi2.get_fiber_to_fiber(use_default_profile=False, 
                                init_lims=args.wvl_dict[amp], interactive=False,
