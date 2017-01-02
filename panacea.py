@@ -224,6 +224,15 @@ def make_spectrograph_image(image1, image2, header, outname):
     hdu.header.remove('TRIMSEC')
     hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
     hdu.writeto(outname, clobber=True)    
+
+def make_amplifier_image(image, header, outname):
+    print("Making amplifier image for %s" %op.basename(outname))
+    a,b = image.shape
+    hdu = fits.PrimaryHDU(image, header=header)
+    hdu.header.remove('BIASSEC')
+    hdu.header.remove('TRIMSEC')
+    hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
+    hdu.writeto(outname, clobber=True) 
             
 def reduce_science(args):
     for spec in args.specid:
@@ -349,6 +358,7 @@ def reduce_twighlight(args):
                                check_fibermodel=True, check_wave=True,
                                fsize=args.fsize, bins=args.fibmodel_bins,
                                sigma=args.fibmodel_sig, power=args.fibmodel_pow)
+                twi1.sky_subtraction()
                 twi2 = Amplifier(args.twi_df['Files'][ind].replace(amp, config.Amp_dict[amp][0]),
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
@@ -361,6 +371,7 @@ def reduce_twighlight(args):
                                check_fibermodel=True, check_wave=True, 
                                fsize=args.fsize, bins=args.fibmodel_bins,
                                sigma=args.fibmodel_sig, power=args.fibmodel_pow)
+                twi2.sky_subtraction()
                 image1 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
                                         debug=twi1.debug)
                 image2 = get_model_image(twi2.image, twi2.fibers, 'fiber_to_fiber',
@@ -375,6 +386,22 @@ def reduce_twighlight(args):
                                   %(args.twi_df['Specid'][ind],
                                     config.Amp_dict[amp][1]))  
                 make_spectrograph_image(twi1.image, twi2.image, twi1.header, outname)
+                outname = op.join(args.twi_df['Output'][ind], 
+                                  'normtwi_%s_%s.fits' 
+                                  %(args.twi_df['Specid'][ind],
+                                    amp))  
+                make_amplifier_image(twi1.orient(np.where(np.isfinite(twi1.skyframe)
+                                                 *(twi1.skyframe!=0),
+                                                 twi1.image/twi1.skyframe, 0.0)), 
+                                     twi1.header, outname)
+                outname = op.join(args.twi_df['Output'][ind], 
+                                  'normtwi_%s_%s.fits' 
+                                  %(args.twi_df['Specid'][ind],
+                                    config.Amp_dict[amp][0]))
+                make_amplifier_image(twi2.orient(np.where(np.isfinite(twi2.skyframe)
+                                                 *(twi2.skyframe!=0),
+                                                 twi2.image/twi2.skyframe, 0.0)), 
+                                     twi2.header, outname)
                 D = recalculate_dist_coeff(D, twi1, twi2)
                 outname2 = op.join(args.twi_df['Output'][ind], 
                                   'mastertrace_%s_%s.dist' 
