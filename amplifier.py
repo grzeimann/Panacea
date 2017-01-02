@@ -218,10 +218,8 @@ class Amplifier:
             image[:] = image - self.bias_mult * biasimage
         image[:] = image * self.gain
         if self.use_pixelflat:
-            image[:] = self.orient(image)
-            self.image = np.where(pixelflat != 0, image / pixelflat, 0.0)
-        else:
-            self.image = self.orient(image)
+            image[:] = np.where(pixelflat != 0, image / pixelflat, 0.0)
+        self.image = self.orient(image)
     
     def find_shift(self):
         fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
