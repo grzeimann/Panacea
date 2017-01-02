@@ -53,6 +53,10 @@ def parse_args(argv=None):
                         help='''Use another frame for the sky_spectrum''',
                         action="count", default=0)
 
+    parser.add_argument("-p","--pixelflats", 
+                        help='''Turn off using pixel flats.''',
+                        action="count", default=0)
+
     parser.add_argument("-sfs","--start_from_scratch", 
                         help='''Re-fiberextract, sky-subtract, cosmic ray reject.''',
                         action="count", default=0)

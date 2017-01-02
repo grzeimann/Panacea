@@ -249,7 +249,8 @@ def reduce_science(args):
                                  calpath=args.twi_dir, skypath=args.sky_dir,
                                  debug=False, refit=False, dark_mult=args.dark_mult[amp],
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir, specname=args.specname[amp])
+                                 virusconfig=args.configdir, specname=args.specname[amp],
+                                 use_pixelflat=(args.pixelflats<1))
                 sci1.load_fibers()
                 if sci1.fibers and not args.start_from_scratch:
                     if sci1.fibers[0].spectrum is not None:
@@ -268,7 +269,8 @@ def reduce_science(args):
                                  debug=False, refit=False, 
                                  dark_mult=args.dark_mult[config.Amp_dict[amp][0]],
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir, specname=args.specname[amp])
+                                 virusconfig=args.configdir, specname=args.specname[amp],
+                                 use_pixelflat=(args.pixelflats<1))
                 sci2.load_fibers()
                 if sci2.fibers and not args.start_from_scratch:
                     if sci2.fibers[0].spectrum is not None:

@@ -37,7 +37,7 @@ class Amplifier:
                  darkpath="/Users/gregz/cure/virus_early/virus_config/lib_dark",
                  biaspath="/Users/gregz/cure/virus_early/virus_config/lib_bias",
                  virusconfig="/Users/gregz/cure/virus_early/virus_config/",
-                 dark_mult=1., bias_mult=0., use_pixelflat=False, specname=None):
+                 dark_mult=1., bias_mult=0., use_pixelflat=True, specname=None):
         ''' 
         Initialize class
         ----------------
@@ -208,6 +208,7 @@ class Amplifier:
                               dtype=float)
         if self.use_pixelflat:
             pixelflat = np.array(fits.open(op.join(self.virusconfig, 'PixelFlats',
+                                                   '20161223',
                                                    'pixelflat_cam%s_%s.fits' 
                                                    %(self.specid, self.amp)))[0].data,
                                   dtype=float)
