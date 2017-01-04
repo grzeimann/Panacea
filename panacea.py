@@ -130,7 +130,7 @@ def make_cube_file(args, filename, ifucen, scale, side):
         hdu.header['CRVAL3'] = F[0].header['CRVAL1']
         hdu.header['CRPIX3'] = F[0].header['CRPIX1']
         hdu.writeto(outname, clobber=True)
-        hdu = fits.PrimaryHDU(zcol)
+        hdu = fits.PrimaryHDU(np.array(zcol, dtype='float32'))
         hdu.writeto(outname2, clobber=True)
     if args.instr.lower() == "virus":
         if side == "R":
@@ -176,7 +176,7 @@ def make_cube_file(args, filename, ifucen, scale, side):
         hdu.header['CRVAL3'] = F1[0].header['CRVAL1']
         hdu.header['CRPIX3'] = F1[0].header['CRPIX1']
         hdu.writeto(outname, clobber=True)
-        hdu = fits.PrimaryHDU(zcol)
+        hdu = fits.PrimaryHDU(np.array(zcol, dtype='float32'))
         hdu.writeto(outname2, clobber=True)
     
 def make_error_frame(image1, image2, mask1, mask2, header, outname):
