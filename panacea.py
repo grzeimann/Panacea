@@ -198,6 +198,7 @@ def make_error_frame(image1, image2, mask1, mask2, header, outname):
     hdu.header.remove('BIASSEC')
     hdu.header.remove('TRIMSEC')
     hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
+    outname = op.join(op.dirname(outname), 'e.' + op.basename(outname))
     hdu.writeto(outname, clobber=True)   
     
 def make_fiber_image(Fe, header, outname, args, amp):
@@ -212,6 +213,23 @@ def make_fiber_image(Fe, header, outname, args, amp):
     hdu.header['CD1_1'] = args.disp[amp]
     hdu.header['CRPIX1'] = 1
     hdu.writeto(outname, clobber=True)    
+
+def make_fiber_error(Fe, header, outname, args, amp):
+    print("Making Fiberextract image for %s" %op.basename(outname))
+    a,b = Fe.shape
+    err = np.zeros(Fe.shape)
+    for i in xrange(a):
+        err[i,:] = biweight_filter(Fe[i,:], 21, func=biweight_midvariance)
+    hdu = fits.PrimaryHDU(err, header=header)
+    hdu.header.remove('BIASSEC')
+    hdu.header.remove('TRIMSEC')
+    hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
+    hdu.header['CRVAL1'] = args.wvl_dict[amp][0]
+    hdu.header['CDELT1'] = args.disp[amp]
+    hdu.header['CD1_1'] = args.disp[amp]
+    hdu.header['CRPIX1'] = 1
+    outname = op.join(op.dirname(outname), 'e.' + op.basename(outname))
+    hdu.writeto(outname, clobber=True)  
     
 def make_spectrograph_image(image1, image2, header, outname):
     print("Making spectrograph image for %s" %op.basename(outname))
@@ -298,10 +316,6 @@ def reduce_science(args):
                                   args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
                 make_spectrograph_image(sci1.clean_image, sci2.clean_image, sci1.header, 
                            outname)
-                outname = op.join(args.sci_df['Output'][ind],
-                                  'e.S%s_%s_sci_%s.fits' %(
-                                  op.basename(args.sci_df['Files'][ind]).split('_')[0],
-                                  args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
                 make_error_frame(sci1.clean_image, sci2.clean_image, sci1.mask,
                                  sci2.mask, sci1.header, outname)
                 outname = op.join(args.sci_df['Output'][ind],
@@ -313,6 +327,8 @@ def reduce_science(args):
                                         np.where(sci2.mask==0, 
                                                  sci2.clean_image, 0.0),
                                         sci1.header, outname)
+                make_error_frame(sci1.clean_image, sci2.clean_image, sci1.mask,
+                                 sci2.mask, sci1.header, outname)
                 Fe, FeS = recreate_fiberextract(sci1, sci2, wavelim=args.wvl_dict[amp], 
                                       disp=args.disp[amp])
                 outname = op.join(args.sci_df['Output'][ind],
@@ -320,6 +336,7 @@ def reduce_science(args):
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
                 make_fiber_image(Fe, sci1.header, outname, args, amp)
+                make_fiber_error(Fe, sci1.header, outname, args, amp)
                 make_cube_file(args, outname, ifucen, args.cube_scale, 
                                config.Amp_dict[amp][1])
                 outname = op.join(args.sci_df['Output'][ind],
@@ -327,6 +344,7 @@ def reduce_science(args):
                                   op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                   args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
                 make_fiber_image(FeS, sci1.header, outname, args, amp)
+                make_fiber_error(FeS, sci1.header, outname, args, amp)
                 make_cube_file(args, outname, ifucen, args.cube_scale, 
                                config.Amp_dict[amp][1])
                 sci1.save_fibers()
