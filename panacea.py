@@ -124,7 +124,7 @@ def make_cube_file(args, filename, ifucen, scale, side):
                     w = np.exp(-1./2.*(d/1.)**2)
                     sel = w > 1e-3
                     zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
-        hdu = fits.PrimaryHDU(zgrid)
+        hdu = fits.PrimaryHDU(np.array(zgrid, dtype='float32'))
         zcol = biweight_location(zgrid[b/3:(2*b/3),:,:],axis=(0,))
         hdu.header['CDELT3'] = F[0].header['CDELT1']
         hdu.header['CRVAL3'] = F[0].header['CRVAL1']
@@ -170,7 +170,7 @@ def make_cube_file(args, filename, ifucen, scale, side):
                     w = np.exp(-1./2.*(d/1.)**2)
                     sel = w > 1e-3
                     zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
-        hdu = fits.PrimaryHDU(zgrid)
+        hdu = fits.PrimaryHDU(np.array(zgrid, dtype='float32'))
         zcol = biweight_location(zgrid[b/3:(2*b/3),:,:],axis=(0,))
         hdu.header['CDELT3'] = F1[0].header['CDELT1']
         hdu.header['CRVAL3'] = F1[0].header['CRVAL1']
@@ -194,7 +194,7 @@ def make_error_frame(image1, image2, mask1, mask2, header, outname):
         err[i,:] = np.where(mas[i,:]<0, mas[i,:], 
                             biweight_filter(new[i,:], 21, 
                                             func=biweight_midvariance))
-    hdu = fits.PrimaryHDU(err, header=header)
+    hdu = fits.PrimaryHDU(np.array(err, dtype='float32'), header=header)
     hdu.header.remove('BIASSEC')
     hdu.header.remove('TRIMSEC')
     hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
@@ -204,7 +204,7 @@ def make_error_frame(image1, image2, mask1, mask2, header, outname):
 def make_fiber_image(Fe, header, outname, args, amp):
     print("Making Fiberextract image for %s" %op.basename(outname))
     a,b = Fe.shape
-    hdu = fits.PrimaryHDU(Fe, header=header)
+    hdu = fits.PrimaryHDU(np.array(Fe, dtype='float32'), header=header)
     hdu.header.remove('BIASSEC')
     hdu.header.remove('TRIMSEC')
     hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
@@ -220,7 +220,7 @@ def make_fiber_error(Fe, header, outname, args, amp):
     err = np.zeros(Fe.shape)
     for i in xrange(a):
         err[i,:] = biweight_filter(Fe[i,:], 21, func=biweight_midvariance)
-    hdu = fits.PrimaryHDU(err, header=header)
+    hdu = fits.PrimaryHDU(np.array(err, dtype='float32'), header=header)
     hdu.header.remove('BIASSEC')
     hdu.header.remove('TRIMSEC')
     hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
@@ -237,7 +237,7 @@ def make_spectrograph_image(image1, image2, header, outname):
     new = np.zeros((a*2,b))
     new[:a,:] = image1
     new[a:,:] = image2
-    hdu = fits.PrimaryHDU(new, header=header)
+    hdu = fits.PrimaryHDU(np.array(new, dtype='float32'), header=header)
     hdu.header.remove('BIASSEC')
     hdu.header.remove('TRIMSEC')
     hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
@@ -246,7 +246,7 @@ def make_spectrograph_image(image1, image2, header, outname):
 def make_amplifier_image(image, header, outname):
     print("Making amplifier image for %s" %op.basename(outname))
     a,b = image.shape
-    hdu = fits.PrimaryHDU(image, header=header)
+    hdu = fits.PrimaryHDU(np.array(image, dtype='float32'), header=header)
     hdu.header.remove('BIASSEC')
     hdu.header.remove('TRIMSEC')
     hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
