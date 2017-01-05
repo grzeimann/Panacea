@@ -7,8 +7,6 @@ Built for the VIRUS instrument as well as LRS2 on HET
 
 Incomplete Documentation
 
-
-
 """
 
 from __future__ import (division, print_function, absolute_import,
@@ -29,7 +27,6 @@ from fiber_utils import get_model_image
 from utils import matrixCheby2D_7, biweight_filter, biweight_midvariance
 from utils import biweight_location
 import config
-
                       
                       
 def recreate_fiberextract(instr1, instr2, wavelim, disp):
