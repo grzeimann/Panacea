@@ -653,12 +653,13 @@ class Amplifier:
             fiber.spectrum = norm[i,:]
     
     
-    def get_wavelength_solution(self, fibmodel_poly_order=3, trace_poly_order=3, 
-                                wave_order=3, use_default=False, 
+    def get_wavelength_solution(self, nbins=21, wave_order=3, default_fib=0,
                                 init_lims=None, interactive=False, 
-                                calculate_shift=False, check_wave=False,
-                                check_fibermodel=False, default_fib=0,
-                                filt_size_sky=51, filt_size_ind=21, nbins=21,
+                                check_wave=False,
+                                calculate_shift=False, use_default=False,
+                                fibmodel_poly_order=3, trace_poly_order=3,
+                                check_fibermodel=False, 
+                                filt_size_sky=51, filt_size_ind=21, 
                                 bins=15, make_ind_plots=False, 
                                 check_fibermodel=False,
                                 fsize=8., sigma=2.5, power=2.5,
@@ -668,19 +669,31 @@ class Amplifier:
         functional dependencies first: get_image(), get_trace(),
         get_fibermodel(), and fiberextract().
         
+        The wavelength solution is done for an initial fiber first.  In bins
+        a linear solution is fit using a chi^2 minimization comparing a
+        default solar/twi spectrum compared to this amplifiers twi spectrum.
+        Both are normalized before chi^2 minimization.  A polynomial is then
+        fit to the collection of linear solutions.  After the first fiber
+        neighboring fibers start with previous solution as starting points
+        for the binned linear fits.
+        
+        :param nbins:
+            Number of bins used across the wavelength range to fit
+            linear solutions.
         :param wave_order:
             Polynomial order for fitting the wavelength solution.
+        :param default_fib:
+            The first fiber to fit for the wavelength solution.
         :param init_lims:
             List or tuple of two values for the starting and finishing 
             wavelengths for the amplifier.  General values are fine.  In
             other words, [3500,5500] for VIRUS.
         :param interactive:
             The first fiber wavelength solution fit is interactive.
-        :param default_fib:
-            The first fiber to fit for the wavelength solution.
         :param check_wave:
             Plots the wavelength solution in a 3x3 grid covering the 
             top/middle/bottom fibers and columns.
+
             
         For all other parameters see get_fibermodel() documentation.
         '''                                    
@@ -718,12 +731,15 @@ class Amplifier:
                 cnting = 0
                 while content==False:
                     fiber = self.fibers[default_fib]
-                    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
-                                                     np.arange(self.D), fiber.spectrum, solar_spec, 
-                                                     init_lims=init_lims, 
-                                                     debug=False, 
-                                                     interactive=interactive,
-                                                     nbins=nbins)
+                    fw, fwp = calculate_wavelength_chi2(np.arange(self.D), 
+                                                        fiber.spectrum, 
+                                                        solar_spec, 
+                                                        init_lims=init_lims, 
+                                                        debug=False, 
+                                                       interactive=interactive,
+                                                        nbins=nbins)
+                    fiber.wavelength = fw*1.
+                    fiber.wave_polyvals = fwp*1.
                     # Boundary check:
                     if (np.abs(fiber.wavelength.min()-init_lims[0])>100. 
                           or np.abs(fiber.wavelength.max()-init_lims[1])>100.):
@@ -732,7 +748,7 @@ class Amplifier:
                     else:
                         content=True
                     if cnting>9:
-                        print("Ran through 9 loops to find good solution, but couldn't")
+                        print("Ran through 9 loops but no solution found.")
                         sys.exit(1)
                 fc = np.arange(len(self.fibers))
                 if default_fib==0:
@@ -745,25 +761,32 @@ class Amplifier:
                     fibs2 = fc[(default_fib+1)::1]
                 for fib in fibs1:
                     fiber = self.fibers[fib]
-                    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
-                                                     np.arange(self.D), fiber.spectrum, solar_spec, 
-                                                     init_lims=init_lims, 
-                                                     debug=False, 
-                                                     interactive=False,
-                                                     nbins=nbins,
-                                                     init_sol=self.fibers[fib+1].wave_polyvals,)
+                    fw, fwp = calculate_wavelength_chi2(np.arange(self.D), 
+                                                        fiber.spectrum, 
+                                                        solar_spec, 
+                                                        init_lims=init_lims, 
+                                                        debug=False, 
+                                                       interactive=False,
+                                     init_sol=self.fibers[fib+1].wave_polyvals,
+                                                        nbins=nbins)
+                    fiber.wavelength = fw*1.
+                    fiber.wave_polyvals = fwp*1.
                 for fib in fibs2:
-
                     fiber = self.fibers[fib]
-                    fiber.wavelength, fiber.wave_polyvals = calculate_wavelength_chi2(
-                                                     np.arange(self.D), fiber.spectrum, solar_spec, 
-                                                     init_lims=init_lims, 
-                                                     debug=False,
-                                                     nbins=nbins,
-                                                     interactive=False, init_sol=self.fibers[fib-1].wave_polyvals)
+                    fw, fwp = calculate_wavelength_chi2(np.arange(self.D), 
+                                                        fiber.spectrum, 
+                                                        solar_spec, 
+                                                        init_lims=init_lims, 
+                                                        debug=False, 
+                                                       interactive=False,
+                                     init_sol=self.fibers[fib-1].wave_polyvals,
+                                                        nbins=nbins)
+                    fiber.wavelength = fw*1.
+                    fiber.wave_polyvals = fwp*1.
                 if k==0:
-                    self.get_master_sky(filt_size_sky=filt_size_sky, filt_size_ind=filt_size_ind,
-                                norm=True)
+                    self.get_master_sky(filt_size_sky=filt_size_sky, 
+                                        filt_size_ind=filt_size_ind,
+                                        norm=True)
                     solar_spec = np.zeros((len(self.masterwave),2))
                     solar_spec[:,0] = self.masterwave
                     solar_spec[:,1] = self.mastersmooth
