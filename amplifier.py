@@ -635,7 +635,7 @@ class Amplifier:
         if not self.fibers:
             self.get_trace(calculate_shift=calculate_shift,
                            trace_poly_order=trace_poly_order)
-        if self.fibers[0].fibmodel_polyvals is None:
+        if self.fibers[0].fibmodel is None:
             self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
                                 use_default=use_default,
                                 check_fibermodel=check_fibermodel,
@@ -705,7 +705,7 @@ class Amplifier:
         if not self.fibers:
             self.get_trace(calculate_shift=calculate_shift,
                            trace_poly_order=trace_poly_order)
-        if self.fibers[0].fibmodel_polyvals is None:
+        if self.fibers[0].fibmodel is None:
             self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
                                 use_default=use_default,
                                 check_fibermodel=check_fibermodel,
@@ -803,6 +803,78 @@ class Amplifier:
             outfile = op.join(self.path,'wavesolution_%s.png' %self.basename)
             check_wavelength_fit(self.fibers, solar_spec, outfile)
                 
+                    
+    def get_fiber_to_fiber(self, fibmodel_poly_order=3, trace_poly_order=3,
+                           calculate_shift=False,
+                           wave_order=3, use_default_profile=False, 
+                           init_lims=None, interactive=False, filt_size_ind=21, 
+                           filt_size_agg=51, filt_size_final=51, check_wave=False,
+                           check_fibermodel=False, fsize=8., bins=15,
+                           sigma=2.5, power=2.5):
+        '''
+        This function gets the master sky spectrum and 
+        evaluates the sky_spectrum for each fiber. It then builds a sky image
+        and a sky-subtracted image.  It checks functional dependencies first: 
+        get_image(), get_trace(), get_fibermodel(), fiberextract(), and 
+        get_wavelength_solution().
+        '''
+        if self.image is None:
+            if self.debug:
+                print("Building image for %s" %self.basename)
+            self.get_image()
+        if not self.fibers:
+            if self.debug:
+                print("Getting trace for %s" %self.basename)
+            self.get_trace(calculate_shift=calculate_shift,
+                           trace_poly_order=trace_poly_order)
+        if self.fibers[0].fibmodel is None:
+            if self.debug:
+                print("Getting fibermodel for %s" %self.basename)
+            self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
+                                use_default=use_default_profile, 
+                                check_fibermodel=check_fibermodel,
+                                fsize=fsize, bins=bins, sigma=sigma,
+                                power=power)
+        else:
+            for fiber in self.fibers:
+                fiber.eval_fibmodel_poly()
+        if self.type == 'twi' or self.refit:
+            if self.fibers[0].spectrum is None:
+                if self.debug:
+                    print("Fiberextracting %s" %self.basename)
+                self.fiberextract()
+            if self.fibers[0].wave_polyvals is None:
+                if self.debug:
+                    print("Getting Wavelength solution for %s" %self.basename)
+                self.get_wavelength_solution(wave_order=wave_order, 
+                                             use_default_profile=use_default_profile, 
+                                             init_lims=init_lims,
+                                             interactive=interactive,
+                                             check_wave=check_wave)
+            else:
+                for fiber in self.fibers:
+                    fiber.eval_wave_poly()
+            if self.debug:
+                print("Getting Fiber to Fiber for %s" %self.basename)
+            masterwave = []
+            masterspec = []
+            for fib, fiber in enumerate(self.fibers):
+                masterwave.append(fiber.wavelength)
+                masterspec.append(fiber.spectrum)
+            masterwave = np.hstack(masterwave)
+            smoothspec = np.hstack(masterspec)
+            ind = np.argsort(masterwave)
+            masterwave[:] = masterwave[ind]
+            smoothspec[:] = smoothspec[ind]
+            self.averagespec = biweight_filter(smoothspec, filt_size_agg)
+            for fib, fiber in enumerate(self.fibers):
+                fiber.fiber_to_fiber = biweight_filter(masterspec[fib] 
+                        / np.interp(fiber.wavelength, masterwave, self.averagespec),filt_size_final)
+
+        else:
+            self.load_cal_property(['fiber_to_fiber'])   
+            
+        
     def sky_subtraction(self, fibmodel_poly_order=3, trace_poly_order=3, 
                         wave_order=3, use_default_profile=False, 
                         init_lims=None, interactive=False, 
@@ -813,8 +885,8 @@ class Amplifier:
         This function gets the master sky spectrum and 
         evaluates the sky_spectrum for each fiber. It then builds a sky image
         and a sky-subtracted image.  It checks functional dependencies first: 
-        get_image(), get_trace(), get_fibermodel(), fiberextract(), and 
-        get_wavelength_solution().        
+        get_image(), get_trace(), get_fibermodel(), fiberextract(), 
+        get_wavelength_solution(), and fiber_to_fiber().        
         '''
         if self.image is None:
             self.get_image()
@@ -903,69 +975,4 @@ class Amplifier:
             mastersmooth = np.hstack(mastersmooth)
             mastersmooth[:] = mastersmooth[ind]
             self.mastersmooth = biweight_filter(mastersmooth, filt_size_sky)
-                    
-    def get_fiber_to_fiber(self, fibmodel_poly_order=3, trace_poly_order=3,
-                           calculate_shift=False,
-                           wave_order=3, use_default_profile=False, 
-                           init_lims=None, interactive=False, filt_size_ind=21, 
-                           filt_size_agg=51, filt_size_final=51, check_wave=False,
-                           check_fibermodel=False, fsize=8., bins=15,
-                           sigma=2.5, power=2.5):
-        if self.image is None:
-            if self.debug:
-                print("Building image for %s" %self.basename)
-            self.get_image()
-        if not self.fibers:
-            if self.debug:
-                print("Getting trace for %s" %self.basename)
-            self.get_trace(calculate_shift=calculate_shift,
-                           trace_poly_order=trace_poly_order)
-        if self.fibers[0].fibmodel is None:
-            if self.debug:
-                print("Getting fibermodel for %s" %self.basename)
-            self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
-                                use_default=use_default_profile, 
-                                check_fibermodel=check_fibermodel,
-                                fsize=fsize, bins=bins, sigma=sigma,
-                                power=power)
-        else:
-            for fiber in self.fibers:
-                fiber.eval_fibmodel_poly()
-        if self.type == 'twi' or self.refit:
-            if self.fibers[0].spectrum is None:
-                if self.debug:
-                    print("Fiberextracting %s" %self.basename)
-                self.fiberextract()
-            if self.fibers[0].wave_polyvals is None:
-                if self.debug:
-                    print("Getting Wavelength solution for %s" %self.basename)
-                self.get_wavelength_solution(wave_order=wave_order, 
-                                             use_default_profile=use_default_profile, 
-                                             init_lims=init_lims,
-                                             interactive=interactive,
-                                             check_wave=check_wave)
-            else:
-                for fiber in self.fibers:
-                    fiber.eval_wave_poly()
-            if self.debug:
-                print("Getting Fiber to Fiber for %s" %self.basename)
-            masterwave = []
-            masterspec = []
-            for fib, fiber in enumerate(self.fibers):
-                masterwave.append(fiber.wavelength)
-                masterspec.append(fiber.spectrum)
-            masterwave = np.hstack(masterwave)
-            smoothspec = np.hstack(masterspec)
-            ind = np.argsort(masterwave)
-            masterwave[:] = masterwave[ind]
-            smoothspec[:] = smoothspec[ind]
-            self.averagespec = biweight_filter(smoothspec, filt_size_agg)
-            for fib, fiber in enumerate(self.fibers):
-                fiber.fiber_to_fiber = biweight_filter(masterspec[fib] 
-                        / np.interp(fiber.wavelength, masterwave, self.averagespec),filt_size_final)
-
-        else:
-            self.load_cal_property(['fiber_to_fiber'])         
-        
-
         
