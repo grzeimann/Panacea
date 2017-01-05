@@ -654,12 +654,22 @@ class Amplifier:
     
     
     def get_wavelength_solution(self, fibmodel_poly_order=3, trace_poly_order=3, 
-                                wave_order=3, use_default_profile=False, 
+                                wave_order=3, use_default=False, 
                                 init_lims=None, interactive=False, 
                                 calculate_shift=False, check_wave=False,
                                 check_fibermodel=False, default_fib=0,
-                                filt_size_sky=51, filt_size_ind=21, nbins=21):
-                                    
+                                filt_size_sky=51, filt_size_ind=21, nbins=21,
+                                bins=15, make_ind_plots=False, 
+                                check_fibermodel=False,
+                                fsize=8., sigma=2.5, power=2.5,
+                                fiber_group=8, col_group=48):
+        '''
+        This function gets the wavelength solution for each fiber.  It checks 
+        functional dependencies first: get_image(), get_trace(),
+        get_fibermodel(), and fiberextract().
+        
+        
+        '''                                    
         solar_spec = np.loadtxt(op.join(self.virusconfig,
                                         'solar_spec/%s_temp.txt' 
                                         %self.specname))
@@ -670,8 +680,13 @@ class Amplifier:
                            trace_poly_order=trace_poly_order)
         if self.fibers[0].fibmodel_polyvals is None:
             self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
-                                use_default=use_default_profile,
-                                check_fibermodel=check_fibermodel)
+                                use_default=use_default,
+                                check_fibermodel=check_fibermodel,
+                                fsize=fsize, bins=bins,
+                                make_ind_plots=make_ind_plots,
+                                check_fibermodel=check_fibermodel,
+                                sigma=sigma, power=power, 
+                                fiber_group=fiber_group, col_group=col_group)
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly() 
