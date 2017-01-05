@@ -613,9 +613,23 @@ class Amplifier:
             check_fiber_profile(self.image, self.fibers, outfile)
 
 
-    def fiberextract(self, fibmodel_poly_order=3, use_default_profile=False, 
-                     calculate_shift=False, trace_poly_order=3, mask=None,
-                     check_fibermodel=False, fsize=8., bins=15):
+    def fiberextract(self, mask=None, 
+                     fibmodel_poly_order=3, trace_poly_order=3,
+                     calculate_shift=False, use_default=False, bins=15, 
+                     make_ind_plots=False, 
+                     check_fibermodel=False,
+                     fsize=8., sigma=2.5, power=2.5,
+                     fiber_group=8, col_group=48):
+        '''
+        This function gets the spectrum for each fiber.  It checks 
+        functional dependencies first: get_image(), get_trace(), and
+        get_fibermodel(). 
+        
+        :param mask:
+            Used for masking pixels and avoids them in the spectral extraction.
+        
+        All other parameters are defined in get_fibermodel().
+        '''
         if self.image is None:
             self.get_image()
         if not self.fibers:
@@ -623,9 +637,13 @@ class Amplifier:
                            trace_poly_order=trace_poly_order)
         if self.fibers[0].fibmodel_polyvals is None:
             self.get_fibermodel(fibmodel_poly_order=fibmodel_poly_order, 
-                                use_default=use_default_profile,
+                                use_default=use_default,
                                 check_fibermodel=check_fibermodel,
-                                fsize=fsize, bins=bins)
+                                fsize=fsize, bins=bins,
+                                make_ind_plots=make_ind_plots,
+                                check_fibermodel=check_fibermodel,
+                                sigma=sigma, power=power, 
+                                fiber_group=fiber_group, col_group=col_group)
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly()
