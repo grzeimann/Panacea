@@ -668,7 +668,21 @@ class Amplifier:
         functional dependencies first: get_image(), get_trace(),
         get_fibermodel(), and fiberextract().
         
-        
+        :param wave_order:
+            Polynomial order for fitting the wavelength solution.
+        :param init_lims:
+            List or tuple of two values for the starting and finishing 
+            wavelengths for the amplifier.  General values are fine.  In
+            other words, [3500,5500] for VIRUS.
+        :param interactive:
+            The first fiber wavelength solution fit is interactive.
+        :param default_fib:
+            The first fiber to fit for the wavelength solution.
+        :param check_wave:
+            Plots the wavelength solution in a 3x3 grid covering the 
+            top/middle/bottom fibers and columns.
+            
+        For all other parameters see get_fibermodel() documentation.
         '''                                    
         solar_spec = np.loadtxt(op.join(self.virusconfig,
                                         'solar_spec/%s_temp.txt' 
