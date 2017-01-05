@@ -809,6 +809,13 @@ class Amplifier:
                         filt_size_ind=21, filt_size_agg=51, 
                         filt_size_final=51, filt_size_sky=51, 
                         calculate_shift=False):
+        '''
+        This function gets the master sky spectrum and 
+        evaluates the sky_spectrum for each fiber. It then builds a sky image
+        and a sky-subtracted image.  It checks functional dependencies first: 
+        get_image(), get_trace(), get_fibermodel(), fiberextract(), and 
+        get_wavelength_solution().        
+        '''
         if self.image is None:
             self.get_image()
         if not self.fibers:
