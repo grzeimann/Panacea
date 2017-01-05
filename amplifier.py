@@ -385,21 +385,25 @@ class Amplifier:
                         
        
     def get_trace(self, fdist=2., check_trace=True, calculate_shift=False, 
-                  trace_poly_order=3, guess_diff=8.7):
+                  trace_poly_order=3):
         '''
         This function gets the trace for this amplifier.  It checks functional
         dependencies first: get_image().  If self.type='twi' or self.refit is
         True then the trace is calculated, otherwise the trace is loaded from
         calpath.
+        
         :param fdist:
-        
+            This parameter sets the distance allowable to match fiber
+            centroid measurments for neighboring columns.  Ideal values are
+            generous enough for glitches and gaps and yet small enough to not 
+            jump to neighboring fibers.  
         :param check_trace:
-        
+            Plot trace images at the end.  Good for post checks.
         :param calculate_shift:
-        
+            Calculate the shift between calibration files and new trace 
+            measurement.
         :param trace_poly_order:
-        
-        :param guess_diff:
+            Not in use now, but remains for possible future use.
         '''                      
           
         if self.image is None:
@@ -511,6 +515,9 @@ class Amplifier:
                        make_ind_plots=False, calculate_shift=False, 
                        check_fibermodel=False,
                        fsize=8., sigma=2.5, power=2.5):
+        '''
+        
+        '''
         if self.image is None:
             self.get_image()
         if not self.fibers:
