@@ -35,7 +35,9 @@ class Amplifier:
     def __init__(self, filename, path, refit=False, calpath=None, skypath=None,
                  debug=False, darkpath=None, biaspath=None, virusconfig=None,
                  dark_mult=1., bias_mult=0., use_pixelflat=True, 
-                 specname=None):
+                 specname=None, fdist=2., check_trace=True, 
+                 calculate_shift=False, trace_poly_order=3
+                 ):
         ''' 
         Initialize class
         ----------------
@@ -81,6 +83,18 @@ class Amplifier:
         :param specname:
             Base filename for loading the solar/twighlight spectrum used
             in wavelength calibration.
+        :param fdist:
+            This parameter sets the distance allowable to match fiber
+            centroid measurments for neighboring columns.  Ideal values are
+            generous enough for glitches and gaps and yet small enough to not 
+            jump to neighboring fibers.  
+        :param check_trace:
+            Plot trace images at the end.  Good for post checks.
+        :param calculate_shift:
+            Calculate the shift between calibration files and new trace 
+            measurement.
+        :param trace_poly_order:
+            Not in use now, but remains for possible future use.
         :init header:
             The fits header of the raw frame.
         :init basename:
@@ -139,7 +153,10 @@ class Amplifier:
         self.debug = debug
         self.use_pixelflat = use_pixelflat
         self.specname = specname
-            
+        self.fdist = fdist
+        self.check_trace = check_trace
+        self.trace_poly_order = trace_poly_order
+        self.calculate_shift = calculate_shift
         self.N, self.D = F[0].data.shape
         if self.D == 1064:
             self.D -= 32
@@ -388,26 +405,12 @@ class Amplifier:
         return biweight_location(np.array(shift))
                         
        
-    def get_trace(self, fdist=2., check_trace=True, calculate_shift=False, 
-                  trace_poly_order=3):
+    def get_trace(self):
         '''
         This function gets the trace for this amplifier.  It checks functional
         dependencies first: get_image().  If self.type is 'twi' or self.refit 
         is True then the trace is calculated, otherwise the trace is loaded 
         from calpath.
-        
-        :param fdist:
-            This parameter sets the distance allowable to match fiber
-            centroid measurments for neighboring columns.  Ideal values are
-            generous enough for glitches and gaps and yet small enough to not 
-            jump to neighboring fibers.  
-        :param check_trace:
-            Plot trace images at the end.  Good for post checks.
-        :param calculate_shift:
-            Calculate the shift between calibration files and new trace 
-            measurement.
-        :param trace_poly_order:
-            Not in use now, but remains for possible future use.
         '''                      
           
         if self.image is None:
@@ -429,7 +432,7 @@ class Amplifier:
                     append_flag = True
                 if append_flag:
                     self.fibers.append(F)
-                self.fibers[i].trace_poly_order = trace_poly_order
+                self.fibers[i].trace_poly_order = self.trace_poly_order
                 self.fibers[i].init_trace_info()
                 self.fibers[i].trace_x[brcol] = brcol
                 self.fibers[i].trace_y[brcol] = standardcol[i]
@@ -443,7 +446,7 @@ class Amplifier:
                     floc = np.argmin(np.abs(self.fibers[i].trace_y[xloc] 
                                             - yvals))
                     if (np.abs(self.fibers[i].trace_y[xloc] 
-                                                       - yvals[floc]) < fdist):
+                                                  - yvals[floc]) < self.fdist):
                         self.fibers[i].trace_x[c] = c
                         self.fibers[i].trace_y[c] = yvals[floc]
             for c in cols2:
@@ -456,7 +459,7 @@ class Amplifier:
                     floc = np.argmin(np.abs(self.fibers[i].trace_y[xloc] 
                                             - yvals))
                     if (np.abs(self.fibers[i].trace_y[xloc] 
-                                                       - yvals[floc]) < fdist):
+                                                  - yvals[floc]) < self.fdist):
                         self.fibers[i].trace_x[c] = c
                         self.fibers[i].trace_y[c] = yvals[floc]
             for fib, fiber in enumerate(self.fibers):
@@ -476,7 +479,8 @@ class Amplifier:
                                             fiber.trace_y[sel] - 
                                             self.fibers[fib+k].trace[sel])
                             fiber.trace_x[setdiff] = setdiff
-                            fiber.trace_y[setdiff] = self.fibers[fib+k].trace[setdiff] + dif
+                            fiber.trace_y[setdiff] = (dif + 
+                                             self.fibers[fib+k].trace[setdiff])
                             fiber.eval_trace_poly()
                             done=True
                     if (fib-k) >= 0 and not done:
@@ -485,17 +489,19 @@ class Amplifier:
                                             fiber.trace_y[sel] - 
                                             self.fibers[fib-k].trace[sel])
                             fiber.trace_x[setdiff] = setdiff
-                            fiber.trace_y[setdiff] = self.fibers[fib-k].trace[setdiff] + dif
+                            fiber.trace_y[setdiff] = (dif + 
+                                             self.fibers[fib-k].trace[setdiff])
                             fiber.eval_trace_poly()
                             done=True
                     if not done:
                         fiber.trace_x[setdiff] = setdiff
-                        fiber.trace_y[setdiff] = np.polyval(fiber.trace_polyvals, 
-                                                            setdiff / self.D)
+                        fiber.trace_y[setdiff] = np.polyval(
+                                                          fiber.trace_polyvals, 
+                                                              setdiff / self.D)
                         fiber.eval_trace_poly()
 
                         
-            if calculate_shift:
+            if self.calculate_shift:
                 self.net_trace_shift = self.find_shift()
                 if self.net_trace_shift is not None:
                     for fiber in self.fibers:
@@ -509,7 +515,7 @@ class Amplifier:
             for fiber in self.fibers:
                 fiber.eval_trace_poly()
                 
-        if check_trace:
+        if self.check_trace:
             outfile = op.join(self.path,'trace_%s.png' %self.basename)
             check_fiber_trace(self.image, self.fibers, outfile)
             
