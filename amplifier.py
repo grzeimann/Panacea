@@ -33,11 +33,9 @@ __all__ = ["Amplifier"]
 
 class Amplifier:
     def __init__(self, filename, path, refit=False, calpath=None, skypath=None,
-                 debug=False,
-                 darkpath="/Users/gregz/cure/virus_early/virus_config/lib_dark",
-                 biaspath="/Users/gregz/cure/virus_early/virus_config/lib_bias",
-                 virusconfig="/Users/gregz/cure/virus_early/virus_config/",
-                 dark_mult=1., bias_mult=0., use_pixelflat=True, specname=None):
+                 debug=False, darkpath=None, biaspath=None, virusconfig=None,
+                 dark_mult=1., bias_mult=0., use_pixelflat=True, 
+                 specname=None):
         ''' 
         Initialize class
         ----------------
@@ -175,6 +173,7 @@ class Amplifier:
                                               self.biassec[2]:self.biassec[3],
                                               self.biassec[0]:self.biassec[1]])
    
+   
     def save(self):
         '''
         Save the entire amplifier include the list of fibers.  
@@ -234,6 +233,7 @@ class Amplifier:
         else:
             return 1.* getattr(fiber, prop)       
                              
+                             
     def load_cal_property(self, prop, pathkind='calpath'):
         '''
         Load a specific property from a calibration object.  This can be
@@ -281,6 +281,7 @@ class Amplifier:
             if append_flag:
                 self.fibers.append(F)
     
+    
     def load_all_cal(self):
         '''
         Load all calibration properties to current fiber set and evaluate
@@ -292,6 +293,7 @@ class Amplifier:
         for fiber in self.fibers:
             fiber.eval_fibmodel_poly()
             fiber.eval_wave_poly()
+      
       
     def orient(self, image):
         '''
@@ -311,6 +313,7 @@ class Amplifier:
         '''
         for fiber in self.fibers:
             fiber.save(self.specid, self.ifuslot, self.ifuid, self.amp)
+       
        
     def get_image(self):
         '''
@@ -346,6 +349,7 @@ class Amplifier:
         if self.use_pixelflat:
             image[:] = np.where(pixelflat != 0, image / pixelflat, 0.0)
         self.image = self.orient(image)
+        
     
     def find_shift(self):
         '''
@@ -804,19 +808,22 @@ class Amplifier:
             check_wavelength_fit(self.fibers, solar_spec, outfile)
                 
                     
-    def get_fiber_to_fiber(self, fibmodel_poly_order=3, trace_poly_order=3,
-                           calculate_shift=False,
-                           wave_order=3, use_default_profile=False, 
-                           init_lims=None, interactive=False, filt_size_ind=21, 
-                           filt_size_agg=51, filt_size_final=51, check_wave=False,
-                           check_fibermodel=False, fsize=8., bins=15,
-                           sigma=2.5, power=2.5):
+    def get_fiber_to_fiber(self, filt_size_ind=21, filt_size_agg=51, 
+                           filt_size_final=51,
+                           nbins=21, wave_order=3, default_fib=0,
+                           init_lims=None, interactive=False, 
+                           check_wave=False,
+                           calculate_shift=False, use_default=False,
+                           fibmodel_poly_order=3, trace_poly_order=3,
+                           check_fibermodel=False, 
+                           bins=15, make_ind_plots=False, 
+                           check_fibermodel=False,
+                           fsize=8., sigma=2.5, power=2.5,
+                           fiber_group=8, col_group=48):
         '''
-        This function gets the master sky spectrum and 
-        evaluates the sky_spectrum for each fiber. It then builds a sky image
-        and a sky-subtracted image.  It checks functional dependencies first: 
-        get_image(), get_trace(), get_fibermodel(), fiberextract(), and 
-        get_wavelength_solution().
+        This function gets the fiber to fiber normalization for this amplifier. 
+        It checks functional dependencies first: get_image(), get_trace(), 
+        get_fibermodel(), fiberextract(), and get_wavelength_solution().
         '''
         if self.image is None:
             if self.debug:
@@ -869,7 +876,9 @@ class Amplifier:
             self.averagespec = biweight_filter(smoothspec, filt_size_agg)
             for fib, fiber in enumerate(self.fibers):
                 fiber.fiber_to_fiber = biweight_filter(masterspec[fib] 
-                        / np.interp(fiber.wavelength, masterwave, self.averagespec),filt_size_final)
+                                      / np.interp(fiber.wavelength, masterwave, 
+                                                  self.averagespec), 
+                                                       filt_size_final)
 
         else:
             self.load_cal_property(['fiber_to_fiber'])   
