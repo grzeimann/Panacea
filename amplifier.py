@@ -41,12 +41,88 @@ class Amplifier:
         ''' 
         Initialize class
         ----------------
+        :param filename:
+            Filename for the raw data (which is just a single amplifier)
+        :param path:
+            The output path where to save the amplifier class and Fiber class
+        :param refit:
+            If set to yes, then nearly all attributes are refit.
+            Specifically:
+                1) Trace
+                2) Fibermodel
+                3) Wavelength Solution
+                4) Fiber to Fiber Normalization for the amplifier in question
+        :param calpath:
+            This parameter sets the file path that points to the compressed
+            Fiber Class files of previously reduced calibration frames.  
+            This path is used to load trace, wavelength solution, fibermodel, 
+            and fiber_to_fiber properties.
+        :param skypath:
+            This parameter sets the file path that points to the compressed
+            Fiber Class files of previously reduced sky frames.  This path
+            is used to load "sky_spectrum" properties.
+        :param debug:
+            This is used to print out run times for different stages.  In many
+            ways this parameter is ever changing for various debugging 
+            purposes.
+        :param darkpath:
+            This path is used to point to the library containing dark current
+            images for each amplifier.
+        :param biaspath:
+            This path is used to point to the library containing bias images
+            for each amplifier.
+        :param virusconfig:
+            This path points to a more general library of PixelFlats, IFUcen
+            Files, Fplane files, and solar/twighlight spectra.
+        :param dark_mult:
+            This value is used to multiply the dark image before subtraction.
+        :param bias_mult:
+            This value is used to multiply the bias image before subtraction.
+        :param use_pixelflat:
+            A boolean for correcting the pixel to pixel variations.
+        :param specname:
+            Base filename for loading the solar/twighlight spectrum used
+            in wavelength calibration.
+        :init header:
+            The fits header of the raw frame.
+        :init basename:
+            The basename for the filename input parameter.
+        :init N:
+            The number of rows (y-dir)
+        :init D:
+            The number of cols (x-dir) minus the overscan region
+        :init overscan_value:
+            Defaults to none but is evaluated as the biweight_location
+            of the values in the overscan region
+        :init gain:
+            (e-/ADU) read from the header
+        :init rdnoise:
+            (e-) read from the header
+        :init amp:
+            The amplifier name you are looking at, e.g., "RU" or "LL"
+        :init trimsec:
+            The CCD section defining the DATASEC.
+        :init biassec:
+            The CCD section defining the BIASSEC. (overscan region)
+        :init fibers:
+            Initially an empty list to be filled with Fiber Class Objects,
+            one for each fiber in the amplifier.
+        :init image:
+            The trimmed image that will be manipulated and cleaned during the
+            reduction process.
+        :init type:
+            Observation type.
+        :init specid:
+            The spectrograph ID for this amplifier.
+        :init ifuid:
+            The IFU ID for the fiber bundle.
+        :init ifuslot:
+            The IFU slot position in the Fplane array.
         '''
         if not op.exists(filename):
             #TODO log warning message
             print("File Does Not Exist: %s" %filename)
             sys.exit(1)
-
         F = fits.open(filename)
         self.header = F[0].header
         self.filename = op.abspath(filename)
@@ -55,6 +131,16 @@ class Amplifier:
         self.path = path
         if not op.exists(self.path):
             mkpath(self.path)
+        self.refit = refit
+        self.calpath = calpath
+        self.skypath = skypath
+        self.darkpath = darkpath
+        self.biaspath = biaspath
+        self.dark_mult = dark_mult
+        self.bias_mult = bias_mult
+        self.debug = debug
+        self.use_pixelflat = use_pixelflat
+        self.specname = specname
             
         self.N, self.D = F[0].data.shape
         if self.D == 1064:
@@ -70,31 +156,32 @@ class Amplifier:
         self.trimsec = [int(t)-((i+1)%2) for i,t in enumerate(trim)]        
         bias = re.split('[\[ \] \: \,]', F[0].header['BIASSEC'])[1:-1]
         self.biassec = [int(t)-((i+1)%2) for i,t in enumerate(bias)]        
-        self.fiber_fn = None
         self.fibers = []
         self.image = None
         self.type = F[0].header['IMAGETYP'].replace(' ', '')
-        self.calpath = calpath
-        self.skypath = skypath
-        self.darkpath = darkpath
-        self.biaspath = biaspath
-        self.dark_mult = dark_mult
-        self.bias_mult = bias_mult
-        self.debug = debug
         self.specid = '%03d' %F[0].header['SPECID']
         self.ifuid = F[0].header['IFUID'].replace(' ', '')
         self.ifuslot ='%03d' %F[0].header['IFUSLOT']
-        self.refit = refit
-        self.use_pixelflat = use_pixelflat
-        self.specname = specname
+
         
     def check_overscan(self, image, recalculate=False):
+        '''
+        Evaluate the overscan_value using a biweight average of the BIASSEC
+        region.  Only calculate the value if one does not exist or 
+        recalculate is set to True.
+        '''
         if (self.overscan_value is None) or recalculate:
             self.overscan_value = biweight_location(image[
                                               self.biassec[2]:self.biassec[3],
                                               self.biassec[0]:self.biassec[1]])
    
     def save(self):
+        '''
+        Save the entire amplifier include the list of fibers.  
+        This property is not used often as "amp*.pkl" is large and typically
+        the fibers can be loaded and the other amplifier properties quickly
+        recalculated.
+        '''
         fn = op.join(self.path, 'amp_%s.pkl' % self.basename)
         if not op.exists(self.path):
             os.mkdir(self.path)
@@ -103,6 +190,11 @@ class Amplifier:
            
 
     def load_fibers(self):
+        '''
+        Load fibers in self.path.  Redefine the path for the fiber to self.path
+        in case it was copied over. After loaded, evaluate the fibermodel as 
+        well as the wavelength solution if available.  
+        '''
         if not self.fibers:
             fn = op.join(self.path, 'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
                                                                   self.ifuslot,
@@ -119,19 +211,40 @@ class Amplifier:
                             self.fibers[-1].eval_wave_poly()
     
 
-    def convert_binning(self, F1, prop):
+    def convert_binning(self, fiber, prop):
+        '''
+        Occassionally the binning of property being loaded from calibration
+        or otherwise is not binned the same as the data.  This function 
+        converts between different binning if necessary.  The properties
+        affected by this are "fibmodel_x", "trace", and "fiber_to_fiber".  
+        Others are immune due to their evaluation methods.
+        :param fiber:
+            A fiber class object from which you are loading "prop".
+        :param prop:
+            A property to load from "fiber".
+        '''
         if prop == 'fibmodel_x':
-            values = getattr(F1, prop)
-            return (1.* values) / F1.D * self.D
+            values = getattr(fiber, prop)
+            return (1.* values) / fiber.D * self.D
         elif prop in ['trace', 'fiber_to_fiber']:
-            values = getattr(F1, prop)
+            values = getattr(fiber, prop)
             return np.interp((1.*np.arange(self.D))/self.D, 
-                             (1.*np.arange(F1.D))/F1.D, values)
+                             (1.*np.arange(fiber.D))/fiber.D, values)
             
         else:
-            return 1.* getattr(F1, prop)       
+            return 1.* getattr(fiber, prop)       
                              
     def load_cal_property(self, prop, pathkind='calpath'):
+        '''
+        Load a specific property from a calibration object.  This can be
+        "trace" from a twighlight frame or "sky_spectrum" from another
+        science frame.  
+        :param prop:
+            A property to load from a set of fibers.
+        :param pathkind:
+            Used to defined the path from the larger class.  E.g., "calpath"
+            or "skypath".
+        '''
         path = getattr(self, pathkind)
         fn = op.join(path,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
                                                                   self.ifuslot,
@@ -169,6 +282,10 @@ class Amplifier:
                 self.fibers.append(F)
     
     def load_all_cal(self):
+        '''
+        Load all calibration properties to current fiber set and evaluate
+        the fibermodel and wavelength solution.
+        '''
         self.load_cal_property(['trace','fibmodel_polyvals',
                                 'fibmodel_x','fibmodel_y','binx',
                                 'wave_polyvals','fiber_to_fiber'])
@@ -189,10 +306,19 @@ class Amplifier:
         
     
     def save_fibers(self):
+        '''
+        Save the fibers to self.path using the fiber class "save" function.
+        '''
         for fiber in self.fibers:
             fiber.save(self.specid, self.ifuslot, self.ifuid, self.amp)
        
     def get_image(self):
+        '''
+        This many purpose function loads the image, finds the overscan value,
+        subtracts the dark image and bias image, multplies the gain, 
+        and divides the pixelflat.  It also orients the image using the
+        "orient" function above.
+        '''
         image = np.array(fits.open(self.filename)[0].data, dtype=float)
         self.check_overscan(image)
         image[:] = image - self.overscan_value
@@ -222,6 +348,11 @@ class Amplifier:
         self.image = self.orient(image)
     
     def find_shift(self):
+        '''
+        Find the shift in the trace compared to the calibration fibers in
+        self.calpath.  If they are the same then the shift will be 0.  
+        This has not been tested yet.
+        '''
         fn = op.join(self.calpath,'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
                                                                   self.ifuslot,
                                                                   self.ifuid,
@@ -255,6 +386,22 @@ class Amplifier:
        
     def get_trace(self, fdist=2., check_trace=True, calculate_shift=False, 
                   trace_poly_order=3, guess_diff=8.7):
+        '''
+        This function gets the trace for this amplifier.  It checks functional
+        dependencies first: get_image().  If self.type='twi' or self.refit is
+        True then the trace is calculated, otherwise the trace is loaded from
+        calpath.
+        :param fdist:
+        
+        :param check_trace:
+        
+        :param calculate_shift:
+        
+        :param trace_poly_order:
+        
+        :param guess_diff:
+        '''                      
+          
         if self.image is None:
             self.get_image()
         if self.type == 'twi' or self.refit:
