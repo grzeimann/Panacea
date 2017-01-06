@@ -43,8 +43,7 @@ class Amplifier:
                  fiber_group=8, col_group=48, mask=None, wave_nbins=21, 
                  wave_order=3, default_fib=0, init_lims=None, 
                  interactive=False, check_wave=False,filt_size_ind=21, 
-                 filt_size_agg=51, filt_size_final=51, filt_size_sky=51
-                 ):
+                 filt_size_agg=51, filt_size_final=51, filt_size_sky=51):
         ''' 
         Initialize class
         ----------------
@@ -258,6 +257,7 @@ class Amplifier:
         self.filt_size_final = filt_size_final
         self.filt_size_sky = filt_size_sky
         
+        # Initialized variables
         self.N, self.D = F[0].data.shape
         if self.D == 1064:
             self.D -= 32
