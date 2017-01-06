@@ -263,21 +263,24 @@ def reduce_science(args):
                 if args.instr == "virus":
                     ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
                                                 args.ifucen_fn[amp][0]
-                                                +args.sci_df['Ifuid'][ind]+'.txt'), 
+                                                + args.sci_df['Ifuid'][ind] 
+                                                + '.txt'), 
                                                 usecols=[0,1,2], 
-                                                skiprows=args.ifucen_fn[amp][1])
+                                               skiprows=args.ifucen_fn[amp][1])
                 else:
                     ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
                                         args.ifucen_fn[amp][0]), 
-                                usecols=[0,1,2], skiprows=args.ifucen_fn[amp][1])
+                              usecols=[0,1,2], skiprows=args.ifucen_fn[amp][1])
                 if args.debug:
                     print("Working on Sci for %s, %s" %(spec, amp))   
                 sci1 = Amplifier(args.sci_df['Files'][ind],
                                  args.sci_df['Output'][ind],
                                  calpath=args.twi_dir, skypath=args.sky_dir,
-                                 debug=False, refit=False, dark_mult=args.dark_mult[amp],
+                                 debug=False, refit=False, 
+                                 dark_mult=args.dark_mult[amp],
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir, specname=args.specname[amp],
+                                 virusconfig=args.configdir, 
+                                 specname=args.specname[amp],
                                  use_pixelflat=(args.pixelflats<1))
                 sci1.load_fibers()
                 if sci1.fibers and not args.start_from_scratch:
@@ -291,13 +294,15 @@ def reduce_science(args):
                     sci1.clean_cosmics()
                     sci1.fiberextract()
                     sci1.sky_subtraction()
-                sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, config.Amp_dict[amp][0]),
+                sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, 
+                                                      config.Amp_dict[amp][0]),
                                  args.sci_df['Output'][ind],
                                  calpath=args.twi_dir, skypath=args.sky_dir, 
                                  debug=False, refit=False, 
-                                 dark_mult=args.dark_mult[config.Amp_dict[amp][0]],
+                             dark_mult=args.dark_mult[config.Amp_dict[amp][0]],
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir, specname=args.specname[amp],
+                                 virusconfig=args.configdir, 
+                                 specname=args.specname[amp],
                                  use_pixelflat=(args.pixelflats<1))
                 sci2.load_fibers()
                 if sci2.fibers and not args.start_from_scratch:
@@ -313,16 +318,18 @@ def reduce_science(args):
                     sci2.sky_subtraction()
                 outname = op.join(args.sci_df['Output'][ind],
                                   'S%s_%s_sci_%s.fits' %(
-                                  op.basename(args.sci_df['Files'][ind]).split('_')[0],
-                                  args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
-                make_spectrograph_image(sci1.clean_image, sci2.clean_image, sci1.header, 
-                           outname)
+                          op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                                   args.sci_df['Ifuslot'][ind], 
+                                                      config.Amp_dict[amp][1]))
+                make_spectrograph_image(sci1.clean_image, sci2.clean_image, 
+                                        sci1.header, outname)
                 make_error_frame(sci1.clean_image, sci2.clean_image, sci1.mask,
                                  sci2.mask, sci1.header, outname)
                 outname = op.join(args.sci_df['Output'][ind],
                                   'cS%s_%s_sci_%s.fits' %(
-                                  op.basename(args.sci_df['Files'][ind]).split('_')[0],
-                                  args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
+                          op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                                   args.sci_df['Ifuslot'][ind], 
+                                                      config.Amp_dict[amp][1]))
                 make_spectrograph_image(np.where(sci1.mask==0, 
                                                  sci1.clean_image, 0.0),
                                         np.where(sci2.mask==0, 
@@ -330,20 +337,23 @@ def reduce_science(args):
                                         sci1.header, outname)
                 make_error_frame(sci1.clean_image, sci2.clean_image, sci1.mask,
                                  sci2.mask, sci1.header, outname)
-                Fe, FeS = recreate_fiberextract(sci1, sci2, wavelim=args.wvl_dict[amp], 
-                                      disp=args.disp[amp])
+                Fe, FeS = recreate_fiberextract(sci1, sci2, 
+                                                wavelim=args.wvl_dict[amp], 
+                                                disp=args.disp[amp])
                 outname = op.join(args.sci_df['Output'][ind],
                                   'Fe%s_%s_sci_%s.fits' %(
-                                  op.basename(args.sci_df['Files'][ind]).split('_')[0],
-                                  args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
+                          op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                                   args.sci_df['Ifuslot'][ind], 
+                                                      config.Amp_dict[amp][1]))
                 make_fiber_image(Fe, sci1.header, outname, args, amp)
                 make_fiber_error(Fe, sci1.header, outname, args, amp)
                 make_cube_file(args, outname, ifucen, args.cube_scale, 
                                config.Amp_dict[amp][1])
                 outname = op.join(args.sci_df['Output'][ind],
                                   'FeS%s_%s_sci_%s.fits' %(
-                                  op.basename(args.sci_df['Files'][ind]).split('_')[0],
-                                  args.sci_df['Ifuslot'][ind], config.Amp_dict[amp][1]))
+                          op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                                   args.sci_df['Ifuslot'][ind], 
+                                                      config.Amp_dict[amp][1]))
                 make_fiber_image(FeS, sci1.header, outname, args, amp)
                 make_fiber_error(FeS, sci1.header, outname, args, amp)
                 make_cube_file(args, outname, ifucen, args.cube_scale, 
@@ -400,10 +410,10 @@ def reduce_twighlight(args):
                 twi2.load_fibers()
                 twi2.get_fiber_to_fiber()
                 twi2.sky_subtraction()
-                image1 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
-                                        debug=twi1.debug)
-                image2 = get_model_image(twi2.image, twi2.fibers, 'fiber_to_fiber',
-                                        debug=twi1.debug)
+                image1 = get_model_image(twi1.image, twi1.fibers, 
+                                         'fiber_to_fiber', debug=twi1.debug)
+                image2 = get_model_image(twi2.image, twi2.fibers, 
+                                         'fiber_to_fiber', debug=twi2.debug)
                 outname = op.join(args.twi_df['Output'][ind], 
                                   'mastertrace_%s_%s.fits' 
                                   %(args.twi_df['Specid'][ind],
@@ -413,22 +423,25 @@ def reduce_twighlight(args):
                                   'mastertwi_%s_%s.fits' 
                                   %(args.twi_df['Specid'][ind],
                                     config.Amp_dict[amp][1]))  
-                make_spectrograph_image(twi1.image, twi2.image, twi1.header, outname)
+                make_spectrograph_image(twi1.image, twi2.image, 
+                                        twi1.header, outname)
                 outname = op.join(args.twi_df['Output'][ind], 
                                   'normtwi_%s_%s.fits' 
                                   %(args.twi_df['Specid'][ind],
                                     amp))  
-                make_amplifier_image(twi1.orient(np.where(np.isfinite(twi1.skyframe)
-                                                 *(twi1.skyframe!=0),
-                                                 twi1.image/twi1.skyframe, 0.0)), 
+                make_amplifier_image(twi1.orient(np.where(
+                                 np.isfinite(twi1.skyframe)*(twi1.skyframe!=0),
+                                                      twi1.image/twi1.skyframe, 
+                                                                         0.0)), 
                                      twi1.header, outname)
                 outname = op.join(args.twi_df['Output'][ind], 
                                   'normtwi_%s_%s.fits' 
                                   %(args.twi_df['Specid'][ind],
                                     config.Amp_dict[amp][0]))
-                make_amplifier_image(twi2.orient(np.where(np.isfinite(twi2.skyframe)
-                                                 *(twi2.skyframe!=0),
-                                                 twi2.image/twi2.skyframe, 0.0)), 
+                make_amplifier_image(twi2.orient(np.where(
+                                 np.isfinite(twi2.skyframe)*(twi2.skyframe!=0),
+                                                      twi2.image/twi2.skyframe, 
+                                                                         0.0)), 
                                      twi2.header, outname)
                 D = recalculate_dist_coeff(D, twi1, twi2)
                 outname2 = op.join(args.twi_df['Output'][ind], 
