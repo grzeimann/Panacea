@@ -447,17 +447,17 @@ class Amplifier:
                                        self.trimsec[0]:self.trimsec[1]]
         darkimage = np.array(fits.open(op.join(self.darkpath, 
                                                 'masterdark_%s_%s.fits' 
-                                                %(self.specid, self.amp)))[0].data, 
+                                            %(self.specid, self.amp)))[0].data, 
                               dtype=float)
         biasimage = np.array(fits.open(op.join(self.biaspath, 
                                                 'masterbias_%s_%s.fits' 
-                                                %(self.specid, self.amp)))[0].data, 
+                                            %(self.specid, self.amp)))[0].data, 
                               dtype=float)
         if self.use_pixelflat:
-            pixelflat = np.array(fits.open(op.join(self.virusconfig, 'PixelFlats',
-                                                   '20161223',
+            pixelflat = np.array(fits.open(op.join(self.virusconfig, 
+                                                   'PixelFlats','20161223',
                                                    'pixelflat_cam%s_%s.fits' 
-                                                   %(self.specid, self.amp)))[0].data,
+                                            %(self.specid, self.amp)))[0].data,
                                   dtype=float)
         if self.dark_mult>0.0:
             image[:] = image - self.dark_mult * darkimage
