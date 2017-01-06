@@ -918,18 +918,31 @@ class Amplifier:
                                         'sky_spectrum', debug=False)
         self.clean_image = self.image - self.skyframe
         
+        
     def clean_cosmics(self):
-         cc = cosmics.cosmicsimage(self.clean_image, gain=1.0, 
-                                   readnoise=self.rdnoise, 
-                                   sigclip=25.0, sigfrac=0.001, objlim=0.001,
-                                   satlevel=-1.0)
-         cc.run(maxiter=4)
-         c = np.where(cc.mask == True)
-         self.mask = np.zeros(self.image.shape)
-         for x, y in zip(c[0], c[1]):
-             self.mask[x][y] = -1.0 
+        '''
+        We use a direct copy of Malte Tewes and Pieter Van Dokkum's cosmics.py
+        which is a python-interface of the LA cosmics algorithm to remove
+        cosmics from sky-subtracted frames.
+        
+        '''
+        cc = cosmics.cosmicsimage(self.clean_image, gain=1.0, 
+                                  readnoise=self.rdnoise, 
+                                  sigclip=25.0, sigfrac=0.001, objlim=0.001,
+                                  satlevel=-1.0)
+        cc.run(maxiter=4)
+        c = np.where(cc.mask == True)
+        self.mask = np.zeros(self.image.shape)
+        for x, y in zip(c[0], c[1]):
+            self.mask[x][y] = -1.0 
+             
              
     def get_master_sky(self, sky=False, norm=False):
+        '''
+        This builds a master sky spectrum from the spectra of all fibers
+        using a biweight average of a wavelength ordered master array.
+        
+        '''
         masterwave = []
         if sky:
             masterspec = []
