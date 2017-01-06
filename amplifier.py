@@ -36,7 +36,17 @@ class Amplifier:
                  debug=False, darkpath=None, biaspath=None, virusconfig=None,
                  dark_mult=1., bias_mult=0., use_pixelflat=True, 
                  specname=None, fdist=2., check_trace=True, 
-                 calculate_shift=False, trace_poly_order=3
+                 calculate_shift=False, trace_poly_order=3,
+                 fibmodel_poly_order=3, 
+                 use_default_fibmodel=False, 
+                 fibmodel_xbins=15, 
+                 make_fib_ind_plots=False, 
+                 check_fibermodel=False,
+                 fsize=8., 
+                 sigma=2.5, 
+                 power=2.5,
+                 fiber_group=8, 
+                 col_group=48
                  ):
         ''' 
         Initialize class
@@ -157,6 +167,15 @@ class Amplifier:
         self.check_trace = check_trace
         self.trace_poly_order = trace_poly_order
         self.calculate_shift = calculate_shift
+        self.fibmodel_poly_order = fibmodel_poly_order
+        self.use_default_fibmodel = use_default_fibmodel
+        self.fibmodel_xbins = fibmodel_xbins
+        self.make_fib_ind_plots = make_fib_ind_plots
+        self.check_fibermodel = check_fibermodel
+        
+        
+        
+        
         self.N, self.D = F[0].data.shape
         if self.D == 1064:
             self.D -= 32
