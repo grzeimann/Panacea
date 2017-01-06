@@ -105,6 +105,38 @@ class Amplifier:
             measurement.
         :param trace_poly_order:
             Not in use now, but remains for possible future use.
+        :param fibmodel_poly_order:
+            This parameter is not used anymore but remains for flexibility if
+            it is useful again.
+        :param use_default_fibmodel:
+            If true, no fit is performed and instead the default fiber model
+            is used.  The default profile is a gauss-hermite exponential and is
+            defined by "bins", "fsize", "sigma", and "power". 
+        :param fibmodel_xbins:
+            The number of bins (+2) used to define the fiber profile.
+        :param make_fib_ind_plots:
+            If True, plots for each image stamp that is fit.  Produces 
+            number of fibers times col_group images.  Typically 112x48 = 5376.
+            This also takes awhile to save all of these images.
+        :param check_fibermodel:
+            If True, a summary plot is produced of the fibermodel fit for the 
+            top/bottom/middle of the amplifier in fibers and columns 
+            (3x3 plot).
+        :param fsize:
+            The pixel size from the center of the trace over which the 
+            fibermodel is defined. In other words: [trace-fsize:trace+fsize].
+        :param sigma:
+            The sigma parameter for the gauss-hermite exponential for the 
+            initial/default fibermodel.  This model is used to defining the
+            binning of the empirical fibermodel through the CDF of the 
+            second derivative.
+        :param power:
+            The power parameter for the gauss-hermite exponential for the 
+            initial/default fibermodel.
+        :param fiber_group:
+            Total number of fibers used to constrain the profile at one time.
+        :param col_group:
+            Total number of columns used to constrain the profile at one time.
         :init header:
             The fits header of the raw frame.
         :init basename:
@@ -172,8 +204,11 @@ class Amplifier:
         self.fibmodel_xbins = fibmodel_xbins
         self.make_fib_ind_plots = make_fib_ind_plots
         self.check_fibermodel = check_fibermodel
-        
-        
+        self.fsize = fsize
+        self.sigma = sigma
+        self.power = power
+        self.fiber_group = fiber_group
+        self.col_group = col_group
         
         
         self.N, self.D = F[0].data.shape
@@ -539,12 +574,7 @@ class Amplifier:
             check_fiber_trace(self.image, self.fibers, outfile)
             
                 
-    def get_fibermodel(self, fibmodel_poly_order=3, trace_poly_order=3,
-                       calculate_shift=False, use_default=False, bins=15, 
-                       make_ind_plots=False, 
-                       check_fibermodel=False,
-                       fsize=8., sigma=2.5, power=2.5,
-                       fiber_group=8, col_group=48):
+    def get_fibermodel(self):
         '''
         This function gets the fibermodel for this amplifier.  It checks 
         functional dependencies first: get_image() and get_trace().  
@@ -564,64 +594,27 @@ class Amplifier:
         done for each fiber in a moving window sense, but done only once in
         the column direction in an gridded sense.
         
-        :param fibmodel_poly_order:
-            This parameter is not used anymore but remains for flexibility if
-            it is useful again.
-        :param trace_poly_order:
-            See get_trace().
-        :param calculate_shift:
-            See get_trace().            
-        :param use_default:
-            If true, no fit is performed and instead the default fiber model
-            is used.  The default profile is a gauss-hermite exponential and is
-            defined by "bins", "fsize", "sigma", and "power". 
-        :param bins:
-            The number of bins (+2) used to define the fiber profile.
-        :param make_ind_plots:
-            If True, plots for each image stamp that is fit.  Produces 
-            number of fibers times col_group images.  Typically 112x48 = 5376.
-            This also takes awhile to save all of these images.
-        :param check_fibermodel:
-            If True, a summary plot is produced of the fibermodel fit for the 
-            top/bottom/middle of the amplifier in fibers and columns 
-            (3x3 plot).
-        :param fsize:
-            The pixel size from the center of the trace over which the 
-            fibermodel is defined. In other words: [trace-fsize:trace+fsize].
-        :param sigma:
-            The sigma parameter for the gauss-hermite exponential for the 
-            initial/default fibermodel.  This model is used to defining the
-            binning of the empirical fibermodel through the CDF of the 
-            second derivative.
-        :param power:
-            The power parameter for the gauss-hermite exponential for the 
-            initial/default fibermodel.
-        :param fiber_group:
-            Total number of fibers used to constrain the profile at one time.
-        :param col_group:
-            Total number of columns used to constrain the profile at one time.
         '''
         if self.image is None:
             self.get_image()
         if not self.fibers:
-            self.get_trace(calculate_shift=calculate_shift,
-                           trace_poly_order=trace_poly_order)
+            self.get_trace()
         if self.type == 'twi' or self.refit:
             sol, xcol, binx = fit_fibermodel_nonparametric(self.image, 
-                                                           self.fibers,
-                                                           debug=False,
-                                                       use_default=use_default,
-                                                           plot=make_ind_plots,
+                                                                   self.fibers,
+                                                                   debug=False,
+                                         use_default=self.use_default_fibmodel,
+                                                  plot=self.make_fib_ind_plots,
                                                            outfolder=self.path,
-                                                       fiber_group=fiber_group,
-                                                           col_group=col_group,
-                                                           bins=bins,
-                                                           fsize=fsize,
-                                                           sigma=sigma,
-                                                           power=power)
+                                                  fiber_group=self.fiber_group,
+                                                      col_group=self.col_group,
+                                                      bins=self.fibmodel_xbins,
+                                                              fsize=self.fsize,
+                                                              sigma=self.sigma,
+                                                              power=self.power)
             nfibs, ncols, nbins = sol.shape
             for i, fiber in enumerate(self.fibers):
-                fiber.fibmodel_poly_order = fibmodel_poly_order
+                fiber.fibmodel_poly_order = self.fibmodel_poly_order
                 fiber.fibmodel_x = xcol
                 fiber.fibmodel_y = sol[i,:,:]
                 fiber.binx = binx
