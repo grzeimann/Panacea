@@ -32,16 +32,19 @@ import config
 def recreate_fiberextract(instr1, instr2, wavelim, disp):
     col = int(instr1.D / 2)
     intv = [1, 1+instr1.D]
-    ypos = np.array([fiber.trace+intv[v] for v,instr in enumerate([instr1,instr2]) 
-                                   for fiber in instr.fibers])
-    allspec = np.array([fiber.spectrum/fiber.fiber_to_fiber 
-                                   for v,instr in enumerate([instr1,instr2]) 
-                                   for fiber in instr.fibers])                                       
-    allskys = np.array([(fiber.spectrum-fiber.sky_spectrum)/fiber.fiber_to_fiber 
-                                   for v,instr in enumerate([instr1,instr2]) 
-                                   for fiber in instr.fibers])
-    allwave = np.array([fiber.wavelength for v,instr in enumerate([instr1,instr2]) 
-                                   for fiber in instr.fibers])
+    ypos = np.array([fiber.trace+intv[v] 
+                     for v,instr in enumerate([instr1, instr2]) 
+                     for fiber in instr.fibers])
+    allspec = np.array([fiber.spectrum / fiber.fiber_to_fiber 
+                        for v,instr in enumerate([instr1, instr2]) 
+                        for fiber in instr.fibers])                                       
+    allskys = np.array([(fiber.spectrum-fiber.sky_spectrum) 
+                            / fiber.fiber_to_fiber 
+                        for v,instr in enumerate([instr1, instr2]) 
+                        for fiber in instr.fibers])
+    allwave = np.array([fiber.wavelength 
+                        for v,instr in enumerate([instr1, instr2]) 
+                        for fiber in instr.fibers])
     f1 = ypos[:,col]
     order = np.argsort(f1)[::-1]
     orderspec = allspec[order,:]
@@ -65,8 +68,9 @@ def recreate_fiberextract(instr1, instr2, wavelim, disp):
 def recalculate_dist_coeff(D, instr1, instr2):
     col = int(instr1.D / 2)
     intv = [1, 1+instr1.D]
-    ypos = np.array([fiber.trace+intv[v] for v,instr in enumerate([instr1,instr2]) 
-                                   for fiber in instr.fibers])
+    ypos = np.array([fiber.trace+intv[v] 
+                     for v,instr in enumerate([instr1,instr2]) 
+                     for fiber in instr.fibers])
     xpos = np.array([np.arange(fiber.D) for instr in [instr1,instr2] 
                                         for fiber in instr.fibers])
     f1 = ypos[:,col]
@@ -285,7 +289,7 @@ def reduce_science(args):
                     sci1.load_all_cal()
                     sci1.sky_subtraction()
                     sci1.clean_cosmics()
-                    sci1.fiberextract(mask=sci1.mask)
+                    sci1.fiberextract()
                     sci1.sky_subtraction()
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, config.Amp_dict[amp][0]),
                                  args.sci_df['Output'][ind],
@@ -305,7 +309,7 @@ def reduce_science(args):
                     sci2.load_all_cal()
                     sci2.sky_subtraction()
                     sci2.clean_cosmics()
-                    sci2.fiberextract(mask=sci2.mask)
+                    sci2.fiberextract()
                     sci2.sky_subtraction()
                 outname = op.join(args.sci_df['Output'][ind],
                                   'S%s_%s_sci_%s.fits' %(
@@ -366,28 +370,35 @@ def reduce_twighlight(args):
                                  calpath=args.twi_df['Output'][ind], 
                                  debug=True, refit=True, dark_mult=0.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir, specname=args.specname[amp],
-                                 use_pixelflat=(args.pixelflats<1))
+                                 virusconfig=args.configdir, 
+                                 specname=args.specname[amp],
+                                 use_pixelflat=(args.pixelflats<1),
+                                 init_lims=args.wvl_dict[amp], 
+                                 check_fibermodel=True, check_wave=True,
+                                 fsize=args.fsize, 
+                                 fibmodel_nbins=args.fibmodel_bins,
+                                 sigma=args.fibmodel_sig,
+                                 power=args.fibmodel_pow)
                 twi1.load_fibers()
-                twi1.get_fiber_to_fiber(use_default_profile=False, 
-                               init_lims=args.wvl_dict[amp], interactive=False,
-                               check_fibermodel=True, check_wave=True,
-                               fsize=args.fsize, bins=args.fibmodel_bins,
-                               sigma=args.fibmodel_sig, power=args.fibmodel_pow)
+                twi1.get_fiber_to_fiber()
                 twi1.sky_subtraction()
-                twi2 = Amplifier(args.twi_df['Files'][ind].replace(amp, config.Amp_dict[amp][0]),
+                twi2 = Amplifier(args.twi_df['Files'][ind].replace(amp, 
+                                                      config.Amp_dict[amp][0]),
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
                                  debug=True, refit=True, dark_mult=0.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir, specname=args.specname[amp],
-                                 use_pixelflat=(args.pixelflats<1))
+                                 virusconfig=args.configdir, 
+                                 specname=args.specname[amp],
+                                 use_pixelflat=(args.pixelflats<1),
+                                 init_lims=args.wvl_dict[amp], 
+                                 check_fibermodel=True, check_wave=True,
+                                 fsize=args.fsize, 
+                                 fibmodel_nbins=args.fibmodel_bins,
+                                 sigma=args.fibmodel_sig,
+                                 power=args.fibmodel_pow)
                 twi2.load_fibers()
-                twi2.get_fiber_to_fiber(use_default_profile=False, 
-                               init_lims=args.wvl_dict[amp], interactive=False,
-                               check_fibermodel=True, check_wave=True, 
-                               fsize=args.fsize, bins=args.fibmodel_bins,
-                               sigma=args.fibmodel_sig, power=args.fibmodel_pow)
+                twi2.get_fiber_to_fiber()
                 twi2.sky_subtraction()
                 image1 = get_model_image(twi1.image, twi1.fibers, 'fiber_to_fiber',
                                         debug=twi1.debug)
