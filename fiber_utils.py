@@ -12,7 +12,6 @@ from utils import biweight_filter
 from scipy.optimize import nnls
 import scipy
 from scipy.linalg import lstsq
-from astropy.convolution import Gaussian1DKernel, convolve
 import matplotlib.pyplot as plt
 import matplotlib
 import os.path as op
@@ -21,9 +20,20 @@ import time
 import sys
 
 def str2bool(v):
-  return v.lower() in ("y", "yes", "true", "t", "1")
+    '''
+    Convert a string to a boolean.  If the string is in the list below,
+    then True is returned.    
+    
+    '''
+    
+    return v.lower() in ("y", "yes", "true", "t", "1")
 
 def get_float(answer, question, previous):
+    '''
+    Examines string return for various cases.
+    If 'q' then quit.  If '' then use previous value.  If float, return it.
+    
+    '''
     try:
         value = float(answer)
     except ValueError:
@@ -37,6 +47,11 @@ def get_float(answer, question, previous):
     return value
 
 def get_int(answer, question, previous):
+    '''
+    Examines string return for various cases.
+    If 'q' then quit.  If '' then use previous value.  If int, return it.
+    
+    '''
     try:
         value = int(answer)
     except ValueError:
@@ -51,6 +66,10 @@ def get_int(answer, question, previous):
 
 def fit_scale_wave0(init_scale, init_wave0, xi, xe, D, sun_wave, ysun, data, 
                     fixscale=False): 
+    '''
+    Fitting function for linear wavelength solution of a small column section
+    of one fiber.  
+    '''
     if fixscale:
         def f(params, sel1):
             wv = init_scale * np.arange(D) + params[0]
@@ -78,6 +97,29 @@ def fit_scale_wave0(init_scale, init_wave0, xi, xe, D, sun_wave, ysun, data,
 
 def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
                 first_order_iter=5, max_to_min_dist=5):
+    '''
+    This function finds maxima related to fiber peaks.  The centroid
+    is defined iteratively over an interpolated field.
+    
+    :param x:
+        The row values for a column slice.
+    :param y:
+        The counts for a given column slice.
+    :param y_window:
+        In [x - y_window : x + y_window] evaluate the maximum value.
+    :param interp_window:
+        In [x - interp_window : x + interp_window] interpolate y to new grid
+        and find the first order moment (centroid)
+    :param repeat_length:
+        In the moving window the maximum value has to repeat at least this 
+        many times + 1 to keep it as a potential fiber centroid
+    :param first_order_iter:
+        The number of iterations to re-calculate the first order moment
+        over the interpreted grid.
+    :param max_to_min_dist:
+        Initial maxima are found over [min, next min] grid and the min/next min
+        is fixed to be at most max_to_min_dist away
+    '''
     a = len(y)
     mxval = np.zeros((a-2-y_window*2+1,))
     mnval = np.zeros((a-2-y_window*2+1,))
