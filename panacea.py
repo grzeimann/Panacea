@@ -293,7 +293,6 @@ def reduce_science(args):
                     sci1.sky_subtraction()
                     sci1.clean_cosmics()
                     sci1.fiberextract()
-                    
                     sci1.sky_subtraction()
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, 
                                                       config.Amp_dict[amp][0]),
