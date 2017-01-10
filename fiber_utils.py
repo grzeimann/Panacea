@@ -644,8 +644,28 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
             plt.colorbar()
     return so, xcols, binx
 
-def get_norm_nonparametric(image, Fibers, fsize=8., fiber_group=4, 
+def get_norm_nonparametric(image, Fibers, fiber_group=4, 
                            debug=False, mask=None):
+    '''
+    This builds the normalization (aka spectrum) for each fiber and mimicks
+    the fibermodel function above but instead of fitting the profile, uses
+    an already fitted profile and solves for the spectrum.
+    
+    :param image:
+        Amplifier image
+    :param Fibers:
+        List of fiber class object for each fiber
+    :param fiber_group:
+        Because the grid is built with fiber_group, this is an input just as
+        it was for fibermodel but allows the normalization to be solved for
+        over a different grid if someone wants to use more/less fibers
+    :param debug:
+        All-purpose boolean for debugging
+    :param mask:
+        Image with -1 as a mask for ignoring pixels when solving for the 
+        spectrum.  It is not clear yet if a whole fiber is flagged over a large
+        number of columns, whether a reasonable value or will lead to nonsense.
+    '''
     a,b = image.shape 
     if mask is None:
         mask = np.zeros(image.shape)
@@ -707,8 +727,48 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
                                       group=4, bins=11, niter=3, debug=False,
                                       outfolder=None, sol=None, binx=None):
     '''
-    : param Fibers:
-        list of Fiber class objects (length = number of fibers)
+    This is the workhorse function for fibermodel fitting.  It fits
+    a single empirical fiber model for a group of fibers and columns.  
+    
+    :param image:
+        Amplifier image
+    :param xgrid:
+        Column indices
+    :param ygrid:
+        Row indices
+    :param Fibers:
+        List of fiber class object for each fiber
+    :param fib:
+        Fiber number for fitting
+    :param xlow:
+        The low column value to use when fitting
+    :param xhigh:
+        The high column value to use when fitting
+    :param plot:
+        Plot the fit
+    :param fsize:
+        Region in which fiber model is defined and at the end set to zero.
+        The region is [-fsize, fsize] in pixels.  
+    :param group:
+        Group size of fibers
+    :param bins:
+        The initial number of bins used to describe the 
+        empirical/non-parametric profile.  Two other bins are added near
+        the peak for common asymetries that are in the data but not in the
+        initial_profile that defines the x-values of the bins.  This assures
+        more accurate modeling of the peak of the profiles.
+    :param niter:
+        Number of iterations between normalization and fiber model.  Each are 
+        fit independently with the other fixed.
+    :param debug:
+        General timing and debugging
+    :param outfolder:
+        File folder location of the plot
+    :param sol:
+        Initial solution for the fiber model to start with
+    :param binx:
+        Location of the bins in the fiber direction 
+        
     '''
     buf = 0.
     if debug:
