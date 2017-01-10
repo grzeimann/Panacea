@@ -1014,13 +1014,24 @@ def get_norm_nonparametric_bins(image, mask, xgrid, ygrid, Fibers, fib=0,
 
 def get_model_image(image, fibers, prop, debug=False):
     '''
-    : param Fibers:
-        list of Fiber class objects (length = number of fibers)
+    Produce an amplifier image of a given fiber property, prop.  For example if 
+    prop==spectrum, then this function produces a model of the image.
+    If instead prop==sky_spectrum, than this function produces an image
+    of the sky.  
+    
+    :param image:
+        Amplifier image
+    :param fibers:
+        List of fiber class object for each fiber
+    :param prop:
+        A property of the fiber class to be used for the model image.
+    :param debug:
+        Timing and debugging
+    
     '''
     if debug:
         t1 = time.time()    
     
-
     # Create empty arrays for the fibermodel weights in each given pixel from
     dummy, bins = fibers[0].fibmodel.shape
     binx = fibers[0].binx
@@ -1054,6 +1065,22 @@ def get_model_image(image, fibers, prop, debug=False):
     return model   
     
 def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
+    '''
+    Plot of the amplifier image overlayed with the trace for 
+    the top/middle/bottom in the fiber and wavelength direction (3 x 3)
+    
+    :param image:
+        Amplifier image
+    :param Fibers:
+        List of fiber class object for each fiber
+    :param outfile:
+        File name to be saved for this plot
+    :param xwidth:
+        Width in wavelength/column direction of each box
+    :param ywidth:
+        Width in fiber/row direction of each box
+        
+    '''
     ylen,xlen = image.shape
     ypos, xpos = np.indices((ylen,xlen))
     xpos = xpos.ravel()
@@ -1089,6 +1116,30 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
 def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107], 
                         xwidth=75., ywidth=75., yplot_high=0.35, 
                         yplot_low=-0.01, plotbuf=4):
+    '''
+    Plot of the fiber profiles for the top/middle/bottom in the fiber and 
+    wavelength direction (3 x 3)
+    
+    :param image:
+        Amplifier image
+    :param Fibers:
+        List of fiber class object for each fiber
+    :param outfile:
+        File name to be saved for this plot
+    :param fiber_sel:
+        Fibers to plotted
+    :param xwidth:
+        Width in wavelength/column direction of each box
+    :param ywidth:
+        Width in fiber/row direction of each box
+    :param yplot_high:
+        Ylim in the plot (related to the normalized fiber profile height)
+    :param yplot_low:
+        Ylim in the plot
+    :param plotbuf:
+        Buffer in fiber direction for plotting
+        
+    '''
     ylen,xlen = image.shape
     ypos, xpos = np.indices((ylen,xlen))
     # initial plot position    
@@ -1173,6 +1224,28 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
     
 def check_wavelength_fit(Fibers, sun, outfile, fiber_sel=[5,58,107], 
                         xwidth=50., fwidth=10, smooth_length=21):
+    '''
+    Plot of the wavelength solution for the top/middle/bottom in the fiber and 
+    wavelength direction (3 x 3)
+    
+    :param Fibers:
+        List of fiber class object for each fiber
+    :param sun:
+        Solar template spetrum (two column array)
+    :param outfile:
+        File name to be saved for this plot
+    :param fiber_sel:
+        Fibers to plotted
+    :param xwidth:
+        Width in wavelength/column direction of each box
+    :param fwidth:
+        Number of fibers included on each side of the fiber selected
+    :param smooth_length:
+        Biweight filter smoothing length for normalizing the fiber spectra.
+        This could be inconsistent with the template and the fitting.
+        Be careful.
+        
+    '''
     xlen = len(Fibers[0].wavelength)
     flen = len(Fibers)
     fig = plt.figure(figsize=(12, 12))    
