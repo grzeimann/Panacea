@@ -581,6 +581,31 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
         Region in which fiber model is defined and at the end set to zero.
         The region is [-fsize, fsize] in pixels.
     :param fiber_group:
+        Defines the number of fibers fit simultaneously for the fibermodel.
+        In practice, fiber_group+1 fibers are fit and only half of the first
+        and the last fiber in the group are used for convergence.
+    :param bins:
+        The initial number of bins used to describe the 
+        empirical/non-parametric profile.  Two other bins are added near
+        the peak for common asymetries that are in the data but not in the
+        initial_profile that defines the x-values of the bins.  This assures
+        more accurate modeling of the peak of the profiles.
+    :param col_group:
+        Number of columns used to fit a single profile.  This is not a moving
+        window but done once in a block and moved to the next block.
+    :param debug:
+        All-purpose boolean for investigating issues.
+    :param use_default:
+        This skips fitting a profile and uses just a default empirical 
+        profile with amplitudes defined by a gauss-hermite exponential with 
+        sigma and power as the only input parameters.
+    :param outfolder:
+        This is used for the location of the individual plots.
+    :param sigma:
+        Parameter for initial profile.
+        profile = np.exp(-1./2.*((np.abs(x/sigma))**power))
+    :param power:
+        Parameter for initial profile.
         
     '''
     a,b = image.shape 
