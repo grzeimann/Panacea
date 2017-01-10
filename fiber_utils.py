@@ -913,8 +913,35 @@ def get_norm_nonparametric_bins(image, mask, xgrid, ygrid, Fibers, fib=0,
                                       xlow=0, xhigh=1032, fsize=8., 
                                       group=4, debug=False):
     '''
-    : param Fibers:
-        list of Fiber class objects (length = number of fibers)
+    This is the workhorse function for producing the spectrum of a
+    fiber.  It is similar to fit_fibermodel_nonparametric_bins.
+    
+    :param image:
+        Amplifier image
+    :param mask:
+        Pixels to ignore in fitting for the normalization.  Mask==-1 is ignored
+    :param xgrid:
+        Column indices
+    :param ygrid:
+        Row indices
+    :param Fibers:
+        List of fiber class object for each fiber
+    :param fib:
+        Fiber number for fitting
+    :param xlow:
+        The low column value to use when fitting
+    :param xhigh:
+        The high column value to use when fitting
+    :param plot:
+        Plot the fit
+    :param fsize:
+        Region in which fiber model is defined and at the end set to zero.
+        The region is [-fsize, fsize] in pixels.  
+    :param group:
+        Group size of fibers
+    :param debug:
+        General timing and debugging
+
     '''
     if debug:
         t1 = time.time()    
