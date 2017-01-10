@@ -180,6 +180,11 @@ def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
                          init_sol=None, height_clip=1.02, debug=False,
                          interactive=False, constrained_to_initial=False,
                          maxwavediff=5.):
+    '''
+    Outdated wavelength calculation using peaks in the normalized 
+    twi/solar spectrum.
+    
+    '''
     if debug:
         t1 = time.time()
     if init_lims is None:
@@ -290,6 +295,44 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
                          init_lims=None, order=3, init_sol=None, debug=False,
                          interactive=False, nbins=21, wavebuff=100, 
                          plotbuff=70, fixscale=False):
+    '''
+    Use a linear solution of the wavelength via a chi^2 fit from normalized
+    twighlight spectrum and that of the template.  
+    
+    :param x:
+        Column values
+    :param y:
+        Counts
+    :param solar_spec:
+        Two column vector array with wavelength and normalized flux of the 
+        template spectrum
+    :param smooth_length:
+        Biweight smoothing length of the twi spectrum used for normalization.
+    :param init_lims:
+        Two entry list or tuple of the wavelength guess for the first and last
+        column.  This is used as an initial linear solution.
+    :param order:
+        Polynomial order for the final wavelength solution of the fiber
+    :param init_sol:
+        Initial solution (polynomial) to start with instead of a linear guess
+        from init_lims.
+    :param debug:
+        Used for random debug purposes, especially timing
+    :param interactive:
+        If true, the linear fits are interactive with feedback for slope and
+        intercept.  This is helpful for debugging and difficult fits
+    :param nbins:
+        Number of linear bins fit for the ultimate polynomial solution
+    :param wavebuff:
+        The linear bins don't start at the first column but instead start and
+        end at init_lims[0] + wavebuff and init_lims[1] - wavebuff.  This is
+        critical for LRS2 where the throughput is very low in the blue side
+    :param plotbuff:
+        In the interactive mode, the plotted bin has wavelength limits that
+        are +/-plotbuff the fit limits
+    :param fixscale:
+        Only fit the intercept in the linear fit of each bin
+    '''
     L = len(x)
     if init_lims is None:
         init_lims = [np.min(solar_spec[:,0]), np.max(solar_spec[:,0])]
@@ -300,7 +343,6 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
     bins = np.linspace(init_lims[0], init_lims[1], nbins)
     bins = bins[1:-1]
     scale = 1.*(init_lims[1] - init_lims[0])/L
-    scale0 = scale*1.
     wv0 = init_lims[0]
     wave0_save = [] 
     scale_save = []
@@ -312,7 +354,6 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
             xh = np.searchsorted(init_wave_sol, bins[j+1])
             p0 = np.polyfit(x[xl:xh+1], init_wave_sol[xl:xh+1], 1)
             scale = p0[0]
-            scale0 = scale*1.        
             wv0 = p0[1]
         wv = np.arange(L)*scale + wv0
         xi = np.searchsorted(wv,bins[j])
@@ -431,6 +472,17 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
     :param mx_cut:
         The cut used to define maxima from noise.  Must be greater than 
         mx_cut * <avg height of all peaks>.
+    :param max_to_min_dist:
+        Initial maxima are found over [min, next min] grid and the min/next min
+        is fixed to be at most max_to_min_dist away
+    :param debug:
+        Used for a variety of purposes including timing
+    :param interp_window:
+        In [x - interp_window : x + interp_window] interpolate y to new grid
+        and find the first order moment (centroid)
+    :param first_order_iter:
+        The number of iterations to re-calculate the first order moment
+        over the interpreted grid        
     '''
     allfibers=[]
     a, b = image.shape
@@ -511,6 +563,26 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
                                  fiber_group=4, bins=15, col_group=48,
                                  debug=False, use_default=False,
                                  outfolder=None, sigma=2.5, power=2.5):
+    '''
+    This function orchestrates the calls to the sub-function, 
+    fit_fibermodel_nonparametric_bins, and grids the image to fit the fiber 
+    model in an empirical method.  The fibermodel is fit in column blocks
+    but done for each fiber with a window of "fiber_group" size.  In this 
+    grid, a single fibermodel is fit and assigned to the fiber of interest and
+    central column of the group.
+    
+    :param image:
+        Amplifier image
+    :param Fibers:
+        List of fiber class for each fiber in the amplifier
+    :param plot:
+        If true, individual plots will be produced for each fit
+    :param fsize:
+        Region in which fiber model is defined and at the end set to zero.
+        The region is [-fsize, fsize] in pixels.
+    :param fiber_group:
+        
+    '''
     a,b = image.shape 
     ygrid,xgrid = np.indices(image.shape)                       
     nfibs = len(Fibers) 
