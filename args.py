@@ -189,10 +189,12 @@ def parse_args(argv=None):
 
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
     observations=[]
+    args.check_if_twi_exists=False
     if args.reduce_sci:
         observations.append('sci')
         if not args.reduce_twi:
             observations.append('twi')
+            args.check_if_twi_exists = True
     if args.reduce_twi:
         observations.append('twi')
     if args.use_other_sky:
@@ -299,6 +301,7 @@ def parse_args(argv=None):
                                                    "{:s}{:07d}".format(args.instr,int(obsid)), 
                                                    "exp{:02d}".format(int(expnum)),
                                                    args.instr))
-                    
+            
+        
 
     return args

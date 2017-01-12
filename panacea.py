@@ -27,6 +27,7 @@ from fiber_utils import get_model_image
 from utils import matrixCheby2D_7, biweight_filter, biweight_midvariance
 from utils import biweight_location
 import config
+import glob
                       
                       
 def recreate_fiberextract(instr1, instr2, wavelim, disp):
@@ -272,7 +273,19 @@ def reduce_science(args):
                                         args.ifucen_fn[amp][0]), 
                               usecols=[0,1,2], skiprows=args.ifucen_fn[amp][1])
                 if args.debug:
-                    print("Working on Sci for %s, %s" %(spec, amp))   
+                    print("Working on Sci for %s, %s" %(spec, amp)) 
+                if args.check_if_twi_exists:
+                    fn = op.join(args.twi_dir,'fiber_*_%s_%s_%s_%s.pkl' %(spec, 
+                                                   args.sci_df['Ifuslot'][ind],
+                                                     args.sci_df['Ifuid'][ind],
+                                                                          amp))
+                    calfiles = glob.glob(fn)
+                    if not calfiles:
+                        print("No cals found for %s,%s: %s"
+                              %(spec, amp, args.sci_df['Files'][ind]))
+                        print("If you want to produce cals include "
+                              "--reduce_twi")
+                  
                 sci1 = Amplifier(args.sci_df['Files'][ind],
                                  args.sci_df['Output'][ind],
                                  calpath=args.twi_dir, skypath=args.sky_dir,
@@ -389,7 +402,7 @@ def reduce_twighlight(args):
                                  fibmodel_nbins=args.fibmodel_bins,
                                  sigma=args.fibmodel_sig,
                                  power=args.fibmodel_pow)
-                twi1.load_fibers()
+                #twi1.load_fibers()
                 twi1.get_fiber_to_fiber()
                 twi1.sky_subtraction()
                 twi2 = Amplifier(args.twi_df['Files'][ind].replace(amp, 
@@ -407,7 +420,7 @@ def reduce_twighlight(args):
                                  fibmodel_nbins=args.fibmodel_bins,
                                  sigma=args.fibmodel_sig,
                                  power=args.fibmodel_pow)
-                twi2.load_fibers()
+                #twi2.load_fibers()
                 twi2.get_fiber_to_fiber()
                 twi2.sky_subtraction()
                 image1 = get_model_image(twi1.image, twi1.fibers, 
