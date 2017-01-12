@@ -193,7 +193,7 @@ def make_error_frame(image1, image2, mask1, mask2, header, outname):
     err = np.zeros(new.shape)
     for i in xrange(2*a):
         err[i,:] = np.where(mas[i,:]<0, mas[i,:], 
-                            biweight_filter(new[i,:], 21, 
+                            biweight_filter(new[i,:], 31, 
                                             func=biweight_midvariance))
     hdu = fits.PrimaryHDU(np.array(err, dtype='float32'), header=header)
     hdu.header.remove('BIASSEC')
