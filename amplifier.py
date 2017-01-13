@@ -605,7 +605,10 @@ class Amplifier:
             if self.calculate_shift:
                 self.net_trace_shift = self.find_shift()
                 if self.net_trace_shift is not None:
+                    self.load_cal_property('trace_polyvals')
+                    self.load_cal_property('trace')
                     for fiber in self.fibers:
+                        fiber.eval_trace_poly()
                         fiber.trace_polyvals[-1] += self.net_trace_shift
                         fiber.eval_trace_poly()
                         fiber.trace[:] = self.trace + self.net_trace_shift
