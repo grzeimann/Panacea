@@ -1198,6 +1198,7 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
                     lmodel.append(np.dot(Fl[li:hi,:],fiber.fibmodel[k,:])+plaw(ix[li:hi] / 2.5, plaw_coeff))
                     model[li:hi,k] += lmodel[-1]
                     normfits[li:hi,k,fib] = fiber.spectrum[k]
+                #TODO: Revist how this is calculated.
                 flat[miny:maxy,k] = (image[miny:maxy,k]/((model[miny:maxy,k][:,np.newaxis]*normfits[miny:maxy,k,:]**2)
                          /(model[miny:maxy,k][:,np.newaxis]*normfits[miny:maxy,k,:]).sum(axis=1)
                                                 [:,np.newaxis]).sum(axis=1))

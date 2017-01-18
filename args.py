@@ -8,7 +8,6 @@ Built for the VIRUS instrument as well as LRS2 on HET
 """
 
 import pandas as pd
-import numpy as np
 import argparse as ap
 from distutils.dir_util import mkpath
 import textwrap
@@ -51,6 +50,15 @@ def parse_args(argv=None):
                         
     parser.add_argument("-uos","--use_other_sky", 
                         help='''Use another frame for the sky_spectrum''',
+                        action="count", default=0)
+
+    parser.add_argument("-at","--adjust_trace", 
+                        help='''Adjust trace using science frame.''',
+                        action="count", default=0)
+    
+    parser.add_argument("-rff","--refit_fiber_to_fiber", 
+                        help='''Using the sky spectrum, refit the fiber to
+                                fiber.''',
                         action="count", default=0)
 
     parser.add_argument("-p","--pixelflats", 
