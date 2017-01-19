@@ -44,7 +44,7 @@ class Amplifier:
                  wave_order=3, default_fib=0, init_lims=None, 
                  interactive=False, check_wave=False,filt_size_ind=21, 
                  filt_size_agg=51, filt_size_final=51, filt_size_sky=51,
-                 colfrac = 0.47):
+                 col_frac = 0.47):
         ''' 
         Initialize class
         ----------------
@@ -231,6 +231,7 @@ class Amplifier:
         self.check_trace = check_trace
         self.trace_poly_order = trace_poly_order
         self.calculate_shift = calculate_shift
+        self.col_frac = col_frac
         
         # Fibermodel options
         self.fibmodel_poly_order = fibmodel_poly_order
