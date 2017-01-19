@@ -43,7 +43,8 @@ class Amplifier:
                  fiber_group=8, col_group=48, mask=None, wave_nbins=21, 
                  wave_order=3, default_fib=0, init_lims=None, 
                  interactive=False, check_wave=False,filt_size_ind=21, 
-                 filt_size_agg=51, filt_size_final=51, filt_size_sky=51):
+                 filt_size_agg=51, filt_size_final=51, filt_size_sky=51,
+                 colfrac = 0.47):
         ''' 
         Initialize class
         ----------------
@@ -159,7 +160,10 @@ class Amplifier:
             Biweight filter size for fiber to fiber
         :param filt_size_sky:
             Biweigth filter size for the master sky
-        
+        :param col_frac:
+            Column that is this fraction through the image.
+            In other words, col = int(num_cols * col_frac)
+            
         :init header:
             The fits header of the raw frame.
         :init basename:
@@ -519,7 +523,7 @@ class Amplifier:
         if self.type == 'twi' or self.refit:
             allfibers, xc = get_trace_from_image(self.image, interp_window=2.5,
                                                  debug=False)
-            brcol = np.argmin(np.abs(xc-self.D*.47))
+            brcol = np.argmin(np.abs(xc-self.D*self.col_frac))
             standardcol = allfibers[brcol]
             cols1 = xc[brcol::-1]
             cols2 = xc[(brcol+1)::1]

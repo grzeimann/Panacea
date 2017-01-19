@@ -23,6 +23,11 @@ virus_dm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
 lrs2b_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2r_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 
+# Number of expected fibers
+virus_nf = {"LL": 112, "LU": 112, "RU": 112, "RL": 112}
+lrs2b_nf = {"LL": 140, "LU": 140, "RU": 140, "RL": 140}
+lrs2r_nf = {"LL": 140, "LU": 140, "RU": 140, "RL": 140}
+
 # Name prefix for the normalized spectrum used for the wavelength solution
 virus_sn = {"LL": "virus", "RU": "virus"}
 lrs2b_sn = {"LL": "lrs2_uv", "RU": "lrs2_orange"}
@@ -62,3 +67,6 @@ lrs2r_di = {"LL": 1.2, "RU": 1.2}
 virus_cs = 1.0
 lrs2b_cs = 0.4
 lrs2r_cs = 0.4
+
+# Fraction of the image from which to select the default column for trace
+frac = 0.47
