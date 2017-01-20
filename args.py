@@ -61,6 +61,11 @@ def parse_args(argv=None):
                                 fiber.''',
                         action="count", default=0)
 
+    parser.add_argument("-utr","--use_trace_ref", 
+                        help='''Using trace reference files to recover all
+                        fibers.''',
+                        action="count", default=0)
+
     parser.add_argument("-p","--pixelflats", 
                         help='''Turn off using pixel flats.''',
                         action="count", default=0)
