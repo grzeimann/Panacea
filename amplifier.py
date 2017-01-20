@@ -44,7 +44,7 @@ class Amplifier:
                  wave_order=3, default_fib=0, init_lims=None, 
                  interactive=False, check_wave=False,filt_size_ind=21, 
                  filt_size_agg=51, filt_size_final=51, filt_size_sky=51,
-                 col_frac = 0.47):
+                 col_frac = 0.47, use_trace_ref=False):
         ''' 
         Initialize class
         ----------------
@@ -163,6 +163,10 @@ class Amplifier:
         :param col_frac:
             Column that is this fraction through the image.
             In other words, col = int(num_cols * col_frac)
+        :param use_trace_ref:
+            This is a boolean variable that sets whether the fibers found
+            are compared with reference fibers and define dead fibers if
+            there are missing fibers in the search.
             
         :init header:
             The fits header of the raw frame.
@@ -232,6 +236,7 @@ class Amplifier:
         self.trace_poly_order = trace_poly_order
         self.calculate_shift = calculate_shift
         self.col_frac = col_frac
+        self.use_trace_ref = use_trace_ref
         
         # Fibermodel options
         self.fibmodel_poly_order = fibmodel_poly_order

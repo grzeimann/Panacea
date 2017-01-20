@@ -294,7 +294,8 @@ def reduce_science(args):
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir, 
                                  specname=args.specname[amp],
-                                 use_pixelflat=(args.pixelflats<1))
+                                 use_pixelflat=(args.pixelflats<1),
+                                 use_trace_ref=args.use_trace_ref)
                 sci1.load_fibers()
                 if sci1.fibers and not args.start_from_scratch:
                     if sci1.fibers[0].spectrum is not None:
@@ -316,7 +317,8 @@ def reduce_science(args):
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir, 
                                  specname=args.specname[amp],
-                                 use_pixelflat=(args.pixelflats<1))
+                                 use_pixelflat=(args.pixelflats<1),
+                                 use_trace_ref=args.use_trace_ref)
                 sci2.load_fibers()
                 if sci2.fibers and not args.start_from_scratch:
                     if sci2.fibers[0].spectrum is not None:
@@ -401,7 +403,8 @@ def reduce_twighlight(args):
                                  fsize=args.fsize, 
                                  fibmodel_nbins=args.fibmodel_bins,
                                  sigma=args.fibmodel_sig,
-                                 power=args.fibmodel_pow)
+                                 power=args.fibmodel_pow,
+                                 use_trace_ref=args.use_trace_ref)
                 #twi1.load_fibers()
                 twi1.get_fiber_to_fiber()
                 twi1.sky_subtraction()
@@ -419,7 +422,8 @@ def reduce_twighlight(args):
                                  fsize=args.fsize, 
                                  fibmodel_nbins=args.fibmodel_bins,
                                  sigma=args.fibmodel_sig,
-                                 power=args.fibmodel_pow)
+                                 power=args.fibmodel_pow,
+                                 use_trace_ref=args.use_trace_ref)
                 #twi2.load_fibers()
                 twi2.get_fiber_to_fiber()
                 twi2.sky_subtraction()

@@ -38,6 +38,7 @@ def find_missing_fibers(frac, amp_obj):
         Y[i,0] = float(s)-1.
         if s not in init_fibers:
             Y[i,1] = 1
+    Y = Y[Y[:,0].argsort(),:]
     return Y
     
 def main():
