@@ -827,16 +827,16 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     # Solve for fiber model iteratively with the normalization
     for i in xrange(niter):
         init_model = np.zeros((len(x),len(fibers)))
+        full_model = np.zeros((len(x),bins))
+        plaw_model = np.zeros((len(x)))
         flat = np.zeros((len(x),))
         #flat_err = np.zeros((len(x),))
         norm = np.zeros((len(fibers),xhigh-xlow))
         normfits = np.zeros((len(x),len(fibers)))
         for j,v in enumerate(np.arange(xlow,xhigh)):
             xsel = np.intersect1d(np.where(x==v)[0],sel)
-            k = 0
-            for fiber in fibers:
+            for k,fiber in enumerate(fibers):
                 init_model[xsel,k] = np.dot(Fl[xsel,:,k],sol) + Pl[xsel,k]
-                k+=1
 
             # Solve for the normalization of the number of fibers  
             try:          
@@ -845,16 +845,18 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
                 print(lowfib, highfib, ylow, yhigh, xlow, xhigh, ycutl, ycuth)
                 sys.exit(1)
             normfits[xsel,:] = np.ones((len(xsel),1)) * norm[:,j]
-            #full_model[xsel] = np.dot(init_model[xsel,:],norm[:,j])
-            flat[xsel] = (z[xsel]/((init_model[xsel,:]*normfits[xsel,:]**2)
-                         /(init_model[xsel,:]*normfits[xsel,:]).sum(axis=1)
-                                                [:,np.newaxis]).sum(axis=1))
-            #flat_err[xsel] = flat[xsel] / z[xsel] * zerr[xsel]        
+            for k in xrange(bins):
+                full_model[xsel,k] = (Fl[xsel,k,:] 
+                                      * normfits[xsel,:]).sum(axis=1)
+            plaw_model[xsel] = (Pl[xsel,:] * normfits[xsel,:]).sum(axis=1)
+            
         
         try:
-            sol1 = nnls(F[sel,1:-1],flat[sel] - P)[0]
+            sol1 = nnls(full_model[sel,1:-1], z[sel] - plaw_model[sel])[0]
         except ValueError:
-            print(flat[sel])
+            print(full_model[sel])
+            print(plaw_model[sel])
+            print(z[sel])
             print("nnls for fiber model solution failed on iteration %i" %i)
             sys.exit(1)
         sol = np.hstack([0.0,sol1,0.0])
@@ -862,11 +864,9 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     
     if debug:
         t2 = time.time()
-        #print("Solution took: %0.3f s" %(t2-t1))        
+        print("Solution took: %0.3f s" %(t2-t1))        
     if plot:
         model = np.dot(F,sol) + Pl.sum(axis=1)
-        #PV = np.array([x,flat_err]).T
-        #PV = PV[np.argsort(PV[:,0]),:]
         fig = plt.figure(figsize=(8,6))
         fibplot = plt.axes([0.1,0.55,0.8,0.4])
         implot = plt.axes([0.1,0.1,0.28,0.4])
@@ -880,8 +880,6 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
                     alpha=0.5,s=8)
         fibplot.scatter(y-ytrace, model, c=[0.11,0.11,0.91],edgecolor='none',
                     alpha=0.5,s=5)
-        #fibplot.fill_between(PV[:,0], PV[:,1], -1*PV[:,1],
-        #                 facecolor=[1.0,0.5,.52],edgecolor=[0.9,0.3,.32])
         fibplot.scatter(y-ytrace, flat - model, c=[0.41,0.41,0.41],edgecolor='none',
                     alpha=0.5,s=5)
         fibplot.axis([ylow-ymean, yhigh-ymean, -0.01, 0.3])
@@ -1114,7 +1112,7 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
     plt.close(fig)     
 
 def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107], 
-                        xwidth=75., ywidth=75., yplot_high=0.35, 
+                        xwidth=75., ywidth=75., yplot_high=0.25, 
                         yplot_low=-0.01, plotbuf=4):
     '''
     Plot of the fiber profiles for the top/middle/bottom in the fiber and 
@@ -1195,18 +1193,18 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
                         Fl[li:hi,l] = np.interp(ix[li:hi],binx,fun,left=0.0,right=0.0)
                         fun[l] = 0.0
                     
-                    lmodel.append(np.dot(Fl[li:hi,:],fiber.fibmodel[k,:])+plaw(ix[li:hi] / 2.5, plaw_coeff))
+                    lmodel.append(np.dot(Fl[li:hi,:], fiber.fibmodel[k,:])
+                                                      + plaw(ix[li:hi] / 2.5, 
+                                                             plaw_coeff))
                     model[li:hi,k] += lmodel[-1]
                     normfits[li:hi,k,fib] = fiber.spectrum[k]
                 #TODO: Revist how this is calculated.
                 flat[miny:maxy,k] = (image[miny:maxy,k]/((model[miny:maxy,k][:,np.newaxis]*normfits[miny:maxy,k,:]**2)
                          /(model[miny:maxy,k][:,np.newaxis]*normfits[miny:maxy,k,:]).sum(axis=1)
                                                 [:,np.newaxis]).sum(axis=1))
-                    #sub.scatter(ytrace, lmodel[-1], c=[0.41,0.41,0.91], 
-                    #            edgecolor='none', alpha=0.5,s=8)
+
                                 
-            ytrace = ypos[miny:maxy,minx:maxx] - Fibers[i].trace[minx:maxx]
-            
+            ytrace = ypos[miny:maxy,minx:maxx] - Fibers[i].trace[minx:maxx]            
             sub.scatter(ytrace.ravel(), flat[miny:maxy,minx:maxx].ravel(), 
                         c=[1.0,0.31,0.31], edgecolor='none', alpha=0.5, s=8)
             sub.scatter(ytrace.ravel(), model[miny:maxy,minx:maxx].ravel(), 
