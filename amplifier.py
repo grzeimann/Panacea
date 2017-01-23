@@ -523,6 +523,8 @@ class Amplifier:
                                         self.amp)))
         # sort by y values just in case the missing fiber is at the end
         ref_file = ref_file[ref_file[:,0].argsort(),:]
+        good = ref_file[:,1]<1
+        
      
     def get_trace(self):
         '''
