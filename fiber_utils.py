@@ -1113,7 +1113,7 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
 
 def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107], 
                         xwidth=75., ywidth=75., yplot_high=0.25, 
-                        yplot_low=-0.01, plotbuf=4):
+                        yplot_low=-0.01, plotbuf=4, neighbor_fibers=3):
     '''
     Plot of the fiber profiles for the top/middle/bottom in the fiber and 
     wavelength direction (3 x 3)
@@ -1161,9 +1161,8 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
             pos += 1
             minx = int(j * -1 * xwidth + j * (xlen - 1.))
             maxx = int((j-1) * -1 * xwidth + j * (xlen - 1.))
-            lowfib = np.max([0,i-1])
-            highfib = np.min([len(Fibers)-1,i+1])
-            fibers = Fibers[np.max([0,i-2]):np.min([len(Fibers),i+3])]
+            lowfib = np.max([0,i-neighbor_fibers])
+            highfib = np.min([len(Fibers)-1,i+neighbor_fibers])
             fibers = Fibers
             # get low y and high y for fit
             mn1 = np.min(Fibers[lowfib].trace[minx:maxx])-plotbuf
@@ -1190,7 +1189,8 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
                     ytrace = ypos[li:hi,k] - Fibers[i].trace[k] 
                     for l in xrange(bins):
                         fun[l] = 1.0
-                        Fl[li:hi,l] = np.interp(ix[li:hi],binx,fun,left=0.0,right=0.0)
+                        Fl[li:hi,l] = np.interp(ix[li:hi], binx, fun, left=0.0, 
+                                                right=0.0)
                         fun[l] = 0.0
                     
                     lmodel.append(np.dot(Fl[li:hi,:], fiber.fibmodel[k,:])

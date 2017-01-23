@@ -515,7 +515,15 @@ class Amplifier:
                               - F1.trace[(col-width):(col+width+1)]))
         return biweight_location(np.array(shift))
                         
-       
+    
+    def check_dead_fibers(self):
+        ref_file = np.loadtxt(op.join(self.virusconfig, 'Fiber_Locations',
+                                      'fiber_loc_%s_%s_%s_%s.txt'
+                                      %(self.specid, self.ifuslot, self.ifuid,
+                                        self.amp)))
+        # sort by y values just in case the missing fiber is at the end
+        ref_file = ref_file[ref_file[:,0].argsort(),:]
+     
     def get_trace(self):
         '''
         This function gets the trace for this amplifier.  It checks functional
