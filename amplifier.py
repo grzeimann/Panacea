@@ -524,8 +524,19 @@ class Amplifier:
         # sort by y values just in case the missing fiber is at the end
         ref_file = ref_file[ref_file[:,0].argsort(),:]
         good = ref_file[:,1]<1
-        
-     
+        deadfibers = np.where(ref_file[:,1]==1)[0]
+        if len(self.fibers) == good.sum():
+            for dead in deadfibers:
+                F = Fiber(self.D, dead+1, self.path, self.filename)
+                self.fibers.insert(dead, F)
+                self.fibers[dead].dead = True
+            for i, fiber in enumerate(self.fibers):
+                fiber.fibnum = i+1
+        else:
+            print("Number of good fibers, %i, didn't match the number of " 
+                  "fibers found, %i." %(good.sum(),len(self.fibers)))
+
+
     def get_trace(self):
         '''
         This function gets the trace for this amplifier.  It checks functional
