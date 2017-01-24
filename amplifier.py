@@ -585,10 +585,8 @@ class Amplifier:
             else:
                 if found_first:
                     diff = self.fibers[i].trace[col] - y
-                    print(i, k, diff, self.fibers[i].trace[col], y)
                 else:
                     diff = self.fibers[k].trace[col] - y
-                    print(i, k, diff, self.fibers[k].trace[col], y)
                 if (diff-avg_off) < (avg_gap/2.):
                     offset.append(diff)
                     if len(offset)>=3:
@@ -999,13 +997,11 @@ class Amplifier:
             masterwave[:] = masterwave[ind]
             smoothspec[:] = smoothspec[ind]
             self.averagespec = biweight_filter(smoothspec, self.filt_size_agg)
-            for fib, fiber in enumerate(self.good_fibers):
-                fiber.fiber_to_fiber = biweight_filter(masterspec[fib] 
+            for fib, fiber in enumerate(self.fibers):
+                fiber.fiber_to_fiber = biweight_filter(fiber.spectrum 
                                       / np.interp(fiber.wavelength, masterwave, 
                                                   self.averagespec), 
                                                        self.filt_size_final)
-            for fiber in self.dead_fibers:
-                fiber.fiber_to_fiber = np.zeros((fiber.D,))
 
         else:
             self.load_cal_property(['fiber_to_fiber'])   
@@ -1048,12 +1044,10 @@ class Amplifier:
                 self.skypath = None
         if self.skypath is None:
             self.get_master_sky(sky=True)
-            for fib, fiber in enumerate(self.good_fibers):
+            for fib, fiber in enumerate(self.fibers):
                 fiber.sky_spectrum = (fiber.fiber_to_fiber 
                                  * np.interp(fiber.wavelength, self.masterwave, 
                                              self.mastersky))
-            for fiber in self.dead_fibers:
-                fiber.sky_spectrum = np.zeros((fiber.D,))
          
         self.skyframe = get_model_image(self.image, self.fibers, 
                                         'sky_spectrum', debug=False)
