@@ -12,7 +12,7 @@ from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
 from distutils.dir_util import mkpath
-from utils import biweight_location, biweight_filter
+from utils import biweight_location, biweight_filter, is_outlier
 from astropy.io import fits
 import os.path as op
 import numpy as np
@@ -417,7 +417,8 @@ class Amplifier:
         '''
         self.load_cal_property(['trace','fibmodel_polyvals',
                                 'fibmodel_x','fibmodel_y','binx',
-                                'wave_polyvals','fiber_to_fiber'])
+                                'wave_polyvals','fiber_to_fiber',
+                                'dead'])
         for fiber in self.fibers:
             fiber.eval_fibmodel_poly()
             fiber.eval_wave_poly()
@@ -514,28 +515,120 @@ class Amplifier:
             shift.append(biweight_location(F.trace[(col-width):(col+width+1)] 
                               - F1.trace[(col-width):(col+width+1)]))
         return biweight_location(np.array(shift))
-                        
+
+
+    def get_attribute_from_neighbor_fiber(self, ind, prop, neighbor=-1):
+        '''
+        This small function is used to get an attribute from the fiber below
+        it.
+        '''
+        if isinstance(prop, basestring):
+            prop = [prop]
+        for pro in prop:
+            setattr(self.fibers[ind], pro, 1. * 
+                    getattr(self.fibers[ind+neighbor], pro))
+    
+    def fill_in_dead_fibers(self, check_prop, props):
+        '''
+        This function fills in dead fibers by looking at neighbors which are
+        not dead and filling in their info.
+        '''
+        for i, fiber in enumerate(self.dead_fibers):
+            j = 1
+            no_neighbor = True
+            while no_neighbor:
+                if i-j >=0:
+                    if getattr(self.fibers[i-j], check_prop) is not None:
+                        self.get_attribute_from_neighbor_fiber(i, props, 
+                                                               neighbor=-j)
+                        no_neighbor=False
+                if i+j<len(self.fibers) and not no_neighbor:
+                    if getattr(self.fibers[i+j], check_prop) is not None:
+                        self.get_attribute_from_neighbor_fiber(i, props, 
+                                                               neighbor=j)
+                        no_neighbor=False
+                j+=1
+                    
     
     def check_dead_fibers(self):
+        '''
+        Check fibers found in trace process against a reference file to 
+        set unfound fibers as dead.  Dead fibers are 1's in the second
+        column of the fiber reference location file.  Critically, the code
+        will think a fiber is missing if they have shifted more than half
+        a fiber seperation.
+        '''
         ref_file = np.loadtxt(op.join(self.virusconfig, 'Fiber_Locations',
                                       'fiber_loc_%s_%s_%s_%s.txt'
                                       %(self.specid, self.ifuslot, self.ifuid,
                                         self.amp)))
         # sort by y values just in case the missing fiber is at the end
         ref_file = ref_file[ref_file[:,0].argsort(),:]
-        good = ref_file[:,1]<1
-        deadfibers = np.where(ref_file[:,1]==1)[0]
-        if len(self.fibers) == good.sum():
-            for dead in deadfibers:
-                F = Fiber(self.D, dead+1, self.path, self.filename)
-                self.fibers.insert(dead, F)
-                self.fibers[dead].dead = True
-            for i, fiber in enumerate(self.fibers):
-                fiber.fibnum = i+1
-        else:
-            print("Number of good fibers, %i, didn't match the number of " 
-                  "fibers found, %i." %(good.sum(),len(self.fibers)))
-
+        offset = []
+        col = int(self.D*self.col_frac)
+        avg_off = 0.0
+        avg_gap = biweight_location(np.diff(ref_file[:,0]))
+        found_first=False
+        k=0
+        # Go through reference file
+        for i, y in enumerate(ref_file[:,0]):
+            # if dead fibers are at the end and self.fibers isn't long enough
+            if i>=len(self.fibers):
+                F = Fiber(self.D, i+1, self.path, self.filename)
+                self.fibers.insert(i, F)
+                self.get_attribute_from_neighbor_fiber(i, ['trace_x',
+                                                           'trace_y',
+                                                           'trace'])
+                self.fibers[i].trace_y += (ref_file[i,0] - ref_file[i-1,0])
+                self.fibers[i].trace += (ref_file[i,0] - ref_file[i-1,0])
+                self.fibers[i].dead = True
+            else:
+                if found_first:
+                    diff = self.fibers[i].trace[col] - y
+                    print(i, k, diff, self.fibers[i].trace[col], y)
+                else:
+                    diff = self.fibers[k].trace[col] - y
+                    print(i, k, diff, self.fibers[k].trace[col], y)
+                if (diff-avg_off) < (avg_gap/2.):
+                    offset.append(diff)
+                    if len(offset)>=3:
+                        avg_off = biweight_location(np.array(offset))
+                    else:
+                        avg_off = np.mean(np.array(offset))
+                    found_first = True
+                else:
+                    if not found_first:
+                        F = Fiber(self.D, i+1, self.path, self.filename)
+                        self.fibers.insert(i, F)
+                        self.fibers[i].dead = True
+                        k+=1
+                    else:
+                        F = Fiber(self.D, i+1, self.path, self.filename)
+                        self.fibers.insert(i, F)
+                        self.get_attribute_from_neighbor_fiber(i, ['trace_x',
+                                                                   'trace_y',
+                                                                   'trace'])
+                        self.fibers[i].trace_y += (ref_file[i,0]
+                                                   - ref_file[i-1,0])
+                        self.fibers[i].trace += (ref_file[i,0] 
+                                                 - ref_file[i-1,0])
+                        self.fibers[i].dead = True
+                        
+        for i, fiber in enumerate(self.fibers):
+            if not hasattr(fiber, 'trace'):
+                j = i + 1
+                while not hasattr(self.fibers[j], 'trace'):
+                    j+=1
+                self.get_attribute_from_neighbor_fiber(i, ['trace_x',
+                                                           'trace_y',
+                                                           'trace'], 
+                                                           neighbor=j-i)
+                self.fibers[i].trace_y += (ref_file[i,0] - ref_file[j,0])
+                self.fibers[i].trace += (ref_file[i,0] - ref_file[j,0])
+            fiber.fibnum = i+1
+            
+        self.good_fibers = [fiber for fiber in self.fibers if not fiber.dead]
+        self.dead_fibers = [fiber for fiber in self.fibers if fiber.dead]
 
     def get_trace(self):
         '''
@@ -649,7 +742,10 @@ class Amplifier:
             self.load_cal_property('trace')
             for fiber in self.fibers:
                 fiber.eval_trace_poly()
-                
+        
+        if self.use_trace_ref:
+            self.check_dead_fibers()
+        
         if self.check_trace:
             outfile = op.join(self.path,'trace_%s.png' %self.basename)
             check_fiber_trace(self.image, self.fibers, outfile)
@@ -682,7 +778,7 @@ class Amplifier:
             self.get_trace()
         if self.type == 'twi' or self.refit:
             sol, xcol, binx = fit_fibermodel_nonparametric(self.image, 
-                                                                   self.fibers,
+                                                              self.good_fibers,
                                                                    debug=False,
                                          use_default=self.use_default_fibmodel,
                                                   plot=self.make_fib_ind_plots,
@@ -694,13 +790,17 @@ class Amplifier:
                                                               sigma=self.sigma,
                                                               power=self.power)
             nfibs, ncols, nbins = sol.shape
-            for i, fiber in enumerate(self.fibers):
+            for i, fiber in enumerate(self.good_fibers):
                 fiber.fibmodel_poly_order = self.fibmodel_poly_order
                 fiber.fibmodel_x = xcol
                 fiber.fibmodel_y = sol[i,:,:]
                 fiber.binx = binx
                 fiber.fit_fibmodel_poly()
                 fiber.eval_fibmodel_poly()
+            self.fill_in_dead_fibers('fibmodel', ['fibmodel_poly_order',
+                                                  'fibmodel_x', 'fibmodel_y',
+                                                  'binx', 'fibmodel'])
+                        
         else:
             self.load_cal_property(['fibmodel_polyvals','binx'])
             for fiber in self.fibers:
@@ -778,7 +878,7 @@ class Amplifier:
                 content=False
                 cnting = 0
                 while content==False:
-                    fiber = self.fibers[self.default_fib]
+                    fiber = self.good_fibers[self.default_fib]
                     fw, fwp = calculate_wavelength_chi2(np.arange(self.D), 
                                                         fiber.spectrum, 
                                                         solar_spec, 
@@ -798,17 +898,17 @@ class Amplifier:
                     if cnting>9:
                         print("Ran through 9 loops but no solution found.")
                         sys.exit(1)
-                fc = np.arange(len(self.fibers))
+                fc = np.arange(len(self.good_fibers))
                 if self.default_fib==0:
                     fibs1 = []
                 else:
                     fibs1 = fc[(self.default_fib-1)::-1]
-                if self.default_fib==(len(self.fibers)-1):
+                if self.default_fib==(len(self.good_fibers)-1):
                     fibs2 = []
                 else:
                     fibs2 = fc[(self.default_fib+1)::1]
                 for fib in fibs1:
-                    fiber = self.fibers[fib]
+                    fiber = self.good_fibers[fib]
                     fw, fwp = calculate_wavelength_chi2(np.arange(self.D), 
                                                         fiber.spectrum, 
                                                         solar_spec, 
@@ -820,7 +920,7 @@ class Amplifier:
                     fiber.wavelength = fw*1.
                     fiber.wave_polyvals = fwp*1.
                 for fib in fibs2:
-                    fiber = self.fibers[fib]
+                    fiber = self.good_fibers[fib]
                     fw, fwp = calculate_wavelength_chi2(np.arange(self.D), 
                                                         fiber.spectrum, 
                                                         solar_spec, 
@@ -836,6 +936,9 @@ class Amplifier:
                     solar_spec = np.zeros((len(self.masterwave),2))
                     solar_spec[:,0] = self.masterwave
                     solar_spec[:,1] = self.mastersmooth
+            self.fill_in_dead_fibers('wave_poly_vals', ['wavelength',
+                                                        'wave_polyvals'])        
+
         else:
             self.load_cal_property(['wave_polyvals'])
             for fiber in self.fibers:
@@ -887,7 +990,7 @@ class Amplifier:
                 print("Getting Fiber to Fiber for %s" %self.basename)
             masterwave = []
             masterspec = []
-            for fib, fiber in enumerate(self.fibers):
+            for fib, fiber in enumerate(self.good_fibers):
                 masterwave.append(fiber.wavelength)
                 masterspec.append(fiber.spectrum)
             masterwave = np.hstack(masterwave)
@@ -896,11 +999,13 @@ class Amplifier:
             masterwave[:] = masterwave[ind]
             smoothspec[:] = smoothspec[ind]
             self.averagespec = biweight_filter(smoothspec, self.filt_size_agg)
-            for fib, fiber in enumerate(self.fibers):
+            for fib, fiber in enumerate(self.good_fibers):
                 fiber.fiber_to_fiber = biweight_filter(masterspec[fib] 
                                       / np.interp(fiber.wavelength, masterwave, 
                                                   self.averagespec), 
                                                        self.filt_size_final)
+            for fiber in self.dead_fibers:
+                fiber.fiber_to_fiber = np.zeros((fiber.D,))
 
         else:
             self.load_cal_property(['fiber_to_fiber'])   
@@ -943,10 +1048,12 @@ class Amplifier:
                 self.skypath = None
         if self.skypath is None:
             self.get_master_sky(sky=True)
-            for fib, fiber in enumerate(self.fibers):
+            for fib, fiber in enumerate(self.good_fibers):
                 fiber.sky_spectrum = (fiber.fiber_to_fiber 
                                  * np.interp(fiber.wavelength, self.masterwave, 
                                              self.mastersky))
+            for fiber in self.dead_fibers:
+                fiber.sky_spectrum = np.zeros((fiber.D,))
          
         self.skyframe = get_model_image(self.image, self.fibers, 
                                         'sky_spectrum', debug=False)
@@ -982,7 +1089,7 @@ class Amplifier:
             masterspec = []
         if norm:
             mastersmooth=[]
-        for fib, fiber in enumerate(self.fibers):
+        for fib, fiber in enumerate(self.good_fibers):
             if norm:
                 y = biweight_filter(fiber.spectrum, self.filt_size_ind)
                 mastersmooth.append(y/fiber.spectrum)
