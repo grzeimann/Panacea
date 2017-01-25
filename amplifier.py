@@ -533,7 +533,8 @@ class Amplifier:
         This function fills in dead fibers by looking at neighbors which are
         not dead and filling in their info.
         '''
-        for i, fiber in enumerate(self.dead_fibers):
+        for fiber in self.dead_fibers:
+            i = fiber.fibnum - 1
             j = 1
             no_neighbor = True
             while no_neighbor:

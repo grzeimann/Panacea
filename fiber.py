@@ -146,9 +146,8 @@ class Fiber:
             
     
     def eval_fibmodel_poly(self, use_poly=False):
-        porder, nbins = self.fibmodel_polyvals.shape
-        self.fibmodel = np.zeros((self.D, nbins))
-        for i in xrange(nbins):
+        self.fibmodel = np.zeros((self.D, len(self.binx)))
+        for i in xrange(len(self.binx)):
             if use_poly:
                 self.fibmodel[:,i] = np.polyval(self.fibmodel_polyvals[:,i],
                                                 1.* np.arange(self.D) / self.D)
