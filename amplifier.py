@@ -240,6 +240,7 @@ class Amplifier:
         self.calculate_shift = calculate_shift
         self.col_frac = col_frac
         self.use_trace_ref = use_trace_ref
+        self.fdist_ref = fdist_ref
         
         # Fibermodel options
         self.fibmodel_poly_order = fibmodel_poly_order
