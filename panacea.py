@@ -295,19 +295,29 @@ def reduce_science(args):
                                  virusconfig=args.configdir, 
                                  specname=args.specname[amp],
                                  use_pixelflat=(args.pixelflats<1),
-                                 use_trace_ref=args.use_trace_ref)
-                sci1.load_fibers()
-                if sci1.fibers and not args.start_from_scratch:
-                    if sci1.fibers[0].spectrum is not None:
-                        sci1.get_image()
-                        sci1.sky_subtraction()
-                        sci1.clean_cosmics()
-                else:                        
-                    sci1.load_all_cal()
-                    sci1.sky_subtraction()
-                    sci1.clean_cosmics()
-                    sci1.fiberextract()
-                    sci1.sky_subtraction()
+                                 use_trace_ref=args.use_trace_ref,
+                                 calculate_shift=args.adjust_trace)
+                #sci1.load_fibers()
+                #if sci1.fibers and not args.start_from_scratch:
+                #    if sci1.fibers[0].spectrum is not None:
+                #        sci1.get_image()
+                #        sci1.sky_subtraction()
+                #        sci1.clean_cosmics()
+                #else:                        
+                sci1.load_all_cal()
+                if args.adjust_trace:
+                    sci1.refit=True
+                    sci1.get_trace()
+                    sci1.refit=False
+                sci1.fiberextract()
+                if args.refit_fiber_to_fiber:
+                    sci1.refit=True
+                    sci1.fiber_to_fiber()
+                    sci1.refit=False
+                sci1.sky_subtraction()
+                sci1.clean_cosmics()
+                sci1.fiberextract()
+                sci1.sky_subtraction()
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, 
                                                       config.Amp_dict[amp][0]),
                                  args.sci_df['Output'][ind],

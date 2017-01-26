@@ -12,7 +12,7 @@ from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
 from distutils.dir_util import mkpath
-from utils import biweight_location, biweight_filter, is_outlier
+from utils import biweight_location, biweight_filter
 from astropy.io import fits
 import os.path as op
 import numpy as np
@@ -35,7 +35,7 @@ class Amplifier:
     def __init__(self, filename, path, refit=False, calpath=None, skypath=None,
                  debug=False, darkpath=None, biaspath=None, virusconfig=None,
                  dark_mult=1., bias_mult=0., use_pixelflat=True, 
-                 specname=None, fdist=2., check_trace=True, 
+                 specname=None, fdist=2., fdist_ref=4., check_trace=True, 
                  calculate_shift=False, trace_poly_order=3,
                  fibmodel_poly_order=3, use_default_fibmodel=False, 
                  fibmodel_nbins=15, make_fib_ind_plots=False, 
@@ -95,6 +95,9 @@ class Amplifier:
             centroid measurments for neighboring columns.  Ideal values are
             generous enough for glitches and gaps and yet small enough to not 
             jump to neighboring fibers.  
+        :param fdist_ref:
+            This parameter sets the distance allowable to match fiber
+            centroid measurments for reference fibers.
         :param check_trace:
             Plot trace images at the end.  Good for post checks.
         :param calculate_shift:
@@ -509,125 +512,56 @@ class Amplifier:
                 return None
             with open(fiber_fn, 'r') as f:
                 F1 = pickle.load(f)
-            F1.eval_trace_poly()
             col = self.D/2
             width = 20
-            shift.append(biweight_location(F.trace[(col-width):(col+width+1)] 
-                              - F1.trace[(col-width):(col+width+1)]))
+            low = int(col-width)
+            high = int(col+width+1)
+            shift.append(biweight_location(F.trace[low:high] 
+                              - F1.trace[low:high]))
+        self.shift = shift
         return biweight_location(np.array(shift))
 
 
-    def get_attribute_from_neighbor_fiber(self, ind, prop, neighbor=-1):
+    def get_attribute_from_neighbor_fiber(self, ind1, ind2, prop):
         '''
         This small function is used to get an attribute from the fiber below
         it.
         '''
         if isinstance(prop, basestring):
             prop = [prop]
-        for pro in prop:
-            setattr(self.fibers[ind], pro, 1. * 
-                    getattr(self.fibers[ind+neighbor], pro))
+        for i, pro in enumerate(prop):
+            setattr(self.fibers[ind1], pro, 1.*getattr(self.fibers[ind2], pro))
+
     
-    def fill_in_dead_fibers(self, check_prop, props):
+    def fill_in_dead_fibers(self, props, return_ind=False):
         '''
         This function fills in dead fibers by looking at neighbors which are
         not dead and filling in their info.
         '''
+        if return_ind:
+            keep_ind=[]
         for fiber in self.dead_fibers:
             i = fiber.fibnum - 1
             j = 1
             no_neighbor = True
             while no_neighbor:
                 if i-j >=0:
-                    if getattr(self.fibers[i-j], check_prop) is not None:
-                        self.get_attribute_from_neighbor_fiber(i, props, 
-                                                               neighbor=-j)
+                    if not self.fibers[i-j].dead:
+                        self.get_attribute_from_neighbor_fiber(i, i-j, props)
                         no_neighbor=False
+                        if return_ind:
+                            keep_ind.append(i-j)
                 if i+j<len(self.fibers) and not no_neighbor:
-                    if getattr(self.fibers[i+j], check_prop) is not None:
-                        self.get_attribute_from_neighbor_fiber(i, props, 
-                                                               neighbor=j)
+                    if not self.fibers[i+j].dead:
+                        self.get_attribute_from_neighbor_fiber(i, i+j, props)
                         no_neighbor=False
+                        if return_ind:
+                            keep_ind.append(i+j)
                 j+=1
-                    
-    
-    def check_dead_fibers(self):
-        '''
-        Check fibers found in trace process against a reference file to 
-        set unfound fibers as dead.  Dead fibers are 1's in the second
-        column of the fiber reference location file.  Critically, the code
-        will think a fiber is missing if they have shifted more than half
-        a fiber seperation.
-        '''
-        ref_file = np.loadtxt(op.join(self.virusconfig, 'Fiber_Locations',
-                                      'fiber_loc_%s_%s_%s_%s.txt'
-                                      %(self.specid, self.ifuslot, self.ifuid,
-                                        self.amp)))
-        # sort by y values just in case the missing fiber is at the end
-        ref_file = ref_file[ref_file[:,0].argsort(),:]
-        offset = []
-        col = int(self.D*self.col_frac)
-        avg_off = 0.0
-        avg_gap = biweight_location(np.diff(ref_file[:,0]))
-        found_first=False
-        k=0
-        # Go through reference file
-        for i, y in enumerate(ref_file[:,0]):
-            # if dead fibers are at the end and self.fibers isn't long enough
-            if i>=len(self.fibers):
-                F = Fiber(self.D, i+1, self.path, self.filename)
-                self.fibers.insert(i, F)
-                self.get_attribute_from_neighbor_fiber(i, ['trace_x',
-                                                           'trace_y',
-                                                           'trace'])
-                self.fibers[i].trace_y += (ref_file[i,0] - ref_file[i-1,0])
-                self.fibers[i].trace += (ref_file[i,0] - ref_file[i-1,0])
-                self.fibers[i].dead = True
-            else:
-                if found_first:
-                    diff = self.fibers[i].trace[col] - y
-                else:
-                    diff = self.fibers[k].trace[col] - y
-                if (diff-avg_off) < (avg_gap/2.):
-                    offset.append(diff)
-                    if len(offset)>=3:
-                        avg_off = biweight_location(np.array(offset))
-                    else:
-                        avg_off = np.mean(np.array(offset))
-                    found_first = True
-                else:
-                    if not found_first:
-                        F = Fiber(self.D, i+1, self.path, self.filename)
-                        self.fibers.insert(i, F)
-                        self.fibers[i].dead = True
-                        k+=1
-                    else:
-                        F = Fiber(self.D, i+1, self.path, self.filename)
-                        self.fibers.insert(i, F)
-                        self.get_attribute_from_neighbor_fiber(i, ['trace_x',
-                                                                   'trace_y',
-                                                                   'trace'])
-                        self.fibers[i].trace_y += (ref_file[i,0]
-                                                   - ref_file[i-1,0])
-                        self.fibers[i].trace += (ref_file[i,0] 
-                                                 - ref_file[i-1,0])
-                        self.fibers[i].dead = True
-                        
-        for i, fiber in enumerate(self.fibers):
-            if not hasattr(fiber, 'trace'):
-                j = i + 1
-                while not hasattr(self.fibers[j], 'trace'):
-                    j+=1
-                self.get_attribute_from_neighbor_fiber(i, ['trace_x',
-                                                           'trace_y',
-                                                           'trace'], 
-                                                           neighbor=j-i)
-                self.fibers[i].trace_y += (ref_file[i,0] - ref_file[j,0])
-                self.fibers[i].trace += (ref_file[i,0] - ref_file[j,0])
-            fiber.fibnum = i+1
+        if return_ind:
+            return keep_ind
             
-        self.good_fibers = [fiber for fiber in self.fibers if not fiber.dead]
-        self.dead_fibers = [fiber for fiber in self.fibers if fiber.dead]
+
 
     def get_trace(self):
         '''
@@ -640,81 +574,100 @@ class Amplifier:
         if self.image is None:
             self.get_image()
         if self.type == 'twi' or self.refit:
+            if self.refit:
+                mx_cut=0.4
+            else:
+                mx_cut=0.1
             allfibers, xc = get_trace_from_image(self.image, interp_window=2.5,
-                                                 debug=False)
+                                                 debug=False, mx_cut=mx_cut)
             brcol = np.argmin(np.abs(xc-self.D*self.col_frac))
-            standardcol = allfibers[brcol]
+            if self.use_trace_ref:
+                ref_file = np.loadtxt(op.join(self.virusconfig, 'Fiber_Locations',
+                              'fiber_loc_%s_%s_%s_%s.txt'
+                              %(self.specid, self.ifuslot, self.ifuid,
+                                self.amp)))
+                # sort by y values just in case the missing fiber is at the end
+                ref_file = ref_file[ref_file[:,0].argsort(),:]
+                standardcol=ref_file[:,0]
+            else:
+                standardcol = allfibers[brcol]
             cols1 = xc[brcol::-1]
             cols2 = xc[(brcol+1)::1]
             # Initialize fiber traces
             for i in xrange(len(standardcol)):
-                append_flag = False
                 try: 
                     F = self.fibers[i]
                 except IndexError:    
                     F = Fiber(self.D, i+1, self.path, self.filename)
-                    append_flag = True
-                if append_flag:
                     self.fibers.append(F)
                 self.fibers[i].trace_poly_order = self.trace_poly_order
                 self.fibers[i].init_trace_info()
-                self.fibers[i].trace_x[brcol] = brcol
-                self.fibers[i].trace_y[brcol] = standardcol[i]
+                fdist = standardcol[i]-allfibers[brcol]
+                floc = np.argmin(np.abs(fdist))
+                if np.abs(fdist[floc])<self.fdist_ref:    
+                    self.fibers[i].trace_x[brcol] = brcol
+                    self.fibers[i].trace_y[brcol] = allfibers[brcol][floc]
+                else:
+                    self.fibers[i].dead=True
+            self.good_fibers = [fiber for fiber in self.fibers 
+                                      if not fiber.dead]
+            self.dead_fibers = [fiber for fiber in self.fibers 
+                                      if fiber.dead]    
             for c in cols1:
                 loc = np.where(xc==c)[0]
-                for i in xrange(len(standardcol)):
+                for i,fiber in enumerate(self.good_fibers):
                     yvals = allfibers[int(loc)]
                     if not yvals.size:
                         continue
-                    xloc = np.argmin(np.abs(self.fibers[i].trace_x - c))
-                    floc = np.argmin(np.abs(self.fibers[i].trace_y[xloc] 
+                    xloc = np.argmin(np.abs(fiber.trace_x - c))
+                    floc = np.argmin(np.abs(fiber.trace_y[xloc] 
                                             - yvals))
-                    if (np.abs(self.fibers[i].trace_y[xloc] 
-                                                  - yvals[floc]) < self.fdist):
-                        self.fibers[i].trace_x[c] = c
-                        self.fibers[i].trace_y[c] = yvals[floc]
+                    if (np.abs(fiber.trace_y[xloc]-yvals[floc]) < self.fdist):
+                        fiber.trace_x[c] = c
+                        fiber.trace_y[c] = yvals[floc]
             for c in cols2:
                 loc = np.where(xc==c)[0]
-                for i in xrange(len(standardcol)):
+                for i,fiber in enumerate(self.good_fibers):
                     yvals = allfibers[int(loc)]
                     if not yvals.size:
                         continue
-                    xloc = np.argmin(np.abs(self.fibers[i].trace_x - c))
-                    floc = np.argmin(np.abs(self.fibers[i].trace_y[xloc] 
+                    xloc = np.argmin(np.abs(fiber.trace_x - c))
+                    floc = np.argmin(np.abs(fiber.trace_y[xloc] 
                                             - yvals))
-                    if (np.abs(self.fibers[i].trace_y[xloc] 
-                                                  - yvals[floc]) < self.fdist):
-                        self.fibers[i].trace_x[c] = c
-                        self.fibers[i].trace_y[c] = yvals[floc]
-            for fib, fiber in enumerate(self.fibers):
+                    if (np.abs(fiber.trace_y[xloc]-yvals[floc]) < self.fdist):
+                        fiber.trace_x[c] = c
+                        fiber.trace_y[c] = yvals[floc]
+            # Evaluate good fibers with trace defined everywhere measured
+            for fib, fiber in enumerate(self.good_fibers):
                 if np.sum(fiber.trace_x != fiber.flag)==len(xc):
                     fiber.fit_trace_poly()
                     fiber.eval_trace_poly()
-            for fib, fiber in enumerate(self.fibers):
+            # Fill in the blank for fibers with trace flagged
+            for fib, fiber in enumerate(self.good_fibers):
                 if np.sum(fiber.trace_x != fiber.flag)!=len(xc):
                     sel = np.where(fiber.trace_x != fiber.flag)[0]
                     setdiff = np.setdiff1d(xc, sel)
                     fiber.fit_trace_poly()
                     k=1
                     done=False
-                    if (fib+k)<=(len(self.fibers)-1):
-                        if np.all(self.fibers[fib+k].trace > 0):
+                    if (fib+k)<=(len(self.good_fibers)-1):
+                        if np.all(self.good_fibers[fib+k].trace > 0):
                             dif = np.interp(setdiff, fiber.trace_x[sel], 
                                             fiber.trace_y[sel] - 
                                             self.fibers[fib+k].trace[sel])
                             fiber.trace_x[setdiff] = setdiff
                             fiber.trace_y[setdiff] = (dif + 
-                                             self.fibers[fib+k].trace[setdiff])
+                                        self.good_fibers[fib+k].trace[setdiff])
                             fiber.eval_trace_poly()
                             done=True
                     if (fib-k) >= 0 and not done:
-                        if np.all(self.fibers[fib-k].trace > 0):
+                        if np.all(self.good_fibers[fib-k].trace > 0):
                             dif = np.interp(setdiff, fiber.trace_x[sel], 
                                             fiber.trace_y[sel] - 
-                                            self.fibers[fib-k].trace[sel])
+                                            self.good_fibers[fib-k].trace[sel])
                             fiber.trace_x[setdiff] = setdiff
                             fiber.trace_y[setdiff] = (dif + 
-                                             self.fibers[fib-k].trace[setdiff])
+                                        self.good_fibers[fib-k].trace[setdiff])
                             fiber.eval_trace_poly()
                             done=True
                     if not done:
@@ -723,27 +676,28 @@ class Amplifier:
                                                           fiber.trace_polyvals, 
                                                               setdiff / self.D)
                         fiber.eval_trace_poly()
-
+                        
+            ind = self.fill_in_dead_fibers(['trace_x', 'trace_y', 'trace'], 
+                                           return_ind=True)
+            for i, fiber in enumerate(self.dead_fibers):
+                fiber.trace_y += (standardcol[i]-standardcol[ind[i]])
+                fiber.trace += (standardcol[i]-standardcol[ind[i]])
+                
                         
             if self.calculate_shift:
                 self.net_trace_shift = self.find_shift()
+                smooth_shift = biweight_filter(self.shift, 15)
                 if self.net_trace_shift is not None:
-                    self.load_cal_property('trace_polyvals')
                     self.load_cal_property('trace')
-                    for fiber in self.fibers:
-                        fiber.eval_trace_poly()
-                        fiber.trace_polyvals[-1] += self.net_trace_shift
-                        fiber.eval_trace_poly()
-                        fiber.trace[:] = self.trace + self.net_trace_shift
-            
+                    for i, fiber in enumerate(self.fibers):
+                        fiber.trace[:] = fiber.trace + smooth_shift[i]
         else:
-            self.load_cal_property('trace_polyvals')
             self.load_cal_property('trace')
             for fiber in self.fibers:
                 fiber.eval_trace_poly()
-        
-        if self.use_trace_ref:
-            self.check_dead_fibers()
+            if self.use_trace_ref:
+                self.check_dead_fibers()        
+
         
         if self.check_trace:
             outfile = op.join(self.path,'trace_%s.png' %self.basename)
@@ -796,9 +750,8 @@ class Amplifier:
                 fiber.binx = binx
                 fiber.fit_fibmodel_poly()
                 fiber.eval_fibmodel_poly()
-            self.fill_in_dead_fibers('fibmodel', ['fibmodel_poly_order',
-                                                  'fibmodel_x', 'fibmodel_y',
-                                                  'binx', 'fibmodel'])
+            self.fill_in_dead_fibers(['fibmodel_poly_order', 'fibmodel_x', 
+                                      'fibmodel_y', 'binx', 'fibmodel'])
                         
         else:
             self.load_cal_property(['fibmodel_polyvals','binx'])
@@ -834,8 +787,7 @@ class Amplifier:
         norm = get_norm_nonparametric(self.image, self.fibers, 
                                       debug=False, mask=self.mask)
         for i, fiber in enumerate(self.fibers):
-            fiber.spectrum = norm[i,:]
-    
+            fiber.spectrum = norm[i,:]    
     
     def get_wavelength_solution(self):
         '''
@@ -935,8 +887,7 @@ class Amplifier:
                     solar_spec = np.zeros((len(self.masterwave),2))
                     solar_spec[:,0] = self.masterwave
                     solar_spec[:,1] = self.mastersmooth
-            self.fill_in_dead_fibers('wave_poly_vals', ['wavelength',
-                                                        'wave_polyvals'])        
+            self.fill_in_dead_fibers(['wavelength', 'wave_polyvals'])        
 
         else:
             self.load_cal_property(['wave_polyvals'])
