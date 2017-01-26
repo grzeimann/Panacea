@@ -329,18 +329,27 @@ def reduce_science(args):
                                  specname=args.specname[amp],
                                  use_pixelflat=(args.pixelflats<1),
                                  use_trace_ref=args.use_trace_ref)
-                sci2.load_fibers()
-                if sci2.fibers and not args.start_from_scratch:
-                    if sci2.fibers[0].spectrum is not None:
-                        sci2.get_image()
-                        sci2.sky_subtraction()
-                        sci2.clean_cosmics()
-                else:
-                    sci2.load_all_cal()
-                    sci2.sky_subtraction()
-                    sci2.clean_cosmics()
-                    sci2.fiberextract()
-                    sci2.sky_subtraction()
+                #sci2.load_fibers()
+                #if sci2.fibers and not args.start_from_scratch:
+                #    if sci2.fibers[0].spectrum is not None:
+                #        sci2.get_image()
+                #        sci2.sky_subtraction()
+                #        sci2.clean_cosmics()
+                #else:
+                sci2.load_all_cal()
+                if args.adjust_trace:
+                    sci1.refit=True
+                    sci1.get_trace()
+                    sci1.refit=False
+                sci1.fiberextract()
+                if args.refit_fiber_to_fiber:
+                    sci1.refit=True
+                    sci1.fiber_to_fiber()
+                    sci1.refit=False
+                sci2.sky_subtraction()
+                sci2.clean_cosmics()
+                sci2.fiberextract()
+                sci2.sky_subtraction()
                 outname = op.join(args.sci_df['Output'][ind],
                                   'S%s_%s_sci_%s.fits' %(
                           op.basename(args.sci_df['Files'][ind]).split('_')[0],
