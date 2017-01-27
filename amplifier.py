@@ -322,15 +322,15 @@ class Amplifier:
 
     def load_fibers(self):
         '''
-        Load fibers in self.path.  Redefine the path for the fiber to self.path
+        Load fibers in self.path. Redefine the path for the fiber to self.path
         in case it was copied over. After loaded, evaluate the fibermodel as 
         well as the wavelength solution if available.  
         '''
         if not self.fibers:
             fn = op.join(self.path, 'fiber_*_%s_%s_%s_%s.pkl' %(self.specid, 
-                                                                  self.ifuslot,
-                                                                  self.ifuid,
-                                                                  self.amp))
+                                                                self.ifuslot,
+                                                                self.ifuid,
+                                                                self.amp))
             files = sorted(glob.glob(fn))
             for fiber_fn in files:
                 if op.exists(fiber_fn):

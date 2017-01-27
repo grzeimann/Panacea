@@ -15,6 +15,7 @@ from __future__ import (division, print_function, absolute_import,
 import matplotlib
 matplotlib.use('agg')
 import time
+import re
 
 import numpy as np
 import os.path as op
@@ -489,11 +490,67 @@ def reduce_twighlight(args):
                 twi2.save_fibers()
                 if args.debug:
                     print("Finished working on Cal for %s, %s" %(spec, amp))  
+
+def make_library_image(amp_image, header, outname, fits_list):
+    a,b = amp_image.shape
+    overscan = []
+    trimsec = []
+    bias = re.split('[\[ \] \: \,]', header['BIASSEC'])[1:-1]
+    biassec = [int(t)-((i+1)%2) for i,t in enumerate(bias)]  
+    trim = re.split('[\[ \] \: \,]', header['TRIMSEC'])[1:-1]
+    trimsec = [int(t)-((i+1)%2) for i,t in enumerate(trim)]  
+    for F in fits_list:
+        overscan.append(biweight_location(F[0].data[biassec[2]:biassec[3],
+                                                    biassec[0]:biassec[1]]))
+        del F[0].data
+    for i in np.arange(trimsec[0],trimsec[1]):
+        A = []                
+        for j,hdu in enumerate(fits_list):
+            A.append(biweight_filter(hdu[0].data[:,i], 21) - overscan[j])
+        amp_image[:,i] = biweight_location(A, axis=(0,))
+    for hdu in fits_list:
+        del hdu[0].data
+        hdu.close()
+    hdu = fits.PrimaryHDU(np.array(amp_image, dtype='float32'), header=header)
+    hdu.header.remove('BIASSEC')
+    hdu.header.remove('TRIMSEC')
+    hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
+    hdu.writeto(outname, clobber=True)  
+    
+def make_masterbias(args):
+    for spec in args.specid:
+        spec_ind_bia = np.where(args.bia_df['Specid'] == spec)[0]
+        for amp in config.Amps:
+            amp_ind_bia = np.where(args.bia_df['Amp'] == amp)[0]
+            bia_sel = np.intersect1d(spec_ind_bia, amp_ind_bia)
+            fits_list1 = []
+            fits_list2 = []
+            for ind in bia_sel:
+                fits_list1.append(fits.open(args.bia_df['Files']))
+                fits_list2.append(args.bia_df['Files'].replace(amp, 
+                                                      config.Amp_dict[amp][0]))
+            amp_image = np.zeros((fits_list1[0][0].data.shape))
+            header = fits_list1[0].header
+            outname = op.join(args.virusconfig, 'lib_bias', 
+                              args.bias_outfolder, 'masterbias_%s_%s.fits' 
+                                  %(args.bia_df['Specid'][ind], amp)) 
+            make_library_image(amp_image, header,outname,fits_list1)
+            amp_image = np.zeros((fits_list2[0][0].data.shape))
+            header = fits_list2[0].header
+            outname = op.join(args.virusconfig, 'lib_bias', 
+                              args.bias_outfolder, 'masterbias_%s_%s.fits' 
+                                  %(args.bia_df['Specid'][ind],
+                                    config.Amp_dict[amp][1])) 
+            make_library_image(amp_image, header,outname,fits_list2)            
                 
 def main():
     args = parse_args()
     if args.debug:
         t1 = time.time()
+    if args.make_masterbias:
+        make_masterbias(args)
+    if args.make_masterdark:
+        make_masterdark(args)
     if args.reduce_twi:
         reduce_twighlight(args)
     if args.reduce_sci:

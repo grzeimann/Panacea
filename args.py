@@ -47,6 +47,14 @@ def parse_args(argv=None):
     parser.add_argument("-rs","--reduce_sci", 
                         help='''Reduce Science frames''',
                         action="count", default=0)
+
+    parser.add_argument("-mb","--make_masterbias", 
+                        help='''Make MasterBias frames''',
+                        action="count", default=0)
+                        
+    parser.add_argument("-md","--make_masterdark", 
+                        help='''Make MasterDark frames''',
+                        action="count", default=0)
                         
     parser.add_argument("-uos","--use_other_sky", 
                         help='''Use another frame for the sky_spectrum''',
@@ -126,6 +134,40 @@ def parse_args(argv=None):
     parser.add_argument("-se","--scidir_expnum", nargs='?', type=str,
                         help='''Science Directory exposure number.
                         Ex: \"1\" or \"05\"''', default=None) 
+
+    parser.add_argument("-bd","--biadir_date", nargs='?', type=str,
+                        help='''Science Directory Date.     [REQUIRED, if --reduce_sci]
+                        Ex: \"20160412\"''', default=None)
+
+    parser.add_argument("-bo","--biadir_obsid", nargs='?', type=str,
+                        help='''Science Directory ObsID.    [REQUIRED, if --reduce_sci]
+                        Ex: \"3\" or \"102\"''', default=None)
+                        
+    parser.add_argument("-be","--biadir_expnum", nargs='?', type=str,
+                        help='''Science Directory exposure number.
+                        Ex: \"1\" or \"05\"''', default=None) 
+
+    parser.add_argument("--bias_outfolder", nargs='?', type=str, 
+                        help='''Output folder name for bias library
+                        Default: \"default"''', 
+                        default="default")
+
+    parser.add_argument("-dd","--drkdir_date", nargs='?', type=str,
+                        help='''Science Directory Date.     [REQUIRED, if --reduce_sci]
+                        Ex: \"20160412\"''', default=None)
+
+    parser.add_argument("-do","--drkdir_obsid", nargs='?', type=str,
+                        help='''Science Directory ObsID.    [REQUIRED, if --reduce_sci]
+                        Ex: \"3\" or \"102\"''', default=None)
+                        
+    parser.add_argument("-de","--drkdir_expnum", nargs='?', type=str,
+                        help='''Science Directory exposure number.
+                        Ex: \"1\" or \"05\"''', default=None) 
+
+    parser.add_argument("--dark_outfolder", nargs='?', type=str, 
+                        help='''Output folder name for dark library
+                        Default: \"default"''', 
+                        default="default")
 
     parser.add_argument("-td","--twidir_date", nargs='?', type=str,
                         help='''Twi Directory Date.     [REQUIRED, if --reduce_twi]
@@ -216,6 +258,10 @@ def parse_args(argv=None):
         observations.append('twi')
     if args.use_other_sky:
         observations.append('sky')
+    if args.make_masterbias:
+        observations.append('bia')
+    if args.make_masterdark:
+        observations.append('drk')
     for obs in observations:
         for label in labels[:2]:
             getattr(args, obs+label)
