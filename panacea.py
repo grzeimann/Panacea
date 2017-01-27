@@ -534,14 +534,40 @@ def make_masterbias(args):
             outname = op.join(args.virusconfig, 'lib_bias', 
                               args.bias_outfolder, 'masterbias_%s_%s.fits' 
                                   %(args.bia_df['Specid'][ind], amp)) 
-            make_library_image(amp_image, header,outname,fits_list1)
+            make_library_image(amp_image, header,outname, fits_list1)
             amp_image = np.zeros((fits_list2[0][0].data.shape))
             header = fits_list2[0].header
             outname = op.join(args.virusconfig, 'lib_bias', 
                               args.bias_outfolder, 'masterbias_%s_%s.fits' 
                                   %(args.bia_df['Specid'][ind],
                                     config.Amp_dict[amp][1])) 
-            make_library_image(amp_image, header,outname,fits_list2)            
+            make_library_image(amp_image, header,outname, fits_list2)            
+
+def make_masterdark(args):
+    for spec in args.specid:
+        spec_ind_drk = np.where(args.drk_df['Specid'] == spec)[0]
+        for amp in config.Amps:
+            amp_ind_drk = np.where(args.drk_df['Amp'] == amp)[0]
+            bia_sel = np.intersect1d(spec_ind_drk, amp_ind_drk)
+            fits_list1 = []
+            fits_list2 = []
+            for ind in bia_sel:
+                fits_list1.append(fits.open(args.drk_df['Files']))
+                fits_list2.append(args.drk_df['Files'].replace(amp, 
+                                                      config.Amp_dict[amp][0]))
+            amp_image = np.zeros((fits_list1[0][0].data.shape))
+            header = fits_list1[0].header
+            outname = op.join(args.virusconfig, 'lib_dark', 
+                              args.bias_outfolder, 'masterdark_%s_%s.fits' 
+                                  %(args.drk_df['Specid'][ind], amp)) 
+            make_library_image(amp_image, header,outname, fits_list1)
+            amp_image = np.zeros((fits_list2[0][0].data.shape))
+            header = fits_list2[0].header
+            outname = op.join(args.virusconfig, 'lib_dark', 
+                              args.bias_outfolder, 'masterdark_%s_%s.fits' 
+                                  %(args.drk_df['Specid'][ind],
+                                    config.Amp_dict[amp][1])) 
+            make_library_image(amp_image, header,outname, fits_list2)   
                 
 def main():
     args = parse_args()
