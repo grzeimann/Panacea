@@ -423,6 +423,10 @@ class Amplifier:
                                 'fibmodel_x','fibmodel_y','binx',
                                 'wave_polyvals','fiber_to_fiber',
                                 'dead'])
+        self.good_fibers = [fiber for fiber in self.fibers 
+                                      if not fiber.dead]
+        self.dead_fibers = [fiber for fiber in self.fibers 
+                                      if fiber.dead] 
         for fiber in self.fibers:
             fiber.eval_fibmodel_poly()
             fiber.eval_wave_poly()
@@ -576,7 +580,7 @@ class Amplifier:
             self.get_image()
         if self.type == 'twi' or self.refit:
             if self.refit:
-                mx_cut=0.4
+                mx_cut=0.1
             else:
                 mx_cut=0.1
             allfibers, xc = get_trace_from_image(self.image, interp_window=2.5,
@@ -644,11 +648,16 @@ class Amplifier:
                     fiber.fit_trace_poly()
                     fiber.eval_trace_poly()
             # Fill in the blank for fibers with trace flagged
+            print(len(self.good_fibers),len(self.dead_fibers))
             for fib, fiber in enumerate(self.good_fibers):
                 if np.sum(fiber.trace_x != fiber.flag)!=len(xc):
                     sel = np.where(fiber.trace_x != fiber.flag)[0]
                     setdiff = np.setdiff1d(xc, sel)
-                    fiber.fit_trace_poly()
+                    try:
+                        fiber.fit_trace_poly()
+                    except TypeError:
+                        print(fib)
+                        sys.exit(1)
                     k=1
                     done=False
                     if (fib+k)<=(len(self.good_fibers)-1):
@@ -693,11 +702,13 @@ class Amplifier:
                     for i, fiber in enumerate(self.fibers):
                         fiber.trace[:] = fiber.trace + smooth_shift[i]
         else:
-            self.load_cal_property('trace')
+            self.load_cal_property(['trace','dead'])
+            self.good_fibers = [fiber for fiber in self.fibers 
+                                      if not fiber.dead]
+            self.dead_fibers = [fiber for fiber in self.fibers 
+                                      if fiber.dead]  
             for fiber in self.fibers:
-                fiber.eval_trace_poly()
-            if self.use_trace_ref:
-                self.check_dead_fibers()        
+                fiber.eval_trace_poly()       
 
         
         if self.check_trace:

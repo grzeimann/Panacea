@@ -263,12 +263,18 @@ def reduce_science(args):
             sci_sel = np.intersect1d(spec_ind_sci, amp_ind_sci) 
             for ind in sci_sel:
                 if args.instr == "virus":
-                    ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
-                                                args.ifucen_fn[amp][0]
-                                                + args.sci_df['Ifuid'][ind] 
-                                                + '.txt'), 
-                                                usecols=[0,1,2], 
+                    if not args.use_trace_ref:
+                        ifucen = np.loadtxt(op.join(args.configdir, 
+                                                    'IFUcen_files', 
+                                                    args.ifucen_fn[amp][0]
+                                                    + args.sci_df['Ifuid'][ind] 
+                                                    + '.txt'), 
+                                                    usecols=[0,1,2], 
                                                skiprows=args.ifucen_fn[amp][1])
+                    else:
+                        ifucen = np.loadtxt(op.join(args.configdir,
+                                                    'IFUcen_files',
+                                                    'IFUcen_HETDEX.txt'))
                 else:
                     ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
                                         args.ifucen_fn[amp][0]), 
@@ -304,7 +310,7 @@ def reduce_science(args):
                 #        sci1.get_image()
                 #        sci1.sky_subtraction()
                 #        sci1.clean_cosmics()
-                #else:                        
+                #else:
                 sci1.load_all_cal()
                 if args.adjust_trace:
                     sci1.refit=True
@@ -313,7 +319,7 @@ def reduce_science(args):
                 sci1.fiberextract()
                 if args.refit_fiber_to_fiber:
                     sci1.refit=True
-                    sci1.fiber_to_fiber()
+                    sci1.get_fiber_to_fiber()
                     sci1.refit=False
                 sci1.sky_subtraction()
                 sci1.clean_cosmics()
@@ -329,7 +335,8 @@ def reduce_science(args):
                                  virusconfig=args.configdir, 
                                  specname=args.specname[amp],
                                  use_pixelflat=(args.pixelflats<1),
-                                 use_trace_ref=args.use_trace_ref)
+                                 use_trace_ref=args.use_trace_ref,
+                                 calculate_shift=args.adjust_trace)
                 #sci2.load_fibers()
                 #if sci2.fibers and not args.start_from_scratch:
                 #    if sci2.fibers[0].spectrum is not None:
@@ -339,14 +346,14 @@ def reduce_science(args):
                 #else:
                 sci2.load_all_cal()
                 if args.adjust_trace:
-                    sci1.refit=True
-                    sci1.get_trace()
-                    sci1.refit=False
-                sci1.fiberextract()
+                    sci2.refit=True
+                    sci2.get_trace()
+                    sci2.refit=False
+                sci2.fiberextract()
                 if args.refit_fiber_to_fiber:
-                    sci1.refit=True
-                    sci1.fiber_to_fiber()
-                    sci1.refit=False
+                    sci2.refit=True
+                    sci2.get_fiber_to_fiber()
+                    sci2.refit=False
                 sci2.sky_subtraction()
                 sci2.clean_cosmics()
                 sci2.fiberextract()
@@ -413,7 +420,7 @@ def reduce_twighlight(args):
                 twi1 = Amplifier(args.twi_df['Files'][ind],
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
-                                 debug=True, refit=True, dark_mult=0.0,
+                                 debug=True, dark_mult=0.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir, 
                                  specname=args.specname[amp],
@@ -432,7 +439,7 @@ def reduce_twighlight(args):
                                                       config.Amp_dict[amp][0]),
                                  args.twi_df['Output'][ind],
                                  calpath=args.twi_df['Output'][ind], 
-                                 debug=True, refit=True, dark_mult=0.0,
+                                 debug=True,  dark_mult=0.0,
                                  darkpath=args.darkdir, biaspath=args.biasdir,
                                  virusconfig=args.configdir, 
                                  specname=args.specname[amp],
