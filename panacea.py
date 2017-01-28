@@ -491,7 +491,7 @@ def reduce_twighlight(args):
                 if args.debug:
                     print("Finished working on Cal for %s, %s" %(spec, amp))  
 
-def make_library_image(amp_image, header, outname, fits_list):
+def make_library_image(amp_image, header, outname, fits_list, for_bias=True):
     a,b = amp_image.shape
     overscan = []
     trimsec = []
@@ -506,68 +506,104 @@ def make_library_image(amp_image, header, outname, fits_list):
     for i in np.arange(trimsec[0],trimsec[1]):
         A = []                
         for j,hdu in enumerate(fits_list):
-            A.append(biweight_filter(hdu[0].data[:,i], 21) - overscan[j])
+            if for_bias:
+                A.append(biweight_filter(hdu[0].data[:,i], 21) - overscan[j])
+            else:
+                A.append(hdu[0].data[:,i] - overscan[j])
         amp_image[:,i] = biweight_location(A, axis=(0,))
+        good = np.isfinite(amp_image[:,i])
+        amp_image[:,i] = np.interp(np.arange(a), np.arange(a)[good], 
+                                   amp_image[good,i])
     for hdu in fits_list:
         del hdu[0].data
         hdu.close()
-    hdu = fits.PrimaryHDU(np.array(amp_image, dtype='float32'), header=header)
+
+    hdu = fits.PrimaryHDU(np.array(amp_image[trimsec[2]:trimsec[3],
+                                             trimsec[0]:trimsec[1]], 
+                                   dtype='float32'), 
+                          header=header)
     hdu.header.remove('BIASSEC')
     hdu.header.remove('TRIMSEC')
-    hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
+    hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,trimsec[1]-trimsec[0],1,a)
     hdu.writeto(outname, clobber=True)  
     
 def make_masterbias(args):
     for spec in args.specid:
         spec_ind_bia = np.where(args.bia_df['Specid'] == spec)[0]
         for amp in config.Amps:
+            if args.debug:
+                print("Working on Bias for %s, %s" %(spec, 
+                                                     config.Amp_dict[amp][1]))
+                t1 = time.time()
             amp_ind_bia = np.where(args.bia_df['Amp'] == amp)[0]
             bia_sel = np.intersect1d(spec_ind_bia, amp_ind_bia)
             fits_list1 = []
             fits_list2 = []
             for ind in bia_sel:
-                fits_list1.append(fits.open(args.bia_df['Files']))
-                fits_list2.append(args.bia_df['Files'].replace(amp, 
-                                                      config.Amp_dict[amp][0]))
+                fits_list1.append(fits.open(args.bia_df['Files'][ind]))
+                fits_list2.append(fits.open(args.bia_df['Files'][ind].replace(amp, 
+                                                      config.Amp_dict[amp][0])))
             amp_image = np.zeros((fits_list1[0][0].data.shape))
-            header = fits_list1[0].header
-            outname = op.join(args.virusconfig, 'lib_bias', 
+            header = fits_list1[0][0].header
+            outname = op.join(args.configdir, 'lib_bias', 
                               args.bias_outfolder, 'masterbias_%s_%s.fits' 
                                   %(args.bia_df['Specid'][ind], amp)) 
             make_library_image(amp_image, header,outname, fits_list1)
+            if args.debug:
+                t2 = time.time()
+                print('Time Taken for Bias %s, %s: %0.3f' %(spec, amp, t2-t1))
             amp_image = np.zeros((fits_list2[0][0].data.shape))
-            header = fits_list2[0].header
-            outname = op.join(args.virusconfig, 'lib_bias', 
+            header = fits_list2[0][0].header
+            outname = op.join(args.configdir, 'lib_bias', 
                               args.bias_outfolder, 'masterbias_%s_%s.fits' 
                                   %(args.bia_df['Specid'][ind],
-                                    config.Amp_dict[amp][1])) 
-            make_library_image(amp_image, header,outname, fits_list2)            
+                                    config.Amp_dict[amp][0])) 
+            make_library_image(amp_image, header,outname, fits_list2)
+            if args.debug:
+                t3 = time.time()
+                print('Time Taken for Bias %s, %s: %0.3f' %(spec, 
+                                                      config.Amp_dict[amp][0], 
+                                                      t3-t2))            
 
 def make_masterdark(args):
     for spec in args.specid:
         spec_ind_drk = np.where(args.drk_df['Specid'] == spec)[0]
         for amp in config.Amps:
+            if args.debug:
+                print("Working on Dark for %s, %s" %(spec, 
+                                                      config.Amp_dict[amp][1])) 
+                t1=time.time()                    
             amp_ind_drk = np.where(args.drk_df['Amp'] == amp)[0]
             bia_sel = np.intersect1d(spec_ind_drk, amp_ind_drk)
             fits_list1 = []
             fits_list2 = []
             for ind in bia_sel:
-                fits_list1.append(fits.open(args.drk_df['Files']))
-                fits_list2.append(args.drk_df['Files'].replace(amp, 
-                                                      config.Amp_dict[amp][0]))
+                fits_list1.append(fits.open(args.drk_df['Files'][ind]))
+                fits_list2.append(fits.open(args.drk_df['Files'][ind].replace(amp, 
+                                                      config.Amp_dict[amp][0])))
             amp_image = np.zeros((fits_list1[0][0].data.shape))
-            header = fits_list1[0].header
-            outname = op.join(args.virusconfig, 'lib_dark', 
-                              args.bias_outfolder, 'masterdark_%s_%s.fits' 
+            header = fits_list1[0][0].header
+            outname = op.join(args.configdir, 'lib_dark', 
+                              args.dark_outfolder, 'masterdark_%s_%s.fits' 
                                   %(args.drk_df['Specid'][ind], amp)) 
-            make_library_image(amp_image, header,outname, fits_list1)
+            make_library_image(amp_image, header,outname, fits_list1, 
+                               for_bias=False)
+            if args.debug:
+                t2 = time.time()
+                print('Time Taken for Dark %s, %s: %0.3f' %(spec, amp, t2-t1))
             amp_image = np.zeros((fits_list2[0][0].data.shape))
-            header = fits_list2[0].header
-            outname = op.join(args.virusconfig, 'lib_dark', 
-                              args.bias_outfolder, 'masterdark_%s_%s.fits' 
+            header = fits_list2[0][0].header
+            outname = op.join(args.configdir, 'lib_dark', 
+                              args.dark_outfolder, 'masterdark_%s_%s.fits' 
                                   %(args.drk_df['Specid'][ind],
-                                    config.Amp_dict[amp][1])) 
-            make_library_image(amp_image, header,outname, fits_list2)   
+                                    config.Amp_dict[amp][0])) 
+            make_library_image(amp_image, header,outname, fits_list2, 
+                               for_bias=False) 
+            if args.debug:
+                t3 = time.time()
+                print('Time Taken for Dark %s, %s: %0.3f' %(spec, 
+                                                      config.Amp_dict[amp][0], 
+                                                      t3-t2))  
                 
 def main():
     args = parse_args()
