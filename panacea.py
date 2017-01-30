@@ -274,7 +274,9 @@ def reduce_science(args):
                     else:
                         ifucen = np.loadtxt(op.join(args.configdir,
                                                     'IFUcen_files',
-                                                    'IFUcen_HETDEX.txt'))
+                                                    'IFUcen_HETDEX.txt'),
+                                                    usecols=[0,1,2],
+                                               skiprows=args.ifucen_fn[amp][1])
                 else:
                     ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
                                         args.ifucen_fn[amp][0]), 

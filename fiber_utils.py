@@ -822,7 +822,6 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
         i+=1
         
     F = Fl.sum(axis=2)
-    P = Pl.sum(axis=1)[sel]    
     
     # Solve for fiber model iteratively with the normalization
     for i in xrange(niter):
@@ -907,6 +906,36 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, fib=0,
     return sol
 
 
+def get_norm_nonparametric_fast(image, Fibers, mask=None):
+    bins=len(Fibers[0].binx)
+    a,b = image.shape
+    if mask is None:
+        mask = np.zeros(image.shape)
+    ygrid,xgrid = np.indices(image.shape)
+    fun = np.zeros((bins,))
+    y=ygrid[:,0]
+    Fl = np.zeros((len(y), bins))
+    Pl = np.zeros((len(y),))
+    init_model = np.zeros((len(y),len(Fibers)))
+    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
+    norm = np.zeros((len(Fibers),b))
+    def plaw(xp, plaw_coeff):
+        return plaw_coeff[0] / (plaw_coeff[1] 
+                                + plaw_coeff[2] * np.power(abs(xp), 
+                                                           plaw_coeff[3]))
+    for col in xrange(b):
+        for i,fiber in enumerate(Fibers):
+            ix = y-fiber.trace[col]
+            for j in xrange(bins):
+                fun[j] = 1.0
+                Fl[:,j] = np.interp(ix,fiber.binx,fun,left=0.0,right=0.0)
+                fun[j] = 0.0
+            Pl = plaw(ix / 2.5, plaw_coeff)
+            init_model[:,i] = np.dot(Fl, fiber.fibmodel[col,:])+Pl
+        norm[:,col] = lstsq(init_model[mask[:,col]==0,:], 
+                            image[mask[:,col]==0,col])[0]
+    return norm
+        
 def get_norm_nonparametric_bins(image, mask, xgrid, ygrid, Fibers, fib=0, 
                                       xlow=0, xhigh=1032, fsize=8., 
                                       group=4, debug=False):

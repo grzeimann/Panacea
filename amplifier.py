@@ -22,7 +22,7 @@ import re
 import glob
 import cPickle as pickle
 from fiber_utils import get_trace_from_image, fit_fibermodel_nonparametric
-from fiber_utils import get_norm_nonparametric, check_fiber_trace
+from fiber_utils import get_norm_nonparametric_fast, check_fiber_trace
 from fiber_utils import calculate_wavelength_chi2, get_model_image
 from fiber_utils import check_fiber_profile, check_wavelength_fit
 from fiber import Fiber
@@ -363,7 +363,11 @@ class Amplifier:
                              (1.*np.arange(fiber.D))/fiber.D, values)
             
         else:
-            return 1.* getattr(fiber, prop)       
+            try:
+                return 1.* getattr(fiber, prop)
+            except TypeError:
+                print(fiber.fibnum-1,prop, getattr(fiber,prop))
+                sys.exit()
                              
                              
     def load_cal_property(self, prop, pathkind='calpath'):
@@ -404,12 +408,15 @@ class Amplifier:
             with open(fiber_fn, 'r') as f:
                 F1 = pickle.load(f)
             for pro in prop:
-                try:
-                    setattr(F, pro, self.convert_binning(F1,pro))
-                except AttributeError:
-                    if self.debug:
-                        print("Cannot load attribute %s from %s" %(pro, 
-                                                                   fiber_fn))
+                if getattr(F1,pro) is None:
+                    setattr(F, pro, getattr(F1,pro))
+                else:
+                    try:
+                        setattr(F, pro, self.convert_binning(F1,pro))
+                    except AttributeError:
+                        if self.debug:
+                            print("Cannot load attribute %s from %s" %(pro, 
+                                                                     fiber_fn))
             if append_flag:
                 self.fibers.append(F)
     
@@ -554,12 +561,14 @@ class Amplifier:
                     if not self.fibers[i-j].dead:
                         self.get_attribute_from_neighbor_fiber(i, i-j, props)
                         no_neighbor=False
+                        print(i, i-j)
                         if return_ind:
                             keep_ind.append(i-j)
-                if i+j<len(self.fibers) and not no_neighbor:
+                if i+j<len(self.fibers) and no_neighbor:
                     if not self.fibers[i+j].dead:
                         self.get_attribute_from_neighbor_fiber(i, i+j, props)
                         no_neighbor=False
+                        print(i, i+j)
                         if return_ind:
                             keep_ind.append(i+j)
                 j+=1
@@ -648,7 +657,6 @@ class Amplifier:
                     fiber.fit_trace_poly()
                     fiber.eval_trace_poly()
             # Fill in the blank for fibers with trace flagged
-            print(len(self.good_fibers),len(self.dead_fibers))
             for fib, fiber in enumerate(self.good_fibers):
                 if np.sum(fiber.trace_x != fiber.flag)!=len(xc):
                     sel = np.where(fiber.trace_x != fiber.flag)[0]
@@ -772,8 +780,8 @@ class Amplifier:
                 
         if self.check_fibermodel:
             if self.fibers[0].spectrum is None:
-                norm = get_norm_nonparametric(self.image, self.fibers, 
-                                              debug=False)
+                norm = get_norm_nonparametric_fast(self.image, self.fibers,
+                                                   mask=self.mask)
                 for i, fiber in enumerate(self.fibers):
                     fiber.spectrum = norm[i,:]
             outfile = op.join(self.path,'fibmodel_%s.png' %self.basename)
@@ -796,8 +804,8 @@ class Amplifier:
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly()
-        norm = get_norm_nonparametric(self.image, self.fibers, 
-                                      debug=False, mask=self.mask)
+        norm = get_norm_nonparametric_fast(self.image, self.fibers, 
+                                           mask=self.mask)
         for i, fiber in enumerate(self.fibers):
             fiber.spectrum = norm[i,:]    
     
@@ -830,8 +838,8 @@ class Amplifier:
                 fiber.eval_fibmodel_poly() 
         if self.type == 'twi' or self.refit:
             if self.fibers[0].spectrum is None:
-                norm = get_norm_nonparametric(self.image, self.fibers, 
-                                              debug=False)
+                norm = get_norm_nonparametric_fast(self.image, self.fibers, 
+                                                   mask=self.mask)
                 for i, fiber in enumerate(self.fibers):
                     fiber.spectrum = norm[i,:]
             if self.init_lims is None:
@@ -907,8 +915,8 @@ class Amplifier:
                 fiber.eval_wave_poly()
         if self.check_wave:
             if self.fibers[0].spectrum is None:
-                norm = get_norm_nonparametric(self.image, self.fibers, 
-                                                  debug=False)
+                norm = get_norm_nonparametric_fast(self.image, self.fibers, 
+                                                   mask=self.mask)
                 for i, fiber in enumerate(self.fibers):
                     fiber.spectrum = norm[i,:]
             outfile = op.join(self.path,'wavesolution_%s.png' %self.basename)
