@@ -561,14 +561,12 @@ class Amplifier:
                     if not self.fibers[i-j].dead:
                         self.get_attribute_from_neighbor_fiber(i, i-j, props)
                         no_neighbor=False
-                        print(i, i-j)
                         if return_ind:
                             keep_ind.append(i-j)
                 if i+j<len(self.fibers) and no_neighbor:
                     if not self.fibers[i+j].dead:
                         self.get_attribute_from_neighbor_fiber(i, i+j, props)
                         no_neighbor=False
-                        print(i, i+j)
                         if return_ind:
                             keep_ind.append(i+j)
                 j+=1
