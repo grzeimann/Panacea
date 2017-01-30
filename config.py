@@ -8,7 +8,7 @@ Built for the VIRUS instrument as well as LRS2 on HET
 """
 
 # Bottom Amplifier for each side ---
-Amps = ["LL", "RU"]
+Amps = ["RU"]#["LL", "RU"]
 
 # Connecting the bottom ampliefer with the top and total side
 Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}

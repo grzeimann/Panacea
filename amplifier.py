@@ -696,8 +696,10 @@ class Amplifier:
             ind = self.fill_in_dead_fibers(['trace_x', 'trace_y', 'trace'], 
                                            return_ind=True)
             for i, fiber in enumerate(self.dead_fibers):
-                fiber.trace_y += (standardcol[i]-standardcol[ind[i]])
-                fiber.trace += (standardcol[i]-standardcol[ind[i]])
+                fiber.trace_y += (standardcol[fiber.fibnum-1]
+                                  -standardcol[ind[i]])
+                fiber.trace += (standardcol[fiber.fibnum-1]
+                                -standardcol[ind[i]])
                 
                         
             if self.calculate_shift:
