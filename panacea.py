@@ -613,7 +613,104 @@ def make_masterdark(args):
                 print('Time Taken for Dark %s, %s: %0.3f' %(spec, 
                                                       config.Amp_dict[amp][0], 
                                                       t3-t2))  
-                
+                                                      
+def custom(args):
+    lowfib = int(112 / 4. - 1.)
+    midfib = int(112 / 2. - 1.)
+    highfib = int(3.* 112. / 4. - 1.)
+    trace_list = {"LL":[],"LU":[],"RU":[],"RL":[]}
+    amps = {"LL":"LL","LU":"LL","RU":"RU","RL":"RU"}
+    for spec in args.specid:
+        spec_ind_twi = np.where(args.twi_df['Specid'] == spec)[0]
+        spec_ind_sci = np.where(args.sci_df['Specid'] == spec)[0]
+        for ind in spec_ind_twi:
+            amp = args.twi_df['Amp'][ind]
+            AMP = amps[amp]
+            twi = Amplifier(args.twi_df['Files'][ind],
+                            args.twi_df['Output'][ind],
+                            calpath=args.twi_df['Output'][ind], 
+                            debug=True, dark_mult=0.0,
+                            darkpath=args.darkdir, biaspath=args.biasdir,
+                            virusconfig=args.configdir, 
+                            specname=args.specname[AMP],
+                            use_pixelflat=(args.pixelflats<1),
+                            init_lims=args.wvl_dict[AMP], 
+                            check_fibermodel=True, check_wave=True,
+                            fsize=args.fsize, 
+                            fibmodel_nbins=args.fibmodel_bins,
+                            sigma=args.fibmodel_sig,
+                            power=args.fibmodel_pow,
+                            use_trace_ref=args.use_trace_ref)
+               
+            twi.load_fibers()
+            if len(twi.fibers)==0:
+                twi.get_trace()
+            else:
+                if not hasattr(twi.fibers[0],'trace'):        
+                    twi.get_trace()
+            blue = int(twi.D /4.)
+            green = int(twi.D /2.)
+            red = int(3.*twi.D /4.)
+            trace_list[amp].append(np.array([twi.fibers[lowfib].trace[blue],
+                                            twi.fibers[lowfib].trace[green],
+                                            twi.fibers[lowfib].trace[red],
+                                            twi.fibers[midfib].trace[blue],
+                                            twi.fibers[midfib].trace[green],
+                                            twi.fibers[midfib].trace[red],
+                                            twi.fibers[highfib].trace[blue],
+                                            twi.fibers[highfib].trace[green],
+                                            twi.fibers[highfib].trace[red]]))
+        for ind in spec_ind_sci:
+            amp = args.sci_df['Amp'][ind]
+            AMP = amps[amp]
+            print(args.sci_df['Files'][ind])
+            
+            sci = Amplifier(args.sci_df['Files'][ind],
+                            args.sci_df['Output'][ind],
+                            calpath=args.twi_dir, skypath=args.sky_dir,
+                            debug=False, refit=True, 
+                            dark_mult=args.dark_mult[AMP],
+                            darkpath=args.darkdir, biaspath=args.biasdir,
+                            virusconfig=args.configdir, 
+                            specname=args.specname[AMP],
+                            use_pixelflat=(args.pixelflats<1),
+                            use_trace_ref=args.use_trace_ref,
+                            calculate_shift=False)
+            sci.load_fibers()
+            if len(sci.fibers)==0:
+                sci.get_trace()
+            else:
+                if not hasattr(sci.fibers[0],'trace'):        
+                    sci.get_trace()
+            blue = int(sci.D /4.)
+            green = int(sci.D /2.)
+            red = int(3.*sci.D /4.)
+            trace_list[amp].append(np.array([sci.fibers[lowfib].trace[blue],
+                                            sci.fibers[lowfib].trace[green],
+                                            sci.fibers[lowfib].trace[red],
+                                            sci.fibers[midfib].trace[blue],
+                                            sci.fibers[midfib].trace[green],
+                                            sci.fibers[midfib].trace[red],
+                                            sci.fibers[highfib].trace[blue],
+                                            sci.fibers[highfib].trace[green],
+                                            sci.fibers[highfib].trace[red]]))
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(12,12))
+    ax1 = plt.axes([0.1,0.1,0.35,0.35])
+    ax2 = plt.axes([0.1,0.55,0.35,0.35])
+    ax3 = plt.axes([0.55,0.1,0.35,0.35])
+    ax4 = plt.axes([0.55,0.55,0.35,0.35])
+    amps = ["LL","LU","RU","RL"]
+    ax = [ax1,ax2,ax3,ax4]
+    for i,amp in enumerate(amps):
+        TR = np.array(trace_list[amp])
+        avg = biweight_location(TR,axis=(0,))
+        print(TR-avg)
+        ax[i].plot(TR-avg)
+    fn = op.join(args.output, args.scidir_date[0], args.instr, 
+                        'trace_%s.png' %args.specid[0])
+    plt.savefig(fn,dpi=150)
+             
 def main():
     args = parse_args()
     if args.debug:
@@ -622,6 +719,10 @@ def main():
         make_masterbias(args)
     if args.make_masterdark:
         make_masterdark(args)
+    if args.custom:
+        args.reduce_twi = False
+        args.reduce_sci = False
+        custom(args)
     if args.reduce_twi:
         reduce_twighlight(args)
     if args.reduce_sci:
@@ -629,6 +730,7 @@ def main():
     if args.debug:
         t2=time.time()
         print("Total Time taken: %0.2f s" %(t2-t1))
+    
 
 if __name__ == '__main__':
     main()    

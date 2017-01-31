@@ -570,6 +570,9 @@ class Amplifier:
                         if return_ind:
                             keep_ind.append(i+j)
                 j+=1
+                if i-j<0 and ((i+j)>=len(self.fibers)):
+                    print(i,j,len(self.dead_fibers))
+                    sys.exit(1)
         if return_ind:
             return keep_ind
             
@@ -692,7 +695,6 @@ class Amplifier:
                                                           fiber.trace_polyvals, 
                                                               setdiff / self.D)
                         fiber.eval_trace_poly()
-                        
             ind = self.fill_in_dead_fibers(['trace_x', 'trace_y', 'trace'], 
                                            return_ind=True)
             for i, fiber in enumerate(self.dead_fibers):
@@ -701,7 +703,14 @@ class Amplifier:
                 fiber.trace += (standardcol[fiber.fibnum-1]
                                 -standardcol[ind[i]])
                 
-                        
+            # TODO print trace info
+            fn = op.join(self.path, self.basename + '_trace.txt')
+            A = np.zeros((len(self.fibers),4))
+            A[:,0] = [fiber.fibnum for fiber in self.fibers]
+            A[:,1] = [fiber.trace[int(self.D/6.)] for fiber in self.fibers]
+            A[:,2] = [fiber.trace[int(self.D/2.)] for fiber in self.fibers]
+            A[:,3] = [fiber.trace[int(5.*self.D/6.)] for fiber in self.fibers]
+            np.savetxt(fn, A)
             if self.calculate_shift:
                 self.net_trace_shift = self.find_shift()
                 smooth_shift = biweight_filter(self.shift, 15)

@@ -44,6 +44,10 @@ def parse_args(argv=None):
                         help='''Reduce Twighlight frames for calibration''',
                         action="count", default=0)
 
+    parser.add_argument("-c","--custom", 
+                        help='''Execute custom function''',
+                        action="count", default=0)
+
     parser.add_argument("-rs","--reduce_sci", 
                         help='''Reduce Science frames''',
                         action="count", default=0)

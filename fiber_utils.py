@@ -552,7 +552,7 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
             peaks_height[j] = y[val]
         mh = biweight_location(peaks_height)
         peaks_final = peaks_refined[peaks_height > (mx_cut * mh)]
-        allfibers.append(peaks_final) 
+        allfibers.append(peaks_final[np.isfinite(peaks_final)]) 
     if debug:
         t2 = time.time()
         print("Time Taken for Trace: %0.2f" %(t2-t1))
