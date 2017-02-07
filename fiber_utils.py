@@ -1242,6 +1242,7 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
                     model[li:hi,k] += lmodel[-1]
                     normfits[li:hi,k,fib] = fiber.spectrum[k]
                 #TODO: Revist how this is calculated.
+                print(lmodel[-1].shape, lmodel[-1])
                 W = ((normfits[miny:maxy,k,:]*np.array(lmodel)[miny:maxy,:]).sum(axis=1) /
                      np.array(lmodel)[miny:maxy,:].sum(axis=1))
                 flat[miny:maxy,k] = np.where(W!=0,image[miny:maxy,k]/W, 0.0)
