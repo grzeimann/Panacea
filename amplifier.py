@@ -45,7 +45,7 @@ class Amplifier:
                  wave_order=3, default_fib=0, init_lims=None, 
                  interactive=False, check_wave=False,filt_size_ind=21, 
                  filt_size_agg=51, filt_size_final=51, filt_size_sky=51,
-                 col_frac = 0.47, use_trace_ref=False, fiber_date='20170202'):
+                 col_frac = 0.47, use_trace_ref=False, fiber_date=None):
         ''' 
         Initialize class
         ----------------
