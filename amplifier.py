@@ -608,12 +608,9 @@ class Amplifier:
                 if self.fiber_date is None:
                     fn = glob.glob(op.join(self.virusconfig, 
                                            'Fiber_Locations','*')+'/')
-                    print(fn)
                     dates = [op.basename(op.dirname(f)) for f in fn]
-                    print(dates)
                     timediff = np.zeros((len(dates),))
                     for i,date in enumerate(dates):
-                        print(i, date,date[:4])
                         d = datetime(int(date[:4]), int(date[4:6]),
                                      int(date[6:]))
                         timediff[i] = np.abs((self.date - d).days)
