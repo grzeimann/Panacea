@@ -1238,7 +1238,7 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
                         fun[l] = 0.0
                     
                     lmodel = (np.dot(Fl[li:hi,:], fiber.fibmodel[k,:])
-                                  + PL[li:hi,k,:])
+                                  + PL[li:hi,k,fib])
                     model[li:hi,k] += lmodel[-1]
                     normfits[li:hi,k,fib] = fiber.spectrum[k]
                 #TODO: Revist how this is calculated.
