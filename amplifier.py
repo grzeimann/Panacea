@@ -609,7 +609,7 @@ class Amplifier:
                     fn = glob.glob(op.join(self.virusconfig, 
                                            'Fiber_Locations','*')+'/')
                     print(fn)
-                    dates = [op.basename(f) for f in fn]
+                    dates = [op.basename(op.dirname(f)) for f in fn]
                     print(dates)
                     timediff = np.zeros((len(dates),))
                     for i,date in enumerate(dates):
