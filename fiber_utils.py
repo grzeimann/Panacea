@@ -1225,7 +1225,7 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
             normfits = np.zeros((image.shape + (len(Fibers),)))
             for k in xpos[0,minx:maxx]:
                 Fl = np.zeros((ylen, bins))
-                
+                lmodel = []
                 for fib, fiber in enumerate(fibers):
                     ix = ypos[:,k] - fiber.trace[k]
                     li = np.searchsorted(ix,low)
