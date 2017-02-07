@@ -27,6 +27,7 @@ from fiber_utils import calculate_wavelength_chi2, get_model_image
 from fiber_utils import check_fiber_profile, check_wavelength_fit
 from fiber import Fiber
 import cosmics
+from datetime import datetime
 
 
 __all__ = ["Amplifier"]
@@ -295,6 +296,9 @@ class Amplifier:
         self.specid = '%03d' %F[0].header['SPECID']
         self.ifuid = F[0].header['IFUID'].replace(' ', '')
         self.ifuslot ='%03d' %F[0].header['IFUSLOT']
+        datetemp = re.split('-',F[0].header['DATE-OBS'])
+        self.date = datetime(int(datetemp[0]), int(datetemp[1]), 
+                             int(datetemp[2]))
 
         
     def check_overscan(self, image, recalculate=False):
@@ -601,10 +605,29 @@ class Amplifier:
                                                  debug=False, mx_cut=mx_cut)
             brcol = np.argmin(np.abs(xc-self.D*self.col_frac))
             if self.use_trace_ref:
-                ref_file = np.loadtxt(op.join(self.virusconfig, 'Fiber_Locations',
-                              self.fiber_date, 'fiber_loc_%s_%s_%s_%s.txt'
-                              %(self.specid, self.ifuslot, self.ifuid,
-                                self.amp)))
+                if self.fiber_date is None:
+                    fn = glob.glob(op.join(self.virusconfig, 
+                                           'Fiber_Locations/*/'))
+                    dates = [op.basename(f) for f in fn]
+                    timediff = np.zeros((len(dates),))
+                    for i,date in enumerate(dates):
+                        d = datetime(int(date[:4]), int(date[4:6]),
+                                     int(date[6:]))
+                        timediff[i] = np.abs((self.date - d).days)
+                    closest_date = dates[np.argmin(timediff)]
+                    ref_file = np.loadtxt(op.join(self.virusconfig, 
+                                                  'Fiber_Locations',
+                                                  closest_date, 
+                                                  'fiber_loc_%s_%s_%s_%s.txt'
+                                                  %(self.specid, self.ifuslot, 
+                                                    self.ifuid, self.amp)))
+                else:    
+                    ref_file = np.loadtxt(op.join(self.virusconfig, 
+                                                  'Fiber_Locations',
+                                                  self.fiber_date, 
+                                                  'fiber_loc_%s_%s_%s_%s.txt'
+                                                  %(self.specid, self.ifuslot, 
+                                                    self.ifuid, self.amp)))
                 # sort by y values just in case the missing fiber is at the end
                 ref_file = ref_file[ref_file[:,0].argsort(),:]
                 standardcol=ref_file[:,0]

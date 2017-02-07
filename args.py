@@ -210,12 +210,7 @@ def parse_args(argv=None):
         args.specid = args.specid.replace(" ", "").split(',')
     else:
         msg = 'No SPECID was provided.'
-        parser.error(msg)   
-
-    if args.use_trace_ref:
-        if args.fiber_date is None:
-            msg = 'No fiber_date was provided.'
-            parser.error(msg)            
+        parser.error(msg)              
     
     if args.instr.lower() == 'virus':
         args.wvl_dict = config.virus_wl
