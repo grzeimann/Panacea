@@ -1095,7 +1095,7 @@ def get_model_image(image, fibers, prop, debug=False):
                 fun[j] = 0.0
             model[li:hi,i] += (getattr(fiber,prop)[i] 
                                * (np.dot(Fl[li:hi,:],fiber.fibmodel[i,:]) 
-                                  + plaw(ix[li:hi] / 2.5, plaw_coeff)))
+                                  + plaw(ix[li:hi], plaw_coeff)))
     
     if debug:
         t2 = time.time()
