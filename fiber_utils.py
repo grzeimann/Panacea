@@ -1194,7 +1194,6 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
     fun = np.zeros((bins,))
     plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
     PL = np.zeros((ylen,xlen,nfibs))
-    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
     for i in xrange(xlen):
         for j,fiber in enumerate(Fibers):
             ix = ypos[:,i] - fiber.trace[i]
@@ -1226,7 +1225,6 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
             lmodel = np.zeros((image.shape + (len(Fibers),)))
             for k in xpos[0,minx:maxx]:
                 Fl = np.zeros((ylen, bins))
-                lmodel = []
                 for fib, fiber in enumerate(fibers):
                     ix = ypos[:,k] - fiber.trace[k]
                     li = np.searchsorted(ix,low)
@@ -1237,13 +1235,12 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
                         Fl[li:hi,l] = np.interp(ix[li:hi], binx, fun, left=0.0, 
                                                 right=0.0)
                         fun[l] = 0.0
-                    
-                    lmodel[li:hi,k,fib] = (np.dot(Fl[li:hi,:], 
-                                                  fiber.fibmodel[k,:])
-                                          + PL[li:hi,k,fib])
+                    lmodel[li:hi,k,fib] = (np.dot(Fl[li:hi,:],
+                                                  fiber.fibmodel[k,:]) 
+                                           + PL[li:hi,k,fib])
                     model[li:hi,k] += lmodel[li:hi,k,fib]
-                    normfits[li:hi,k,fib] = fiber.spectrum[k]
-                #TODO: Revist how this is calculated.
+                    # TODO proper normalization
+                    normfits[li:hi,k,fib] = fiber.spectrum[k] * 1.03
                 W = ((normfits[miny:maxy,k,:]*lmodel[miny:maxy,k,:]).sum(axis=1) /
                      lmodel[miny:maxy,k,:].sum(axis=1))
                 flat[miny:maxy,k] = np.where(W!=0,image[miny:maxy,k]/W, 0.0)
