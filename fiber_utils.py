@@ -1223,6 +1223,7 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
             model = np.zeros(image.shape)
             flat = np.zeros(image.shape)
             normfits = np.zeros((image.shape + (len(Fibers),)))
+            lmodel = np.zeros((image.shape + (len(Fibers),)))
             for k in xpos[0,minx:maxx]:
                 Fl = np.zeros((ylen, bins))
                 lmodel = []
@@ -1237,14 +1238,14 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
                                                 right=0.0)
                         fun[l] = 0.0
                     
-                    lmodel.append((np.dot(Fl[li:hi,:], fiber.fibmodel[k,:])
-                                  + PL[li:hi,k,fib]))
-                    model[li:hi,k] += lmodel[-1]
+                    lmodel[li:hi,k,fib] = (np.dot(Fl[li:hi,:], 
+                                                  fiber.fibmodel[k,:])
+                                          + PL[li:hi,k,fib])
+                    model[li:hi,k] += lmodel[li:hi,k,fib]
                     normfits[li:hi,k,fib] = fiber.spectrum[k]
                 #TODO: Revist how this is calculated.
-                print(lmodel[-1].shape, lmodel[-1], np.array(lmodel).shape)
-                W = ((normfits[miny:maxy,k,:]*np.array(lmodel)[miny:maxy,:]).sum(axis=1) /
-                     np.array(lmodel)[miny:maxy,:].sum(axis=1))
+                W = ((normfits[miny:maxy,k,:]*lmodel[miny:maxy,k,:]).sum(axis=1) /
+                     lmodel[miny:maxy,k,:].sum(axis=1))
                 flat[miny:maxy,k] = np.where(W!=0,image[miny:maxy,k]/W, 0.0)
             ytrace = ypos[miny:maxy,minx:maxx] - Fibers[i].trace[minx:maxx]            
             sub.scatter(ytrace.ravel(), flat[miny:maxy,minx:maxx].ravel(), 
