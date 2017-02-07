@@ -67,6 +67,7 @@ def main():
                                  power=args.fibmodel_pow)
                 twi1.get_trace()
                 fname = op.join(args.configdir,'Fiber_Locations',
+                                args.twidir_date[0],
                                 'fiber_loc_%s_%s_%s_%s.txt' %(
                                 args.twi_df['Specid'][ind],
                                 args.twi_df['Ifuslot'][ind],
@@ -103,6 +104,7 @@ def main():
                                  power=args.fibmodel_pow)
                 twi2.get_trace()
                 fname = op.join(args.configdir,'Fiber_Locations',
+                                args.twidir_date[0],
                                 'fiber_loc_%s_%s_%s_%s.txt' %(
                                 args.twi_df['Specid'][ind],
                                 args.twi_df['Ifuslot'][ind],
