@@ -77,6 +77,9 @@ def parse_args(argv=None):
                         help='''Using trace reference files to recover all
                         fibers.''',
                         action="count", default=0)
+                        
+    parser.add_argument("--fiber_date", nargs='?', type=str, 
+                        help='''Date for Fiber_Locations''', default = None)                        
 
     parser.add_argument("-p","--pixelflats", 
                         help='''Turn off using pixel flats.''',
@@ -208,6 +211,11 @@ def parse_args(argv=None):
     else:
         msg = 'No SPECID was provided.'
         parser.error(msg)   
+
+    if args.use_trace_ref:
+        if args.fiber_date is None:
+            msg = 'No fiber_date was provided.'
+            parser.error(msg)            
     
     if args.instr.lower() == 'virus':
         args.wvl_dict = config.virus_wl

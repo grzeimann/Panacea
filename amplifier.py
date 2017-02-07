@@ -44,7 +44,7 @@ class Amplifier:
                  wave_order=3, default_fib=0, init_lims=None, 
                  interactive=False, check_wave=False,filt_size_ind=21, 
                  filt_size_agg=51, filt_size_final=51, filt_size_sky=51,
-                 col_frac = 0.47, use_trace_ref=False):
+                 col_frac = 0.47, use_trace_ref=False, fiber_date='20170202'):
         ''' 
         Initialize class
         ----------------
@@ -170,6 +170,8 @@ class Amplifier:
             This is a boolean variable that sets whether the fibers found
             are compared with reference fibers and define dead fibers if
             there are missing fibers in the search.
+        :param fiber_date:
+            The date on which the fiber reference is located.
             
         :init header:
             The fits header of the raw frame.
@@ -241,6 +243,7 @@ class Amplifier:
         self.col_frac = col_frac
         self.use_trace_ref = use_trace_ref
         self.fdist_ref = fdist_ref
+        self.fiber_date = fiber_date
         
         # Fibermodel options
         self.fibmodel_poly_order = fibmodel_poly_order
@@ -599,7 +602,7 @@ class Amplifier:
             brcol = np.argmin(np.abs(xc-self.D*self.col_frac))
             if self.use_trace_ref:
                 ref_file = np.loadtxt(op.join(self.virusconfig, 'Fiber_Locations',
-                              'fiber_loc_%s_%s_%s_%s.txt'
+                              self.fiber_date, 'fiber_loc_%s_%s_%s_%s.txt'
                               %(self.specid, self.ifuslot, self.ifuid,
                                 self.amp)))
                 # sort by y values just in case the missing fiber is at the end
