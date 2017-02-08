@@ -33,7 +33,8 @@ from datetime import datetime
 __all__ = ["Amplifier"]
 
 class Amplifier:
-    def __init__(self, filename, path, refit=False, calpath=None, skypath=None,
+    def __init__(self, filename, path, name=None, refit=False, calpath=None, 
+                 skypath=None,
                  debug=False, darkpath=None, biaspath=None, virusconfig=None,
                  dark_mult=1., bias_mult=0., use_pixelflat=True, 
                  specname=None, fdist=2., fdist_ref=4., check_trace=True, 
@@ -217,6 +218,7 @@ class Amplifier:
             sys.exit(1)
         F = fits.open(filename)
         self.header = F[0].header
+        self.name = name
         self.filename = op.abspath(filename)
         self.basename = op.basename(filename)[:-5]
         self.virusconfig = virusconfig
@@ -281,6 +283,7 @@ class Amplifier:
             self.D -= 32
         if self.D == 2128:
             self.D -= 64
+        self.trimmed = False
         self.overscan_value = None
         self.gain = F[0].header['GAIN']
         self.rdnoise = F[0].header['RDNOISE']
@@ -299,16 +302,16 @@ class Amplifier:
         datetemp = re.split('-',F[0].header['DATE-OBS'])
         self.date = datetime(int(datetemp[0]), int(datetemp[1]), 
                              int(datetemp[2]))
-
+        self.image = np.array(F[0].data, dtype=float)
         
-    def check_overscan(self, image, recalculate=False):
+    def check_overscan(self, recalculate=False):
         '''
         Evaluate the overscan_value using a biweight average of the BIASSEC
         region.  Only calculate the value if one does not exist or 
         recalculate is set to True.
         '''
         if (self.overscan_value is None) or recalculate:
-            self.overscan_value = biweight_location(image[
+            self.overscan_value = biweight_location(self.image[
                                               self.biassec[2]:self.biassec[3],
                                               self.biassec[0]:self.biassec[1]])
    
@@ -446,16 +449,15 @@ class Amplifier:
             fiber.eval_wave_poly()
       
       
-    def orient(self, image):
+    def orient(self):
         '''
         Orient the images from blue to red (left to right)
         Fibers are oriented to match configuration files
         '''
         if self.amp == "LU":
-            image[:] = image[::-1,::-1]
+            self.image[:] = self.image[::-1,::-1]
         if self.amp == "RL":
-            image[:] = image[::-1,::-1]
-        return image
+            self.image[:] = self.image[::-1,::-1]
         
     
     def save_fibers(self):
@@ -464,7 +466,14 @@ class Amplifier:
         '''
         for fiber in self.fibers:
             fiber.save(self.specid, self.ifuslot, self.ifuid, self.amp)
-       
+
+    def trim(self):
+        '''
+        Trim the image to just the datasec/trimsec.
+        '''
+        if not self.trimmed:
+            self.image = self.image[self.trimsec[2]:self.trimsec[3], 
+                                       self.trimsec[0]:self.trimsec[1]]
        
     def get_image(self):
         '''
@@ -473,34 +482,32 @@ class Amplifier:
         and divides the pixelflat.  It also orients the image using the
         "orient" function above.
         '''
-        image = np.array(fits.open(self.filename)[0].data, dtype=float)
-        self.check_overscan(image)
-        image[:] = image - self.overscan_value
-        image = image[self.trimsec[2]:self.trimsec[3], 
-                                       self.trimsec[0]:self.trimsec[1]]
+        self.check_overscan()
+        self.image[:] -= self.overscan_value
+        self.trim()
 
+        if self.dark_mult>0.0:
+            darkimage = np.array(fits.open(op.join(self.darkpath, 
+                                                'masterdark_%s_%s.fits' 
+                                            %(self.specid, self.amp)))[0].data, 
+                              dtype=float)
+            self.image[:] = self.image - self.dark_mult * darkimage
+        if self.bias_mult>0.0:
+            biasimage = np.array(fits.open(op.join(self.biaspath, 
+                                                'masterbias_%s_%s.fits' 
+                                            %(self.specid, self.amp)))[0].data, 
+                              dtype=float)
+            self.image[:] = self.image - self.bias_mult * biasimage
+        self.image[:] = self.image * self.gain
         if self.use_pixelflat:
             pixelflat = np.array(fits.open(op.join(self.virusconfig, 
                                                    'PixelFlats','20161223',
                                                    'pixelflat_cam%s_%s.fits' 
                                             %(self.specid, self.amp)))[0].data,
                                   dtype=float)
-        if self.dark_mult>0.0:
-            darkimage = np.array(fits.open(op.join(self.darkpath, 
-                                                'masterdark_%s_%s.fits' 
-                                            %(self.specid, self.amp)))[0].data, 
-                              dtype=float)
-            image[:] = image - self.dark_mult * darkimage
-        if self.bias_mult>0.0:
-            biasimage = np.array(fits.open(op.join(self.biaspath, 
-                                                'masterbias_%s_%s.fits' 
-                                            %(self.specid, self.amp)))[0].data, 
-                              dtype=float)
-            image[:] = image - self.bias_mult * biasimage
-        image[:] = image * self.gain
-        if self.use_pixelflat:
-            image[:] = np.where(pixelflat != 0, image / pixelflat, 0.0)
-        self.image = self.orient(image)
+            self.image[:] = np.where(pixelflat != 0, self.image / pixelflat, 
+                                     0.0)
+        self.image = self.orient()
         
     
     def find_shift(self):
