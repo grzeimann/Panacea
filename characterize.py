@@ -10,10 +10,15 @@ Incomplete Documentation
 """
 
 import argparse as ap
+import numpy as np
 import textwrap
 import glob
 import os.path as op
 from amplifier import Amplifier
+from utils import biweight_location, biweight_midvariance
+
+AMPS = ["LL", "LU", "RU", "RL"]
+
 
 def parse_args(argv=None):
     """Parse the command line arguments
@@ -94,7 +99,7 @@ def parse_args(argv=None):
         parser.error(msg)   
 
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
-    observations=['bia', 'drk', 'pxf']
+    observations=['bia', 'drk', 'pxf', 'ptc']
     for obs in observations:
         amp_list = []
         for label in labels[:2]:
@@ -122,6 +127,8 @@ def parse_args(argv=None):
                                                          '*')))
                         for fn in files:
                             amp_list.append(Amplifier(fn, '', name=obs))
+                            amp_list[-1].subtract_overscan()
+                            amp_list[-1].trim_image()
                 else:
                     folder = op.join(date, args.instr,
                                      "{:s}{:07d}".format(args.instr, 
@@ -130,45 +137,108 @@ def parse_args(argv=None):
                                                      args.instr, '*')))
                     for fn in files:
                         amp_list.append(Amplifier(fn, '', name=obs))
+                        amp_list[-1].subtract_overscan()
+                        amp_list[-1].trim_image()
         setattr(args,obs+'_list', amp_list)
 
     return args       
 
 
-def measure_gain(args):
-    # gain code from utility
-    # print to file
-    pass
-
-def measure_readnoise(args):
-    pass
+def check_bias(args, amp, edge=3, width=10):
+    # Create empty lists for the left edge jump, right edge jump, and structure
+    left_edge, right_edge, structure, overscan = [], [], [], []
     
-def make_pixelflats(args):
-    pass
+    # Select only the bias frames that match the input amp, e.g., "RU"   
+    sel = [i for i,v in enumerate(args.bia_list) if v.amp == amp]
+    overscan = biweight_location([[v.overscan_value 
+                                   for i,v in enumerate(args.bia_list) 
+                                   if v.amp == amp]])
+    # Loop through the bias list and measure the jump/structure
+    for amp in args.bia_list[sel]:
+        a,b = amp.image.shape
+        left_edge.append(biweight_location(amp.image[:,edge:edge+width]))
+        right_edge.append(biweight_location(
+                                         amp.image[:,(b-width-edge):(b-edge)]))
+        structure.append(biweight_location(amp[:,edge:(b-edge)],axis=(0,)))
+    return left_edge, right_edge, structure, overscan
 
-def check_pixelflats(args):
-    pass
-
-def check_bias(args):
-    pass
 
 def check_darks(args):
     pass
+    
+    
+def measure_readnoise(args, amp):
+    # Select only the bias frames that match the input amp, e.g., "RU"
+    sel = [i for i,v in enumerate(args.bia_list) if v.amp == amp]
+    
+    # Make array of all bias images for given amp
+    array_images = np.array([bia.image for bia in args.bia_list[sel]])
+    
+    # Measure the biweight midvariance (sigma) for a given pixel and take
+    # the biweight average over all sigma to reduce the noise in the first 
+    # measurement.
+    S = biweight_location(biweight_midvariance(array_images,axis=(0,)))
+    
+    return S
 
-def check_arcs(args):
-    pass
+def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
+    sel = [i for i,v in enumerate(args.ptc_list) if v.amp == amp]
+    s_sel = sel[np.array([args.ptc_list[i].basename for i in sel]).argsort()]
+    npairs = len(sel) / 2
+    a,b = args.ptc_list[sel[0]].image.shape
+    array_avg = np.zeros((npairs, a, b))
+    array_diff = np.zeros((npairs, a, b))
+    for i in xrange(npairs):
+        F1 = args.ptc_list[s_sel[2*i]].image
+        F2 = args.ptc_list[s_sel[2*i+1]].image
+        m1 = biweight_location(F1)
+        m2 = biweight_location(F2)
+        array_avg[i,:,:] = F1 + F2
+        array_diff[i,:,:] = F1*m1/m2 - F2
+    bins = np.logspace(np.log10(flow), np.log10(fhigh), fnum)
+    gn = []
+    for i in xrange(len(bins)-1):
+        yloc, xloc = np.where((array_avg>bins[i]) * (array_avg<bins[i+1]))
+        std = biweight_midvariance(array_diff[yloc,xloc])
+        vr   = (std**2 - 2.*rdnoise**2) / 2.
+        mn = biweight_location(array_avg)
+        print("%s | Gain: %01.3f | RDNOISE: %01.3f | <ADU>: %0.1f | Pixels: %i" 
+                %(amp, mn / vr, mn / vr * rdnoise, mn, len(xloc))) 
+        gn.append(mn/vr)
+    return biweight_location(gn)
 
-def get_trace(args):
+
+def make_pixelflats(args):
     pass
+    
 
 def relative_throughput(args):
     pass
 
-def main():
-    args = parse_args()
-    check_bias(args)
-    check_darks(args)
-    pass
 
+def main():
+    
+    # Read the arguments from the command line
+    args = parse_args()
+    
+    # Get the bias jumps/structure for each amp
+    biasjump_left, biasjump_right, structure, overscan = {}, {}, {}, {}
+    for amp in AMPS:
+        (biasjump_left[amp], biasjump_right[amp], 
+         structure[amp], overscan[amp]) = check_bias(args, amp)
+    
+    # Get the dark jumps/structure and average counts
+    check_darks(args)
+    
+    # Get the readnoise for each amp
+    readnoise = {}
+    for amp in AMPS:
+        readnoise[amp] = measure_readnoise(args, amp)
+
+    # Get the readnoise for each amp
+    gain = {}
+    for amp in AMPS:
+        gain[amp] = measure_gain(args, amp, readnoise[amp])
+        
 if __name__ == '__main__':
     main()  
