@@ -9,13 +9,10 @@ Incomplete Documentation
 
 """
 
-import pandas as pd
 import argparse as ap
-from distutils.dir_util import mkpath
 import textwrap
 import glob
 import os.path as op
-from astropy.io import fits
 from amplifier import Amplifier
 
 def parse_args(argv=None):
@@ -138,38 +135,39 @@ def parse_args(argv=None):
     return args       
 
 
-def measure_gain():
+def measure_gain(args):
     # gain code from utility
     # print to file
     pass
 
-def measure_readnoise():
+def measure_readnoise(args):
     pass
     
-def make_pixelflats():
+def make_pixelflats(args):
     pass
 
-def check_pixelflats():
+def check_pixelflats(args):
     pass
 
-def check_bias():
+def check_bias(args):
     pass
 
-def check_darks():
+def check_darks(args):
     pass
 
-def check_arcs():
+def check_arcs(args):
     pass
 
-def get_trace():
+def get_trace(args):
     pass
 
-def relative_throughput():
+def relative_throughput(args):
     pass
 
 def main():
     args = parse_args()
-    
+    check_bias(args)
+    check_darks(args)
     pass
 
 if __name__ == '__main__':

@@ -34,11 +34,10 @@ __all__ = ["Amplifier"]
 
 class Amplifier:
     def __init__(self, filename, path, name=None, refit=False, calpath=None, 
-                 skypath=None,
-                 debug=False, darkpath=None, biaspath=None, virusconfig=None,
-                 dark_mult=1., bias_mult=0., use_pixelflat=True, 
-                 specname=None, fdist=2., fdist_ref=4., check_trace=True, 
-                 calculate_shift=False, trace_poly_order=3,
+                 skypath=None, debug=False, darkpath=None, biaspath=None, 
+                 virusconfig=None, dark_mult=1., bias_mult=0., 
+                 use_pixelflat=True, specname=None, fdist=2., fdist_ref=4., 
+                 check_trace=True, calculate_shift=False, trace_poly_order=3,
                  fibmodel_poly_order=3, use_default_fibmodel=False, 
                  fibmodel_nbins=15, make_fib_ind_plots=False, 
                  check_fibermodel=False, fsize=8., sigma=2.5, power=2.5,
@@ -302,19 +301,7 @@ class Amplifier:
         datetemp = re.split('-',F[0].header['DATE-OBS'])
         self.date = datetime(int(datetemp[0]), int(datetemp[1]), 
                              int(datetemp[2]))
-        self.image = np.array(F[0].data, dtype=float)
-        
-    def check_overscan(self, recalculate=False):
-        '''
-        Evaluate the overscan_value using a biweight average of the BIASSEC
-        region.  Only calculate the value if one does not exist or 
-        recalculate is set to True.
-        '''
-        if (self.overscan_value is None) or recalculate:
-            self.overscan_value = biweight_location(self.image[
-                                              self.biassec[2]:self.biassec[3],
-                                              self.biassec[0]:self.biassec[1]])
-   
+        self.image = np.array(F[0].data, dtype=float)   
    
     def save(self):
         '''
@@ -448,8 +435,16 @@ class Amplifier:
             fiber.eval_fibmodel_poly()
             fiber.eval_wave_poly()
       
+
+    def save_fibers(self):
+        '''
+        Save the fibers to self.path using the fiber class "save" function.
+        '''
+        for fiber in self.fibers:
+            fiber.save(self.specid, self.ifuslot, self.ifuid, self.amp)
+            
       
-    def orient(self):
+    def orient_image(self):
         '''
         Orient the images from blue to red (left to right)
         Fibers are oriented to match configuration files
@@ -458,47 +453,54 @@ class Amplifier:
             self.image[:] = self.image[::-1,::-1]
         if self.amp == "RL":
             self.image[:] = self.image[::-1,::-1]
+            
         
-    
-    def save_fibers(self):
+    def subtract_overscan(self):
         '''
-        Save the fibers to self.path using the fiber class "save" function.
+        Evaluate the overscan_value using a biweight average of the BIASSEC
+        region.  Only calculate the value if one does not exist or 
+        recalculate is set to True.
         '''
-        for fiber in self.fibers:
-            fiber.save(self.specid, self.ifuslot, self.ifuid, self.amp)
+        if self.overscan_value is None:
+            self.overscan_value = biweight_location(self.image[
+                                              self.biassec[2]:self.biassec[3],
+                                              self.biassec[0]:self.biassec[1]])
+            self.image[:] -= self.overscan_value
 
-    def trim(self):
+
+    def trim_image(self):
         '''
         Trim the image to just the datasec/trimsec.
         '''
         if not self.trimmed:
             self.image = self.image[self.trimsec[2]:self.trimsec[3], 
                                        self.trimsec[0]:self.trimsec[1]]
-       
-    def get_image(self):
-        '''
-        This many purpose function loads the image, finds the overscan value,
-        subtracts the dark image and bias image, multplies the gain, 
-        and divides the pixelflat.  It also orients the image using the
-        "orient" function above.
-        '''
-        self.check_overscan()
-        self.image[:] -= self.overscan_value
-        self.trim()
-
+            self.trimmed = True
+      
+      
+    def subtract_dark(self):
         if self.dark_mult>0.0:
             darkimage = np.array(fits.open(op.join(self.darkpath, 
                                                 'masterdark_%s_%s.fits' 
                                             %(self.specid, self.amp)))[0].data, 
                               dtype=float)
             self.image[:] = self.image - self.dark_mult * darkimage
+            
+            
+    def subtract_bias(self):
         if self.bias_mult>0.0:
             biasimage = np.array(fits.open(op.join(self.biaspath, 
                                                 'masterbias_%s_%s.fits' 
                                             %(self.specid, self.amp)))[0].data, 
                               dtype=float)
             self.image[:] = self.image - self.bias_mult * biasimage
-        self.image[:] = self.image * self.gain
+            
+            
+    def multiply_gain(self):
+        self.image *= self.gain
+        
+        
+    def divide_pixelflat(self):
         if self.use_pixelflat:
             pixelflat = np.array(fits.open(op.join(self.virusconfig, 
                                                    'PixelFlats','20161223',
@@ -507,7 +509,22 @@ class Amplifier:
                                   dtype=float)
             self.image[:] = np.where(pixelflat != 0, self.image / pixelflat, 
                                      0.0)
-        self.image = self.orient()
+                                     
+                                     
+    def prepare_image(self):
+        '''
+        This many purpose function loads the image, finds the overscan value,
+        subtracts the dark image and bias image, multplies the gain, 
+        and divides the pixelflat.  It also orients the image using the
+        "orient" function above.
+        '''
+        self.subtract_overscan()
+        self.trim_image()
+        self.subtract_bias()
+        self.subtract_dark()
+        self.multiply_gain()
+        self.divide_pixelflat()
+        self.orient_image()
         
     
     def find_shift(self):
@@ -596,13 +613,13 @@ class Amplifier:
     def get_trace(self):
         '''
         This function gets the trace for this amplifier.  It checks functional
-        dependencies first: get_image().  If self.type is 'twi' or self.refit 
+        dependencies first: prepare_image().  If self.type is 'twi' or self.refit 
         is True then the trace is calculated, otherwise the trace is loaded 
         from calpath.
         '''                      
           
         if self.image is None:
-            self.get_image()
+            self.prepare_image()
         if self.type == 'twi' or self.refit:
             if self.refit:
                 mx_cut=0.1
@@ -770,7 +787,7 @@ class Amplifier:
     def get_fibermodel(self):
         '''
         This function gets the fibermodel for this amplifier.  It checks 
-        functional dependencies first: get_image() and get_trace().  
+        functional dependencies first: prepare_image() and get_trace().  
         If self.type is 'twi' or self.refit is True then the fibermodel is 
         calculated, otherwise the fibermodel is loaded and evaluated
         from calpath.
@@ -789,7 +806,7 @@ class Amplifier:
         
         '''
         if self.image is None:
-            self.get_image()
+            self.prepare_image()
         if not self.fibers:
             self.get_trace()
         if self.type == 'twi' or self.refit:
@@ -834,12 +851,12 @@ class Amplifier:
     def fiberextract(self):
         '''
         This function gets the spectrum for each fiber.  It checks 
-        functional dependencies first: get_image(), get_trace(), and
+        functional dependencies first: prepare_image(), get_trace(), and
         get_fibermodel(). 
 
         '''
         if self.image is None:
-            self.get_image()
+            self.prepare_image()
         if not self.fibers:
             self.get_trace()
         if self.fibers[0].fibmodel is None:
@@ -855,7 +872,7 @@ class Amplifier:
     def get_wavelength_solution(self):
         '''
         This function gets the wavelength solution for each fiber.  It checks 
-        functional dependencies first: get_image(), get_trace(),
+        functional dependencies first: prepare_image(), get_trace(),
         get_fibermodel(), and fiberextract().
         
         The wavelength solution is done for an initial fiber first.  In bins
@@ -871,7 +888,7 @@ class Amplifier:
                                         'solar_spec/%s_temp.txt' 
                                         %self.specname))
         if self.image is None:
-            self.get_image()
+            self.prepare_image()
         if not self.fibers:
             self.get_trace()
         if self.fibers[0].fibmodel is None:
@@ -969,13 +986,13 @@ class Amplifier:
     def get_fiber_to_fiber(self):
         '''
         This function gets the fiber to fiber normalization for this amplifier. 
-        It checks functional dependencies first: get_image(), get_trace(), 
+        It checks functional dependencies first: prepare_image(), get_trace(), 
         get_fibermodel(), fiberextract(), and get_wavelength_solution().
         '''
         if self.image is None:
             if self.debug:
                 print("Building image for %s" %self.basename)
-            self.get_image()
+            self.prepare_image()
         if not self.fibers:
             if self.debug:
                 print("Getting trace for %s" %self.basename)
@@ -1027,11 +1044,11 @@ class Amplifier:
         This function gets the master sky spectrum and 
         evaluates the sky_spectrum for each fiber. It then builds a sky image
         and a sky-subtracted image.  It checks functional dependencies first: 
-        get_image(), get_trace(), get_fibermodel(), fiberextract(), 
+        prepare_image(), get_trace(), get_fibermodel(), fiberextract(), 
         get_wavelength_solution(), and fiber_to_fiber().        
         '''
         if self.image is None:
-            self.get_image()
+            self.prepare_image()
         if not self.fibers:
             self.get_trace()
         if self.fibers[0].fibmodel is None:

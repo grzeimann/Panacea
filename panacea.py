@@ -310,7 +310,7 @@ def reduce_science(args):
                 #sci1.load_fibers()
                 #if sci1.fibers and not args.start_from_scratch:
                 #    if sci1.fibers[0].spectrum is not None:
-                #        sci1.get_image()
+                #        sci1.prepare_image()
                 #        sci1.sky_subtraction()
                 #        sci1.clean_cosmics()
                 #else:
@@ -344,7 +344,7 @@ def reduce_science(args):
                 #sci2.load_fibers()
                 #if sci2.fibers and not args.start_from_scratch:
                 #    if sci2.fibers[0].spectrum is not None:
-                #        sci2.get_image()
+                #        sci2.prepare_image()
                 #        sci2.sky_subtraction()
                 #        sci2.clean_cosmics()
                 #else:
