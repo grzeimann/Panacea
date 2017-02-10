@@ -15,7 +15,8 @@ import textwrap
 import glob
 import os.path as op
 from amplifier import Amplifier
-from utils import biweight_location, biweight_midvariance
+from utils import biweight_location, biweight_midvariance, biweight_filter
+
 
 AMPS = ["LL", "LU", "RU", "RL"]
 
@@ -154,18 +155,34 @@ def check_bias(args, amp, edge=3, width=10):
                                    for i,v in enumerate(args.bia_list) 
                                    if v.amp == amp]])
     # Loop through the bias list and measure the jump/structure
-    for amp in args.bia_list[sel]:
-        a,b = amp.image.shape
-        left_edge.append(biweight_location(amp.image[:,edge:edge+width]))
+    masterbias = biweight_location(np.array([v.image 
+                                             for v in args.bia_list[sel]]), 
+                                   axis=(0,))
+    a,b = masterbias.shape
+    for i in xrange(b):
+        masterbias[:,i] = biweight_filter(masterbias[:,i], 51)
+    for am in args.bia_list[sel]:
+        left_edge.append(biweight_location(am.image[:,edge:edge+width]))
         right_edge.append(biweight_location(
-                                         amp.image[:,(b-width-edge):(b-edge)]))
-        structure.append(biweight_location(amp[:,edge:(b-edge)],axis=(0,)))
-    return left_edge, right_edge, structure, overscan
+                                         am.image[:,(b-width-edge):(b-edge)]))
+        structure.append(biweight_location(am[:,edge:(b-edge)],axis=(0,)))
+    return left_edge, right_edge, structure, overscan, masterbias
 
 
-def check_darks(args):
-    pass
+def check_darks(args, amp, masterbias):
+    # Create empty lists for the left edge jump, right edge jump, and structure
+    dark_counts = []
     
+    # Select only the bias frames that match the input amp, e.g., "RU"   
+    sel = [i for i,v in enumerate(args.drk_list) if v.amp == amp]
+    masterdark = biweight_location(np.array([v.image - masterbias 
+                                             for v in args.drk_list[sel]]), 
+                                   axis=(0,))
+    # Loop through the bias list and measure the jump/structure
+    for am in args.drk_list[sel]:
+        a,b = am.image.shape
+        dark_counts.append(biweight_location(am - masterbias))
+    return dark_counts, masterdark   
     
 def measure_readnoise(args, amp):
     # Select only the bias frames that match the input amp, e.g., "RU"
@@ -222,13 +239,19 @@ def main():
     args = parse_args()
     
     # Get the bias jumps/structure for each amp
-    biasjump_left, biasjump_right, structure, overscan = {}, {}, {}, {}
+    (biasjump_left, biasjump_right, structure, 
+     overscan, masterbias) = {}, {}, {}, {}, {}
+     
     for amp in AMPS:
         (biasjump_left[amp], biasjump_right[amp], 
-         structure[amp], overscan[amp]) = check_bias(args, amp)
+         structure[amp], overscan[amp], 
+         masterbias[amp]) = check_bias(args, amp)
     
     # Get the dark jumps/structure and average counts
-    check_darks(args)
+    darkcounts, masterdark = {}, {}
+    for amp in AMPS:
+        darkcounts[amp], masterdark[amp] = check_darks(args, amp, 
+                                                       masterbias[amp])
     
     # Get the readnoise for each amp
     readnoise = {}
