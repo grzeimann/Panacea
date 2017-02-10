@@ -81,6 +81,47 @@ def median_absolute_deviation(a, axis=None):
     return func(np.abs(a - a_median), axis=axis)
     
 
+def biweight_filter2d(a, Order, Ignore_central=(3,3), c=6.0, M=None, func=None):
+    '''
+    Compute the biweight location with a moving window of size "order"
+
+    '''
+    if not isinstance(Order, tuple):
+        print("The order should be an tuple")
+        sys.exit(1)
+    if not isinstance(Ignore_central, tuple):
+        print("The ignore_central value should be an tuple")
+        sys.exit(1)   
+    for order in Order:
+        if order%2==0:
+            order+=1
+    for ignore_central in Ignore_central:
+        if ignore_central%2==0:
+            ignore_central+=1
+    if Order[0]-3 <= Ignore_central[0] or Order[1]-3 <= Ignore_central[1]:
+        print("The max order-3 should be larger than max ignore_central.")
+        sys.exit(1)
+    if func is None:
+        func = biweight_location
+    a = np.array(a, copy=False)
+    if a.ndim != 2:
+        print("Input array/list should be 2-dimensional")
+        sys.exit()
+    
+
+    yc = np.arange(Ignore_central[0]/2+1,Order[0]/2)
+    xc = np.arange(Ignore_central[1]/2+1,Order[1]/2)
+    size = len(yc)*len(xc)
+    A = np.ones(a.shape + (size,))*-999
+    k=0
+    for i in yc:
+        for j in xc:
+            A[:-i,:-j,k] = a[i:,j:]
+            k+=1
+    C = np.ma.array(A, mask=(A == -999).astype(np.int))
+    return func(C, axis=(2,))
+
+
 def biweight_filter(a, order, ignore_central=3, c=6.0, M=None, func=None):
     '''
     Compute the biweight location with a moving window of size "order"
@@ -202,14 +243,17 @@ def biweight_location(a, c=6.0, M=None, axis=None):
     Copy of the astropy function with the "axis" argument added appropriately.
     """
 
-    a = np.array(a, copy=False)
 
     if M is None:
-        if axis is None:
-            M = np.median(a)
-        else:   
-            M = np.median(a, axis=axis)
-            
+        if isinstance(a, np.ma.MaskedArray):
+            func = np.ma.median
+        else:
+            a = np.array(a, copy=False)
+            func = np.median
+        M = func(a, axis=axis)
+    else:
+        a = np.array(a, copy=False)
+                
     N = M*1.      
     # set up the difference
     if axis is not None:
@@ -229,7 +273,10 @@ def biweight_location(a, c=6.0, M=None, axis=None):
     u = d / c / MAD
     
     # now remove the outlier points
-    mask = (np.abs(u) < 1).astype(np.int)
+    if isinstance(a, np.ma.MaskedArray):
+        mask = (np.abs(u) < 1).astype(np.int) * (1-a.mask.astype(np.int))
+    else:
+        mask = (np.abs(u) < 1).astype(np.int)
     u = (1 - u ** 2) ** 2
     return M + (d * u * mask).sum(axis=axis) / (u * mask).sum(axis=axis)
     

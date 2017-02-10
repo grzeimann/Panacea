@@ -15,8 +15,8 @@ import textwrap
 import glob
 import os.path as op
 from amplifier import Amplifier
-from utils import biweight_location, biweight_midvariance, biweight_filter
-
+from utils import biweight_location, biweight_midvariance, biweight_filter2d
+from progressbar import Progressbar
 
 AMPS = ["LL", "LU", "RU", "RL"]
 
@@ -160,7 +160,7 @@ def check_bias(args, amp, edge=3, width=10):
                                    axis=(0,))
     a,b = masterbias.shape
     for i in xrange(b):
-        masterbias[:,i] = biweight_filter(masterbias[:,i], 51)
+        masterbias[:,i] = biweight_filter2d(masterbias[:,i], (5,25), (1,3))
     for am in args.bia_list[sel]:
         left_edge.append(biweight_location(am.image[:,edge:edge+width]))
         right_edge.append(biweight_location(
