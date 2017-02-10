@@ -100,7 +100,7 @@ def parse_args(argv=None):
         parser.error(msg)   
 
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
-    observations=['bia', 'drk', 'pxf', 'ptc']
+    observations=['bia', 'drk', 'pxf', 'ptc', 'flt']
     for obs in observations:
         amp_list = []
         for label in labels[:2]:
@@ -182,7 +182,8 @@ def check_darks(args, amp, masterbias):
     for am in args.drk_list[sel]:
         a,b = am.image.shape
         dark_counts.append(biweight_location(am - masterbias))
-    return dark_counts, masterdark   
+    return dark_counts, masterdark  
+    
     
 def measure_readnoise(args, amp):
     # Select only the bias frames that match the input amp, e.g., "RU"
@@ -197,6 +198,7 @@ def measure_readnoise(args, amp):
     S = biweight_location(biweight_midvariance(array_images,axis=(0,)))
     
     return S
+    
 
 def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
     sel = [i for i,v in enumerate(args.ptc_list) if v.amp == amp]
@@ -234,7 +236,6 @@ def relative_throughput(args):
 
 
 def main():
-    
     # Read the arguments from the command line
     args = parse_args()
     
