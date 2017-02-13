@@ -498,7 +498,7 @@ def reduce_twighlight(args):
                                   'normtwi_%s_%s.fits' 
                                   %(args.twi_df['Specid'][ind],
                                     amp))  
-                make_amplifier_image(twi1.orient(np.where(
+                make_amplifier_image(twi1.orient_image(np.where(
                                  np.isfinite(twi1.skyframe)*(twi1.skyframe!=0),
                                                       twi1.image/twi1.skyframe, 
                                                                          0.0)), 
@@ -507,7 +507,7 @@ def reduce_twighlight(args):
                                   'normtwi_%s_%s.fits' 
                                   %(args.twi_df['Specid'][ind],
                                     config.Amp_dict[amp][0]))
-                make_amplifier_image(twi2.orient(np.where(
+                make_amplifier_image(twi2.orient_image(np.where(
                                  np.isfinite(twi2.skyframe)*(twi2.skyframe!=0),
                                                       twi2.image/twi2.skyframe, 
                                                                          0.0)), 

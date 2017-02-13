@@ -301,7 +301,8 @@ class Amplifier:
         datetemp = re.split('-',F[0].header['DATE-OBS'])
         self.date = datetime(int(datetemp[0]), int(datetemp[1]), 
                              int(datetemp[2]))
-        self.image = np.array(F[0].data, dtype=float)   
+        self.image = np.array(F[0].data, dtype=float)
+        self.image_prepped = False
    
     def save(self):
         '''
@@ -525,6 +526,7 @@ class Amplifier:
         self.multiply_gain()
         self.divide_pixelflat()
         self.orient_image()
+        self.image_prepped = True
         
     
     def find_shift(self):
@@ -618,7 +620,7 @@ class Amplifier:
         from calpath.
         '''                      
           
-        if self.image is None:
+        if not self.image_prepped:
             self.prepare_image()
         if self.type == 'twi' or self.refit:
             if self.refit:
@@ -805,7 +807,7 @@ class Amplifier:
         the column direction in an gridded sense.
         
         '''
-        if self.image is None:
+        if not self.image_prepped:
             self.prepare_image()
         if not self.fibers:
             self.get_trace()
@@ -855,7 +857,7 @@ class Amplifier:
         get_fibermodel(). 
 
         '''
-        if self.image is None:
+        if not self.image_prepped:
             self.prepare_image()
         if not self.fibers:
             self.get_trace()
@@ -887,7 +889,7 @@ class Amplifier:
         solar_spec = np.loadtxt(op.join(self.virusconfig,
                                         'solar_spec/%s_temp.txt' 
                                         %self.specname))
-        if self.image is None:
+        if not self.image_prepped:
             self.prepare_image()
         if not self.fibers:
             self.get_trace()
@@ -989,7 +991,7 @@ class Amplifier:
         It checks functional dependencies first: prepare_image(), get_trace(), 
         get_fibermodel(), fiberextract(), and get_wavelength_solution().
         '''
-        if self.image is None:
+        if not self.image_prepped:
             if self.debug:
                 print("Building image for %s" %self.basename)
             self.prepare_image()
@@ -1047,7 +1049,7 @@ class Amplifier:
         prepare_image(), get_trace(), get_fibermodel(), fiberextract(), 
         get_wavelength_solution(), and fiber_to_fiber().        
         '''
-        if self.image is None:
+        if not self.image_prepped:
             self.prepare_image()
         if not self.fibers:
             self.get_trace()
