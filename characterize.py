@@ -16,7 +16,7 @@ import glob
 import os.path as op
 from amplifier import Amplifier
 from utils import biweight_location, biweight_midvariance, biweight_filter2d
-from progressbar import Progressbar
+from progressbar import ProgressBar
 
 AMPS = ["LL", "LU", "RU", "RL"]
 
@@ -154,13 +154,13 @@ def check_bias(args, amp, edge=3, width=10):
     overscan = biweight_location([[v.overscan_value 
                                    for i,v in enumerate(args.bia_list) 
                                    if v.amp == amp]])
+
     # Loop through the bias list and measure the jump/structure
     masterbias = biweight_location(np.array([v.image 
                                              for v in args.bia_list[sel]]), 
                                    axis=(0,))
     a,b = masterbias.shape
-    for i in xrange(b):
-        masterbias[:,i] = biweight_filter2d(masterbias[:,i], (5,25), (1,3))
+    masterbias = biweight_filter2d(masterbias[:,i], (5,25), (1,3))
     for am in args.bia_list[sel]:
         left_edge.append(biweight_location(am.image[:,edge:edge+width]))
         right_edge.append(biweight_location(
@@ -175,9 +175,12 @@ def check_darks(args, amp, masterbias):
     
     # Select only the bias frames that match the input amp, e.g., "RU"   
     sel = [i for i,v in enumerate(args.drk_list) if v.amp == amp]
-    masterdark = biweight_location(np.array([v.image - masterbias 
-                                             for v in args.drk_list[sel]]), 
-                                   axis=(0,))
+    if len(sel)>2:
+        masterdark = biweight_location(np.array([v.image - masterbias 
+                                                 for v in args.drk_list[sel]]), 
+                                       axis=(0,))
+    else:
+        masterdark = None
     # Loop through the bias list and measure the jump/structure
     for am in args.drk_list[sel]:
         a,b = am.image.shape
@@ -242,27 +245,46 @@ def main():
     # Get the bias jumps/structure for each amp
     (biasjump_left, biasjump_right, structure, 
      overscan, masterbias) = {}, {}, {}, {}, {}
-     
+    progress = ProgressBar(len(AMPS), 'Checking Biases %s' %args.specid, 
+                           fmt=ProgressBar.FULL)
     for amp in AMPS:
         (biasjump_left[amp], biasjump_right[amp], 
          structure[amp], overscan[amp], 
          masterbias[amp]) = check_bias(args, amp)
+        progress.current+=1
+        progress()
+    progress.done()
     
     # Get the dark jumps/structure and average counts
     darkcounts, masterdark = {}, {}
+    progress = ProgressBar(len(AMPS), 'Checking Darks %s' %args.specid, 
+                           fmt=ProgressBar.FULL)
     for amp in AMPS:
         darkcounts[amp], masterdark[amp] = check_darks(args, amp, 
                                                        masterbias[amp])
+        progress.current+=1
+        progress()
+    progress.done()
     
     # Get the readnoise for each amp
     readnoise = {}
+    progress = ProgressBar(len(AMPS), 'Measuring Readnoise %s' %args.specid, 
+                           fmt=ProgressBar.FULL)
     for amp in AMPS:
         readnoise[amp] = measure_readnoise(args, amp)
-
+        progress.current+=1
+        progress()
+    progress.done()
+    
     # Get the readnoise for each amp
     gain = {}
+    progress = ProgressBar(len(AMPS), 'Measuring Gain %s' %args.specid, 
+                           fmt=ProgressBar.FULL)
     for amp in AMPS:
         gain[amp] = measure_gain(args, amp, readnoise[amp])
+        progress.current+=1
+        progress()
+    progress.done()
         
 if __name__ == '__main__':
     main()  

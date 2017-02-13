@@ -383,6 +383,27 @@ def reduce_science(args):
                                         sci1.header, outname)
                 make_error_frame(sci1.clean_image, sci2.clean_image, sci1.mask,
                                  sci2.mask, sci1.header, outname)
+                outname = op.join(args.sci_df['Output'][ind],
+                                  'CS%s_%s_sci_%s.fits' %(
+                          op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                                   args.sci_df['Ifuslot'][ind], 
+                                                      config.Amp_dict[amp][1]))
+                make_spectrograph_image(sci1.continuum_sub, sci2.continuum_sub, 
+                                        sci1.header, outname)
+                make_error_frame(sci1.continuum_sub, sci2.continuum_sub, 
+                                 sci1.mask, sci2.mask, sci1.header, outname)
+                outname = op.join(args.sci_df['Output'][ind],
+                                  'cCS%s_%s_sci_%s.fits' %(
+                          op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                                   args.sci_df['Ifuslot'][ind], 
+                                                      config.Amp_dict[amp][1]))
+                make_spectrograph_image(np.where(sci1.mask==0, 
+                                                 sci1.continuum_sub, 0.0),
+                                        np.where(sci2.mask==0, 
+                                                 sci2.continuum_sub, 0.0),
+                                        sci1.header, outname)
+                make_error_frame(sci1.continuum_sub, sci2.continuum_sub,
+                                 sci1.mask, sci2.mask, sci1.header, outname)
                 Fe, FeS = recreate_fiberextract(sci1, sci2, 
                                                 wavelim=args.wvl_dict[amp], 
                                                 disp=args.disp[amp])

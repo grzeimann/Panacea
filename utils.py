@@ -108,7 +108,6 @@ def biweight_filter2d(a, Order, Ignore_central=(3,3), c=6.0, M=None, func=None):
         print("Input array/list should be 2-dimensional")
         sys.exit()
     
-
     yc = np.arange(Ignore_central[0]/2+1,Order[0]/2)
     xc = np.arange(Ignore_central[1]/2+1,Order[1]/2)
     size = len(yc)*len(xc)

@@ -1084,6 +1084,12 @@ class Amplifier:
         self.skyframe = get_model_image(self.image, self.fibers, 
                                         'sky_spectrum', debug=False)
         self.clean_image = self.image - self.skyframe
+        for fib, fiber in enumerate(self.fibers):
+            fiber.continuum = biweight_filter(fiber.spectrum 
+                                              -fiber.sky_spectrum, 25)
+        self.cont_frame = get_model_image(self.image, self.fibers, 
+                                        'continuum', debug=False)
+        self.continuum_sub = self.image - self.skyframe - self.cont_frame
         
         
     def clean_cosmics(self):
