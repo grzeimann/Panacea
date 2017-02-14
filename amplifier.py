@@ -558,7 +558,7 @@ class Amplifier:
                 return None
             with open(fiber_fn, 'r') as f:
                 F1 = pickle.load(f)
-            col = self.D/2
+            col = 4.*self.D/5.
             width = 20
             low = int(col-width)
             high = int(col+width+1)

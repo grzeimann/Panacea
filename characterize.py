@@ -49,9 +49,9 @@ def parse_args(argv=None):
 
     parser.add_argument("--instr", nargs='?', type=str, 
                         help='''Instrument to process. 
-                        Default: "virus"
+                        Default: "camra"
                         Ex: "camra" for lab data,
-                            "lrs2" for lrs2.''', default = "camra")
+                            "virus" for mountain.''', default = "camra")
 
     parser.add_argument("--output", nargs='?', type=str, 
                         help='''Output Directory
@@ -73,6 +73,42 @@ def parse_args(argv=None):
                         
     parser.add_argument("-be","--biadir_expnum", nargs='?', type=str,
                         help='''Science Directory exposure number.
+                        Ex: \"1\" or \"05\"''', default=None) 
+
+    parser.add_argument("-xd","--pxfdir_date", nargs='?', type=str,
+                        help='''Pixel Flat Directory Date.    
+                        Ex: \"20160412\"''', default=None)
+
+    parser.add_argument("-xo","--pxfdir_obsid", nargs='?', type=str,
+                        help='''Pixel Flat ObsID.    
+                        Ex: \"3\" or \"102\"''', default=None)
+                        
+    parser.add_argument("-xe","--pxfdir_expnum", nargs='?', type=str,
+                        help='''Pixel Flat exposure number.
+                        Ex: \"1\" or \"05\"''', default=None) 
+
+    parser.add_argument("-pd","--ptcdir_date", nargs='?', type=str,
+                        help='''Photon Transfer Curve Directory Date.    
+                        Ex: \"20160412\"''', default=None)
+
+    parser.add_argument("-po","--ptcdir_obsid", nargs='?', type=str,
+                        help=''' Photon Transfer Curve ObsID.    
+                        Ex: \"3\" or \"102\"''', default=None)
+                        
+    parser.add_argument("-pe","--ptcdir_expnum", nargs='?', type=str,
+                        help='''Photon Tranfer Curve exposure number.
+                        Ex: \"1,3\" or \"05\"''', default=None) 
+
+    parser.add_argument("-fd","--fltdir_date", nargs='?', type=str,
+                        help='''Fiber Flat Directory Date.    
+                        Ex: \"20160412\"''', default=None)
+
+    parser.add_argument("-fo","--fltdir_obsid", nargs='?', type=str,
+                        help='''Fiber Flat ObsID.    
+                        Ex: \"3\" or \"102\"''', default=None)
+                        
+    parser.add_argument("-fe","--fltdir_expnum", nargs='?', type=str,
+                        help='''Fiber Flat exposure number.
                         Ex: \"1\" or \"05\"''', default=None) 
 
     parser.add_argument("-dd","--drkdir_date", nargs='?', type=str,
@@ -160,7 +196,7 @@ def check_bias(args, amp, edge=3, width=10):
                                              for v in args.bia_list[sel]]), 
                                    axis=(0,))
     a,b = masterbias.shape
-    masterbias = biweight_filter2d(masterbias[:,i], (5,25), (1,3))
+    masterbias = biweight_filter2d(masterbias, (5,25), (1,3))
     for am in args.bia_list[sel]:
         left_edge.append(biweight_location(am.image[:,edge:edge+width]))
         right_edge.append(biweight_location(
@@ -230,9 +266,18 @@ def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
     return biweight_location(gn)
 
 
-def make_pixelflats(args):
-    pass
-    
+def make_pixelflats(args, amp):
+    sel = [i for i,v in enumerate(args.pxf_list) if v.amp == amp]
+    a,b = args.pxf_list[sel[0]].image.shape
+    masterflat = np.zeros((len(sel), a, b))
+    pixflat = np.zeros((len(sel), a, b))
+    for am in args.pxf_list[sel]:
+        masterflat[i,:,:] = biweight_filter2d(am.image, (5,25), (1,3))
+    masterflat = biweight_location(masterflat, axis=(0,))
+    for am in args.pxf_list[sel]:
+        pixflat[i,:,:] = am.image / masterflat
+    pixflat = biweight_location(pixflat, axis=(0,))
+    return masterflat, pixflat
 
 def relative_throughput(args):
     pass
@@ -245,7 +290,7 @@ def main():
     # Get the bias jumps/structure for each amp
     (biasjump_left, biasjump_right, structure, 
      overscan, masterbias) = {}, {}, {}, {}, {}
-    progress = ProgressBar(len(AMPS), 'Checking Biases %s' %args.specid, 
+    progress = ProgressBar(len(AMPS), 'Checking Biases for %s' %args.specid, 
                            fmt=ProgressBar.FULL)
     for amp in AMPS:
         (biasjump_left[amp], biasjump_right[amp], 
@@ -257,7 +302,7 @@ def main():
     
     # Get the dark jumps/structure and average counts
     darkcounts, masterdark = {}, {}
-    progress = ProgressBar(len(AMPS), 'Checking Darks %s' %args.specid, 
+    progress = ProgressBar(len(AMPS), 'Checking Darks for %s' %args.specid, 
                            fmt=ProgressBar.FULL)
     for amp in AMPS:
         darkcounts[amp], masterdark[amp] = check_darks(args, amp, 
@@ -268,7 +313,7 @@ def main():
     
     # Get the readnoise for each amp
     readnoise = {}
-    progress = ProgressBar(len(AMPS), 'Measuring Readnoise %s' %args.specid, 
+    progress = ProgressBar(len(AMPS), 'Measuring Readnoise for%s' %args.specid, 
                            fmt=ProgressBar.FULL)
     for amp in AMPS:
         readnoise[amp] = measure_readnoise(args, amp)
@@ -276,15 +321,27 @@ def main():
         progress()
     progress.done()
     
-    # Get the readnoise for each amp
+    # Get the gain for each amp
     gain = {}
-    progress = ProgressBar(len(AMPS), 'Measuring Gain %s' %args.specid, 
+    progress = ProgressBar(len(AMPS), 'Measuring Gain for%s' %args.specid, 
                            fmt=ProgressBar.FULL)
     for amp in AMPS:
         gain[amp] = measure_gain(args, amp, readnoise[amp])
         progress.current+=1
         progress()
     progress.done()
+
+    # Get the pixel flat for each amp
+    masterflat, pixelflat= {}, {}
+    progress = ProgressBar(len(AMPS), 'Measuring pixel flat for%s' %args.specid, 
+                           fmt=ProgressBar.FULL)
+    for amp in AMPS:
+        masterflat[amp], pixelflat[amp] = make_pixelflats(args, amp, 
+                                                          readnoise[amp])
+        progress.current+=1
+        progress()
+    progress.done()
+
         
 if __name__ == '__main__':
     main()  
