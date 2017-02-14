@@ -17,6 +17,8 @@ import os.path as op
 from amplifier import Amplifier
 from utils import biweight_location, biweight_midvariance, biweight_filter2d
 from progressbar import ProgressBar
+from CreateTexWrite import CreateTex
+from distutils.dir_util import mkpath
 
 AMPS = ["LL", "LU", "RU", "RL"]
 
@@ -220,7 +222,7 @@ def check_darks(args, amp, masterbias):
     # Loop through the bias list and measure the jump/structure
     for am in args.drk_list[sel]:
         a,b = am.image.shape
-        dark_counts.append(biweight_location(am - masterbias))
+        dark_counts.append(biweight_location(am - masterbias) / am.exptime)
     return dark_counts, masterdark  
     
     
@@ -282,7 +284,22 @@ def make_pixelflats(args, amp):
 def relative_throughput(args):
     pass
 
-
+def write_to_TEX(f, args, overscan, gain, readnoise, darkcounts):
+    A = []
+    for amp in AMPS:
+        A.append(amp)
+        A.append(overscan[amp])
+        A.append(gain[amp])
+        A.append(gain[amp]*readnoise[amp])
+    B = []
+    for amp in AMPS:
+        B.append(amp)
+        B.append(darkcounts[amp])
+        B.append(darkcounts[amp]*gain[amp])
+        B.append(darkcounts[amp]*gain[amp]*600.)
+    CreateTex.writeObsSummary(f, A, B)
+    
+    
 def main():
     # Read the arguments from the command line
     args = parse_args()
@@ -341,7 +358,14 @@ def main():
         progress.current+=1
         progress()
     progress.done()
-
+    
+    # Writing everything to a ".tex" file
+    folder = op.join(args.output,'CAM_'+args.specid)
+    mkpath(folder)
+    filename = op.join(folder,'calibration.tex')
+    with open(filename) as f:
+        CreateTex.writeHeader(f)
+        write_to_TEX(f, args, overscan, gain, readnoise, darkcounts)
         
 if __name__ == '__main__':
     main()  

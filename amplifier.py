@@ -303,6 +303,7 @@ class Amplifier:
                              int(datetemp[2]))
         self.image = np.array(F[0].data, dtype=float)
         self.image_prepped = False
+        self.exptime = F[0].header['EXPTIME']
    
     def save(self):
         '''
