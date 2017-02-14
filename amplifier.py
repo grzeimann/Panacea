@@ -766,7 +766,7 @@ class Amplifier:
             np.savetxt(fn, A)
             if self.calculate_shift:
                 self.net_trace_shift = self.find_shift()
-                smooth_shift = biweight_filter(self.shift, 15)
+                smooth_shift = biweight_filter(self.shift, 25)
                 if self.net_trace_shift is not None:
                     self.load_cal_property('trace')
                     for i, fiber in enumerate(self.fibers):
