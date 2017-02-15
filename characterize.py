@@ -17,10 +17,11 @@ import os.path as op
 from amplifier import Amplifier
 from utils import biweight_location, biweight_midvariance, biweight_filter2d
 from progressbar import ProgressBar
-from CreateTexWrite import CreateTex
+from CreateTexWriteup import CreateTex
 from distutils.dir_util import mkpath
 from astropy.io import fits
 import matplotlib.pyplot as plt
+from operator import itemgetter 
 
 cmap = plt.get_cmap('Greys')
 
@@ -136,7 +137,7 @@ def parse_args(argv=None):
 
     # Check that the arguments are filled
     if args.specid:
-        args.specid = args.specid.replace(" ", "").split(',')
+        args.specid = "%03d"%int(args.specid)
     else:
         msg = 'No SPECID was provided.'
         parser.error(msg)   
@@ -199,11 +200,10 @@ def check_bias(args, amp, folder, edge=3, width=10):
 
     # Loop through the bias list and measure the jump/structure
     masterbias = biweight_location(np.array([v.image 
-                                             for v in args.bia_list[sel]]), 
+                                    for v in itemgetter(*sel)(args.bia_list)]), 
                                    axis=(0,))
     a,b = masterbias.shape
-    masterbias = biweight_filter2d(masterbias, (5,25), (1,3))
-    
+    #masterbias = biweight_filter2d(masterbias, (25,5), (3,1))
     hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'))
     hdu.writeto(op.join(folder, 'masterbias_%s.fits' %amp), clobber=True)
     s = biweight_location(masterbias[:,edge:(b-edge)], axis=(0,))
@@ -211,15 +211,17 @@ def check_bias(args, amp, folder, edge=3, width=10):
     vmin = np.min(s)-0.05*vran
     vmax = np.max(s)+0.05*vran
     plt.figure(figsize=(8,6))
-    plt.imshow(masterbias, vmin=vmin, vmax=vmax, cmap=cmap)
-    plt.savefig(op.join(folder, 'masteribas_%s.png' %amp, dpi=150))
+    plt.imshow(masterbias, vmin=vmin, vmax=vmax, cmap=cmap, origin='lower',
+               interpolation='none')
+    plt.text(b*.1, a*.9, amp, fontsize=24, color='r')
+    plt.savefig(op.join(folder, 'masterbias_%s.png' %amp), dpi=150)
     plt.close()
     
-    for am in args.bia_list[sel]:
+    for am in itemgetter(*sel)(args.bia_list):
         left_edge.append(biweight_location(am.image[:,edge:edge+width]))
         right_edge.append(biweight_location(
                                          am.image[:,(b-width-edge):(b-edge)]))
-        structure.append(biweight_location(am[:,edge:(b-edge)],axis=(0,)))
+        structure.append(biweight_location(am.image[:,edge:(b-edge)],axis=(0,)))
     return left_edge, right_edge, structure, overscan, masterbias
 
 
@@ -231,7 +233,7 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
     sel = [i for i,v in enumerate(args.drk_list) if v.amp == amp]
     if len(sel)>2:
         masterdark = biweight_location(np.array([v.image - masterbias 
-                                                 for v in args.drk_list[sel]]), 
+                                    for v in itemgetter(*sel)(args.drk_list)]), 
                                        axis=(0,))
         a,b = masterdark.shape
         hdu = fits.PrimaryHDU(np.array(masterdark, dtype='float32'))
@@ -241,8 +243,10 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
         vmin = np.min(s)-0.05*vran
         vmax = np.max(s)+0.05*vran
         plt.figure(figsize=(8,6))
-        plt.imshow(masterdark, vmin=vmin, vmax=vmax, cmap=cmap)
-        plt.savefig(op.join(folder, 'masterdark_%s.png' %amp, dpi=150))
+        plt.imshow(masterdark, vmin=vmin, vmax=vmax, cmap=cmap, origin='lower',
+               interpolation='none')
+        plt.text(b*.1, a*.9, amp, fontsize=24, color='r')
+        plt.savefig(op.join(folder, 'masterdark_%s.png' %amp), dpi=150)
         plt.close()
     else:
         masterdark = None
@@ -250,9 +254,9 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
     
     
     # Loop through the bias list and measure the jump/structure
-    for am in args.drk_list[sel]:
+    for am in itemgetter(*sel)(args.drk_list):
         a,b = am.image.shape
-        dark_counts.append(biweight_location(am - masterbias) / am.exptime)
+        dark_counts.append(biweight_location(am.image - masterbias) / am.exptime)
     return dark_counts, masterdark  
     
     
@@ -261,18 +265,21 @@ def measure_readnoise(args, amp):
     sel = [i for i,v in enumerate(args.bia_list) if v.amp == amp]
     
     # Make array of all bias images for given amp
-    array_images = np.array([bia.image for bia in args.bia_list[sel]])
+    array_images = np.array([bia.image for bia in itemgetter(*sel)(args.bia_list)])
     
     # Measure the biweight midvariance (sigma) for a given pixel and take
     # the biweight average over all sigma to reduce the noise in the first 
     # measurement.
     S = biweight_location(biweight_midvariance(array_images,axis=(0,)))
     
+    print("%s | RDNOISE: %01.3f" %(amp, S)) 
+    
     return S
     
 
 def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
     sel = [i for i,v in enumerate(args.ptc_list) if v.amp == amp]
+    print(sel)
     s_sel = sel[np.array([args.ptc_list[i].basename for i in sel]).argsort()]
     npairs = len(sel) / 2
     a,b = args.ptc_list[sel[0]].image.shape
@@ -298,17 +305,28 @@ def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
     return biweight_location(gn)
 
 
-def make_pixelflats(args, amp):
+def make_pixelflats(args, amp, folder):
     sel = [i for i,v in enumerate(args.pxf_list) if v.amp == amp]
     a,b = args.pxf_list[sel[0]].image.shape
     masterflat = np.zeros((len(sel), a, b))
     pixflat = np.zeros((len(sel), a, b))
-    for am in args.pxf_list[sel]:
+    for am in itemgetter(*sel)(args.pxf_list):
         masterflat[i,:,:] = biweight_filter2d(am.image, (5,25), (1,3))
     masterflat = biweight_location(masterflat, axis=(0,))
-    for am in args.pxf_list[sel]:
+    for am in itemgetter(*sel)(args.pxf_list):
         pixflat[i,:,:] = am.image / masterflat
     pixflat = biweight_location(pixflat, axis=(0,))
+    
+    a,b = pixflat.shape
+    hdu = fits.PrimaryHDU(np.array(pixflat, dtype='float32'))
+    hdu.writeto(op.join(folder, 'pixelflat_%s.fits' %amp), clobber=True)
+
+    plt.figure(figsize=(8,6))
+    plt.imshow(pixflat, vmin=0.95, vmax=1.05, cmap=cmap, origin='lower',
+               interpolation='none')
+    plt.text(b*.1, a*.9, amp, fontsize=24, color='r')
+    plt.savefig(op.join(folder, 'pixelflat_%s.png' %amp), dpi=150)
+    plt.close()
     return masterflat, pixflat
 
 def relative_throughput(args):
@@ -329,6 +347,15 @@ def write_to_TEX(f, args, overscan, gain, readnoise, darkcounts):
         B.append(darkcounts[amp]*gain[amp]*600.)
     CreateTex.writeObsSummary(f, A, B)
     
+    amps = ["LU","RL","LL","RU"]
+    obs = ['Bias', 'Darks', 'Pixel flats']
+    mastername = ['masterbias', 'masterdark', 'pixelflat']
+    for i, v in enumerate(obs):
+        A = [v]
+        for amp in amps:
+            A.append(amp)
+            A.append('%s_%s.png' %(mastername[i], amp))
+        CreateTex.writeImageSummary(f, A)
     
 def main():
     # Read the arguments from the command line
@@ -364,7 +391,7 @@ def main():
     
     # Get the readnoise for each amp
     readnoise = {}
-    progress = ProgressBar(len(AMPS), 'Measuring Readnoise for%s' %args.specid, 
+    progress = ProgressBar(len(AMPS), 'Measuring Readnoise for %s' %args.specid, 
                            fmt=ProgressBar.FULL)
     for amp in AMPS:
         readnoise[amp] = measure_readnoise(args, amp)
@@ -374,7 +401,7 @@ def main():
     
     # Get the gain for each amp
     gain = {}
-    progress = ProgressBar(len(AMPS), 'Measuring Gain for%s' %args.specid, 
+    progress = ProgressBar(len(AMPS), 'Measuring Gain for %s' %args.specid, 
                            fmt=ProgressBar.FULL)
     for amp in AMPS:
         gain[amp] = measure_gain(args, amp, readnoise[amp])
@@ -384,7 +411,7 @@ def main():
 
     # Get the pixel flat for each amp
     masterflat, pixelflat= {}, {}
-    progress = ProgressBar(len(AMPS), 'Measuring pixel flat for%s' %args.specid, 
+    progress = ProgressBar(len(AMPS), 'Measuring pixel flat for %s' %args.specid, 
                            fmt=ProgressBar.FULL)
     for amp in AMPS:
         masterflat[amp], pixelflat[amp] = make_pixelflats(args, amp, 
@@ -398,7 +425,9 @@ def main():
     filename = op.join(folder,'calibration.tex')
     with open(filename) as f:
         CreateTex.writeHeader(f)
-        write_to_TEX(f, args, overscan, gain, readnoise, darkcounts)
+        write_to_TEX(f, args, overscan, gain, readnoise, darkcounts, 
+                     masterbias, masterdark, pixelflat)
+        CreateTex.writeEnding(f)
         
 if __name__ == '__main__':
     main()  

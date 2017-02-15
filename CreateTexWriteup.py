@@ -49,6 +49,7 @@ class CreateTex(object):
 \\usepackage{amssymb}
 \\usepackage[usenames,dvipsnames]{xcolor}
 \\usepackage{graphicx}
+\\usepackage{subfig}
 \\usepackage[siunitx]{circuitikz}
 \\usepackage{tikz}
 \\usepackage[colorinlistoftodos, color=orange!50]{todonotes}
@@ -302,10 +303,43 @@ Other \\dotfill \\theother \\\\[0.5cm]
  %s &  %0.2f & %0.2f & %0.2f   \\\\ \\hline
  %s &  %0.2f & %0.2f & %0.2f   \\\\ \\hline
 \\end{tabular}
-\\end{table}''' %(tuple(B))
+\\end{table}
+
+''' %(tuple(B))
         f.write(s+t)
         f.flush()
-     
+
+    @classmethod
+    def writeImageSummary(cls, f, A):
+        """Write rows to webpage file ``f``
+
+        Parameters
+        ----------
+        f : file-like object
+            where to write to; must have a ``write`` method
+        """
+        s = '''
+\\section{%s}
+ 
+% MAKE COMMENTS HERE
+
+\\begin{figure}[H]
+\\begin{tabular}{cc}
+\\subfloat[%s]{\\includegraphics[width = 2.5in]{%s}} &
+\\subfloat[%s]{\\includegraphics[width = 2.5in]{%s}}\\\\
+\\subfloat[%s]{\\includegraphics[width = 2.5in]{%s}} &
+\\subfloat[%s]{\\includegraphics[width = 2.5in]{%s}}
+\\label{testtable}
+\\end{tabular}
+\\caption{}
+\\end{figure}
+
+
+''' %(tuple(A))
+        f.write(s)
+        f.flush()
+
+
     @classmethod 
     def writeEnding(cls, f):
         """Write ending to webpage file ``f``
@@ -316,7 +350,7 @@ Other \\dotfill \\theother \\\\[0.5cm]
             where to write to; must have a ``write`` method
         """
         s = []
-        s.append('</tbody></table>')
+        s.append('\\end{document}')
         f.write('\n'.join(s) + "\n")
         f.flush()
         
