@@ -279,8 +279,8 @@ def measure_readnoise(args, amp):
 
 def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
     sel = [i for i,v in enumerate(args.ptc_list) if v.amp == amp]
-    print(sel)
-    s_sel = sel[np.array([args.ptc_list[i].basename for i in sel]).argsort()]
+    s_sel = list(np.array(sel)[
+                 np.array([args.ptc_list[i].basename for i in sel]).argsort()])
     npairs = len(sel) / 2
     a,b = args.ptc_list[sel[0]].image.shape
     array_avg = np.zeros((npairs, a, b))
