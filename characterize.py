@@ -19,6 +19,10 @@ from utils import biweight_location, biweight_midvariance, biweight_filter2d
 from progressbar import ProgressBar
 from CreateTexWrite import CreateTex
 from distutils.dir_util import mkpath
+from astropy.io import fits
+import matplotlib.pyplot as plt
+
+cmap = plt.get_cmap('Greys')
 
 AMPS = ["LL", "LU", "RU", "RL"]
 
@@ -183,7 +187,7 @@ def parse_args(argv=None):
     return args       
 
 
-def check_bias(args, amp, edge=3, width=10):
+def check_bias(args, amp, folder, edge=3, width=10):
     # Create empty lists for the left edge jump, right edge jump, and structure
     left_edge, right_edge, structure, overscan = [], [], [], []
     
@@ -199,6 +203,18 @@ def check_bias(args, amp, edge=3, width=10):
                                    axis=(0,))
     a,b = masterbias.shape
     masterbias = biweight_filter2d(masterbias, (5,25), (1,3))
+    
+    hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'))
+    hdu.writeto(op.join(folder, 'masterbias_%s.fits' %amp), clobber=True)
+    s = biweight_location(masterbias[:,edge:(b-edge)], axis=(0,))
+    vran = np.max(s)-np.min(s)
+    vmin = np.min(s)-0.05*vran
+    vmax = np.max(s)+0.05*vran
+    plt.figure(figsize=(8,6))
+    plt.imshow(masterbias, vmin=vmin, vmax=vmax, cmap=cmap)
+    plt.savefig(op.join(folder, 'masteribas_%s.png' %amp, dpi=150))
+    plt.close()
+    
     for am in args.bia_list[sel]:
         left_edge.append(biweight_location(am.image[:,edge:edge+width]))
         right_edge.append(biweight_location(
@@ -207,7 +223,7 @@ def check_bias(args, amp, edge=3, width=10):
     return left_edge, right_edge, structure, overscan, masterbias
 
 
-def check_darks(args, amp, masterbias):
+def check_darks(args, amp, folder, masterbias, edge=3, width=10):
     # Create empty lists for the left edge jump, right edge jump, and structure
     dark_counts = []
     
@@ -217,8 +233,22 @@ def check_darks(args, amp, masterbias):
         masterdark = biweight_location(np.array([v.image - masterbias 
                                                  for v in args.drk_list[sel]]), 
                                        axis=(0,))
+        a,b = masterdark.shape
+        hdu = fits.PrimaryHDU(np.array(masterdark, dtype='float32'))
+        hdu.writeto(op.join(folder, 'masterdark_%s.fits' %amp), clobber=True)
+        s = biweight_location(masterdark[:,edge:(b-edge)], axis=(0,))
+        vran = np.max(s)-np.min(s)
+        vmin = np.min(s)-0.05*vran
+        vmax = np.max(s)+0.05*vran
+        plt.figure(figsize=(8,6))
+        plt.imshow(masterdark, vmin=vmin, vmax=vmax, cmap=cmap)
+        plt.savefig(op.join(folder, 'masterdark_%s.png' %amp, dpi=150))
+        plt.close()
     else:
         masterdark = None
+       
+    
+    
     # Loop through the bias list and measure the jump/structure
     for am in args.drk_list[sel]:
         a,b = am.image.shape
@@ -304,6 +334,10 @@ def main():
     # Read the arguments from the command line
     args = parse_args()
     
+    # Define output folder
+    folder = op.join(args.output,'CAM_'+args.specid)
+    mkpath(folder)
+    
     # Get the bias jumps/structure for each amp
     (biasjump_left, biasjump_right, structure, 
      overscan, masterbias) = {}, {}, {}, {}, {}
@@ -312,7 +346,7 @@ def main():
     for amp in AMPS:
         (biasjump_left[amp], biasjump_right[amp], 
          structure[amp], overscan[amp], 
-         masterbias[amp]) = check_bias(args, amp)
+         masterbias[amp]) = check_bias(args, amp, folder)
         progress.current+=1
         progress()
     progress.done()
@@ -322,7 +356,7 @@ def main():
     progress = ProgressBar(len(AMPS), 'Checking Darks for %s' %args.specid, 
                            fmt=ProgressBar.FULL)
     for amp in AMPS:
-        darkcounts[amp], masterdark[amp] = check_darks(args, amp, 
+        darkcounts[amp], masterdark[amp] = check_darks(args, amp, folder,
                                                        masterbias[amp])
         progress.current+=1
         progress()
@@ -360,8 +394,7 @@ def main():
     progress.done()
     
     # Writing everything to a ".tex" file
-    folder = op.join(args.output,'CAM_'+args.specid)
-    mkpath(folder)
+
     filename = op.join(folder,'calibration.tex')
     with open(filename) as f:
         CreateTex.writeHeader(f)
