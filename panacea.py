@@ -384,7 +384,7 @@ def reduce_science(args):
                 make_error_frame(sci1.clean_image, sci2.clean_image, sci1.mask,
                                  sci2.mask, sci1.header, outname)
                 outname = op.join(args.sci_df['Output'][ind],
-                                  'CS%s_%s_sci_%s.fits' %(
+                                  'CsS%s_%s_sci_%s.fits' %(
                           op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                                    args.sci_df['Ifuslot'][ind], 
                                                       config.Amp_dict[amp][1]))
@@ -393,7 +393,7 @@ def reduce_science(args):
                 make_error_frame(sci1.continuum_sub, sci2.continuum_sub, 
                                  sci1.mask, sci2.mask, sci1.header, outname)
                 outname = op.join(args.sci_df['Output'][ind],
-                                  'cCS%s_%s_sci_%s.fits' %(
+                                  'cCsS%s_%s_sci_%s.fits' %(
                           op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                                    args.sci_df['Ifuslot'][ind], 
                                                       config.Amp_dict[amp][1]))
