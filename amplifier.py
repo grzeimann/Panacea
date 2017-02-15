@@ -1094,7 +1094,8 @@ class Amplifier:
         for fib, fiber in enumerate(self.fibers):
             fiber.continuum = biweight_filter(fiber.spectrum 
                                               -fiber.sky_spectrum, 
-                                              self.cont_smooth)
+                                              self.cont_smooth, 
+                                              ignore_central=7)
         self.cont_frame = get_model_image(self.image, self.fibers, 
                                         'continuum', debug=False)
         self.continuum_sub = self.image - self.skyframe - self.cont_frame
