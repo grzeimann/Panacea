@@ -8,7 +8,8 @@ Built for characterizing VIRUS instrument as well as LRS2 on HET
 Incomplete Documentation
 
 """
-
+import matplotlib
+matplotlib.use('TkAgg')
 import argparse as ap
 import numpy as np
 import textwrap
@@ -132,6 +133,15 @@ def parse_args(argv=None):
 
     parser.add_argument("-d","--debug", help='''Debug.''',
                         action="count", default=0)
+
+    parser.add_argument("-dcb","--dont_check_bias", 
+                        help='''Don't make masterbias.''',
+                        action="count", default=0)
+
+    parser.add_argument("-dcd","--dont_check_dark", 
+                        help='''Don't make masterbias.''',
+                        action="count", default=0)
+
                           
     args = parser.parse_args(args=argv)
 
@@ -272,7 +282,7 @@ def measure_readnoise(args, amp):
     # measurement.
     S = biweight_location(biweight_midvariance(array_images,axis=(0,)))
     
-    print("%s | RDNOISE: %01.3f" %(amp, S)) 
+    print("\n%s | RDNOISE (ADU): %01.3f" %(amp, S)) 
     
     return S
     
@@ -291,16 +301,26 @@ def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
         m1 = biweight_location(F1)
         m2 = biweight_location(F2)
         array_avg[i,:,:] = F1 + F2
-        array_diff[i,:,:] = F1*m1/m2 - F2
+        array_diff[i,:,:] = F1*m2/m1 - F2
     bins = np.logspace(np.log10(flow), np.log10(fhigh), fnum)
     gn = []
+    array_avg = array_avg.ravel()
+    array_diff = array_diff.ravel()
+
     for i in xrange(len(bins)-1):
-        yloc, xloc = np.where((array_avg>bins[i]) * (array_avg<bins[i+1]))
-        std = biweight_midvariance(array_diff[yloc,xloc])
+        loc = np.where((array_avg>bins[i]) * (array_avg<bins[i+1]))[0]
+        print(array_diff[loc])
+        std = biweight_midvariance(array_diff[loc])
         vr   = (std**2 - 2.*rdnoise**2) / 2.
-        mn = biweight_location(array_avg)
-        print("%s | Gain: %01.3f | RDNOISE: %01.3f | <ADU>: %0.1f | Pixels: %i" 
-                %(amp, mn / vr, mn / vr * rdnoise, mn, len(xloc))) 
+        mn = biweight_location(array_avg[loc])
+        plt.figure(figsize=(8,6))
+        plt.hist(array_diff[loc], 50, range=[mn-3*std,mn+3*std])
+        plt.show()
+        raw_input("Waiting for you to press enter.")
+        plt.close()
+        print("%s | Gain: %01.3f | RDNOISE (e-): %01.3f | <ADU>: %0.1f | "
+              "VAR: %0.1f | Pixels: %i" 
+                %(amp, mn / vr, mn / vr * rdnoise, mn, vr, len(loc))) 
         gn.append(mn/vr)
     return biweight_location(gn)
 
@@ -311,7 +331,7 @@ def make_pixelflats(args, amp, folder):
     masterflat = np.zeros((len(sel), a, b))
     pixflat = np.zeros((len(sel), a, b))
     for am in itemgetter(*sel)(args.pxf_list):
-        masterflat[i,:,:] = biweight_filter2d(am.image, (5,25), (1,3))
+        masterflat[i,:,:] = biweight_filter2d(am.image, (25,5), (3,1))
     masterflat = biweight_location(masterflat, axis=(0,))
     for am in itemgetter(*sel)(args.pxf_list):
         pixflat[i,:,:] = am.image / masterflat
@@ -366,28 +386,31 @@ def main():
     mkpath(folder)
     
     # Get the bias jumps/structure for each amp
-    (biasjump_left, biasjump_right, structure, 
-     overscan, masterbias) = {}, {}, {}, {}, {}
-    progress = ProgressBar(len(AMPS), 'Checking Biases for %s' %args.specid, 
-                           fmt=ProgressBar.FULL)
-    for amp in AMPS:
-        (biasjump_left[amp], biasjump_right[amp], 
-         structure[amp], overscan[amp], 
-         masterbias[amp]) = check_bias(args, amp, folder)
-        progress.current+=1
-        progress()
-    progress.done()
+    if not args.dont_check_bias:
+        (biasjump_left, biasjump_right, structure, 
+         overscan, masterbias) = {}, {}, {}, {}, {}
+        progress = ProgressBar(len(AMPS), 'Checking Biases for %s' %args.specid, 
+                               fmt=ProgressBar.FULL)
+        for amp in AMPS:
+            (biasjump_left[amp], biasjump_right[amp], 
+             structure[amp], overscan[amp], 
+             masterbias[amp]) = check_bias(args, amp, folder)
+            progress.current+=1
+            progress()
+        progress.done()
+        
     
     # Get the dark jumps/structure and average counts
-    darkcounts, masterdark = {}, {}
-    progress = ProgressBar(len(AMPS), 'Checking Darks for %s' %args.specid, 
-                           fmt=ProgressBar.FULL)
-    for amp in AMPS:
-        darkcounts[amp], masterdark[amp] = check_darks(args, amp, folder,
-                                                       masterbias[amp])
-        progress.current+=1
-        progress()
-    progress.done()
+    if not args.dont_check_dark:
+        darkcounts, masterdark = {}, {}
+        progress = ProgressBar(len(AMPS), 'Checking Darks for %s' %args.specid, 
+                               fmt=ProgressBar.FULL)
+        for amp in AMPS:
+            darkcounts[amp], masterdark[amp] = check_darks(args, amp, folder,
+                                                           masterbias[amp])
+            progress.current+=1
+            progress()
+        progress.done()
     
     # Get the readnoise for each amp
     readnoise = {}
@@ -425,8 +448,7 @@ def main():
     filename = op.join(folder,'calibration.tex')
     with open(filename) as f:
         CreateTex.writeHeader(f)
-        write_to_TEX(f, args, overscan, gain, readnoise, darkcounts, 
-                     masterbias, masterdark, pixelflat)
+        write_to_TEX(f, args, overscan, gain, readnoise, darkcounts)
         CreateTex.writeEnding(f)
         
 if __name__ == '__main__':
