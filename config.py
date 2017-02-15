@@ -70,3 +70,8 @@ lrs2r_cs = 0.4
 
 # Fraction of the image from which to select the default column for trace
 frac = 0.47
+
+# Continuum smoothing
+virus_contsmooth = 25
+lrs2b_contsmooth = 25
+lrs2r_contsmooth = 25

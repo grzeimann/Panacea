@@ -45,7 +45,8 @@ class Amplifier:
                  wave_order=3, default_fib=0, init_lims=None, 
                  interactive=False, check_wave=False,filt_size_ind=21, 
                  filt_size_agg=51, filt_size_final=51, filt_size_sky=51,
-                 col_frac = 0.47, use_trace_ref=False, fiber_date=None):
+                 col_frac = 0.47, use_trace_ref=False, fiber_date=None,
+                 cont_smooth=25):
         ''' 
         Initialize class
         ----------------
@@ -275,6 +276,9 @@ class Amplifier:
         self.filt_size_agg = filt_size_agg
         self.filt_size_final = filt_size_final
         self.filt_size_sky = filt_size_sky
+        
+        # Continuum subtraction
+        self.cont_smooth = cont_smooth
         
         # Initialized variables
         self.N, self.D = F[0].data.shape
@@ -1089,7 +1093,8 @@ class Amplifier:
         self.clean_image = self.image - self.skyframe
         for fib, fiber in enumerate(self.fibers):
             fiber.continuum = biweight_filter(fiber.spectrum 
-                                              -fiber.sky_spectrum, 25)
+                                              -fiber.sky_spectrum, 
+                                              self.cont_smooth)
         self.cont_frame = get_model_image(self.image, self.fibers, 
                                         'continuum', debug=False)
         self.continuum_sub = self.image - self.skyframe - self.cont_frame

@@ -224,6 +224,7 @@ def parse_args(argv=None):
         args.fibmodel_pow = config.virus_pow
         args.dark_mult = config.virus_dm
         args.nfibers = config.virus_nf
+        args.cont_smooth = config.virus_contsmooth
     if args.instr.lower() == 'lrs2':
         if args.instr_side.lower() == 'blue':
             args.wvl_dict = config.lrs2b_wl
@@ -237,7 +238,7 @@ def parse_args(argv=None):
             args.fibmodel_pow = config.lrs2b_pow
             args.dark_mult = config.lrs2b_dm
             args.nfibers = config.lrs2b_nf
-
+            args.cont_smooth = config.lrs2b_contsmooth
         else:
             args.wvl_dict = config.lrs2r_wl
             args.specname = config.lrs2r_sn
@@ -250,6 +251,7 @@ def parse_args(argv=None):
             args.fibmodel_pow = config.lrs2r_pow
             args.dark_mult = config.lrs2r_dm
             args.nfibers = config.lrs2r_nf
+            args.cont_smooth = config.lrs2r_contsmooth
 
 
 

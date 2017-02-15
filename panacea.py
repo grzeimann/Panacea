@@ -306,7 +306,8 @@ def reduce_science(args):
                                  use_pixelflat=(args.pixelflats<1),
                                  use_trace_ref=args.use_trace_ref,
                                  calculate_shift=args.adjust_trace,
-                                 fiber_date=args.fiber_date)
+                                 fiber_date=args.fiber_date,
+                                 cont_smooth=args.cont_smooth)
                 #sci1.load_fibers()
                 #if sci1.fibers and not args.start_from_scratch:
                 #    if sci1.fibers[0].spectrum is not None:
@@ -340,7 +341,8 @@ def reduce_science(args):
                                  use_pixelflat=(args.pixelflats<1),
                                  use_trace_ref=args.use_trace_ref,
                                  calculate_shift=args.adjust_trace,
-                                 fiber_date=args.fiber_date)
+                                 fiber_date=args.fiber_date,
+                                 cont_smooth=args.cont_smooth)
                 #sci2.load_fibers()
                 #if sci2.fibers and not args.start_from_scratch:
                 #    if sci2.fibers[0].spectrum is not None:
