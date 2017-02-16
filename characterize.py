@@ -300,7 +300,7 @@ def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
         F2 = args.ptc_list[s_sel[2*i+1]].image
         m1 = biweight_location(F1)
         m2 = biweight_location(F2)
-        array_avg[i,:,:] = F1 + F2
+        array_avg[i,:,:] = (F1 + F2) / 2.
         array_diff[i,:,:] = F1*m2/m1 - F2
     bins = np.logspace(np.log10(flow), np.log10(fhigh), fnum)
     gn = []
@@ -309,15 +309,9 @@ def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
 
     for i in xrange(len(bins)-1):
         loc = np.where((array_avg>bins[i]) * (array_avg<bins[i+1]))[0]
-        print(array_diff[loc])
         std = biweight_midvariance(array_diff[loc])
         vr   = (std**2 - 2.*rdnoise**2) / 2.
         mn = biweight_location(array_avg[loc])
-        plt.figure(figsize=(8,6))
-        plt.hist(array_diff[loc], 50, range=[mn-3*std,mn+3*std])
-        plt.show()
-        raw_input("Waiting for you to press enter.")
-        plt.close()
         print("%s | Gain: %01.3f | RDNOISE (e-): %01.3f | <ADU>: %0.1f | "
               "VAR: %0.1f | Pixels: %i" 
                 %(amp, mn / vr, mn / vr * rdnoise, mn, vr, len(loc))) 
@@ -330,10 +324,10 @@ def make_pixelflats(args, amp, folder):
     a,b = args.pxf_list[sel[0]].image.shape
     masterflat = np.zeros((len(sel), a, b))
     pixflat = np.zeros((len(sel), a, b))
-    for am in itemgetter(*sel)(args.pxf_list):
+    for i,am in enumerate(itemgetter(*sel)(args.pxf_list)):
         masterflat[i,:,:] = biweight_filter2d(am.image, (25,5), (3,1))
     masterflat = biweight_location(masterflat, axis=(0,))
-    for am in itemgetter(*sel)(args.pxf_list):
+    for i,am in enumerate(itemgetter(*sel)(args.pxf_list)):
         pixflat[i,:,:] = am.image / masterflat
     pixflat = biweight_location(pixflat, axis=(0,))
     
