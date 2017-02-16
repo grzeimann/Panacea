@@ -98,7 +98,8 @@ def biweight_filter2d(a, Order, Ignore_central=(3,3), c=6.0, M=None, func=None):
     for ignore_central in Ignore_central:
         if ignore_central%2==0:
             ignore_central+=1
-    if Order[0]-3 <= Ignore_central[0] or Order[1]-3 <= Ignore_central[1]:
+    if ((Order[0]-3 <= Ignore_central[0] and Order[0]>1) 
+        or (Order[1]-3 <= Ignore_central[1] and Order[1]>1)):
         print("The max order-3 should be larger than max ignore_central.")
         sys.exit(1)
     if func is None:
@@ -107,16 +108,28 @@ def biweight_filter2d(a, Order, Ignore_central=(3,3), c=6.0, M=None, func=None):
     if a.ndim != 2:
         print("Input array/list should be 2-dimensional")
         sys.exit()
-    
+
     yc = np.arange(Ignore_central[0]/2+1,Order[0]/2)
     xc = np.arange(Ignore_central[1]/2+1,Order[1]/2)
-    size = len(yc)*len(xc)
+    ly = np.max([len(yc),1])
+    lx = np.max([len(xc),1])
+    size = lx * ly
     A = np.ones(a.shape + (size,))*-999
     k=0
-    for i in yc:
+    if Order[0]>1:
+        if Order[1]>1:
+            for i in yc:
+                for j in xc:
+                    A[:-i,:-j,k] = a[i:,j:]
+                    k+=1
+        else:
+            for i in yc:
+                A[:-i,:,k] = a[i:,:]
+                k+=1
+    else:
         for j in xc:
-            A[:-i,:-j,k] = a[i:,j:]
-            k+=1
+            A[:,:-j,k] = a[:,j:]
+    
     C = np.ma.array(A, mask=(A == -999).astype(np.int))
     return func(C, axis=(2,))
 

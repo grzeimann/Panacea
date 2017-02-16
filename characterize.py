@@ -325,10 +325,11 @@ def make_pixelflats(args, amp, folder):
     masterflat = np.zeros((len(sel), a, b))
     pixflat = np.zeros((len(sel), a, b))
     for i,am in enumerate(itemgetter(*sel)(args.pxf_list)):
-        masterflat[i,:,:] = biweight_filter2d(am.image, (25,5), (3,1))
+        masterflat[i,:,:] = biweight_filter2d(am.image, (125,1), (11,1))
+        masterflat[i,:,:] = biweight_filter2d(masterflat[i,:,:], (35,5), (7,1))
     masterflat = biweight_location(masterflat, axis=(0,))
     for i,am in enumerate(itemgetter(*sel)(args.pxf_list)):
-        pixflat[i,:,:] = am.image / masterflat
+        pixflat[i,:,:] = np.divide(am.image, masterflat)
     pixflat = biweight_location(pixflat, axis=(0,))
     
     a,b = pixflat.shape
@@ -431,8 +432,7 @@ def main():
     progress = ProgressBar(len(AMPS), 'Measuring pixel flat for %s' %args.specid, 
                            fmt=ProgressBar.FULL)
     for amp in AMPS:
-        masterflat[amp], pixelflat[amp] = make_pixelflats(args, amp, 
-                                                          readnoise[amp])
+        masterflat[amp], pixelflat[amp] = make_pixelflats(args, amp, folder)
         progress.current+=1
         progress()
     progress.done()
@@ -440,7 +440,7 @@ def main():
     # Writing everything to a ".tex" file
 
     filename = op.join(folder,'calibration.tex')
-    with open(filename) as f:
+    with open(filename,'w') as f:
         CreateTex.writeHeader(f)
         write_to_TEX(f, args, overscan, gain, readnoise, darkcounts)
         CreateTex.writeEnding(f)
