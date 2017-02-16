@@ -325,9 +325,11 @@ def make_pixelflats(args, amp, folder):
     masterflat = np.zeros((len(sel), a, b))
     pixflat = np.zeros((len(sel), a, b))
     for i,am in enumerate(itemgetter(*sel)(args.pxf_list)):
-        masterflat[i,:,:] = biweight_filter2d(am.image, (125,1), (11,1))
-        masterflat[i,:,:] = biweight_filter2d(masterflat[i,:,:], (35,5), (7,1))
+        masterflat[i,:,:] = am.image
     masterflat = biweight_location(masterflat, axis=(0,))
+    masterflat[i,:,:] = biweight_filter2d(masterflat, (125,1), (11,1))
+    masterflat[i,:,:] = biweight_filter2d(masterflat, (35,5), (7,1))    
+
     for i,am in enumerate(itemgetter(*sel)(args.pxf_list)):
         pixflat[i,:,:] = np.divide(am.image, masterflat)
     pixflat = biweight_location(pixflat, axis=(0,))
