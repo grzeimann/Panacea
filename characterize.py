@@ -267,7 +267,7 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
     for am in itemgetter(*sel)(args.drk_list):
         a,b = am.image.shape
         dark_counts.append(biweight_location(am.image - masterbias) / am.exptime)
-    return dark_counts, masterdark  
+    return biweight_location(dark_counts), masterdark  
     
     
 def measure_readnoise(args, amp):
@@ -281,8 +281,8 @@ def measure_readnoise(args, amp):
     # the biweight average over all sigma to reduce the noise in the first 
     # measurement.
     S = biweight_location(biweight_midvariance(array_images,axis=(0,)))
-    
-    print("\n%s | RDNOISE (ADU): %01.3f" %(amp, S)) 
+    if args.debug:
+        print("\n%s | RDNOISE (ADU): %01.3f" %(amp, S)) 
     
     return S
     
@@ -312,9 +312,10 @@ def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
         std = biweight_midvariance(array_diff[loc])
         vr   = (std**2 - 2.*rdnoise**2) / 2.
         mn = biweight_location(array_avg[loc])
-        print("%s | Gain: %01.3f | RDNOISE (e-): %01.3f | <ADU>: %0.1f | "
-              "VAR: %0.1f | Pixels: %i" 
-                %(amp, mn / vr, mn / vr * rdnoise, mn, vr, len(loc))) 
+        if args.debug:
+            print("%s | Gain: %01.3f | RDNOISE (e-): %01.3f | <ADU>: %0.1f | "
+                  "VAR: %0.1f | Pixels: %i" 
+                  %(amp, mn / vr, mn / vr * rdnoise, mn, vr, len(loc))) 
         gn.append(mn/vr)
     return biweight_location(gn)
 
@@ -327,9 +328,8 @@ def make_pixelflats(args, amp, folder):
     for i,am in enumerate(itemgetter(*sel)(args.pxf_list)):
         masterflat[i,:,:] = am.image
     masterflat = biweight_location(masterflat, axis=(0,))
-    masterflat[i,:,:] = biweight_filter2d(masterflat, (125,1), (11,1))
-    masterflat[i,:,:] = biweight_filter2d(masterflat, (35,5), (7,1))    
-
+    masterflat = biweight_filter2d(masterflat, (201,1), (75,1))
+    masterflat = biweight_filter2d(masterflat, (35,5), (7,1))    
     for i,am in enumerate(itemgetter(*sel)(args.pxf_list)):
         pixflat[i,:,:] = np.divide(am.image, masterflat)
     pixflat = biweight_location(pixflat, axis=(0,))
@@ -443,7 +443,7 @@ def main():
 
     filename = op.join(folder,'calibration.tex')
     with open(filename,'w') as f:
-        CreateTex.writeHeader(f)
+        CreateTex.writeHeader(f, args.specid)
         write_to_TEX(f, args, overscan, gain, readnoise, darkcounts)
         CreateTex.writeEnding(f)
         

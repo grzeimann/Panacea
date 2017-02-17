@@ -204,6 +204,7 @@ Other \\dotfill \\theother \\\\[0.5cm]
 \\title{
 \\rule{\\linewidth}{0.5pt} \\\\[6pt] 
 \\LARGE VIRUS Spectrograph Laboratory Calibration Report \\\\
+\\Large FILL IN CAMERA ID
 \\rule{\\linewidth}{2pt}  \\\\[10pt]
 }
 \\author{Fill in your name}

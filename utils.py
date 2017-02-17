@@ -282,7 +282,7 @@ def biweight_location(a, c=6.0, M=None, axis=None):
     else:
         MAD = median_absolute_deviation(a)
 
-    u = np.where(MAD == 0, 0., d / c / MAD)
+    u = np.where(MAD == 0., 0., d / c / MAD)
     
     # now remove the outlier points
     if isinstance(a, np.ma.MaskedArray):
@@ -393,7 +393,7 @@ def biweight_midvariance(a, c=9.0, M=None, axis=None):
     else:
         MAD = median_absolute_deviation(a)
     # set up the weighting
-    u = np.where(MAD == 0, 0., d / c / MAD)
+    u = np.where(MAD == 0., 0., d / c / MAD)
 
     # now remove the outlier points
     mask = (np.abs(u) < 1).astype(np.int)
