@@ -217,25 +217,6 @@ Other \\dotfill \\theother \\\\[0.5cm]
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%			  ______      ____  
-%			 |  ____/\   / __ \ 
-%			 | |__ /  \ | |  | |
-%			 |  __/ /\ \| |  | |
-%			 | | / ____ \ |__| |
-%			 |_|/_/    \\_\\___\\_\
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Ctrl + / to comment out a group of lines.
-%
-%
-% LIST MORE COMMON COMMMANDS
-% LIST USEFUL WEBSITES FOR TABLES, ETC
-% WHAT TO DO WHEN YOUR CODE WONT COMPILE
-% OVERLEAF SHORTCUTS
-%
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % _               ____  
 %| |        /\   |  _ \ 
 %| |       /  \  | |_) |
@@ -275,8 +256,9 @@ Other \\dotfill \\theother \\\\[0.5cm]
         s = '''
 \\section{Overall Summary}
  
-% MAKE COMMENTS HERE
-
+% MAKE COMMENTS HERE'''
+        t = '''
+        
 \\begin{table}[H]
 \\centering
 \\caption{Measured Bias, Gain, and Readnoise}
@@ -290,7 +272,7 @@ Other \\dotfill \\theother \\\\[0.5cm]
  %s &  %0.2f & %0.2f & %0.2f   \\\\ \\hline
 \\end{tabular}
 \\end{table}''' %(tuple(A))
-        t = '''
+        u = '''
 \\begin{table}[H]
 \\centering
 \\caption{Dark Levels}
@@ -307,7 +289,7 @@ Other \\dotfill \\theother \\\\[0.5cm]
 \\end{table}
 
 ''' %(tuple(B))
-        f.write(s+t)
+        f.write(s+t+u)
         f.flush()
 
     @classmethod
@@ -322,7 +304,9 @@ Other \\dotfill \\theother \\\\[0.5cm]
         s = '''
 \\section{%s}
  
-% MAKE COMMENTS HERE
+% MAKE COMMENTS HERE'''
+
+        t = '''
 
 \\begin{figure}[H]
 \\begin{tabular}{cc}
@@ -337,7 +321,7 @@ Other \\dotfill \\theother \\\\[0.5cm]
 
 
 ''' %(tuple(A))
-        f.write(s)
+        f.write(s+t)
         f.flush()
 
 
