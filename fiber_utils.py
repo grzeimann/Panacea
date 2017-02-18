@@ -1076,7 +1076,7 @@ def get_model_image(image, fibers, prop, debug=False):
     low = binx.min()-1
     high = binx.max()+1
     fun = np.zeros((bins,))
-    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
+    plaw_coeff = np.array([0.0012,0.5,0.15,1.0])
     def plaw(xp, plaw_coeff):
         return plaw_coeff[0] / (plaw_coeff[1] + plaw_coeff[2]
                   * np.power(abs(xp), plaw_coeff[3]))
@@ -1093,7 +1093,7 @@ def get_model_image(image, fibers, prop, debug=False):
                 fun[j] = 1.0
                 Fl[li:hi,j] = np.interp(ix[li:hi],binx,fun,left=0.0,right=0.0)
                 fun[j] = 0.0
-            model[li:hi,i] += (getattr(fiber,prop)[i] * 1.04
+            model[li:hi,i] += (getattr(fiber,prop)[i] * 1.00
                                * (np.dot(Fl[li:hi,:],fiber.fibmodel[i,:]) 
                                   + plaw(ix[li:hi], plaw_coeff)))
     
