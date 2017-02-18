@@ -66,6 +66,7 @@ def imstat(image1, image2, Fiber1, Fiber2, outname, fbins=20, fmax=8.):
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
     plt.savefig(outname, dpi=150)
+    plt.close()
     
                       
 def recreate_fiberextract(instr1, instr2, wavelim, disp):
