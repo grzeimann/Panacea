@@ -676,6 +676,7 @@ class Amplifier:
                 self.fibers[i].trace_poly_order = self.trace_poly_order
                 self.fibers[i].init_trace_info()
                 fdist = standardcol[i]-allfibers[brcol]
+                print(i, allfibers[brcol], standardcol[i], fdist)
                 floc = np.argmin(np.abs(fdist))
                 if np.abs(fdist[floc])<self.fdist_ref:    
                     self.fibers[i].trace_x[brcol] = brcol
