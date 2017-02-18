@@ -19,6 +19,9 @@ import numpy as np
 import time
 import sys
 
+plaw_coeff = np.array([0.0016,0.5,0.15,1.0])
+
+
 def str2bool(v):
     '''
     Convert a string to a boolean.  If the string is in the list below,
@@ -621,7 +624,6 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
     bins1, binx, sol = init_fibermodel(fsize=fsize, bins=bins, sigma=sigma,
                                        power=power)
     PL = np.zeros((a,b,nfibs))
-    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
     for i in xrange(b):
         for j,fiber in enumerate(Fibers):
             ix = ygrid[:,i] - fiber.trace[i]
@@ -935,7 +937,6 @@ def get_norm_nonparametric_fast(image, Fibers, mask=None):
     Fl = np.zeros((len(y), bins))
     Pl = np.zeros((len(y),))
     init_model = np.zeros((len(y),len(Fibers)))
-    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
     norm = np.zeros((len(Fibers),b))
     for col in xrange(b):
         for i,fiber in enumerate(Fibers):
@@ -1016,7 +1017,6 @@ def get_norm_nonparametric_bins(image, mask, xgrid, ygrid, Fibers, fib=0,
     Fl = np.zeros((len(y), bins, len(fibers)))
     Pl = np.zeros((len(y),len(fibers)))
     fun = np.zeros((bins,))
-    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
     i = 0
     for fiber in fibers:
         ytrace = (fiber.trace[xlow:xhigh]*np.ones((yhigh-ylow,1))).ravel()
@@ -1076,7 +1076,6 @@ def get_model_image(image, fibers, prop, debug=False):
     low = binx.min()-1
     high = binx.max()+1
     fun = np.zeros((bins,))
-    plaw_coeff = np.array([0.0012,0.5,0.15,1.0])
     def plaw(xp, plaw_coeff):
         return plaw_coeff[0] / (plaw_coeff[1] + plaw_coeff[2]
                   * np.power(abs(xp), plaw_coeff[3]))
@@ -1192,7 +1191,6 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
     low = binx.min()-8
     high = binx.max()+8
     fun = np.zeros((bins,))
-    plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
     PL = np.zeros((ylen,xlen,nfibs))
     for i in xrange(xlen):
         for j,fiber in enumerate(Fibers):
