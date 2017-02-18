@@ -279,7 +279,7 @@ Other \\dotfill \\theother \\\\[0.5cm]
 \\label{basictable}
 \\begin{tabular}{|l|l|l|l|}
 \\hline
- Amplifier &  Dark Current (DN/pix/sec) & Dark Current (e-/pix/sec) &  Dark Current (e-/pix/600sec) \\\\ 
+ Amplifier &  Dark Current & Dark Current &  Dark Current \\\\ 
   &   (DN/pix/sec) &  (e-/pix/sec) &  (e-/pix/600sec) \\\\ \\hline
  %s &  %0.2f & %0.2f & %0.2f   \\\\ \\hline
  %s &  %0.2f & %0.2f & %0.2f   \\\\ \\hline
@@ -303,10 +303,12 @@ Other \\dotfill \\theother \\\\[0.5cm]
         """
         s = '''
 \\section{%s}
- 
+''' %A[0]
+
+        t = ''' 
 % MAKE COMMENTS HERE'''
 
-        t = '''
+        u = '''
 
 \\begin{figure}[H]
 \\begin{tabular}{cc}
@@ -320,8 +322,8 @@ Other \\dotfill \\theother \\\\[0.5cm]
 \\end{figure}
 
 
-''' %(tuple(A))
-        f.write(s+t)
+''' %(tuple(A[1:]))
+        f.write(s+t+u)
         f.flush()
 
 

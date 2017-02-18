@@ -18,6 +18,7 @@ import time
 import re
 
 import numpy as np
+import matplotlib.pyplot as plt
 import os.path as op
 from astropy.io import fits
 from pyhetdex.cure.distortion import Distortion
@@ -30,6 +31,42 @@ from utils import biweight_location
 import config
 import glob
                       
+
+def imstat(image1, image2, Fiber1, Fiber2, outname, fbins=20, fmax=8.):
+    a,b = image1.shape
+    images = [image1,image2]
+    Fibers = [Fiber1,Fiber2]
+    totstat = np.zeros((2*a,b))
+    totdist = np.zeros((2*a,b))
+    for i,image in enumerate(images):
+        dist = np.zeros((a,b))
+        trace_array = np.array([fiber.trace for fiber in Fibers[i]])
+        for y in xrange(a):
+            for x in xrange(b):
+                dist[y,x] = np.min(np.abs(trace_array[:,x] - y))
+        if i==0:
+            totdist[:a,:] = dist
+            totstat[:a,:] = image
+        else:
+            totdist[a:,:] = dist
+            totstat[a:,:] = image
+    frange = np.linspace(0,fmax,fbins+1)
+    totdist = totdist.ravel()
+    totstat = totstat.ravel()
+    stats = np.zeros((fbins,))
+    for i in xrange(fbins):
+        sel = np.where((totdist>=frange[i])  * (totdist<frange[i+1]))[0]
+        stats[i] = biweight_location(totstat[sel])
+    plt.figure(figsize=(8,6))
+    plt.plot(frange[:-1]+np.diff(frange)/2., stats, color=[1.0, 0.2, 0.2], 
+             lw=3)
+    plt.xlim([0, fmax])
+    plt.xlabel('Fiber Distance', fontsize=14)
+    plt.ylabel('Average Value', fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.savefig(outname, dpi=150)
+    
                       
 def recreate_fiberextract(instr1, instr2, wavelim, disp):
     col = int(instr1.D / 2)
