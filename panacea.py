@@ -57,7 +57,7 @@ def imstat(image1, image2, Fiber1, Fiber2, outname, fbins=20, fmax=8.):
     for i in xrange(fbins):
         sel = np.where((totdist>=frange[i])  * (totdist<frange[i+1]))[0]
         stats[i] = biweight_location(totstat[sel])
-    plt.figure(figsize=(8,6))
+    plt.figure(figsize=(6,5))
     plt.plot(frange[:-1]+np.diff(frange)/2., stats, color=[1.0, 0.2, 0.2], 
              lw=3)
     plt.xlim([0, fmax])
