@@ -449,7 +449,7 @@ def reduce_science(args):
                           op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                                    args.sci_df['Ifuslot'][ind], 
                                                       config.Amp_dict[amp][1]))
-                imstat(sci1.clean_image, sci2.clean_image, sci1.fibers,
+                imstat(sci1.continuum_sub, sci2.continuum_sub, sci1.fibers,
                        sci2.fibers, outname)
                 Fe, FeS = recreate_fiberextract(sci1, sci2, 
                                                 wavelim=args.wvl_dict[amp], 

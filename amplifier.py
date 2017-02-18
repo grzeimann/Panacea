@@ -1099,6 +1099,9 @@ class Amplifier:
         self.cont_frame = get_model_image(self.image, self.fibers, 
                                         'continuum', debug=False)
         self.continuum_sub = self.image - self.skyframe - self.cont_frame
+        self.model = get_model_image(self.image, self.fibers, 'spectrum', 
+                                     debug=False)
+        self.residual = self.image - self.model
         
         
     def clean_cosmics(self):
