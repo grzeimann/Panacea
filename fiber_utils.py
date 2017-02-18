@@ -1093,7 +1093,7 @@ def get_model_image(image, fibers, prop, debug=False):
                 fun[j] = 1.0
                 Fl[li:hi,j] = np.interp(ix[li:hi],binx,fun,left=0.0,right=0.0)
                 fun[j] = 0.0
-            model[li:hi,i] += (getattr(fiber,prop)[i] * 1.03
+            model[li:hi,i] += (getattr(fiber,prop)[i] * 1.00
                                * (np.dot(Fl[li:hi,:],fiber.fibmodel[i,:]) 
                                   + plaw(ix[li:hi], plaw_coeff)))
     
