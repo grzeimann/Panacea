@@ -32,7 +32,7 @@ import config
 import glob
                       
 
-def imstat(image1, image2, Fiber1, Fiber2, outname, fbins=20, fmax=8.):
+def imstat(image1, image2, Fiber1, Fiber2, outname, fbins=50, fmax=8.):
     a,b = image1.shape
     images = [image1,image2]
     Fibers = [Fiber1,Fiber2]
