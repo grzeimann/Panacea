@@ -48,6 +48,14 @@ def parse_args(argv=None):
                         help='''Execute custom function''',
                         action="count", default=0)
 
+    parser.add_argument("-s","--save_sci_fibers", 
+                        help='''Save Science Fibers''',
+                        action="count", default=0)
+
+    parser.add_argument("-sa","--save_sci_amplifier", 
+                        help='''Save Science Amplifier''',
+                        action="count", default=0)
+
     parser.add_argument("-rs","--reduce_sci", 
                         help='''Reduce Science frames''',
                         action="count", default=0)

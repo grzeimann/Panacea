@@ -472,8 +472,12 @@ def reduce_science(args):
                 make_fiber_error(FeS, sci1.header, outname, args, amp)
                 make_cube_file(args, outname, ifucen, args.cube_scale, 
                                config.Amp_dict[amp][1])
-                sci1.save_fibers()
-                sci2.save_fibers()  
+                if args.save_sci_fibers:
+                    sci1.save_fibers()
+                    sci2.save_fibers()
+                if args.save_sci_amplifier:
+                    sci1.save()
+                    sci2.save()
                 if args.debug:
                     print("Finished working on Sci for %s, %s" %(spec, amp))                    
                 
