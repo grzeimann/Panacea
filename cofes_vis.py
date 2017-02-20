@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import aplpy
 import numpy as np
+import os
+from glob import glob
 
 def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     """
@@ -38,6 +40,36 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     fig.savefig(outfile_name)
     
     
+def cofes_4x4_plots(dir = "", outfile_name = 'CoFeS_plots.png'):
+    """
+    dir is a string containing the directory with the CoFeS files you wish
+    to plot. If its the local directory you can leave it as an empty string
     
+    outfile_name is a string with the output file name. This will be placed
+    in the dir directory
+    
+    the ifu order is
+    073 083 093 103
+    074 084 094 104
+    075 085 095 105
+    076 086 096 106
+
+    """
+    ifunums = np.array([['073', '083', '093', '103'],
+                        ['074', '084', '094', '104'],
+                        ['075', '085', '095', '105'],
+                        ['076', '086', '096', '106']])
+    original_dir = os.getcwd()
+    if dir != "":
+        os.chdir(dir)
+    cofes_files = glob("CoFeS*.fits")
+    prefix = cofes_files[0].split('_')[0]
+    filename_list = []
+    for i in ifunums.flatten():
+        filename_list.append(prefix + '_' + i + '_sci.fits')
+    filename_array = np.array(filename_list)
+    filename_array = filename_array.reshape(ifunums.shape[0], ifunums.shape[1])
+    cofes_plots(filename_array, outfile_name)
+    os.chdir(original_dir)
     
     
