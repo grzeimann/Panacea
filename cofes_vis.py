@@ -2,11 +2,16 @@ import matplotlib.pyplot as plt
 import aplpy
 import numpy as np
 
-def cofes_plots(filename_array, outfile_name):
+def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     """
     filename_array is an array-like object that contains the filenames
     of fits files to plot. The output plot will be the shape of the input array.
+    
     outfile is the output file name including the extension, such as out.fits.
+    
+    vmin and vmax set the stretch for the images. They are in units of counts;
+    Pixels with vmin and below counts are black. Pixels with vmax and above counts
+    are white. 
     """
     filename_array = np.array(filename_array)
     assert filename_array.ndim < 3, "filename_array has more than two dimensions. I can't plot that!"
@@ -23,7 +28,10 @@ def cofes_plots(filename_array, outfile_name):
         #robust against files not existing
         try:
             fitsplot = aplpy.FITSFigure(fitsfile,figure=fig,subplot=(rows,cols,i+1))
-            fitsplot.show_grayscale()
+            fitsplot.hide_axis_labels()
+            fitsplot.hide_tick_labels()
+            fitsplot.show_grayscale(vmin=vmin, vmax=vmax)
+            
         except IOError:
             print(fitsfile, "not found. Skipping...")
     
