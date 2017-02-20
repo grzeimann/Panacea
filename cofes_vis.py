@@ -1,29 +1,35 @@
-"""
+import matplotlib.pyplot as plt
+import aplpy
+import numpy as np
 
-Notes from playing with this in ipython. following this idea should work
-
-In [15]: import matplotlib.pyplot as mpl
-
-In [16]: import matplotlib
-
-In [17]: matplotlib.interactive(True)
-
-In [18]: fig = mpl.figure()
-
-In [19]: fig.add_subplot(4,3,1)
-Out[19]: <matplotlib.axes._subplots.AxesSubplot at 0x117291358>
-
-In [20]: f1 = aplpy.FITSFigure("CoFeS20170202T061644.8_073_sci.fits",figure=fig,subplot=(4,3,1))
-WARNING: No WCS information found in header - using pixel coordinates [aplpy.header]
-
-In [21]: f1.show_grayscale()
-INFO: Auto-setting vmin to -4.667e+01 [aplpy.core]
-INFO: Auto-setting vmax to  4.702e+02 [aplpy.core]
-
-In [22]: f2 = aplpy.FITSFigure("CoFeS20170202T061644.8_085_sci.fits",figure=fig,subplot=(4,3,2))
-WARNING: No WCS information found in header - using pixel coordinates [aplpy.header]
-
-In [23]: f2.show_grayscale()
-INFO: Auto-setting vmin to -6.725e+01 [aplpy.core]
-INFO: Auto-setting vmax to  6.930e+02 [aplpy.core]
-"""
+def cofes_plots(filename_array, outfile_name):
+    """
+    filename_array is an array-like object that contains the filenames
+    of fits files to plot. The output plot will be the shape of the input array.
+    outfile is the output file name including the extension, such as out.fits.
+    """
+    filename_array = np.array(filename_array)
+    assert filename_array.ndim < 3, "filename_array has more than two dimensions. I can't plot that!"
+    assert filename_array.size > 0, "filename_array has size zero. There's nothing there to plot!"
+    if filename_array.ndim == 1:
+        rows = 1
+        cols = filename_array.shape[0]
+    else:
+        rows = filename_array.shape[0]
+        cols = filename_array.shape[0]
+    
+    fig = plt.figure()
+    for i,fitsfile in enumerate(filename_array.flatten()):
+        #robust against files not existing
+        try:
+            fitsplot = aplpy.FITSFigure(fitsfile,figure=fig,subplot=(rows,cols,i+1))
+            fitsplot.show_grayscale()
+        except IOError:
+            print(fitsfile, "not found. Skipping...")
+    
+    fig.savefig(outfile_name)
+    
+    
+    
+    
+    
