@@ -3,6 +3,7 @@ import aplpy
 import numpy as np
 import os
 from glob import glob
+import argparse
 
 def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     """
@@ -40,7 +41,7 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     fig.savefig(outfile_name)
     
     
-def cofes_4x4_plots(dir = "", outfile_name = 'CoFeS_plots.png'):
+def cofes_4x4_plots(prefix="", outfile_name = 'CoFeS_plots.png', vmin=-15, vmax = 25):
     """
     dir is a string containing the directory with the CoFeS files you wish
     to plot. If its the local directory you can leave it as an empty string
@@ -59,17 +60,31 @@ def cofes_4x4_plots(dir = "", outfile_name = 'CoFeS_plots.png'):
                         ['074', '084', '094', '104'],
                         ['075', '085', '095', '105'],
                         ['076', '086', '096', '106']])
-    original_dir = os.getcwd()
-    if dir != "":
-        os.chdir(dir)
-    cofes_files = glob("CoFeS*.fits")
+    cofes_files = glob(prefix + "*.fits")
     prefix = cofes_files[0].split('_')[0]
     filename_list = []
     for i in ifunums.flatten():
         filename_list.append(prefix + '_' + i + '_sci.fits')
     filename_array = np.array(filename_list)
     filename_array = filename_array.reshape(ifunums.shape[0], ifunums.shape[1])
-    cofes_plots(filename_array, outfile_name)
-    os.chdir(original_dir)
+    cofes_plots(filename_array, outfile_name, vmin, vmax)
+    
+def main():
+    """
+    
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('prefix', type=str, help='Prefix for the CoFeS files you wish to plot. For example CoFeS20170202T061644.8')
+    parser.add_argument('--output', default=None, help='Output file name. By default this is the given prefix.png')
+    parser.add_argument('--vmin', default=-15, help='Sets the lower level of stretch for the output images.')
+    parser.add_argument('--vmax', default=25, help='Sets the upper level of stretch for the output images.')
+    args = parser.parse_args()
+    if args.output is None:
+        args.output = args.prefix + '.png'
+    #print(args.prefix, args.output, args.vmin, args.vmax)
+    cofes_4x4_plots(prefix = args.prefix, outfile_name = args.output, vmin = args.vmin, vmax = args.vmax)
     
     
+if __name__ == '__main__':
+    main()    
+ 
