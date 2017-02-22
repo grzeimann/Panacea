@@ -19,7 +19,7 @@ import numpy as np
 import time
 import sys
 
-plaw_coeff = np.array([0.0016,0.5,0.15,1.0])
+plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
 
 
 def str2bool(v):

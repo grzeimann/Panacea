@@ -142,6 +142,18 @@ def parse_args(argv=None):
                         help='''Don't make masterbias.''',
                         action="count", default=0)
 
+    parser.add_argument("-dcr","--dont_check_readnoise", 
+                        help='''Don't make masterbias.''',
+                        action="count", default=0)
+                        
+    parser.add_argument("-dcg","--dont_check_gain", 
+                        help='''Don't make masterbias.''',
+                        action="count", default=0)                        
+
+    parser.add_argument("-dcp","--dont_check_pixelflat", 
+                        help='''Don't make masterbias.''',
+                        action="count", default=0)
+
                           
     args = parser.parse_args(args=argv)
 
@@ -328,10 +340,11 @@ def make_pixelflats(args, amp, folder):
     for i,am in enumerate(itemgetter(*sel)(args.pxf_list)):
         masterflat[i,:,:] = am.image
     masterflat = biweight_location(masterflat, axis=(0,))
-    #masterflat = biweight_filter2d(masterflat, (201,1), (75,1))
-    #masterflat = biweight_filter2d(masterflat, (35,5), (7,1))    
+    masterflat = biweight_filter2d(masterflat, (261,1), (1,1))
     for i,am in enumerate(itemgetter(*sel)(args.pxf_list)):
-        pixflat[i,:,:] = np.divide(am.image, masterflat)
+        y = np.divide(am.image, masterflat)
+        ai = biweight_location(y, axis=(1,))
+        pixflat[i,:,:] = np.divide(y, ai[:,None])
     pixflat = biweight_location(pixflat, axis=(0,))
     
     a,b = pixflat.shape
@@ -396,9 +409,8 @@ def main():
             progress()
         progress.done()
         
-    
     # Get the dark jumps/structure and average counts
-    if not args.dont_check_dark:
+    if not (args.dont_check_dark or args.dont_check_bias):
         darkcounts, masterdark = {}, {}
         progress = ProgressBar(len(AMPS), 'Checking Darks for %s' %args.specid, 
                                fmt=ProgressBar.FULL)
@@ -410,42 +422,47 @@ def main():
         progress.done()
     
     # Get the readnoise for each amp
-    readnoise = {}
-    progress = ProgressBar(len(AMPS), 'Measuring Readnoise for %s' %args.specid, 
-                           fmt=ProgressBar.FULL)
-    for amp in AMPS:
-        readnoise[amp] = measure_readnoise(args, amp)
-        progress.current+=1
-        progress()
-    progress.done()
+    if not args.dont_check_readnoise:
+        readnoise = {}
+        progress = ProgressBar(len(AMPS), 'Measuring Readnoise for %s' %args.specid, 
+                               fmt=ProgressBar.FULL)
+        for amp in AMPS:
+            readnoise[amp] = measure_readnoise(args, amp)
+            progress.current+=1
+            progress()
+        progress.done()
     
     # Get the gain for each amp
-    gain = {}
-    progress = ProgressBar(len(AMPS), 'Measuring Gain for %s' %args.specid, 
-                           fmt=ProgressBar.FULL)
-    for amp in AMPS:
-        gain[amp] = measure_gain(args, amp, readnoise[amp])
-        progress.current+=1
-        progress()
-    progress.done()
+    if not args.dont_check_gain:
+        gain = {}
+        progress = ProgressBar(len(AMPS), 'Measuring Gain for %s' %args.specid, 
+                               fmt=ProgressBar.FULL)
+        for amp in AMPS:
+            gain[amp] = measure_gain(args, amp, readnoise[amp])
+            progress.current+=1
+            progress()
+        progress.done()
 
     # Get the pixel flat for each amp
-    masterflat, pixelflat= {}, {}
-    progress = ProgressBar(len(AMPS), 'Measuring pixel flat for %s' %args.specid, 
-                           fmt=ProgressBar.FULL)
-    for amp in AMPS:
-        masterflat[amp], pixelflat[amp] = make_pixelflats(args, amp, folder)
-        progress.current+=1
-        progress()
-    progress.done()
+    if not args.dont_check_pixelflat:
+        masterflat, pixelflat= {}, {}
+        progress = ProgressBar(len(AMPS), 'Measuring pixel flat for %s' %args.specid, 
+                               fmt=ProgressBar.FULL)
+        for amp in AMPS:
+            masterflat[amp], pixelflat[amp] = make_pixelflats(args, amp, folder)
+            progress.current+=1
+            progress()
+        progress.done()
     
     # Writing everything to a ".tex" file
-
-    filename = op.join(folder,'calibration.tex')
-    with open(filename,'w') as f:
-        CreateTex.writeHeader(f, args.specid)
-        write_to_TEX(f, args, overscan, gain, readnoise, darkcounts)
-        CreateTex.writeEnding(f)
+    if not (args.dont_check_bias or args.dont_check_dark 
+            or args.dont_check_readnoise or args.dont_check_gain
+            or args.dont_check_pixelflat):
+        filename = op.join(folder,'calibration.tex')
+        with open(filename,'w') as f:
+            CreateTex.writeHeader(f, args.specid)
+            write_to_TEX(f, args, overscan, gain, readnoise, darkcounts)
+            CreateTex.writeEnding(f)
         
 if __name__ == '__main__':
     main()  
