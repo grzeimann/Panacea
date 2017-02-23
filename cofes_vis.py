@@ -4,6 +4,7 @@ import numpy as np
 import os
 from glob import glob
 import argparse
+from collections import Counter
 
 def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     """
@@ -61,6 +62,14 @@ def cofes_4x4_plots(prefix="", outfile_name = 'CoFeS_plots.png', vmin=-15, vmax 
                         ['075', '085', '095', '105'],
                         ['076', '086', '096', '106']])
     cofes_files = glob(prefix + "*.fits")
+    assert len(cofes_files) > 0, "There are no fits files that begin with " + "'" + \
+                                prefix + "'" + ". Please fix your typo."
+    prefixes =  [i.split('_')[0] for i in cofes_files]
+    prefixes_dict = Counter(prefixes)
+    assert len(prefixes) == prefixes.count(prefixes[0]), "The prefix you specified, " + \
+                                "'" + prefix + "'" + ", is not unique. It matches to " + \
+                                "".join(i + " and " for i in prefixes_dict.keys()) + \
+                                ". Please enter a unique prefix."
     prefix = cofes_files[0].split('_')[0]
     filename_list = []
     for i in ifunums.flatten():
