@@ -171,9 +171,9 @@ def make_cube_file(args, filename, ifucen, scale, side):
         hdu.header['CDELT3'] = F[0].header['CDELT1']
         hdu.header['CRVAL3'] = F[0].header['CRVAL1']
         hdu.header['CRPIX3'] = F[0].header['CRPIX1']
-        hdu.writeto(outname, clobber=True)
+        hdu.writeto(outname, overwrite=True)
         hdu = fits.PrimaryHDU(np.array(zcol, dtype='float32'))
-        hdu.writeto(outname2, clobber=True)
+        hdu.writeto(outname2, overwrite=True)
     if args.instr.lower() == "virus":
         if side == "R":
             file2 =filename
@@ -217,9 +217,9 @@ def make_cube_file(args, filename, ifucen, scale, side):
         hdu.header['CDELT3'] = F1[0].header['CDELT1']
         hdu.header['CRVAL3'] = F1[0].header['CRVAL1']
         hdu.header['CRPIX3'] = F1[0].header['CRPIX1']
-        hdu.writeto(outname, clobber=True)
+        hdu.writeto(outname, overwrite=True)
         hdu = fits.PrimaryHDU(np.array(zcol, dtype='float32'))
-        hdu.writeto(outname2, clobber=True)
+        hdu.writeto(outname2, overwrite=True)
     
 def make_error_frame(image1, image2, mask1, mask2, header, outname):
     print("Making error image for %s" %op.basename(outname))
@@ -241,7 +241,7 @@ def make_error_frame(image1, image2, mask1, mask2, header, outname):
     hdu.header.remove('TRIMSEC')
     hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
     outname = op.join(op.dirname(outname), 'e.' + op.basename(outname))
-    hdu.writeto(outname, clobber=True)   
+    hdu.writeto(outname, overwrite=True)   
     
 def make_fiber_image(Fe, header, outname, args, amp):
     print("Making Fiberextract image for %s" %op.basename(outname))
@@ -254,7 +254,7 @@ def make_fiber_image(Fe, header, outname, args, amp):
     hdu.header['CDELT1'] = args.disp[amp]
     hdu.header['CD1_1'] = args.disp[amp]
     hdu.header['CRPIX1'] = 1
-    hdu.writeto(outname, clobber=True)    
+    hdu.writeto(outname, overwrite=True)    
 
 def make_fiber_error(Fe, header, outname, args, amp):
     print("Making Fiberextract image for %s" %op.basename(outname))
@@ -271,7 +271,7 @@ def make_fiber_error(Fe, header, outname, args, amp):
     hdu.header['CD1_1'] = args.disp[amp]
     hdu.header['CRPIX1'] = 1
     outname = op.join(op.dirname(outname), 'e.' + op.basename(outname))
-    hdu.writeto(outname, clobber=True)  
+    hdu.writeto(outname, overwrite=True)  
     
 def make_spectrograph_image(image1, image2, header, outname):
     print("Making spectrograph image for %s" %op.basename(outname))
@@ -283,7 +283,7 @@ def make_spectrograph_image(image1, image2, header, outname):
     hdu.header.remove('BIASSEC')
     hdu.header.remove('TRIMSEC')
     hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,2*a)
-    hdu.writeto(outname, clobber=True)    
+    hdu.writeto(outname, overwrite=True)    
 
 def make_amplifier_image(image, header, outname):
     print("Making amplifier image for %s" %op.basename(outname))
@@ -292,7 +292,7 @@ def make_amplifier_image(image, header, outname):
     hdu.header.remove('BIASSEC')
     hdu.header.remove('TRIMSEC')
     hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,b,1,a)
-    hdu.writeto(outname, clobber=True) 
+    hdu.writeto(outname, overwrite=True) 
             
 def reduce_science(args):
     for spec in args.specid:
@@ -611,7 +611,7 @@ def make_library_image(amp_image, header, outname, fits_list, for_bias=True):
     hdu.header.remove('BIASSEC')
     hdu.header.remove('TRIMSEC')
     hdu.header['DATASEC'] = '[%i:%i,%i:%i]' %(1,trimsec[1]-trimsec[0],1,a)
-    hdu.writeto(outname, clobber=True)  
+    hdu.writeto(outname, overwrite=True)  
     
 def make_masterbias(args):
     for spec in args.specid:
