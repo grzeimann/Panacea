@@ -297,7 +297,6 @@ class Amplifier:
         bias = re.split('[\[ \] \: \,]', F[0].header['BIASSEC'])[1:-1]
         self.biassec = [int(t)-((i+1)%2) for i,t in enumerate(bias)]        
         self.fibers = []
-        self.image = None
         self.type = F[0].header['IMAGETYP'].replace(' ', '')
         self.specid = '%03d' %F[0].header['SPECID']
         self.ifuid = F[0].header['IFUID'].replace(' ', '')
@@ -307,6 +306,7 @@ class Amplifier:
                              int(datetemp[2]))
         self.image = np.array(F[0].data, dtype=float)
         self.image_prepped = False
+        self.error = self.rdnoise / self.gain * np.ones(self.image.shape, dtype=float)
         self.exptime = F[0].header['EXPTIME']
    
     def save(self):
@@ -491,6 +491,7 @@ class Amplifier:
                                             %(self.specid, self.amp)))[0].data, 
                               dtype=float)
             self.image[:] = self.image - self.dark_mult * darkimage
+            #self.error[:] = np.sqrt(self.error**2 + self.gain*self.dark_mult*darkimage)
             
             
     def subtract_bias(self):
@@ -500,10 +501,16 @@ class Amplifier:
                                             %(self.specid, self.amp)))[0].data, 
                               dtype=float)
             self.image[:] = self.image - self.bias_mult * biasimage
+            #self.error[:] = np.sqrt(self.error**2 + self.gain*self.bias_mult*biasimage)
             
             
     def multiply_gain(self):
         self.image *= self.gain
+        self.error *= self.gain
+        
+        
+    def calculate_photonnoise(self):
+        self.error[:] = np.sqrt(self.error**2 + self.image)
         
         
     def divide_pixelflat(self):
@@ -515,6 +522,9 @@ class Amplifier:
                                   dtype=float)
             self.image[:] = np.where(pixelflat != 0, self.image / pixelflat, 
                                      0.0)
+            self.error[:] = np.where(pixelflat != 0, self.error / pixelflat, 
+                                     0.0)
+             
                                      
                                      
     def prepare_image(self):
@@ -526,9 +536,10 @@ class Amplifier:
         '''
         self.subtract_overscan()
         self.trim_image()
+        self.multiply_gain()
+        self.calculate_photonnoise()
         self.subtract_bias()
         self.subtract_dark()
-        self.multiply_gain()
         self.divide_pixelflat()
         self.orient_image()
         self.image_prepped = True

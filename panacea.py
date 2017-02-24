@@ -410,6 +410,8 @@ def reduce_science(args):
                                                       config.Amp_dict[amp][1]))
                 make_spectrograph_image(sci1.clean_image, sci2.clean_image, 
                                         sci1.header, outname)
+                make_spectrograph_image(sci1.error, sci2.error, 
+                                        sci1.header, op.join(op.dirname(outname), 'ee.'+op.basename(outname)))                   
                 make_error_frame(sci1.clean_image, sci2.clean_image, sci1.mask,
                                  sci2.mask, sci1.header, outname)
                 outname = op.join(args.sci_df['Output'][ind],
