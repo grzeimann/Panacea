@@ -1126,7 +1126,7 @@ class Amplifier:
                                   readnoise=self.rdnoise, 
                                   sigclip=25.0, sigfrac=0.001, objlim=0.001,
                                   satlevel=-1.0)
-        cc.run(maxiter=4)
+        cc.run(maxiter=2)
         c = np.where(cc.mask == True)
         self.mask = np.zeros(self.image.shape)
         for x, y in zip(c[0], c[1]):
