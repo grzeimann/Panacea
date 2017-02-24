@@ -306,7 +306,7 @@ class Amplifier:
                              int(datetemp[2]))
         self.image = np.array(F[0].data, dtype=float)
         self.image_prepped = False
-        self.error = self.rdnoise / self.gain * np.ones(self.image.shape, dtype=float)
+        self.error = self.rdnoise / self.gain * np.ones((self.N,self.D), dtype=float)
         self.exptime = F[0].header['EXPTIME']
    
     def save(self):
