@@ -892,9 +892,6 @@ class Amplifier:
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly()
-        if cols is None:
-            a,b = self.image.shape
-            cols = np.arange(b)
         
         norm = get_norm_nonparametric_fast(self.image, self.fibers, 
                                            cols=cols, mask=self.mask)
