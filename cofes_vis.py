@@ -1,14 +1,12 @@
 import time
-t1=time.time()
 import matplotlib.pyplot as plt
 from astropy.io import fits
 import numpy as np
 from glob import glob
 import argparse
 from collections import Counter
-t2=time.time()
-print("Time taken to load modules: %0.2f" %(t2-t1))
 cmap = plt.get_cmap('Greys')
+
 def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     """
     filename_array is an array-like object that contains the filenames
@@ -22,16 +20,17 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     """
     t1=time.time()
     filename_array = np.array(filename_array)
-    assert filename_array.ndim < 3, "filename_array has more than two dimensions. I can't plot that!"
-    assert filename_array.size > 0, "filename_array has size zero. There's nothing there to plot!"
+    #assert filename_array.ndim < 3, "filename_array has more than two dimensions. I can't plot that!"
+    #assert filename_array.size > 0, "filename_array has size zero. There's nothing there to plot!"
     if filename_array.ndim == 1:
         rows = 1
         cols = filename_array.shape[0]
     else:
         rows = filename_array.shape[0]
-        cols = filename_array.shape[0]
+        cols = filename_array.shape[1]
     
-
+    t2=time.time()
+    print("Time taken to assert stuff: %0.2f" %(t2-t1))
     fig = plt.figure()
     t2=time.time()
     print("Time taken to get ready to plot: %0.2f" %(t2-t1))
@@ -88,23 +87,18 @@ def cofes_4x4_plots(prefix="", outfile_name = 'CoFeS_plots.png', vmin=-15, vmax 
         filename_list.append(prefix + '_' + i + '_sci.fits')
     filename_array = np.array(filename_list)
     filename_array = filename_array.reshape(ifunums.shape[0], ifunums.shape[1])
-    t2=time.time()
-    print("Time taken to get call ready: %0.2f" %(t2-t1))
     cofes_plots(filename_array, outfile_name, vmin, vmax)
     
 def main():
     """
     
     """
-    t1=time.time()
     parser = argparse.ArgumentParser()
     parser.add_argument('prefix', type=str, help='Prefix for the CoFeS files you wish to plot. For example CoFeS20170202T061644.8')
     parser.add_argument('--output', default=None, help='Output file name. By default this is the given prefix.png')
     parser.add_argument('--vmin', default=-15, help='Sets the lower level of stretch for the output images.')
     parser.add_argument('--vmax', default=25, help='Sets the upper level of stretch for the output images.')
     args = parser.parse_args()
-    t2=time.time()
-    print("Time taken to get args: %0.2f" %(t2-t1))
 
     if args.output is None:
         args.output = args.prefix + '.png'
