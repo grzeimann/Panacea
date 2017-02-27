@@ -1,10 +1,13 @@
+import time
+t1=time.time()
 import matplotlib.pyplot as plt
 from astropy.io import fits
 import numpy as np
 from glob import glob
 import argparse
 from collections import Counter
-import time
+t2=time.time()
+print("Time taken to load: %0.2f" %(t2-t1))
 
 cmap = plt.get_cmap('Greys')
 def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
@@ -32,7 +35,6 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     fig = plt.figure()
     for i,fitsfile in enumerate(filename_array.flatten()):
         #robust against files not existing
-        t1=time.time()
         try:
             data = fits.open(fitsfile)[0].data
             ax = plt.subplot(rows,cols,i+1)
@@ -43,8 +45,7 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
             
         except IOError:
             print(fitsfile, "not found. Skipping...")
-        t2=time.time()
-        print("Time taken to make one subplot: %0.2f" %(t2-t1))
+        
     fig.savefig(outfile_name)
     
     
