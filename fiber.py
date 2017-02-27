@@ -99,6 +99,7 @@ class Fiber:
         self.fibmodel_polyvals = None
         self.trace_polyvals = None
         self.spectrum = None
+        self.mask_spectrum = None
         self.wave_polyvals = None
         self.sky_spectrum = None
         self.default_trace_y = None
@@ -164,6 +165,7 @@ class Fiber:
         self.trace_x = None
         self.trace_y = None
         self.wavelength = None
+        self.mask_spectrum = None
         self.fn = op.join(self.path, 'fiber_%03d_%s_%s_%s_%s.pkl' 
                                 % (self.fibnum, specid, ifuslot, ifuid, amp))
         if not op.exists(self.path):

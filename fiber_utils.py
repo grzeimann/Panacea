@@ -926,7 +926,7 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, PL, fib=0,
     return sol
 
 
-def get_norm_nonparametric_fast(image, Fibers, mask=None):
+def get_norm_nonparametric_fast(image, Fibers, cols, mask=None):
     bins=len(Fibers[0].binx)
     a,b = image.shape
     if mask is None:
@@ -938,7 +938,7 @@ def get_norm_nonparametric_fast(image, Fibers, mask=None):
     Pl = np.zeros((len(y),))
     init_model = np.zeros((len(y),len(Fibers)))
     norm = np.zeros((len(Fibers),b))
-    for col in xrange(b):
+    for col in cols:
         for i,fiber in enumerate(Fibers):
             ix = y-fiber.trace[col]
             for j in xrange(bins):

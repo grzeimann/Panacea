@@ -46,7 +46,7 @@ class Amplifier:
                  interactive=False, check_wave=False,filt_size_ind=21, 
                  filt_size_agg=51, filt_size_final=51, filt_size_sky=51,
                  col_frac = 0.47, use_trace_ref=False, fiber_date=None,
-                 cont_smooth=25):
+                 cont_smooth=25, make_residual=True, do_cont_sub=True):
         ''' 
         Initialize class
         ----------------
@@ -279,6 +279,10 @@ class Amplifier:
         
         # Continuum subtraction
         self.cont_smooth = cont_smooth
+        
+        # Image Options
+        self.make_residual = make_residual
+        self.do_cont_sub = do_cont_sub
         
         # Initialized variables
         self.N, self.D = F[0].data.shape
@@ -869,7 +873,7 @@ class Amplifier:
             check_fiber_profile(self.image, self.fibers, outfile)
 
 
-    def fiberextract(self):
+    def fiberextract(self, cols=None):
         '''
         This function gets the spectrum for each fiber.  It checks 
         functional dependencies first: prepare_image(), get_trace(), and
@@ -885,8 +889,13 @@ class Amplifier:
         else:
             for fiber in self.fibers:
                 fiber.eval_fibmodel_poly()
+        if cols is None:
+            a,b = self.image.shape
+            cols = np.arange(b)
+        
         norm = get_norm_nonparametric_fast(self.image, self.fibers, 
-                                           mask=self.mask)
+                                           cols=cols, mask=self.mask)
+                                           
         for i, fiber in enumerate(self.fibers):
             fiber.spectrum = norm[i,:]    
     
@@ -1060,7 +1069,7 @@ class Amplifier:
             self.load_cal_property(['fiber_to_fiber'])   
             
         
-    def sky_subtraction(self):
+    def sky_subtraction(self, cols=None):
         '''
         This function gets the master sky spectrum and 
         evaluates the sky_spectrum for each fiber. It then builds a sky image
@@ -1105,17 +1114,19 @@ class Amplifier:
         self.skyframe = get_model_image(self.image, self.fibers, 
                                         'sky_spectrum', debug=False)
         self.clean_image = self.image - self.skyframe
-        for fib, fiber in enumerate(self.fibers):
-            fiber.continuum = biweight_filter(fiber.spectrum 
-                                              -fiber.sky_spectrum, 
-                                              self.cont_smooth, 
-                                              ignore_central=7)
-        self.cont_frame = get_model_image(self.image, self.fibers, 
-                                        'continuum', debug=False)
-        self.continuum_sub = self.image - self.skyframe - self.cont_frame
-        self.model = get_model_image(self.image, self.fibers, 'spectrum', 
-                                     debug=False)
-        self.residual = self.image - self.model
+        if self.do_cont_sub:
+            for fib, fiber in enumerate(self.fibers):
+                fiber.continuum = biweight_filter(fiber.spectrum 
+                                                  -fiber.sky_spectrum, 
+                                                  self.cont_smooth, 
+                                                  ignore_central=7)
+            self.cont_frame = get_model_image(self.image, self.fibers, 
+                                            'continuum', debug=False)
+            self.continuum_sub = self.image - self.skyframe - self.cont_frame
+        if self.make_residual:
+            self.model = get_model_image(self.image, self.fibers, 'spectrum', 
+                                         debug=False)
+            self.residual = self.image - self.model
         
         
     def clean_cosmics(self):
