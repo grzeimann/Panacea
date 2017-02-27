@@ -31,8 +31,10 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
         rows = filename_array.shape[0]
         cols = filename_array.shape[0]
     
-    
+
     fig = plt.figure()
+    t2=time.time()
+    print("Time taken to get ready to plot: %0.2f" %(t2-t1))
     for i,fitsfile in enumerate(filename_array.flatten()):
         #robust against files not existing
         try:
@@ -48,7 +50,7 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
         
     fig.savefig(outfile_name)
     t2=time.time()
-    print("Time taken to make plot: %0.2f" %(t2-t1))
+    print("Time taken to finish plot: %0.2f" %(t2-t1))
     
     
 def cofes_4x4_plots(prefix="", outfile_name = 'CoFeS_plots.png', vmin=-15, vmax = 25):
