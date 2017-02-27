@@ -140,13 +140,13 @@ def make_cube_file(args, filename, ifucen, scale, side):
                     sel = w > 1e-3
                     zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
         hdu = fits.PrimaryHDU(np.array(zgrid, dtype='float32'))
-        zcol = biweight_location(zgrid[int(b/3):int(2*b/3),:,:],axis=(0,))
+        zcol = biweight_location(zgrid[:,:,:],axis=(0,))
         hdu.header['CDELT3'] = F1[0].header['CDELT1']
         hdu.header['CRVAL3'] = F1[0].header['CRVAL1']
         hdu.header['CRPIX3'] = F1[0].header['CRPIX1']
         write_to_fits(hdu, outname)
         hdu = fits.PrimaryHDU(np.array(zcol, dtype='float32'))
-        write_to_fits(hdu, outname)
+        write_to_fits(hdu, outname2)
         
 def make_fiber_image(Fe, header, outname, args, amp):
     print("Making Fiberextract image for %s" %op.basename(outname))
