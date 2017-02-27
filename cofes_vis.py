@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
-import aplpy
+from astropy.io import fits
 import numpy as np
-import os
 from glob import glob
 import argparse
 from collections import Counter
 
+cmap = plt.get_cmap('Greys')
 def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     """
     filename_array is an array-like object that contains the filenames
@@ -31,10 +31,12 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     for i,fitsfile in enumerate(filename_array.flatten()):
         #robust against files not existing
         try:
-            fitsplot = aplpy.FITSFigure(fitsfile,figure=fig,subplot=(rows,cols,i+1))
-            fitsplot.hide_axis_labels()
-            fitsplot.hide_tick_labels()
-            fitsplot.show_grayscale(vmin=vmin, vmax=vmax)
+            data = fits.open(fitsfile)[0].data
+            ax = plt.subplot(rows,cols,i+1)
+            ax.imshow(data,vmin=vmin,vmax=vmax,interpolation='nearest',origin='lower',cmap=cmap)
+            ax.set_xticks([])
+            ax.set_yticks([])
+
             
         except IOError:
             print(fitsfile, "not found. Skipping...")
