@@ -1,11 +1,13 @@
+import time
 import matplotlib
 matplotlib.use('agg')
-import aplpy
 import matplotlib.pyplot as plt
+from astropy.io import fits
 import numpy as np
 from glob import glob
 import argparse
 from collections import Counter
+cmap = plt.get_cmap('Greys')
 
 def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     """
@@ -32,10 +34,12 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     for i,fitsfile in enumerate(filename_array.flatten()):
         #robust against files not existing
         try:
-            fitsplot = aplpy.FITSFigure(fitsfile,figure=fig,subplot=(rows,cols,i+1))
-            fitsplot.hide_axis_labels()
-            fitsplot.hide_tick_labels()
-            fitsplot.show_grayscale(vmin=vmin, vmax=vmax)
+            data = fits.open(fitsfile)[0].data
+            ax = plt.subplot(rows,cols,i+1)
+            ax.imshow(data,vmin=vmin,vmax=vmax,interpolation='nearest',origin='lower',cmap=cmap)
+            ax.set_xticks([])
+            ax.set_yticks([])
+
             
         except IOError:
             print(fitsfile, "not found. Skipping...")
@@ -59,6 +63,7 @@ def cofes_4x4_plots(prefix="", outfile_name = 'CoFeS_plots.png', vmin=-15, vmax 
     076 086 096 106
 
     """
+    t1=time.time()
     ifunums = np.array([['073', '083', '093', '103'],
                         ['074', '084', '094', '104'],
                         ['075', '085', '095', '105'],
