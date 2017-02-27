@@ -136,8 +136,8 @@ def make_cube_file(args, filename, ifucen, scale, side):
                 for j in xrange(len(y)):
                     d = np.sqrt((ifucen[:,1] - xgrid[j,i])**2 + 
                                 (ifucen[:,2] - ygrid[j,i])**2)
-                    w = np.exp(-1./2.*(d/1.)**2)
-                    sel = w > 1e-3
+                    w = np.exp(-1./2.*(d/(2./2.35*2.))**2)
+                    sel = w > 1e-4
                     zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
         hdu = fits.PrimaryHDU(np.array(zgrid, dtype='float32'))
         zcol = biweight_location(zgrid[:,:,:],axis=(0,))
@@ -218,19 +218,14 @@ def reduce_science(args):
                                  make_residual=False, do_cont_sub=False,
                                  make_skyframe=False)
                 sci1.load_all_cal()
-                wavelim=[4500,4550]
+                wavelim=[4500,4600]
                 xlim = np.interp([wavelim[0],wavelim[1]],
                                  np.linspace(args.wvl_dict[amp][0],
                                              args.wvl_dict[amp][1], sci1.D),
                                  np.arange(sci1.D))
                 cols=np.arange(int(xlim[0])-10,int(xlim[1])+10)  
-                if args.debug:
-                    t1 = time.time()
                 sci1.fiberextract(cols=cols)
                 sci1.sky_subtraction()
-                if args.debug:
-                    t2 = time.time()
-                    print("Total Time taken: %0.2f s" %(t2-t1))
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, 
                                                       config.Amp_dict[amp][0]),
                                  args.sci_df['Output'][ind],
