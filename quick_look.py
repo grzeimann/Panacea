@@ -25,6 +25,13 @@ from utils import biweight_location
 import config
 import glob
 
+def write_to_fits(hdu, outname):
+    try:
+        hdu.writeto(outname, overwrite=True)
+    except TypeError:
+        hdu.writeto(outname, clobber=True)
+
+
 def recreate_fiberextract(instr1, instr2, wavelim, disp):
     col = int(instr1.D / 2)
     intv = [1, 1+instr1.D]
@@ -90,9 +97,10 @@ def make_cube_file(args, filename, ifucen, scale, side):
         hdu.header['CDELT3'] = F[0].header['CDELT1']
         hdu.header['CRVAL3'] = F[0].header['CRVAL1']
         hdu.header['CRPIX3'] = F[0].header['CRPIX1']
-        hdu.writeto(outname, overwrite=True)
+        write_to_fits(hdu, outname)
         hdu = fits.PrimaryHDU(np.array(zcol, dtype='float32'))
-        hdu.writeto(outname2, overwrite=True)
+        write_to_fits(hdu, outname2)
+
     if args.instr.lower() == "virus":
         if side == "R":
             file2 =filename
@@ -136,9 +144,9 @@ def make_cube_file(args, filename, ifucen, scale, side):
         hdu.header['CDELT3'] = F1[0].header['CDELT1']
         hdu.header['CRVAL3'] = F1[0].header['CRVAL1']
         hdu.header['CRPIX3'] = F1[0].header['CRPIX1']
-        hdu.writeto(outname, overwrite=True)
+        write_to_fits(hdu, outname)
         hdu = fits.PrimaryHDU(np.array(zcol, dtype='float32'))
-        hdu.writeto(outname2, overwrite=True)
+        write_to_fits(hdu, outname)
         
 def make_fiber_image(Fe, header, outname, args, amp):
     print("Making Fiberextract image for %s" %op.basename(outname))
@@ -151,7 +159,7 @@ def make_fiber_image(Fe, header, outname, args, amp):
     hdu.header['CDELT1'] = args.disp[amp]
     hdu.header['CD1_1'] = args.disp[amp]
     hdu.header['CRPIX1'] = 1
-    hdu.writeto(outname, overwrite=True)    
+    write_to_fits(hdu, outname)
 
 
 def reduce_science(args):
