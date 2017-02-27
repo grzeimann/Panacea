@@ -20,6 +20,7 @@ import os
 import sys
 import re
 import glob
+import time
 import cPickle as pickle
 from fiber_utils import get_trace_from_image, fit_fibermodel_nonparametric
 from fiber_utils import get_norm_nonparametric_fast, check_fiber_trace
@@ -46,7 +47,8 @@ class Amplifier:
                  interactive=False, check_wave=False,filt_size_ind=21, 
                  filt_size_agg=51, filt_size_final=51, filt_size_sky=51,
                  col_frac = 0.47, use_trace_ref=False, fiber_date=None,
-                 cont_smooth=25, make_residual=True, do_cont_sub=True):
+                 cont_smooth=25, make_residual=True, do_cont_sub=True,
+                 make_skyframe=True):
         ''' 
         Initialize class
         ----------------
@@ -283,6 +285,7 @@ class Amplifier:
         # Image Options
         self.make_residual = make_residual
         self.do_cont_sub = do_cont_sub
+        self.make_skyframe = make_skyframe
         
         # Initialized variables
         self.N, self.D = F[0].data.shape
@@ -1110,10 +1113,10 @@ class Amplifier:
                 fiber.sky_spectrum = (fiber.fiber_to_fiber 
                                  * np.interp(fiber.wavelength, self.masterwave, 
                                              self.mastersky))
-         
-        self.skyframe = get_model_image(self.image, self.fibers, 
-                                        'sky_spectrum', debug=False)
-        self.clean_image = self.image - self.skyframe
+        if self.make_skyframe: 
+            self.skyframe = get_model_image(self.image, self.fibers, 
+                                            'sky_spectrum', debug=False)
+            self.clean_image = self.image - self.skyframe
         if self.do_cont_sub:
             for fib, fiber in enumerate(self.fibers):
                 fiber.continuum = biweight_filter(fiber.spectrum 

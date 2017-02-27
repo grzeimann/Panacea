@@ -201,7 +201,7 @@ def reduce_science(args):
                               %(spec, amp, args.sci_df['Files'][ind]))
                         print("If you want to produce cals include "
                               "--reduce_twi")
-                cols=np.arange(450,650)  
+                              
                 sci1 = Amplifier(args.sci_df['Files'][ind],
                                  args.sci_df['Output'][ind],
                                  calpath=args.twi_dir, skypath=args.sky_dir,
@@ -215,10 +215,22 @@ def reduce_science(args):
                                  calculate_shift=args.adjust_trace,
                                  fiber_date=args.fiber_date,
                                  cont_smooth=args.cont_smooth,
-                                 make_residual=False, do_cont_sub=False)
+                                 make_residual=False, do_cont_sub=False,
+                                 make_skyframe=False)
                 sci1.load_all_cal()
+                wavelim=[4500,4550]
+                xlim = np.interp([wavelim[0],wavelim[1]],
+                                 np.linspace(args.wvl_dict[amp][0],
+                                             args.wvl_dict[amp][1], sci1.D),
+                                 np.arange(sci1.D))
+                cols=np.arange(int(xlim[0])-10,int(xlim[1])+10)  
+                if args.debug:
+                    t1 = time.time()
                 sci1.fiberextract(cols=cols)
                 sci1.sky_subtraction()
+                if args.debug:
+                    t2 = time.time()
+                    print("Total Time taken: %0.2f s" %(t2-t1))
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, 
                                                       config.Amp_dict[amp][0]),
                                  args.sci_df['Output'][ind],
@@ -233,12 +245,13 @@ def reduce_science(args):
                                  calculate_shift=args.adjust_trace,
                                  fiber_date=args.fiber_date,
                                  cont_smooth=args.cont_smooth,
-                                 make_residual=False, do_cont_sub=False)
+                                 make_residual=False, do_cont_sub=False,
+                                 make_skyframe=False)
                 sci2.load_all_cal()
-                sci2.fiberextract(cols=cols)
+                sci2.fiberextract(cols=cols)                    
                 sci2.sky_subtraction()
                 Fe, FeS = recreate_fiberextract(sci1, sci2, 
-                                                wavelim=[4500,4700], 
+                                                wavelim=wavelim, 
                                                 disp=args.disp[amp])
                 outname = op.join(args.sci_df['Output'][ind],
                                   'FeS%s_%s_sci_%s.fits' %(
@@ -264,7 +277,7 @@ def main():
     if args.reduce_sci:
         reduce_science(args)                                        
     if args.debug:
-        t2=time.time()
+        t2 = time.time()
         print("Total Time taken: %0.2f s" %(t2-t1))
     
 
