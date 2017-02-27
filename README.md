@@ -7,6 +7,7 @@ An IFU reduction script specific to VIRUS and LRS2 on the Hobby Eberly Telescope
 
 * Greg Zeimann, UT Austin
 * Karl Gebhardt, UT Austin
+* Alex Hagen, Penn State
 
 #### NOTE
 * COPYRIGHTS from astropy, free software foundation were used
