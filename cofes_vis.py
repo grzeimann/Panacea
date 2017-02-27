@@ -20,7 +20,6 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     Pixels with vmin and below counts are black. Pixels with vmax and above counts
     are white. 
     """
-    t1=time.time()
     filename_array = np.array(filename_array)
     assert filename_array.ndim < 3, "filename_array has more than two dimensions. I can't plot that!"
     assert filename_array.size > 0, "filename_array has size zero. There's nothing there to plot!"
@@ -32,8 +31,6 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
         cols = filename_array.shape[1]
     
     fig = plt.figure()
-    t2=time.time()
-    print("Time taken to get ready to plot: %0.2f" %(t2-t1))
     for i,fitsfile in enumerate(filename_array.flatten()):
         #robust against files not existing
         try:
@@ -48,8 +45,7 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
             print(fitsfile, "not found. Skipping...")
         
     fig.savefig(outfile_name)
-    t2=time.time()
-    print("Time taken to finish plot: %0.2f" %(t2-t1))
+
     
     
 def cofes_4x4_plots(prefix="", outfile_name = 'CoFeS_plots.png', vmin=-15, vmax = 25):
