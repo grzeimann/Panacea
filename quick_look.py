@@ -14,18 +14,13 @@ from __future__ import (division, print_function, absolute_import,
 import matplotlib
 matplotlib.use('agg')
 import time
-import re
 
 import numpy as np
-import matplotlib.pyplot as plt
 import os.path as op
 from astropy.io import fits
-from pyhetdex.cure.distortion import Distortion
 
 from args import parse_args
 from amplifier import Amplifier
-from fiber_utils import get_model_image
-from utils import matrixCheby2D_7, biweight_filter, biweight_midvariance
 from utils import biweight_location
 import config
 import glob
@@ -198,7 +193,7 @@ def reduce_science(args):
                               %(spec, amp, args.sci_df['Files'][ind]))
                         print("If you want to produce cals include "
                               "--reduce_twi")
-                  
+                cols=np.arange(450,650)  
                 sci1 = Amplifier(args.sci_df['Files'][ind],
                                  args.sci_df['Output'][ind],
                                  calpath=args.twi_dir, skypath=args.sky_dir,
@@ -214,6 +209,7 @@ def reduce_science(args):
                                  cont_smooth=args.cont_smooth,
                                  make_residual=False, do_cont_sub=False)
                 sci1.load_all_cal()
+                sci1.fiberextract(cols=cols)
                 sci1.sky_subtraction()
                 sci2 = Amplifier(args.sci_df['Files'][ind].replace(amp, 
                                                       config.Amp_dict[amp][0]),
@@ -231,11 +227,10 @@ def reduce_science(args):
                                  cont_smooth=args.cont_smooth,
                                  make_residual=False, do_cont_sub=False)
                 sci2.load_all_cal()
-                cols=np.arange()
                 sci2.fiberextract(cols=cols)
                 sci2.sky_subtraction()
                 Fe, FeS = recreate_fiberextract(sci1, sci2, 
-                                                wavelim=[4500,5000], 
+                                                wavelim=[4500,4700], 
                                                 disp=args.disp[amp])
                 outname = op.join(args.sci_df['Output'][ind],
                                   'FeS%s_%s_sci_%s.fits' %(
