@@ -209,7 +209,7 @@ def make_cube_file(args, filename, ifucen, scale, side):
                 for j in xrange(len(y)):
                     d = np.sqrt((ifucen[:,1] - xgrid[j,i])**2 + 
                                 (ifucen[:,2] - ygrid[j,i])**2)
-                    w = np.exp(-1./2.*(d/1.)**2)
+                    w = np.exp(-1./2.*(d/(2./2.35*2.))**2)
                     sel = w > 1e-3
                     zgrid[k,j,i] = np.sum(data[sel,k]*w[sel])/np.sum(w[sel])
         hdu = fits.PrimaryHDU(np.array(zgrid, dtype='float32'))
