@@ -1,4 +1,6 @@
 import time
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from astropy.io import fits
 import numpy as np
@@ -20,8 +22,8 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     """
     t1=time.time()
     filename_array = np.array(filename_array)
-    #assert filename_array.ndim < 3, "filename_array has more than two dimensions. I can't plot that!"
-    #assert filename_array.size > 0, "filename_array has size zero. There's nothing there to plot!"
+    assert filename_array.ndim < 3, "filename_array has more than two dimensions. I can't plot that!"
+    assert filename_array.size > 0, "filename_array has size zero. There's nothing there to plot!"
     if filename_array.ndim == 1:
         rows = 1
         cols = filename_array.shape[0]
@@ -29,8 +31,6 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
         rows = filename_array.shape[0]
         cols = filename_array.shape[1]
     
-    t2=time.time()
-    print("Time taken to assert stuff: %0.2f" %(t2-t1))
     fig = plt.figure()
     t2=time.time()
     print("Time taken to get ready to plot: %0.2f" %(t2-t1))
