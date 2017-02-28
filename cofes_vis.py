@@ -8,6 +8,7 @@ from glob import glob
 import argparse
 from collections import Counter
 cmap = plt.get_cmap('Greys')
+import matplotlib.gridspec as gridspec
 
 def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
     """
@@ -31,11 +32,13 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
         cols = filename_array.shape[1]
     
     fig = plt.figure(figsize=(12,12))
+    gs1 = gridspec.GridSpec(rows, cols)
+    gs1.update(wspace=0.025, hspace=0.025) # set the spacing between axes. 
     for i,fitsfile in enumerate(filename_array.flatten()):
         #robust against files not existing
         try:
             data = fits.open(fitsfile)[0].data
-            ax = plt.subplot(rows,cols,i+1)
+            ax = plt.subplot(gs1[i])
             ax.imshow(data,vmin=vmin,vmax=vmax,interpolation='nearest',origin='lower',cmap=cmap)
             ax.set_xticks([])
             ax.set_yticks([])
