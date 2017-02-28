@@ -92,8 +92,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('prefix', type=str, help='Prefix for the CoFeS files you wish to plot. For example CoFeS20170202T061644.8')
     parser.add_argument('--output', default=None, help='Output file name. By default this is the given prefix.png')
-    parser.add_argument('--vmin', default=-15, help='Sets the lower level of stretch for the output images.')
-    parser.add_argument('--vmax', default=25, help='Sets the upper level of stretch for the output images.')
+    parser.add_argument('--vmin', type=float, default=-15, help='Sets the lower level of stretch for the output images.')
+    parser.add_argument('--vmax', type=float, default=25, help='Sets the upper level of stretch for the output images.')
     args = parser.parse_args()
 
     if args.output is None:

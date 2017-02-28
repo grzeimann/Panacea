@@ -589,16 +589,16 @@ def make_library_image(amp_image, header, outname, fits_list, for_bias=True):
         overscan.append(biweight_location(F[0].data[biassec[2]:biassec[3],
                                                     biassec[0]:biassec[1]]))
         del F[0].data
-    for i in np.arange(trimsec[0],trimsec[1]):
-        A = []                
-        for j,hdu in enumerate(fits_list):
-            if for_bias:
-                A.append(biweight_filter(hdu[0].data[:,i], 21) - overscan[j])
-            else:
-                A.append(hdu[0].data[:,i] - overscan[j])
-        amp_image[:,i] = biweight_location(A, axis=(0,))
-        good = np.isfinite(amp_image[:,i])
-        amp_image[:,i] = np.interp(np.arange(a), np.arange(a)[good], 
+    A = []                
+    for j,hdu in enumerate(fits_list):
+        if for_bias:
+            A.append(biweight_filter2d(hdu[0].data[:,i], (25,5),(5,1)) 
+            - overscan[j])
+        else:
+            A.append(hdu[0].data - overscan[j])
+    amp_image[:,i] = biweight_location(A, axis=(0,))
+    good = np.isfinite(amp_image[:,i])
+    amp_image[:,i] = np.interp(np.arange(a), np.arange(a)[good], 
                                    amp_image[good,i])
     for hdu in fits_list:
         del hdu[0].data

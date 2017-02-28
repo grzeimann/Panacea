@@ -189,7 +189,7 @@ def reduce_science(args):
                                         args.ifucen_fn[amp][0]), 
                               usecols=[0,1,2], skiprows=args.ifucen_fn[amp][1])
                 if args.debug:
-                    print("Working on Sci for %s, %s" %(spec, amp)) 
+                    print("Working on Sci/Twi for %s, %s" %(spec, amp)) 
                 if args.check_if_twi_exists:
                     fn = op.join(args.twi_dir,'fiber_*_%s_%s_%s_%s.pkl' %(spec, 
                                                    args.sci_df['Ifuslot'][ind],
@@ -248,12 +248,14 @@ def reduce_science(args):
                 Fe, FeS = recreate_fiberextract(sci1, sci2, 
                                                 wavelim=wavelim, 
                                                 disp=args.disp[amp])
+
                 outname = op.join(args.sci_df['Output'][ind],
                                   'FeS%s_%s_sci_%s.fits' %(
                           op.basename(args.sci_df['Files'][ind]).split('_')[0],
                                                    args.sci_df['Ifuslot'][ind], 
                                                       config.Amp_dict[amp][1]))
                 make_fiber_image(FeS, sci1.header, outname, args, amp)
+                
                 make_cube_file(args, outname, ifucen, args.cube_scale, 
                                config.Amp_dict[amp][1])
                 if args.save_sci_fibers:
@@ -263,7 +265,7 @@ def reduce_science(args):
                     sci1.save()
                     sci2.save()
                 if args.debug:
-                    print("Finished working on Sci for %s, %s" %(spec, amp))        
+                    print("Finished working on Sci/Twi for %s, %s" %(spec, amp))        
 
 def main():
     args = parse_args()
