@@ -257,16 +257,18 @@ def reduce_science(args):
                 Fe, FeS = recreate_fiberextract(sci1, sci2, 
                                                 wavelim=wavelim, 
                                                 disp=args.disp[amp])
-
-                outname = op.join(args.sci_df['Output'][ind],
-                                  'FeS%s_%s_sci_%s.fits' %(
-                          op.basename(args.sci_df['Files'][ind]).split('_')[0],
-                                                   args.sci_df['Ifuslot'][ind], 
-                                                      config.Amp_dict[amp][1]))
-                make_fiber_image(FeS, sci1.header, outname, args, amp)
-                
-                make_cube_file(args, outname, ifucen, args.cube_scale, 
-                               config.Amp_dict[amp][1])
+                FE = [Fe, FeS]
+                FEN = ['Fe', 'FeS']
+                for f,n in zip(FE, FEN):
+                    outname = op.join(args.sci_df['Output'][ind],
+                                      '%s%s_%s_sci_%s.fits' %(n,
+                              op.basename(args.sci_df['Files'][ind]).split('_')[0],
+                                                       args.sci_df['Ifuslot'][ind], 
+                                                          config.Amp_dict[amp][1]))
+                    make_fiber_image(f, sci1.header, outname, args, amp)
+                    
+                    make_cube_file(args, outname, ifucen, args.cube_scale, 
+                                   config.Amp_dict[amp][1])
                 if args.save_sci_fibers:
                     sci1.save_fibers()
                     sci2.save_fibers()

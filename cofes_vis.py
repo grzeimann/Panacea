@@ -30,7 +30,7 @@ def cofes_plots(filename_array, outfile_name, vmin=-15, vmax=25):
         rows = filename_array.shape[0]
         cols = filename_array.shape[1]
     
-    fig = plt.figure(figsize=(12,12))
+    fig = plt.figure(figsize=(8,8))
     for i,fitsfile in enumerate(filename_array.flatten()):
         #robust against files not existing
         try:
