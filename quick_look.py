@@ -185,7 +185,7 @@ def reduce_science(args):
                                                     'IFUcen_HETDEX_reverse_R.txt'),
                                                     usecols=[0,1,2,4],
                                                skiprows=args.ifucen_fn[amp][1])
-                            ifucen[224:,:] = ifucen[223::-1,:]
+                            ifucen[224:,:] = ifucen[[-1:223:-1,:]
 
                         else:
                             ifucen = np.loadtxt(op.join(args.configdir,
