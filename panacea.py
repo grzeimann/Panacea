@@ -311,7 +311,14 @@ def reduce_science(args):
                                                     usecols=[0,1,2], 
                                                skiprows=args.ifucen_fn[amp][1])
                     else:
-                        ifucen = np.loadtxt(op.join(args.configdir,
+                        if args.sci_df['Ifuid'][ind] == '004':
+                            ifucen = np.loadtxt(op.join(args.configdir,
+                                                    'IFUcen_files',
+                                                    'IFUcen_HETDEX_reverse_R.txt'),
+                                                    usecols=[0,1,2],
+                                               skiprows=args.ifucen_fn[amp][1])
+                        else:
+                            ifucen = np.loadtxt(op.join(args.configdir,
                                                     'IFUcen_files',
                                                     'IFUcen_HETDEX.txt'),
                                                     usecols=[0,1,2],
