@@ -127,6 +127,7 @@ def make_cube_file(args, filename, ifucen, scale, side):
         if len(data[:,0]) != len(ifucen[:,1]):
             print("Length of IFUcen file not the same as Fe. Skipping Cube")
             return None
+        ifucen = ifucen[ifucen[:,4].argsort(),:]
         x = np.arange(ifucen[:,1].min()-scale, ifucen[:,1].max()+scale, scale)
         y = np.arange(ifucen[:,2].min()-scale, ifucen[:,2].max()+scale, scale)
         xgrid, ygrid = np.meshgrid(x, y)
@@ -176,20 +177,20 @@ def reduce_science(args):
                                                     args.ifucen_fn[amp][0]
                                                     + args.sci_df['Ifuid'][ind] 
                                                     + '.txt'), 
-                                                    usecols=[0,1,2], 
+                                                    usecols=[0,1,2,4], 
                                                skiprows=args.ifucen_fn[amp][1])
                     else:
                         if args.sci_df['Ifuid'][ind] == '004':
                             ifucen = np.loadtxt(op.join(args.configdir,
                                                     'IFUcen_files',
                                                     'IFUcen_HETDEX_reverse_R.txt'),
-                                                    usecols=[0,1,2],
+                                                    usecols=[0,1,2,4],
                                                skiprows=args.ifucen_fn[amp][1])
                         else:
                             ifucen = np.loadtxt(op.join(args.configdir,
                                                     'IFUcen_files',
                                                     'IFUcen_HETDEX.txt'),
-                                                    usecols=[0,1,2],
+                                                    usecols=[0,1,2,4],
                                                skiprows=args.ifucen_fn[amp][1])
                 else:
                     ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
