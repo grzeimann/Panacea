@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 import os.path as op
 from astropy.io import fits
 from pyhetdex.cure.distortion import Distortion
+from pyhetdex.het.ifu_centers import IFUCenter
 
 from args import parse_args
 from amplifier import Amplifier
@@ -200,7 +201,6 @@ def make_cube_file(args, filename, ifucen, scale, side):
         if len(data[:,0]) != len(ifucen[:,1]):
             print("Length of IFUcen file not the same as Fe. Skipping Cube")
             return None
-        ifucen = ifucen[ifucen[:,4].argsort(),:]
         x = np.arange(ifucen[:,1].min()-scale, ifucen[:,1].max()+scale, scale)
         y = np.arange(ifucen[:,2].min()-scale, ifucen[:,2].max()+scale, scale)
         xgrid, ygrid = np.meshgrid(x, y)
@@ -311,6 +311,7 @@ def reduce_science(args):
                                                     + '.txt'), 
                                                     usecols=[0,1,2,4], 
                                                skiprows=args.ifucen_fn[amp][1])
+                        
                     else:
                         if args.sci_df['Ifuid'][ind] == '004':
                             ifucen = np.loadtxt(op.join(args.configdir,
@@ -318,6 +319,7 @@ def reduce_science(args):
                                                     'IFUcen_HETDEX_reverse_R.txt'),
                                                     usecols=[0,1,2,4],
                                                skiprows=args.ifucen_fn[amp][1])
+                            ifucen[112:,:] = ifucen[112::-1,:]
                         else:
                             ifucen = np.loadtxt(op.join(args.configdir,
                                                     'IFUcen_files',

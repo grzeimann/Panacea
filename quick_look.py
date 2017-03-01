@@ -127,7 +127,6 @@ def make_cube_file(args, filename, ifucen, scale, side):
         if len(data[:,0]) != len(ifucen[:,1]):
             print("Length of IFUcen file not the same as Fe. Skipping Cube")
             return None
-        ifucen = ifucen[ifucen[:,4].argsort(),:]
         x = np.arange(ifucen[:,1].min()-scale, ifucen[:,1].max()+scale, scale)
         y = np.arange(ifucen[:,2].min()-scale, ifucen[:,2].max()+scale, scale)
         xgrid, ygrid = np.meshgrid(x, y)
@@ -186,6 +185,8 @@ def reduce_science(args):
                                                     'IFUcen_HETDEX_reverse_R.txt'),
                                                     usecols=[0,1,2,4],
                                                skiprows=args.ifucen_fn[amp][1])
+                            ifucen[224:,:] = ifucen[223::-1,:]
+
                         else:
                             ifucen = np.loadtxt(op.join(args.configdir,
                                                     'IFUcen_files',
@@ -195,7 +196,7 @@ def reduce_science(args):
                 else:
                     ifucen = np.loadtxt(op.join(args.configdir, 'IFUcen_files', 
                                         args.ifucen_fn[amp][0]), 
-                              usecols=[0,1,2], skiprows=args.ifucen_fn[amp][1])
+                              usecols=[0,1,2,4], skiprows=args.ifucen_fn[amp][1])
                 if args.debug:
                     print("Working on Sci/Twi for %s, %s" %(spec, amp)) 
                 if args.check_if_twi_exists:
