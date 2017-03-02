@@ -78,19 +78,14 @@ def build_fits(image, args, half, imtype, date, exptime):
     ----------
     image : numpy array
         fits image
-        
     args : NameSpace
         parsed args
-        
     half : str
         'L' for bottom and 'U' for top
-        
     imtype : str
-        ex: 'sci' or 'twi'
-        
+        ex: 'sci' or 'twi' 
     date : str
         ex: '2017-1-03'
-    
     exptime : float
         ex: 360. 
         
