@@ -293,6 +293,8 @@ class Amplifier:
             self.D -= 32
         if self.D == 2128:
             self.D -= 64
+        if self.N == 1074:
+            self.N -= 50
         self.trimmed = False
         self.overscan_value = None
         self.gain = F[0].header['GAIN']
