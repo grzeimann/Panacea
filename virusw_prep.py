@@ -98,10 +98,16 @@ def build_fits(image, args, half, imtype, date, exptime):
     image = np.rot90(image)    
     hdu = fits.PrimaryHDU(image)
     a,b = image.shape
-    x1,x2,y1,y2 = (1, a, b+1-args.overscan_pixel_length, b)
-    hdu.header['BIASSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
-    x1,x2,y1,y2 = (1, a, 1, b-args.overscan_pixel_length)
-    hdu.header['TRIMSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
+    if imtype == 'L':
+        x1,x2,y1,y2 = (1, b, a + 1 - args.overscan_pixel_length, a)
+        hdu.header['BIASSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
+        x1,x2,y1,y2 = (1, b, 1, a - args.overscan_pixel_length)
+        hdu.header['TRIMSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
+    else:
+        x1,x2,y1,y2 = (1, b, 1, args.overscan_pixel_length)
+        hdu.header['BIASSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
+        x1,x2,y1,y2 = (1, b, args.overscan_pixel_length + 1, a)
+        hdu.header['TRIMSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
     hdu.header['GAIN'] = 1.0
     hdu.header['RDNOISE'] = 1.0
     hdu.header['CCDPOS'] = 'L'
