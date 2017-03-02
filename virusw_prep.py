@@ -163,21 +163,17 @@ def main():
                 exp_num = 1
             exptime = F[0].header['EXPTIME']
             datetime = ''.join(F[0].header['TIME'].split(' ')[0].split(':'))[:-1]
-            F1 = build_fits(F[0].data[:,:int(b/2)], args, 'L', imtype, 
-                            date, exptime)
-            F2 = build_fits(F[0].data[:,int(b/2):], args, 'U', imtype, 
-                            date, exptime)
-            
             half = ['L', 'U']
-            F_obj = [F1, F2]
-            for h,f in zip(half, F_obj):
+            for h in half:
+                F1 = build_fits(F[0].data[:,:int(b/2)], args, h, imtype, 
+                            date, exptime)
                 path = op.join(args.output,datefolder, 'virusw', 
                                'virusw%07d' %obsid, 'exp%02d' %exp_num, 
                                'virusw')
                 mkpath(path)
                 outname = op.join(path, '%sT%s_000L%s_%s.fits' 
                                   %(datefolder, datetime, h, imtype))
-                write_to_fits(f, outname)
+                write_to_fits(F1, outname)
             
             exp_num += 1
                                 
