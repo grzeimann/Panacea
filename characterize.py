@@ -246,7 +246,7 @@ def read_in_raw(args):
 
 
 def make_plot(image_dict, outfile_name, vmin=-5, vmax=5):
-    fig = plt.figure(figsize=(5,8))
+    fig = plt.figure(figsize=(8,4))
     a,b = image_dict[AMPS[0]].shape
     for i,amp in enumerate(AMPS):
         ax = plt.subplot(2, 2, i+1)
@@ -493,7 +493,7 @@ def main():
         for amp in AMPS:
             masterflat[amp], pixelflat[amp] = make_pixelflats(args, amp, folder)
             
-    make_plot(pixelflat, op.join(folder, 'pixelflat.png'))
+    make_plot(pixelflat, op.join(folder, 'pixelflat.png'), vmin=0.95, vmax=1.05)
     # Writing everything to a ".tex" file
     if not (args.dont_check_bias or args.dont_check_dark 
             or args.dont_check_readnoise or args.dont_check_gain
