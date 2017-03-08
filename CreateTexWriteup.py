@@ -311,13 +311,8 @@ Other \\dotfill \\theother \\\\[0.5cm]
         u = '''
 
 \\begin{figure}[H]
-\\begin{tabular}{cc}
-\\subfloat[%s]{\\includegraphics[width = 2.5in]{%s}} &
-\\subfloat[%s]{\\includegraphics[width = 2.5in]{%s}}\\\\
-\\subfloat[%s]{\\includegraphics[width = 2.5in]{%s}} &
-\\subfloat[%s]{\\includegraphics[width = 2.5in]{%s}}
+\\\includegraphics[width = 6.5in]{%s}} 
 \\label{testtable}
-\\end{tabular}
 \\caption{}
 \\end{figure}
 
