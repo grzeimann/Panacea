@@ -315,7 +315,11 @@ class Amplifier:
                              int(datetemp[2]))
         self.image = np.array(F[0].data, dtype=float)
         self.image_prepped = False
-        self.error = self.rdnoise / self.gain * np.ones((self.N,self.D), dtype=float)
+        if self.gain>0:
+            self.error = self.rdnoise / self.gain * np.ones((self.N,self.D), 
+                                                            dtype=float)
+        else:
+            self.error = np.zeros((self.N, self.D), dtype=float)
         self.exptime = F[0].header['EXPTIME']
    
     def save(self):
@@ -943,8 +947,10 @@ class Amplifier:
                 while content==False:
                     fiber = self.good_fibers[self.default_fib]
                     fw, fwp = calculate_wavelength_chi2(np.arange(self.D), 
-                                                        fiber.spectrum, 
-                                                        solar_spec, 
+                                                        solar_spec,
+                                                        self.good_fibers,
+                                                        self.default_fib,
+                                                        self.fiber_group,
                                                       init_lims=self.init_lims, 
                                                         debug=False, 
                                                   interactive=self.interactive,
@@ -970,27 +976,31 @@ class Amplifier:
                     fibs2 = []
                 else:
                     fibs2 = fc[(self.default_fib+1)::1]
-                for fib in fibs1:
-                    fiber = self.good_fibers[fib]
+                for fibn in fibs1:
+                    fiber = self.good_fibers[fibn]
                     fw, fwp = calculate_wavelength_chi2(np.arange(self.D), 
-                                                        fiber.spectrum, 
-                                                        solar_spec, 
+                                                        solar_spec,
+                                                        self.good_fibers,
+                                                        fibn,
+                                                        self.fiber_group,
                                                       init_lims=self.init_lims, 
                                                         debug=False, 
                                                        interactive=False,
-                                     init_sol=self.fibers[fib+1].wave_polyvals,
+                                     init_sol=self.fibers[fibn+1].wave_polyvals,
                                                         nbins=self.wave_nbins)
                     fiber.wavelength = fw*1.
                     fiber.wave_polyvals = fwp*1.
-                for fib in fibs2:
-                    fiber = self.good_fibers[fib]
+                for fibn in fibs2:
+                    fiber = self.good_fibers[fibn]
                     fw, fwp = calculate_wavelength_chi2(np.arange(self.D), 
-                                                        fiber.spectrum, 
-                                                        solar_spec, 
+                                                        solar_spec,
+                                                        self.good_fibers,
+                                                        fibn,
+                                                        self.fiber_group,
                                                       init_lims=self.init_lims, 
                                                         debug=False, 
                                                        interactive=False,
-                                     init_sol=self.fibers[fib-1].wave_polyvals,
+                                     init_sol=self.fibers[fibn-1].wave_polyvals,
                                                         nbins=self.wave_nbins)
                     fiber.wavelength = fw*1.
                     fiber.wave_polyvals = fwp*1.
@@ -1142,7 +1152,7 @@ class Amplifier:
                                   readnoise=self.rdnoise, 
                                   sigclip=25.0, sigfrac=0.001, objlim=0.001,
                                   satlevel=-1.0)
-        cc.run(maxiter=2)
+        cc.run(maxiter=1)
         c = np.where(cc.mask == True)
         self.mask = np.zeros(self.image.shape)
         for x, y in zip(c[0], c[1]):

@@ -311,7 +311,7 @@ Other \\dotfill \\theother \\\\[0.5cm]
         u = '''
 
 \\begin{figure}[H]
-\\makebox[\\textwidth][c]{\\includegraphics[width=1.0\\textwidth]{%s}}
+\\makebox[\\textwidth][c]{\\includegraphics[width=1.2\\textwidth]{%s}}
 \\label{testtable}
 \\caption{}
 \\end{figure}

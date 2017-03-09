@@ -48,6 +48,16 @@ virus_bn = 15
 lrs2b_bn = 11
 lrs2r_bn = 11
 
+# Number of bins for wavelength fit
+virus_wbn = 21
+lrs2b_wbn = 14
+lrs2r_wbn = 14
+
+# Default fiber number for wavelength fit
+virus_dfn = 42
+lrs2b_dfn = 48
+lrs2r_dfn = 48
+
 # The initial fibermodel sigma for initializing bins
 virus_sig = 2.5
 lrs2b_sig = 1.4

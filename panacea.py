@@ -520,7 +520,9 @@ def reduce_twighlight(args):
                                  fibmodel_nbins=args.fibmodel_bins,
                                  sigma=args.fibmodel_sig,
                                  power=args.fibmodel_pow,
-                                 use_trace_ref=args.use_trace_ref)
+                                 use_trace_ref=args.use_trace_ref,
+                                 default_fib = args.default_fib,
+                                 wave_nbins = args.wave_nbins)
                 #twi1.load_fibers()
                 twi1.get_fiber_to_fiber()
                 twi1.sky_subtraction()
@@ -539,7 +541,9 @@ def reduce_twighlight(args):
                                  fibmodel_nbins=args.fibmodel_bins,
                                  sigma=args.fibmodel_sig,
                                  power=args.fibmodel_pow,
-                                 use_trace_ref=args.use_trace_ref)
+                                 use_trace_ref=args.use_trace_ref,
+                                 default_fib = args.default_fib,
+                                 wave_nbins = args.wave_nbins)
                 #twi2.load_fibers()
                 twi2.get_fiber_to_fiber()
                 twi2.sky_subtraction()

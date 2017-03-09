@@ -19,7 +19,7 @@ import numpy as np
 import time
 import sys
 
-plaw_coeff = np.array([0.0004,0.5,0.15,1.0])
+plaw_coeff = np.array([0.0000,0.5,0.15,1.0])
 
 
 def str2bool(v):
@@ -68,7 +68,8 @@ def get_int(answer, question, previous):
     return value
 
 def fit_scale_wave0(init_scale, init_wave0, xi, xe, D, sun_wave, ysun, data, 
-                    fixscale=False): 
+                    fixscale=False, dofit=True, buff=10, dwave=0.2,
+                    plot=False): 
     '''
     Fitting function for linear wavelength solution of a small column section
     of one fiber.  
@@ -78,10 +79,26 @@ def fit_scale_wave0(init_scale, init_wave0, xi, xe, D, sun_wave, ysun, data,
             wv = init_scale * np.arange(D) + params[0]
             model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
             return model[sel1] - data[sel1]
-        params0 = np.array([init_wave0])
-        sel = is_outlier(f(params0,np.ones(data.shape,dtype=bool)))<1
-        sol = scipy.optimize.leastsq(f, params0, args=(sel))[0]
-        chi2 = f(sol, sel+True )**2
+        if dofit:
+            params0 = np.array([init_wave0])
+            sel = is_outlier(f(params0,np.ones(data.shape,dtype=bool)))<1
+            sol = scipy.optimize.leastsq(f, params0, args=(sel))[0]
+            chi2 = f(sol, sel+True )**2
+        else: 
+            params0 = np.arange(init_wave0-buff, init_wave0+buff, dwave)
+            sel = np.ones(data.shape,dtype=bool)
+            chi2_manual = np.zeros(params0.shape)
+            for i,p in enumerate(params0):
+                chi2_manual[i] = (f([p], sel)**2).sum() 
+            if plot:
+                plt.figure()
+                plt.plot(params0,chi2_manual)
+                plt.yscale('log')
+                plt.show()
+                raw_input("Please press enter")
+                plt.close()
+            sol = [params0[chi2_manual.argmin()]]
+            chi2 = f(sol, sel)**2
     else:
         def f(params, sel1):
             wv = params[0] * np.arange(D) + params[1]
@@ -294,10 +311,11 @@ def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
     return np.polyval(init_sol,x), init_sol
 
 
-def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
-                         init_lims=None, order=3, init_sol=None, debug=False,
-                         interactive=False, nbins=21, wavebuff=100, 
-                         plotbuff=70, fixscale=False):
+def calculate_wavelength_chi2(x, solar_spec, fibers, fibn, group,
+                              smooth_length=21, init_lims=None, order=3, 
+                              init_sol=None, debug=False, interactive=False, 
+                              nbins=21, wavebuff=100, plotbuff=70, 
+                              fixscale=True, use_leastsq=False):
     '''
     Use a linear solution of the wavelength via a chi^2 fit from normalized
     twighlight spectrum and that of the template.  
@@ -341,8 +359,13 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
         init_lims = [np.min(solar_spec[:,0]), np.max(solar_spec[:,0])]
     if init_sol is not None:
         init_wave_sol = np.polyval(init_sol, 1. * x / L)
-    y_sun = solar_spec[:,1]
-    y = biweight_filter(y, smooth_length) / y
+    y_sun = solar_spec[:,1]  
+    lowfib = np.max([0,fibn-group/2])
+    highfib = np.min([len(fibers)-1,fibn+group/2])
+    y = np.array([biweight_filter(fibers[i].spectrum, smooth_length)
+                  / fibers[i].spectrum 
+                  for i in xrange(lowfib,highfib)])
+    y = biweight_location(y,axis=(0,))
     bins = np.linspace(init_lims[0], init_lims[1], nbins)
     bins = bins[1:-1]
     scale = 1.*(init_lims[1] - init_lims[0])/L
@@ -371,25 +394,35 @@ def calculate_wavelength_chi2(x, y, solar_spec, smooth_length=21,
         content = False
         save=True
         while content is False:
-            if init_sol is None:
-                xwv0 = np.arange(wv0-20,wv0+20,5)
-                chi2r = np.zeros(xwv0.shape)
-                solk = []
-                for cnt,wv0g in enumerate(xwv0):
-                    sol, chi2 = fit_scale_wave0(scale, wv0g, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
+            if init_sol is None and j==0:
+                if use_leastsq:
+                    xwv0 = np.arange(wv0-25,wv0+25,5)
+                    chi2r = np.zeros(xwv0.shape)
+                    solk = []
+                    for cnt,wv0g in enumerate(xwv0):
+                        sol, chi2 = fit_scale_wave0(scale, wv0g, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
+                                      fixscale=fixscale)
+                        solk.append(sol)
+                        if fixscale:
+                            wv = np.arange(L) * scale + sol[0]
+                        else:
+                            wv = np.arange(L)*sol[0] + sol[1]           
+                        model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
+                        flag = is_outlier(model - y[xi:xe+1])
+                        chi2r[cnt] = np.nansum(chi2[flag<1]) / (np.sum(flag<1)+1-2)
+                    sol = solk[np.argmin(chi2r)]
+                else:
+                    sol, chi2 = fit_scale_wave0(scale, wv0, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
+                                                fixscale=fixscale, dofit=False, 
+                                                buff=25., plot=False)  
+            else:
+                if use_leastsq:
+                    sol, chi2 = fit_scale_wave0(scale, wv0, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
                                   fixscale=fixscale)
-                    solk.append(sol)
-                    if fixscale:
-                        wv = np.arange(L) * scale + sol[0]
-                    else:
-                        wv = np.arange(L)*sol[0] + sol[1]           
-                    model = np.interp(wv[xi:xe+1], sun_wave, ysun, left=0.0, right=0.0)
-                    flag = is_outlier(model - y[xi:xe+1])
-                    chi2r[cnt] = np.nansum(chi2[flag<1]) / (np.sum(flag<1)+1-2)
-                sol = solk[np.argmin(chi2r)]
-            else:    
-                sol, chi2 = fit_scale_wave0(scale, wv0, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
-                                  fixscale=fixscale)
+                else:
+                    sol, chi2 = fit_scale_wave0(scale, wv0, xi, xe, len(x), sun_wave, ysun, y[xi:xe+1],
+                                                fixscale=fixscale, dofit=False, 
+                                                buff=4.)
             if fixscale:
                 wv = np.arange(L) * scale + sol[0] 
             else:
@@ -1131,7 +1164,7 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
     plots = np.arange(1,10)
     cmap = plt.get_cmap('Blues')
     for i in [1, 0.5, 0]:
-        for j in [0, 0.5, 1]:
+        for j in [0.0, 0.5, 1.0]:
             sub = fig.add_subplot(3, 3, plots[pos])
             pos += 1
             minx = int(j * -1 * xwidth + j * (xlen - 1.))
@@ -1199,7 +1232,7 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
             ix = ypos[:,i] - fiber.trace[i]
             PL[:,i,j] = plaw(ix, plaw_coeff)
     for i in fiber_sel:
-        for j in [0, 0.5, 1]:
+        for j in [0.2, 0.5, 0.8]:
             sub = fig.add_subplot(3, 3, plots[pos])
             pos += 1
             minx = int(j * -1 * xwidth + j * (xlen - 1.))
@@ -1262,7 +1295,7 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
     plt.close(fig) 
     
 def check_wavelength_fit(Fibers, sun, outfile, fiber_sel=[5,58,107], 
-                        xwidth=50., fwidth=10, smooth_length=21):
+                        xwidth=150., fwidth=10, smooth_length=21):
     '''
     Plot of the wavelength solution for the top/middle/bottom in the fiber and 
     wavelength direction (3 x 3)

@@ -64,12 +64,20 @@ def check_criteria(header):
     """
         
     image_list = ['sky', 'object']
-    if header['imagetyp'] in image_list:
-        return True, 'sci'
+    try:
+        if header['IMAGETYP'] in image_list:
+            return True, 'sci'
+    except:
+        return False, ''
         
-    object_list = ['twighlight']
-    if header['object'] in object_list:
-        return True, 'twi'
+    object_list = ['twilight']
+    try:
+        if header['OBJECT'] in object_list:
+            return True, 'twi'
+    except:
+        return False, ''
+    
+    return False, ''
         
 def build_fits(image, args, half, imtype, date, exptime):
     """Build fits object with proper header for Panacea
@@ -95,10 +103,11 @@ def build_fits(image, args, half, imtype, date, exptime):
         fits object to be written later
     """
     
-    image = np.rot90(image)    
+    image = np.rot90(image)
+    image = np.fliplr(image)    
     hdu = fits.PrimaryHDU(image)
     a,b = image.shape
-    if imtype == 'L':
+    if half == 'L':
         x1,x2,y1,y2 = (1, b, a + 1 - args.overscan_pixel_length, a)
         hdu.header['BIASSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
         x1,x2,y1,y2 = (1, b, 1, a - args.overscan_pixel_length)
@@ -115,7 +124,7 @@ def build_fits(image, args, half, imtype, date, exptime):
     hdu.header['IMAGETYP'] = imtype    
     hdu.header['SPECID'] = 000
     hdu.header['IFUSLOT'] = 000
-    hdu.header['IFUID'] = 000
+    hdu.header['IFUID'] = '000'
     hdu.header['DATE-OBS'] = date
     hdu.header['EXPTIME'] =exptime
     
@@ -145,35 +154,56 @@ def main():
     
     """
     args = parse_args()
+    
+    unique_date = {}
+    
     file_list = glob.glob(op.join(args.folder, '*.fits'))
-    obsid = 0
-    exp_num = 1
-    unique_objects = []
     for file_name in file_list:
-        F = fits.open(file_name)
-        check, imtype = check_criteria(F[0].header)
+        try:
+            F = fits.open(file_name)    
+            # Checking if it is a sci or twi, otherwise move on
+            check, imtype = check_criteria(F[0].header)
+        except:
+            check = False
+            imtype = ''
+            print('Error reading in %s' %file_name)
         if check:
+            # Bookkeeping for date/obs/expn
+            datefolder = ''.join(F[0].header['DATE-OBS'].split('T')[0].split('-'))
+            object_name = F[0].header['OBJECT'].split(' ')[0]
+            if datefolder not in unique_date:
+                unique_date[datefolder] = {}
+                unique_date[datefolder][object_name] = 1
+            else:
+                if object_name not in unique_date[datefolder]:
+                    unique_date[datefolder][object_name] = 1
+                else:
+                    unique_date[datefolder][object_name] += 1
+                    
+            obsid = len(unique_date[datefolder])
+            exp_num = unique_date[datefolder][object_name]
+            print(file_name,datefolder, object_name, obsid, exp_num)
+
             a,b  = F[0].data.shape
             date = F[0].header['DATE']
-            datefolder = ''.join(re.split('-',F[0].header['DATE-OBS']))
-            object_name = F[0].header['OBJECT'].split(' ')[0]
-            if object_name not in unique_objects:
-                unique_objects.append(object_name)
-                obsid +=1
-                exp_num = 1
             exptime = F[0].header['EXPTIME']
             datetime = ''.join(F[0].header['TIME'].split(' ')[0].split(':'))[:-1]
             half = ['L', 'U']
             for h in half:
-                F1 = build_fits(F[0].data[:,:int(b/2)], args, h, imtype, 
+                if h == 'L':
+                    data = F[0].data[:,int(b/2):]
+                else:
+                    data = F[0].data[:,:int(b/2)]
+                F1 = build_fits(data, args, h, imtype, 
                             date, exptime)
-                path = op.join(args.output,datefolder, 'virusw', 
+                path = op.join(args.output, datefolder, 'virusw', 
                                'virusw%07d' %obsid, 'exp%02d' %exp_num, 
                                'virusw')
                 mkpath(path)
                 outname = op.join(path, '%sT%s_000L%s_%s.fits' 
                                   %(datefolder, datetime, h, imtype))
                 write_to_fits(F1, outname)
-            
-            exp_num += 1
-                                
+                
+if __name__ == '__main__':
+    main()    
+                                            
