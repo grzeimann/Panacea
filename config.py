@@ -16,7 +16,7 @@ Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}
 # Wavelength limits for each side as defined by the bottom amplifier id
 virus_wl = {"LL": [3490,5500], "RU": [3490,5500]}
 lrs2b_wl = {"LL": [3633,4655], "RU": [4550,7000]}
-lrs2r_wl = {"LL": [6425,8440], "RU": [3490,5500]}
+lrs2r_wl = {"LL": [6425,8440], "RU": [8230,10550]}
 
 # Dark multiplier for dark subtraction
 virus_dm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
