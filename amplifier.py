@@ -356,7 +356,11 @@ class Amplifier:
                         self.fibers[-1].path = self.path
                         if self.fibers[-1].wave_polyvals is not None:
                             self.fibers[-1].eval_wave_poly()
-    
+            
+            self.good_fibers = [fiber for fiber in self.fibers 
+                                      if not fiber.dead]
+            self.dead_fibers = [fiber for fiber in self.fibers 
+                                      if fiber.dead] 
 
     def convert_binning(self, fiber, prop):
         '''
