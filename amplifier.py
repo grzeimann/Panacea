@@ -48,7 +48,7 @@ class Amplifier:
                  filt_size_agg=51, filt_size_final=51, filt_size_sky=51,
                  col_frac = 0.47, use_trace_ref=False, fiber_date=None,
                  cont_smooth=25, make_residual=True, do_cont_sub=True,
-                 make_skyframe=True):
+                 make_skyframe=True, wave_res=1.9):
         ''' 
         Initialize class
         ----------------
@@ -272,6 +272,7 @@ class Amplifier:
         self.init_lims = init_lims
         self.interactive = interactive
         self.check_wave = check_wave        
+        self.wave_res = wave_res        
         
         # Smoothing options for individual and master spectra
         self.filt_size_ind = filt_size_ind
@@ -295,6 +296,7 @@ class Amplifier:
             self.D -= 64
         if self.N == 1074:
             self.N -= 50
+            self.D -= 45
         self.trimmed = False
         self.overscan_value = None
         self.gain = F[0].header['GAIN']
@@ -958,7 +960,8 @@ class Amplifier:
                                                       init_lims=self.init_lims, 
                                                         debug=False, 
                                                   interactive=self.interactive,
-                                                        nbins=self.wave_nbins)
+                                                        nbins=self.wave_nbins,
+                                                        res=self.wave_res)
                     fiber.wavelength = fw*1.
                     fiber.wave_polyvals = fwp*1.
                     # Boundary check:
@@ -991,7 +994,8 @@ class Amplifier:
                                                         debug=False, 
                                                        interactive=False,
                                      init_sol=self.fibers[fibn+1].wave_polyvals,
-                                                        nbins=self.wave_nbins)
+                                                        nbins=self.wave_nbins,
+                                                        res=self.wave_res)
                     fiber.wavelength = fw*1.
                     fiber.wave_polyvals = fwp*1.
                 for fibn in fibs2:
@@ -1005,7 +1009,8 @@ class Amplifier:
                                                         debug=False, 
                                                        interactive=False,
                                      init_sol=self.fibers[fibn-1].wave_polyvals,
-                                                        nbins=self.wave_nbins)
+                                                        nbins=self.wave_nbins,
+                                                        res=self.wave_res)
                     fiber.wavelength = fw*1.
                     fiber.wave_polyvals = fwp*1.
                 if k==0:

@@ -15,6 +15,8 @@ import numpy as np
 import os.path as op
 from args import parse_args
 from amplifier import Amplifier
+from distutils.dir_util import mkpath
+
 
 def create_fiber_file(fname, frac, array):
     np.savetxt(fname, array, fmt = "%1.3f %i", 
@@ -103,6 +105,9 @@ def main():
                                  sigma=args.fibmodel_sig,
                                  power=args.fibmodel_pow)
                 twi2.get_trace()
+                folder = op.join(args.configdir,'Fiber_Locations',
+                                args.twidir_date[0])
+                mkpath(folder)
                 fname = op.join(args.configdir,'Fiber_Locations',
                                 args.twidir_date[0],
                                 'fiber_loc_%s_%s_%s_%s.txt' %(

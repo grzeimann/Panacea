@@ -105,17 +105,19 @@ def build_fits(image, args, half, imtype, date, exptime):
     
     image = np.rot90(image)
     image = np.fliplr(image)    
-    hdu = fits.PrimaryHDU(image)
     a,b = image.shape
     if half == 'L':
+        hdu = fits.PrimaryHDU(image)
         x1,x2,y1,y2 = (1, b, a + 1 - args.overscan_pixel_length, a)
         hdu.header['BIASSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
-        x1,x2,y1,y2 = (1, b, 1, a - args.overscan_pixel_length)
+        x1,x2,y1,y2 = (46, b, 1, a - args.overscan_pixel_length)
         hdu.header['TRIMSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
     else:
+        image = image[::-1,::-1]
+        hdu = fits.PrimaryHDU(image)
         x1,x2,y1,y2 = (1, b, 1, args.overscan_pixel_length)
         hdu.header['BIASSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
-        x1,x2,y1,y2 = (1, b, args.overscan_pixel_length + 1, a)
+        x1,x2,y1,y2 = (1, b-45, 1, a - args.overscan_pixel_length)
         hdu.header['TRIMSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
     hdu.header['GAIN'] = 1.0
     hdu.header['RDNOISE'] = 1.0

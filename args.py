@@ -220,53 +220,20 @@ def parse_args(argv=None):
         msg = 'No SPECID was provided.'
         parser.error(msg)              
     
+
+    
     if args.instr.lower() == 'virus':
-        args.wvl_dict = config.virus_wl
-        args.specname = config.virus_sn
-        args.fsize = config.virus_fs
-        args.disp = config.virus_di
-        args.ifucen_fn = config.virus_fn
-        args.cube_scale = config.virus_cs
-        args.fibmodel_bins = config.virus_bn
-        args.wave_nbins = config.virus_wbn
-        args.default_fib = config.virus_dfn
-        args.fibmodel_sig = config.virus_sig
-        args.fibmodel_pow = config.virus_pow
-        args.dark_mult = config.virus_dm
-        args.nfibers = config.virus_nf
-        args.cont_smooth = config.virus_contsmooth
+        instr = 'virus_'
     if args.instr.lower() == 'lrs2':
         if args.instr_side.lower() == 'blue':
-            args.wvl_dict = config.lrs2b_wl
-            args.specname = config.lrs2b_sn
-            args.fsize = config.lrs2b_fs
-            args.disp = config.lrs2b_di
-            args.ifucen_fn = config.lrs2b_fn
-            args.cube_scale = config.lrs2b_cs
-            args.fibmodel_bins = config.lrs2b_bn
-            args.wave_nbins = config.lrs2b_wbn
-            args.default_fib = config.lrs2b_dfn
-            args.fibmodel_sig = config.lrs2b_sig
-            args.fibmodel_pow = config.lrs2b_pow
-            args.dark_mult = config.lrs2b_dm
-            args.nfibers = config.lrs2b_nf
-            args.cont_smooth = config.lrs2b_contsmooth
-        else:
-            args.wvl_dict = config.lrs2r_wl
-            args.specname = config.lrs2r_sn
-            args.fsize = config.lrs2r_fs
-            args.disp = config.lrs2r_di    
-            args.ifucen_fn = config.lrs2r_fn
-            args.cube_scale = config.lrs2r_cs
-            args.fibmodel_bins = config.lrs2r_bn
-            args.wave_nbins = config.lrs2r_wbn
-            args.default_fib = config.lrs2r_dfn
-            args.fibmodel_sig = config.lrs2r_sig
-            args.fibmodel_pow = config.lrs2r_pow
-            args.dark_mult = config.lrs2r_dm
-            args.nfibers = config.lrs2r_nf
-            args.cont_smooth = config.lrs2r_contsmooth
-
+            instr = 'lrs2b_'
+    if args.instr.lower() == 'lrs2':
+        if args.instr_side.lower() == 'red':
+            instr = 'lrs2r_'
+    if args.instr.lower() == 'virusw':
+        instr = 'virusw_'            
+    for con in config.config_dict:
+        setattr(args, con, getattr(config, instr+config.config_dict[con]))
 
 
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
