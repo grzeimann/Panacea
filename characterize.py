@@ -444,6 +444,7 @@ def write_to_TEX(f, args, overscan, gain, readnoise, darkcounts):
     for i, v in enumerate(obs):
         A = [v]
         A.append('%s.png' %(mastername[i]))
+        A.append(v)
         CreateTex.writeImageSummary(f, A)
     
 def main():

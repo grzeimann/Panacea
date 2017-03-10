@@ -313,7 +313,7 @@ Other \\dotfill \\theother \\\\[0.5cm]
 \\begin{figure}[H]
 \\makebox[\\textwidth][c]{\\includegraphics[width=1.2\\textwidth]{%s}}
 \\label{testtable}
-\\caption{}
+\\caption{%s}
 \\end{figure}
 
 
