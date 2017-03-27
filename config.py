@@ -3,17 +3,51 @@
 Configuration Settings
 ----------------------
 Built for the VIRUS instrument as well as LRS2 on HET
+Works for VIRUS-W as well.
 
 @author: gregz
 """
 
-config_dict = {'wvl_dict':'wl', 'specname':'sn', 'fsize':'fs', 'disp':'di',
-               'ifucen_fn':'fn', 'cube_scale':'cs', 'fibmodel_bins':'bn',
-               'wave_nbins':'wbn', 'default_fib':'dfn', 
-               'fibmodel_sig': 'sig', 'fibmodel_pow':'pow', 
-               'dark_mult':'dm', 'nfibers':'nf', 'cont_smooth':'contsmooth'}
 
-# Bottom Amplifier for each side ---
+# Output Directory
+output = "reductions"
+
+# Common Options
+adjust_trace = True # Adjust science trace for shifts
+use_trace_ref = True # Use default fiber files to always recover desired fibers
+refit_fiber_to_fiber = False # Adjust fiber to fiber using science
+use_other_sky = False # Use another sky background for desired sky subtraction
+use_pixelflat = False
+check_fibermodel = True
+check_wave = True
+
+# Configuration Directories
+rootdir = "/Users/gregz/cure/virus_raw"
+virusconfig = "/Users/gregz/cure/virus_early/virus_config"
+darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark"
+biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias"
+
+# Config dictionary for Amplifier reduction inputs 
+config_dict = {'adjust_trace': 'adjust_trace', 'use_trace_ref':'use_trace_ref',
+               'use_pixelflat':'use_pixelflat', 'virusconfig':'virusconfig',
+               'darkpath':'darkpath','biaspath':'biaspath', 
+               'check_fibermodel':'check_fibermodel', 'check_wave':'check_wave'}
+
+# Parameter dictionary for Amplifier reduction inputs 
+param_dict = { 'fsize':'fs',
+               'fibmodel_nbins':'bn', 'wave_nbins':'wbn', 'default_fib':'dfn', 
+               'sigma': 'sig', 'power':'pow', 'cont_smooth':'contsmooth',
+               'fibmodel_slope':'slope',
+               'fibmodel_intercept':'intercept',
+               'fibmodel_breakpoint':'breakpoint',
+               'fibmodel_step':'fstep','fibmodel_interpkind':'interpk',
+               'fiber_group':'fibergroup', 'col_group':'colgroup',
+               'wave_res': 'wr'}
+
+param_amp_dict = {'init_lims':'wl', 'specname':'sn', 'dark_mult':'dm',
+                  'bias_mult':'bm'}
+
+# Bottom Amplifier for each side 
 Amps = ["LL","RU"]
 
 # Connecting the bottom ampliefer with the top and total side
@@ -26,17 +60,16 @@ lrs2r_wl = {"LL": [6425,8440], "RU": [8230,10550]}
 virusw_wl = {"LL": [4727,5503]}
 
 # Dark multiplier for dark subtraction
-virus_dm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
+virus_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2b_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2r_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 virusw_dm ={"LL": 0.0, "LU": 0.0}
 
-# Number of expected fibers
-virus_nf = {"LL": 112, "LU": 112, "RU": 112, "RL": 112}
-lrs2b_nf = {"LL": 140, "LU": 140, "RU": 140, "RL": 140}
-lrs2r_nf = {"LL": 140, "LU": 140, "RU": 140, "RL": 140}
-virusw_nf = {"LL": 133, "LU": 134}
-
+# Bias multiplier for bias subtraction
+virus_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
+lrs2b_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
+lrs2r_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
+virusw_bm ={"LL": 0.0, "LU": 0.0}
 
 # Name prefix for the normalized spectrum used for the wavelength solution
 virus_sn = {"LL": "virus", "RU": "virus"}
@@ -57,10 +90,52 @@ lrs2r_fs = 6.
 virusw_fs = 5.
 
 # Number of bins for fibermodel fit
-virus_bn = 15
-lrs2b_bn = 11
-lrs2r_bn = 11
-virusw_bn = 7
+virus_bn = 31
+lrs2b_bn = 31
+lrs2r_bn = 31
+virusw_bn =31
+
+# 
+virus_slope = 0.001
+lrs2b_slope = 0.001
+lrs2r_slope = 0.001
+virusw_slope = 0.001
+
+# 
+virus_intercept = 0.002
+lrs2b_intercept = 0.002
+lrs2r_intercept = 0.002
+virusw_intercept = 0.002
+
+# 
+virus_breakpoint = 5.
+lrs2b_breakpoint = 4.
+lrs2r_breakpoint = 4.
+virusw_breakpoint = 4.
+
+# 
+virus_fstep = 4
+lrs2b_fstep = 4
+lrs2r_fstep = 4
+virusw_fstep = 4
+
+# 
+virus_interpk = 'linear'
+lrs2b_interpk = 'linear'
+lrs2r_interpk = 'linear'
+virusw_interpk = 'linear'
+
+#
+virus_fibergroup = 4
+lrs2b_fibergroup = 4
+lrs2r_fibergroup = 4
+virusw_fibergroup = 4
+
+#
+virus_colgroup = 40
+lrs2b_colgroup = 40
+lrs2r_colgroup = 40
+virusw_colgroup = 40
 
 # Number of bins for wavelength fit
 virus_wbn = 21
@@ -85,6 +160,12 @@ virus_pow = 2.5
 lrs2b_pow = 2.0
 lrs2r_pow = 2.0
 virusw_pow = 2.0
+
+# Wavelength resolution (for wavelength fit initial guess)
+virus_wr = 1.9
+lrs2b_wr = 0.5
+lrs2r_wr = 1.0
+virusw_wr = 0.19
 
 # Dispersion scale for making the Fe/CuFe files
 virus_di = {"LL": 1.9, "RU": 1.9}

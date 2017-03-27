@@ -92,6 +92,11 @@ class Fiber:
         self.ifuid = None
         self.object = None
         self.datetime = None
+        self.core = None
+        self.xind = None
+        self.yind = None
+        self.yoff = None
+        self.wavelength = None
         self.fibmodel = None
         self.fibmodel_x = None
         self.fibmodel_y = None
@@ -122,7 +127,7 @@ class Fiber:
                                             self.fibmodel_y, 
                                             self.fibmodel_poly_order)
                                    
-    def eval_trace_poly(self, use_poly=False, smoothing_length=15):
+    def eval_trace_poly(self, use_poly=False, smoothing_length=25):
         sel = self.trace_x != self.flag
         if use_poly:
             self.trace = np.polyval(self.trace_polyvals, 
@@ -134,7 +139,7 @@ class Fiber:
             self.trace[init_x:fin_x] = np.interp(np.arange(init_x,fin_x), 
                                                 self.trace_x[sel],
                                                 self.trace_y[sel])
-            self.trace[sel] = biweight_filter(self.trace_y[sel], 
+            self.trace[init_x:fin_x] = biweight_filter(self.trace[init_x:fin_x], 
                                               smoothing_length)
             ix = int(init_x+smoothing_length/2+1)
             fx = int(init_x+smoothing_length/2+1 + smoothing_length*2)

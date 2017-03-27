@@ -11,15 +11,15 @@ from utils import biweight_location, biweight_midvariance, is_outlier
 from utils import biweight_filter
 from scipy.optimize import nnls
 import scipy
+from scipy.interpolate import interp1d, interp2d
 from scipy.linalg import lstsq
+from numpy.polynomial.polynomial import polyvander2d
 import matplotlib.pyplot as plt
 import matplotlib
 import os.path as op
 import numpy as np
 import time
 import sys
-
-plaw_coeff = np.array([0.0000,0.5,0.15,1.0])
 
 
 def str2bool(v):
@@ -360,8 +360,8 @@ def calculate_wavelength_chi2(x, solar_spec, fibers, fibn, group,
     if init_sol is not None:
         init_wave_sol = np.polyval(init_sol, 1. * x / L)
     y_sun = solar_spec[:,1]  
-    lowfib = np.max([0,fibn-group/2])
-    highfib = np.min([len(fibers)-1,fibn+group/2])
+    lowfib = np.max([0,fibn-group])
+    highfib = np.min([len(fibers)-1,fibn+group])
     y = np.array([biweight_filter(fibers[i].spectrum, smooth_length)
                   / fibers[i].spectrum 
                   for i in xrange(lowfib,highfib)])
@@ -485,7 +485,7 @@ def calculate_wavelength_chi2(x, solar_spec, fibers, fibn, group,
     init_sol = np.polyfit(1.*np.hstack(x_save)/L,np.hstack(wave_save), order)
     return np.polyval(init_sol,1. * x / L), init_sol        
 
-def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
+def get_trace_from_image(image, x_step=4, y_window=3, x_window=5, repeat_length=2,
                          order=3, mx_cut=0.1, max_to_min_dist=5., debug=False,
                          first_order_iter=5, interp_window=3.):
     '''
@@ -523,7 +523,7 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
     allfibers=[]
     a, b = image.shape
     x = np.arange(a)
-    xc = np.arange(b)[x_window:(b-1-x_window)]
+    xc = np.arange(b)[x_window:(b-1-x_window):x_step]
     if debug:
         t1 = time.time()
     for i in xc:
@@ -531,12 +531,14 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
         y = biweight_location(image[:,(i-x_window):(i+x_window+1)], axis=(1,))
         
         # Set empty arrays for maxima and minima found in 2*y_window searches
-        mxval = np.zeros((a-2-y_window*2+1,))
-        mnval = np.zeros((a-2-y_window*2+1,))
+        mxval = np.zeros((a,))
+        mnval = np.zeros((a,))
         k=0
-        for j in xrange(y_window,a - 1 - y_window):
-            mxval[k] = np.argmax(y[(j-y_window):(j+y_window+1)])+j-y_window
-            mnval[k] = np.argmin(y[(j-y_window):(j+y_window+1)])+j-y_window
+        for j in xrange(a):
+            mind1 = int(np.max([0, j-y_window]))
+            mind2 = int(np.min([a, j+y_window]))
+            mxval[k] = np.argmax(y[mind1:mind2])+mind1
+            mnval[k] = np.argmin(y[mind1:mind2])+mind1
             k+=1
         # Get unique values
         umnval = np.unique(mnval)
@@ -595,14 +597,28 @@ def get_trace_from_image(image, y_window=3, x_window=5, repeat_length=2,
     return allfibers, xc
 
 
-def plaw(xp, plaw_coeff):
-    return plaw_coeff[0] / (plaw_coeff[1] + plaw_coeff[2]
-              * np.power(abs(xp / 2.5), plaw_coeff[3]))    
+def build_powerlaw(ygrid, Fibers, plaw_coeff, cols=None, spectrum=False):
+    
+    P = np.zeros(ygrid.shape+(len(Fibers),))
+    
+    xp = np.linspace(ygrid.shape[0]*-1, ygrid.shape[0], 2*ygrid.shape[0]*5)
+    plaw = plaw_coeff[0] / (plaw_coeff[1] + plaw_coeff[2]
+              * np.power(abs(xp / 2.5), plaw_coeff[3]))
+    I = interp1d(xp, plaw, bounds_error=False, fill_value=(0,0), kind='linear')
+    if cols is None:
+        cols = np.arange(ygrid.shape[1], dtype=int)
+    for i,fiber in enumerate(Fibers):
+        if spectrum:
+            P[:,cols,i] = I(ygrid[:,cols]-fiber.trace[np.newaxis,cols])*fiber.spectrum[np.newaxis,cols]
+        else:
+            P[:,cols,i] = I(ygrid[:,cols]-fiber.trace[np.newaxis,cols])
+    return P
     
 def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8., 
                                  fiber_group=4, bins=15, col_group=48,
-                                 debug=False, use_default=False,
-                                 outfolder=None, sigma=2.5, power=2.5):
+                                 use_default=False,
+                                 outfolder=None, sigma=2.5, power=2.5,
+                                 plaw_coeff1=0.0004):
     '''
     This function orchestrates the calls to the sub-function, 
     fit_fibermodel_nonparametric_bins, and grids the image to fit the fiber 
@@ -648,6 +664,7 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
         Parameter for initial profile.
         
     '''
+    plaw_coeff = np.array([plaw_coeff1, 0.5, 0.15, 1.0])
     a,b = image.shape 
     ygrid,xgrid = np.indices(image.shape)                       
     nfibs = len(Fibers) 
@@ -656,21 +673,13 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
     xcols = np.arange(col_group/2, int((ncols-1/2.)*col_group)+1, col_group)
     bins1, binx, sol = init_fibermodel(fsize=fsize, bins=bins, sigma=sigma,
                                        power=power)
-    PL = np.zeros((a,b,nfibs))
-    for i in xrange(b):
-        for j,fiber in enumerate(Fibers):
-            ix = ygrid[:,i] - fiber.trace[i]
-            PL[:,i,j] = plaw(ix, plaw_coeff)
+    PL = build_powerlaw(ygrid, Fibers, plaw_coeff)
             
-            
-    if debug:
-        t1 = time.time()
     for j in xrange(nfibs):
         for i in xrange(ncols):
             if not use_default:
                 sol = fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, 
                                                     Fibers, PL, fib=j, 
-                                                    debug=debug, 
                                                     group=fiber_group, 
                                                     bins=bins1,
                                                     xlow=i*col_group, 
@@ -679,61 +688,8 @@ def fit_fibermodel_nonparametric(image, Fibers, plot=False, fsize=8.,
                                                     outfolder=outfolder,
                                                     sol=sol, binx=binx)                
             so[j,i,:] = sol         
-    if debug:
-        t2 = time.time()
-        print("Fibermodel Solution took: %0.3f s" %(t2-t1))
-    if False:#plot:
-        for i in xrange(len(sol)):
-            mn = np.percentile(so[:,:,i],10)
-            mx = np.percentile(so[:,:,i],90)
-            plt.figure(figsize=(8,6))
-            plt.imshow(so[:,:,i], vmin=mn, vmax=mx, interpolation='nearest', 
-                       origin='lower',extent=[0,1032,0,2064])
-            plt.colorbar()
     return so, xcols, binx
 
-def get_norm_nonparametric(image, Fibers, fiber_group=4, 
-                           debug=False, mask=None):
-    '''
-    This builds the normalization (aka spectrum) for each fiber and mimicks
-    the fibermodel function above but instead of fitting the profile, uses
-    an already fitted profile and solves for the spectrum.
-    
-    :param image:
-        Amplifier image
-    :param Fibers:
-        List of fiber class object for each fiber
-    :param fiber_group:
-        Because the grid is built with fiber_group, this is an input just as
-        it was for fibermodel but allows the normalization to be solved for
-        over a different grid if someone wants to use more/less fibers
-    :param debug:
-        All-purpose boolean for debugging
-    :param mask:
-        Image with -1 as a mask for ignoring pixels when solving for the 
-        spectrum.  It is not clear yet if a whole fiber is flagged over a large
-        number of columns, whether a reasonable value or will lead to nonsense.
-    '''
-    a,b = image.shape 
-    if mask is None:
-        mask = np.zeros(image.shape)
-    ygrid,xgrid = np.indices(image.shape)                       
-    nfibs = len(Fibers) 
-    ncols = b 
-    norm = np.zeros((nfibs, ncols))
-    if debug:
-        t1 = time.time()
-    for j in xrange(nfibs):
-        norm[j,:] = get_norm_nonparametric_bins(image, mask, xgrid, ygrid, 
-                                                    Fibers, fib=j, 
-                                                    group=fiber_group, xlow=0, 
-                                                    xhigh=ncols, debug=debug)                
-    if debug:
-        t2 = time.time()
-        print("Solution took: %0.3f s" %(t2-t1))
-
-    return norm   
-    
     
 def init_fibermodel(fsize, bins, sigma=2.5, power=2.5):
     '''
@@ -768,8 +724,261 @@ def init_fibermodel(fsize, bins, sigma=2.5, power=2.5):
     sol[-1] = 0.0
     return bins, binx, sol
 
+def gauss_power(x, sig, n, norm=1.):
+    return norm/np.sqrt(2*np.pi*sig**2)*np.exp(-np.abs(x)**n/(2*sig**n)) 
+
+def power_law(x, c1, c2=.5, c3=.15, c4=1., sig=2.5):
+        return c1 / (c2 + c3 * np.power(abs(x / sig), c4))
+
+def get_norm_for_gauss_power(siglow=1.,sighigh=4.,powlow=1.5,powhigh=4.):
+    S,P = np.meshgrid(np.linspace(siglow,sighigh,31), 
+                      np.linspace(powlow,powhigh,26))
+    x = np.linspace(-20,20,41)
     
+    S = S.ravel()
+    P = P.ravel()
+    v = np.zeros(S.shape)
+    for i,s in enumerate(S):
+        v[i] = gauss_power(x, s, P[i]).sum()
+    return interp2d(S,P,v, bounds_error=False, fill_value=(1.,1.,1.), kind='linear')
+
+def get_norm_for_power_law(c1, sig, xlen):
+    if xlen%2:
+        xlen+=1
+    x = np.linspace(-xlen/2,xlen/2,xlen+1)
+    return power_law(x,c1,sig=sig).sum()
+    
+def subtract_plaw(image, fibers):
+    y = 1.*image
+    neigh_array = np.arange(len(fibers))
+    for neigh in neigh_array:
+        yind = fibers[neigh].yind
+        xind = fibers[neigh].xind
+        fibm = fibers[neigh].plaw
+        y[yind,xind] = image[yind,xind] - fibm*fibers[neigh].spectrum[xind]
+    return y
+    
+def subtract_neighbor_fibers(image, fibers, fib, neighbor): 
+    y = 1.*image
+    neigh_array = np.delete(np.arange(-neighbor,neighbor+1), neighbor)
+    for neigh in neigh_array:
+        if (fib+neigh>=0) and ((fib+neigh)<len(fibers)):
+            yind = fibers[fib+neigh].yind
+            xind = fibers[fib+neigh].xind
+            fibm = fibers[fib+neigh].core 
+            y[yind,xind] = y[yind,xind] - fibm*fibers[fib+neigh].spectrum[xind]
+    fibers[fib].subtracted = y[fibers[fib].yind, fibers[fib].xind]
+
+def get_interp_list(fsize, bins, interp_kind):
+    xinterp = np.linspace(-fsize,fsize, bins)
+    lx = len(xinterp)
+    f = np.zeros((lx,))
+    interp_list = []
+    for i in xrange(lx):
+        f[i] = 1.0
+        interp_list.append(interp1d(xinterp, f, bounds_error=False, 
+                                    fill_value=(0,0), kind=interp_kind))
+        f[i] = 0.0
+    return interp_list
+    
+def remeasure_core(image, fibers, fib, neighbor, col_lims, bins, cols,
+                   fsize, c1, c2, break_fix, interp_list):
+    
+    # Smarter binning practices  
+    a,b = image.shape                 
+    neigh_array = np.arange(-neighbor,neighbor+1)
+    x=[]
+    kind=[]
+    kind_full = []
+    col_select = cols[(cols>=col_lims[0])*(cols<col_lims[1])]
+    fmult = int(fsize*2)
+    cnt = 0
+    sel_list = []
+    for neigh in neigh_array:
+        if (fib+neigh>=0) and ((fib+neigh)<len(fibers)):
+            if len(fibers[fib+neigh].xind)<(b*fmult):
+                sel = np.where(np.in1d(fibers[fib+neigh].xind, col_select))[0]
+            else:
+                sel = ((col_select * fmult)[:,np.newaxis] 
+                        + np.arange(fmult)).ravel()
+            if neigh==neigh_array[0] or fib+neigh==0:
+                sel1 = np.where((fibers[fib+neigh].yoff>=0))[0]
+                sel2 = np.intersect1d(sel, sel1)
+            elif neigh==neigh_array[-1] or fib+neigh==(len(fibers)-1):
+                sel1 = np.where((fibers[fib+neigh].yoff<=0))[0]
+                sel2 = np.intersect1d(sel, sel1)
+            else:
+                sel2 = sel
+            x.append(fibers[fib+neigh].yoff[sel])
+            yind = fibers[fib+neigh].yind[sel2]
+            xind = fibers[fib+neigh].xind[sel2] 
+            kind.append(yind * b + xind) 
+            kind_full = np.union1d(kind_full, kind[-1])
+            sel_list.append([sel,sel2])
+            cnt+=1
+    kind_full = kind_full.astype(int)
+    #x = np.hstack(x)
+    #ind = np.argsort(x)
+    #x = x[ind]
+    #s = np.where(np.diff(x)>0.1)[0]
+    #if len(s)>bins:
+    #    xinterp = np.hstack([-fsize,x[s],fsize])
+    #else:
+    xinterp = np.linspace(-fsize,fsize, bins)
+    lx = len(xinterp)
+    
+    
+    weight_image = np.zeros((lx,a*b))
+    cnt=0
+    for neigh in neigh_array:
+        if (fib+neigh>=0) and ((fib+neigh)<len(fibers)):
+            sel = sel_list[cnt][0]
+            sel2 = sel_list[cnt][1]
+            yind = fibers[fib+neigh].yind[sel2]
+            xind = fibers[fib+neigh].xind[sel2] 
+            for i, v in enumerate(interp_list):
+                weight_image[i,kind[cnt]] += (v(fibers[fib+neigh].yoff[sel2])
+                                             *fibers[fib+neigh].spectrum[xind])
+            cnt+=1
+    Y = weight_image[:,kind_full].swapaxes(0,1)
+    I = image.ravel()[kind_full]
+    
+    virus_sel = (xinterp<-break_fix) + (xinterp>break_fix)
+    virus_sel1 = (xinterp<-break_fix)
+    virus_sel2 = (xinterp>break_fix)
+    p1 = [c1, c2+c1*fsize]
+    p2 = [-c1,c2+c1*fsize]
+    soli = np.hstack([np.polyval(p1,xinterp[virus_sel1]),
+                      np.polyval(p2,xinterp[virus_sel2])])
+    sel_v = np.where(virus_sel)[0]
+    sel_s = np.where(~virus_sel)[0]
+    for i,v in enumerate(sel_v):        
+        I -= Y[:,v] * soli[i]     
+    try:
+        sol = lstsq(Y[:,~virus_sel], I)[0]  
+    except:
+        print(col_lims)
+        return None
+    solb = np.zeros((lx,))
+    solb[sel_v] = soli
+    solb[sel_s] = sol
+    sol = solb
+
+    return xinterp, sol
+    
+def new_fast_norm(image, Fibers, cols=None, mask=None):
+    if mask is None:
+        mask = np.zeros(image.shape)
+    a,b = image.shape
+    if cols is None:
+        cols = np.arange(b)
+    init_model = np.zeros((a,len(Fibers)))
+    norm = np.zeros((len(Fibers),b))
+    for col in cols:
+        for i,fiber in enumerate(Fibers):
+            xsel = np.where(fiber.xind==col)[0]
+            init_model[fiber.yind[xsel],i] = fiber.core[xsel]
+        norm[:,col] = lstsq(init_model[mask[:,col]==0,:], 
+                            image[mask[:,col]==0,col])[0]
+                            
+    for i,fiber in enumerate(Fibers):
+        fiber.spectrum = norm[i,:]            
+
+def get_indices(image, Fibers, fsize, cols=None):
+    ygrid, xgrid = np.indices(image.shape)                                           
+    a,b = image.shape
+    diff = np.zeros((len(Fibers),))
+    if cols is None:
+        cols = np.arange(b)
+    for i,fiber in enumerate(Fibers):
+        diff[i] = fiber.trace[cols].max() - fiber.trace[cols].min()
+    if Fibers:
+        cut_size = int(diff.max() + fsize*2 + 1)
+    # Calculate initial fiber model and trace-y reference frame
+    for i,fiber in enumerate(Fibers):
+        my1 = int(np.max([0,fiber.trace.min()-fsize]))
+        my2 = my1 + cut_size
+        if my2>a:
+            my2 = a
+            my1 = a - cut_size
+        ix = ygrid[my1:my2,:] - fiber.trace*np.ones((cut_size,1))
+        y,x = np.where(np.abs(ix)<=fsize)
+        ind = np.argsort(x)
+        x=x[ind]
+        y=y[ind]
+        fiber.yoff = ix[y,x]
+        fiber.yind = y + my1
+        fiber.xind = x            
+            
+def fast_nonparametric_fibermodel(image, Fibers, fsize, bins, sigma, power, 
+                                  c1=0.001, c2=0.002, break_fix=4.5, 
+                                  col_group=40, fib_group=4, cols=None, 
+                                  mask=None, kind='linear', niter=1,
+                                  outfile='temp.png'):                                             
+    if mask is None:
+        mask = np.zeros(image.shape)
+    ygrid, xgrid = np.indices(image.shape)                                           
+    a,b = image.shape
+    
+    # Re-normalization so the total model (core+plaw) = 1 for a given column
+    I = get_norm_for_gauss_power()
+    #pl_norm = get_norm_for_power_law(c1, sigma, a)
+    
+    # 1st order correction for modelling amplifier instead of spectrograph
+    #pl_norm1 = get_norm_for_power_law(c1, sigma, fsize*2)
+    #missing_flux = pl_norm - pl_norm1
         
+    # Calculate cut_size                                      
+    if cols is None:
+        cols = np.arange(b)
+
+    get_indices(image, Fibers, fsize)
+    for i, fiber in enumerate(Fibers):
+        fiber.core = gauss_power(fiber.yoff, sigma, power, 
+                                 norm=1./I(sigma, power))
+    # Polynomial model in column direction with "missing" flux as total    
+    # Calculate spectrum    
+    col_grid = cols[::col_group]
+    if col_grid[-1] != Fibers[0].D:
+        col_grid = np.append(col_grid, Fibers[0].D)
+    interp_list = get_interp_list(fsize, bins, kind)
+    fib_grid = np.arange(fib_group,len(Fibers)+1,fib_group*2)
+    for k in xrange(niter):
+        new_fast_norm(image, Fibers, cols, mask)
+        xbink=[]
+        solk=[]
+        xloc=[]
+        yloc=[]
+        for j,col in enumerate(col_grid[:-1]):
+            for i in fib_grid:
+                xbin, sol = remeasure_core(image, Fibers, i, fib_group, [col_grid[j],col_grid[j+1]], 
+                               bins, cols, fsize, c1, c2, break_fix, 
+                               interp_list)
+                xbink.append(xbin)
+                solk.append(sol)
+                xloc.append(col_grid[j]/2.+col_grid[j+1]/2.)
+                yloc.append(i)
+        V = polyvander2d(np.array(xloc)/(1.*Fibers[0].D),
+                         np.array(yloc)/(1.*len(Fibers)), [2,2])
+        ssol = np.zeros((9,bins))
+        v = []
+        for i in xrange(bins):
+            ssol[:,i] = np.linalg.lstsq(V,np.array(solk)[:,i])[0]
+        for i,fiber in enumerate(Fibers):
+            fiber.core = np.zeros(fiber.xind.shape)
+            v = polyvander2d(fiber.xind/(1.*fiber.D), 
+                                 i/(1.*len(Fibers)*np.ones((len(fiber.xind),))),
+                            [2,2])
+            for j,iv in enumerate(interp_list):
+                fiber.core += iv(fiber.yoff)*np.dot(v, ssol[:,j])
+     
+    new_fast_norm(image, Fibers, np.arange(b), mask)
+    
+    for i,fiber in enumerate(Fibers):
+        subtract_neighbor_fibers(image, Fibers, i, 1)
+        fiber.profile = fiber.subtracted / fiber.spectrum[fiber.xind]
+     
+    
 def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, PL, fib=0, 
                                       xlow=0, xhigh=1032, plot=False, 
                                       group=4, bins=11, niter=3, debug=False,
@@ -959,7 +1168,10 @@ def fit_fibermodel_nonparametric_bins(image, xgrid, ygrid, Fibers, PL, fib=0,
     return sol
 
 
-def get_norm_nonparametric_fast(image, Fibers, cols=None, mask=None):
+def get_norm_nonparametric_fast(image, Fibers, cols=None, mask=None,
+                                plaw_coeff1=0.0004):
+    plaw_coeff = np.array([plaw_coeff1, 0.5, 0.15, 1.0])
+
     bins=len(Fibers[0].binx)
     a,b = image.shape
     if mask is None:
@@ -968,7 +1180,7 @@ def get_norm_nonparametric_fast(image, Fibers, cols=None, mask=None):
     fun = np.zeros((bins,))
     y=ygrid[:,0]
     Fl = np.zeros((len(y), bins))
-    Pl = np.zeros((len(y),))
+    P = build_powerlaw(ygrid, Fibers, plaw_coeff, cols)
     init_model = np.zeros((len(y),len(Fibers)))
     if cols is None:
         cols = np.arange(b)
@@ -980,109 +1192,10 @@ def get_norm_nonparametric_fast(image, Fibers, cols=None, mask=None):
                 fun[j] = 1.0
                 Fl[:,j] = np.interp(ix,fiber.binx,fun,left=0.0,right=0.0)
                 fun[j] = 0.0
-            Pl = plaw(ix, plaw_coeff)
-            init_model[:,i] = np.dot(Fl, fiber.fibmodel[col,:])+Pl
+            init_model[:,i] = np.dot(Fl, fiber.fibmodel[col,:])+P[:,col,i]
         norm[:,col] = lstsq(init_model[mask[:,col]==0,:], 
                             image[mask[:,col]==0,col])[0]
     return norm
-        
-def get_norm_nonparametric_bins(image, mask, xgrid, ygrid, Fibers, fib=0, 
-                                      xlow=0, xhigh=1032, fsize=8., 
-                                      group=4, debug=False):
-    '''
-    This is the workhorse function for producing the spectrum of a
-    fiber.  It is similar to fit_fibermodel_nonparametric_bins.
-    
-    :param image:
-        Amplifier image
-    :param mask:
-        Pixels to ignore in fitting for the normalization.  Mask==-1 is ignored
-    :param xgrid:
-        Column indices
-    :param ygrid:
-        Row indices
-    :param Fibers:
-        List of fiber class object for each fiber
-    :param fib:
-        Fiber number for fitting
-    :param xlow:
-        The low column value to use when fitting
-    :param xhigh:
-        The high column value to use when fitting
-    :param plot:
-        Plot the fit
-    :param fsize:
-        Region in which fiber model is defined and at the end set to zero.
-        The region is [-fsize, fsize] in pixels.  
-    :param group:
-        Group size of fibers
-    :param debug:
-        General timing and debugging
-
-    '''
-    if debug:
-        t1 = time.time()    
-    
-    # The lowest and highest fiber to be used in modeling
-    lowfib = np.max([0,fib-group/2])
-    highfib = np.min([len(Fibers)-1,fib+group/2])
-    
-    # get low y and high y for fit
-    mn1 = np.min(Fibers[lowfib].trace[xlow:xhigh])
-    mx1 = np.max(Fibers[lowfib].trace[xlow:xhigh])
-    mn2 = np.min(Fibers[highfib].trace[xlow:xhigh])
-    mx2 = np.max(Fibers[highfib].trace[xlow:xhigh])
-    ylow = int(np.min([mn1,mn2,mx1,mx2]))
-    yhigh = int(np.max([mn1,mn2,mx1,mx2]))+1
-    # Define cutouts and fibers
-    fibers = Fibers[lowfib:highfib+1]
-    fid = np.where(np.arange(lowfib,highfib+1)==fib)[0]
-    x = xgrid[ylow:yhigh,xlow:xhigh].ravel()
-    y = ygrid[ylow:yhigh,xlow:xhigh].ravel()
-    z = image[ylow:yhigh,xlow:xhigh].ravel()
-    msk = mask[ylow:yhigh,xlow:xhigh].ravel()
-    
-    # selection within cutout
-    ycutl = (Fibers[lowfib].trace[xlow:xhigh]*np.ones((yhigh-ylow,1))).ravel()
-    ycuth = (Fibers[highfib].trace[xlow:xhigh]*np.ones((yhigh-ylow,1))).ravel()
-    sel = np.where((y>=ycutl) * (y<=ycuth) * (msk==0))[0]
-    # Create empty arrays for the fibermodel weights in each given pixel from
-    dummy, bins = fibers[0].fibmodel.shape
-    binx = fibers[0].binx
-    Fl = np.zeros((len(y), bins, len(fibers)))
-    Pl = np.zeros((len(y),len(fibers)))
-    fun = np.zeros((bins,))
-    i = 0
-    for fiber in fibers:
-        ytrace = (fiber.trace[xlow:xhigh]*np.ones((yhigh-ylow,1))).ravel()
-        ix = y-ytrace
-        for j in xrange(bins):
-            fun[j] = 1.0
-            Fl[:,j,i] = np.interp(ix,binx,fun,left=0.0,right=0.0)
-            fun[j] = 0.0
-        Pl[:,i] = plaw(ix, plaw_coeff)
-        i+=1
-        
-    
-    # Solve for the normalization
-    init_model = np.zeros((len(x),len(fibers)))
-    norm = np.zeros((len(fibers),xhigh-xlow))
-    for j,v in enumerate(np.arange(xlow,xhigh)):
-        xsel = np.intersect1d(np.where(x==v)[0],sel)
-        if len(xsel):
-            k = 0
-            for fiber in fibers:
-                init_model[xsel,k] = (np.dot(Fl[xsel,:,k],fiber.fibmodel[j,:]) 
-                                      + Pl[xsel,k])
-                k+=1
-            # Solve for the normalization of the number of fibers
-            norm[:,j] = lstsq(init_model[xsel,:],z[xsel])[0]
-        else:
-            norm[:,j] = 0.0
-    if debug:
-        t2 = time.time()
-        print("Fiberextract solution for Fiber %i took: %0.3f s" %(fib, t2-t1))  
-    return norm[fid,:]
  
 
 def get_model_image(image, fibers, prop, debug=False):
@@ -1102,38 +1215,13 @@ def get_model_image(image, fibers, prop, debug=False):
         Timing and debugging
     
     '''
-    if debug:
-        t1 = time.time()    
-    
-    # Create empty arrays for the fibermodel weights in each given pixel from
-    dummy, bins = fibers[0].fibmodel.shape
-    binx = fibers[0].binx
-    low = binx.min()-1
-    high = binx.max()+1
-    fun = np.zeros((bins,))
-    def plaw(xp, plaw_coeff):
-        return plaw_coeff[0] / (plaw_coeff[1] + plaw_coeff[2]
-                  * np.power(abs(xp), plaw_coeff[3]))
     model = np.zeros(image.shape)
-    a,b = image.shape
-    y = np.arange(a,dtype=float)
-    for i in xrange(b):
-        Fl = np.zeros((a, bins))
-        for fib, fiber in enumerate(fibers):
-            ix = y - fiber.trace[i]
-            li = np.searchsorted(ix,low)
-            hi = np.searchsorted(ix,high)
-            for j in xrange(bins):
-                fun[j] = 1.0
-                Fl[li:hi,j] = np.interp(ix[li:hi],binx,fun,left=0.0,right=0.0)
-                fun[j] = 0.0
-            model[li:hi,i] += (getattr(fiber,prop)[i] * 1.00
-                               * (np.dot(Fl[li:hi,:],fiber.fibmodel[i,:]) 
-                                  + plaw(ix[li:hi], plaw_coeff)))
-    
-    if debug:
-        t2 = time.time()
-        print("Solution for model image took: %0.3f s" %(t2-t1))  
+    for i,fiber in enumerate(fibers):
+        yind = fiber.yind
+        xind = fiber.xind
+        model[yind,xind] += (getattr(fiber,prop)[xind] * 1.00
+                               * fiber.core)
+
     return model   
     
 def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
@@ -1185,9 +1273,9 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
     fig.savefig(outfile)
     plt.close(fig)     
 
-def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107], 
-                        xwidth=75., ywidth=75., yplot_high=0.25, 
-                        yplot_low=-0.01, plotbuf=4, neighbor_fibers=3):
+def check_fiber_profile(image, Fibers, outfile, fsize,
+                        xwidth=75., yplot_high=0.25, 
+                        yplot_low=-0.01, fib_group=4):
     '''
     Plot of the fiber profiles for the top/middle/bottom in the fiber and 
     wavelength direction (3 x 3)
@@ -1212,87 +1300,65 @@ def check_fiber_profile(image, Fibers, outfile, fiber_sel=[5,58,107],
         Buffer in fiber direction for plotting
         
     '''
-    ylen,xlen = image.shape
-    ypos, xpos = np.indices((ylen,xlen))
-    nfibs = len(Fibers)
-    # initial plot position    
-    fig = plt.figure(figsize=(12, 12))    
+    mta = biweight_location(np.diff([fiber.trace[int(fiber.D/2)] 
+                                     for fiber in Fibers]))
+    fig = plt.figure(figsize=(12, 12)) 
+    a,b = image.shape
     pos = 0
-    # For plotting purposes of the WaveCheck_{SPECID}_{SIDE}.pdf plots
     plots = np.arange(1,10)
-    fiber_sel = np.sort(np.array(fiber_sel))[::-1]
-    dummy, bins = Fibers[0].fibmodel.shape
-    binx = Fibers[0].binx
-    low = binx.min()-8
-    high = binx.max()+8
-    fun = np.zeros((bins,))
-    PL = np.zeros((ylen,xlen,nfibs))
-    for i in xrange(xlen):
-        for j,fiber in enumerate(Fibers):
-            ix = ypos[:,i] - fiber.trace[i]
-            PL[:,i,j] = plaw(ix, plaw_coeff)
-    for i in fiber_sel:
+    xwidth=50.
+    for i in [0.9, 0.5, 0.1]:
         for j in [0.2, 0.5, 0.8]:
             sub = fig.add_subplot(3, 3, plots[pos])
             pos += 1
-            minx = int(j * -1 * xwidth + j * (xlen - 1.))
-            maxx = int((j-1) * -1 * xwidth + j * (xlen - 1.))
-            lowfib = np.max([0,i-neighbor_fibers])
-            highfib = np.min([len(Fibers)-1,i+neighbor_fibers])
-            fibers = Fibers
-            # get low y and high y for fit
-            mn1 = np.min(Fibers[lowfib].trace[minx:maxx])-plotbuf
-            mx1 = np.max(Fibers[lowfib].trace[minx:maxx])+plotbuf
-            mn2 = np.min(Fibers[highfib].trace[minx:maxx])-plotbuf
-            mx2 = np.max(Fibers[highfib].trace[minx:maxx])+plotbuf
-            miny = np.max([int(np.min([mn1,mn2,mx1,mx2])),0])
-            maxy = np.min([ylen, int(np.max([mn1,mn2,mx1,mx2]))+1])
-                        
-            indx = (maxx-minx) / 2
-            yhigh = Fibers[highfib].trace[indx] - Fibers[i].trace[indx]+plotbuf
-            ylow = Fibers[lowfib].trace[indx] - Fibers[i].trace[indx]-plotbuf
-
-            model = np.zeros(image.shape)
-            flat = np.zeros(image.shape)
-            normfits = np.zeros((image.shape + (len(Fibers),)))
-            lmodel = np.zeros((image.shape + (len(Fibers),)))
-            for k in xpos[0,minx:maxx]:
-                Fl = np.zeros((ylen, bins))
-                for fib, fiber in enumerate(fibers):
-                    ix = ypos[:,k] - fiber.trace[k]
-                    li = np.searchsorted(ix,low)
-                    hi = np.searchsorted(ix,high)
-                    ytrace = ypos[li:hi,k] - Fibers[i].trace[k] 
-                    for l in xrange(bins):
-                        fun[l] = 1.0
-                        Fl[li:hi,l] = np.interp(ix[li:hi], binx, fun, left=0.0, 
-                                                right=0.0)
-                        fun[l] = 0.0
-                    lmodel[li:hi,k,fib] = (np.dot(Fl[li:hi,:],
-                                                  fiber.fibmodel[k,:]) 
-                                           + PL[li:hi,k,fib])
-                    model[li:hi,k] += lmodel[li:hi,k,fib]
-                    # TODO proper normalization
-                    normfits[li:hi,k,fib] = fiber.spectrum[k] * 1.03
-                W = ((normfits[miny:maxy,k,:]*lmodel[miny:maxy,k,:]).sum(axis=1) /
-                     lmodel[miny:maxy,k,:].sum(axis=1))
-                flat[miny:maxy,k] = np.where(W!=0,image[miny:maxy,k]/W, 0.0)
-            ytrace = ypos[miny:maxy,minx:maxx] - Fibers[i].trace[minx:maxx]            
-            sub.scatter(ytrace.ravel(), flat[miny:maxy,minx:maxx].ravel(), 
-                        c=[1.0,0.31,0.31], edgecolor='none', alpha=0.5, s=8)
-            sub.scatter(ytrace.ravel(), model[miny:maxy,minx:maxx].ravel(), 
-                         c=[0.11,0.11,0.91],edgecolor='none', alpha=0.5,s=5)
-            sub.scatter(ytrace.ravel(), flat[miny:maxy,minx:maxx].ravel() 
-                        - model[miny:maxy,minx:maxx].ravel(), 
-                        c=[0.41,0.41,0.41], edgecolor='none', alpha=0.5,s=5)
-            sub.plot([ylow, yhigh], [0.0, 0.0],'k-',lw=2)
-            sub.text(ylow+1, yplot_high-0.03, 
-                     "Fiber: %03d, X: %04d-%04d" %(i,minx+1,maxx+1), 
+            minx = (j*b-xwidth/2)
+            maxx = (j*b+xwidth/2)
+            x = []
+            y = []
+            mt = []
+            for fib in np.arange(int(i*len(Fibers))-fib_group,
+                                 int(i*len(Fibers))+fib_group+1):
+                mt.append(Fibers[fib].trace[int(maxx/2.+minx/2.)])
+                sel = np.where((Fibers[fib].xind>minx)
+                                *(Fibers[fib].xind<maxx))[0]
+                x.append(Fibers[fib].yoff[sel])
+                y.append(Fibers[fib].core[sel])
+                
+                sub.scatter(Fibers[fib].yoff[sel],
+                            Fibers[fib].profile[sel], alpha=0.03, 
+                            edgecolor='none',color=[1.,0.4,0.4],s=70)
+                sub.scatter(Fibers[fib].yoff[sel],
+                            Fibers[fib].profile[sel]
+                            -Fibers[fib].core[sel],
+                            alpha=0.03, edgecolor='none', 
+                            color='k')
+                sub.scatter(Fibers[fib].yoff[sel],
+                            Fibers[fib].core[sel],
+                            color=[0.2,0.2,.8], edgecolor='none',
+                            alpha=0.05, s=20)
+            x = np.hstack(x)
+            y = np.hstack(y)
+            if len(mt)>3:
+                mtd = biweight_location(np.diff(mt))
+            else:
+                mtd = mta*1.
+            minsel = np.argmin(np.abs(x-mtd/2.))
+            maxsel = np.argmin(np.abs(x))
+            peak = y[maxsel]
+            trough = y[minsel]
+            contrast = (peak - trough*2) / peak
+            sub.text(-fsize+1, yplot_high-0.03, 
+                     "Fiber: %03d, X: %04d-%04d" %(int(i*len(Fibers)),
+                                                   minx+1,maxx+1), 
                      fontsize=14)
-            sub.set_xlim([ylow, yhigh])
-            sub.set_ylim([yplot_low, yplot_high])
+            sub.text(-fsize+1, yplot_high-0.05, 
+                     "Contrast: %0.2f" %(contrast), 
+                     fontsize=14)
+            sub.set_xlim([-fsize, fsize])
+            sub.set_ylim([yplot_low, yplot_high])                
+            sub.plot([-fsize,fsize],[0,0],'r-',lw=2)
     fig.savefig(outfile)
-    plt.close(fig) 
+    plt.close(fig)
     
 def check_wavelength_fit(Fibers, sun, outfile, fiber_sel=[107,58,5], 
                         xwidth=125., fwidth=10, smooth_length=21):
