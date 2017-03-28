@@ -130,6 +130,8 @@ def read_in_raw(args, parser):
     
     args.use_other_sky = config.use_other_sky
     args.refit_fiber_to_fiber = config.refit_fiber_to_fiber
+    args.ifucen_fn = getattr(config,instr+'fn')
+    args.side_dict = config.Side_dict
 
     
     if args.quiet:

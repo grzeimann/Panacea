@@ -46,7 +46,10 @@ def main():
                 amp.refit=True
                 execute_function(amp, 'get_fiber_to_fiber')
                 amp.refit=False
-            execute_function(amp,'sky_subtraction')
+            execute_function(amp, 'sky_subtraction')
+            execute_function(amp, 'save', {'image_list':['image','clean_image', 
+                                                         'continuum_sub', 
+                                                         'residual','error']})
     t2 = time.time()
     print("Time Taken: %0.3f" %(t2-t1))
 

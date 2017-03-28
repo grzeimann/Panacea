@@ -53,6 +53,8 @@ Amps = ["LL","RU"]
 # Connecting the bottom ampliefer with the top and total side
 Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}
 
+Side_dict = {"L": ["LL","LU"], "R": ["RU","RL"]}
+
 # Wavelength limits for each side as defined by the bottom amplifier id
 virus_wl = {"LL": [3490,5500], "RU": [3490,5500]}
 lrs2b_wl = {"LL": [3633,4655], "RU": [4550,7000]}

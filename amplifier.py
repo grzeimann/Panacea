@@ -385,8 +385,12 @@ class Amplifier:
         if not image_list:
             self.log.warning('No images found in image_list to save.')
             return None
-        for image in image_list:
-            fits_list.append(fits.ImageHDU(getattr(self, image)))
+        for i,image in enumerate(image_list):
+            if i==0:
+                fits_list.append(fits.PrimaryHDU(getattr(self, image)))
+            else:
+                fits_list.append(fits.ImageHDU(getattr(self, image)))
+
             fits_list[-1].header['EXTNAME'] = image
         hdu = fits.HDUList(fits_list)
         self.write_to_fits(hdu, fn)
