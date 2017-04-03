@@ -21,7 +21,7 @@ import re
 import glob
 #import cPickle as pickle
 from fiber_utils import get_trace_from_image, get_indices
-from fiber_utils import check_fiber_trace
+from fiber_utils import check_fiber_trace, measure_background
 from fiber_utils import calculate_wavelength_chi2, get_model_image
 from fiber_utils import check_fiber_profile, check_wavelength_fit
 from fiber_utils import fast_nonparametric_fibermodel, new_fast_norm
@@ -369,7 +369,7 @@ class Amplifier:
         except TypeError:
             hdu.writeto(outname, clobber=True)
             
-    def save(self, image_list):
+    def save(self, image_list, spec_list=[]):
         '''
         Save the entire amplifier include the list of fibers.  
         This property is not used often as "amp*.pkl" is large and typically
@@ -392,6 +392,12 @@ class Amplifier:
                 fits_list.append(fits.ImageHDU(getattr(self, image)))
 
             fits_list[-1].header['EXTNAME'] = image
+            
+        for i, spec in enumerate(spec_list):
+            s = np.array([getattr(fiber, spec) for fiber in self.fibers])
+            fits_list.append(fits.ImageHDU(s))
+            fits_list[-1].header['EXTNAME'] = spec
+
         hdu = fits.HDUList(fits_list)
         self.write_to_fits(hdu, fn)
            
@@ -713,8 +719,16 @@ class Amplifier:
             self.error[:] = np.where(pixelflat != 0, self.error / pixelflat, 
                                      0.0)
              
-                                     
-                                     
+    def subtract_background(self):
+        if not self.image_prepped:
+            self.prepare_image()
+        if not self.fibers:
+            self.get_trace()
+        self.log.info('Subtracting background using "blank" pixels for %s' 
+                      %self.basename)
+        self.back = measure_background(self.image, self.fibers)
+        self.image[:] = self.image - self.back
+        
     def prepare_image(self):
         '''
         This many purpose function loads the image, finds the overscan value,
@@ -762,13 +776,13 @@ class Amplifier:
             
         shift = []
         for i,fiber in enumerate(self.fibers):
-            col = 4.*self.D/5.
+            col = 3.*self.D/5.
             width = 20
             low = int(col-width)
             high = int(col+width+1)
             shift.append(biweight_location(fiber.trace[low:high] 
                               - trace_cal[i,low:high]))
-            fiber.trace = trace_cal[i,:]
+            fiber.trace = 1.*trace_cal[i,:]
             
         self.shift = shift
         smooth_shift = biweight_filter(self.shift, 25)
@@ -1189,16 +1203,23 @@ class Amplifier:
             self.load_fibers(path='skypath', info=True, 
                              att_list=['sky_spectrum'])
             if self.fibers[0].sky_spectrum is None:
-                print("Loading sky spectrum from %s did not work." 
+                self.log.warning("Loading sky spectrum from %s did not work." 
                       %self.skypath)
-                print("Setting skypath to None for this amplifier.")
+                self.log.info("Setting skypath to None for this amplifier.")
                 self.skypath = None
+        self.log.info('Subtracting sky for %s' %self.basename)
         if self.skypath is None:
             self.get_master_sky(sky=True)
             for fib, fiber in enumerate(self.fibers):
                 fiber.sky_spectrum = (fiber.fiber_to_fiber 
                                  * np.interp(fiber.wavelength, self.masterwave, 
                                              self.mastersky))
+        for fib, fiber in enumerate(self.fibers):        
+            fiber.sky_subtracted = fiber.spectrum - fiber.sky_spectrum
+            fiber.corrected_spectrum = np.where(fiber.fiber_to_fiber>0.0, 
+                                                fiber.spectrum 
+                                                / fiber.fiber_to_fiber,
+                                                0.0)
         if self.make_skyframe: 
             self.skyframe = get_model_image(self.image, self.fibers, 
                                             'sky_spectrum', debug=False)
@@ -1225,6 +1246,7 @@ class Amplifier:
         cosmics from sky-subtracted frames.
         
         '''
+        self.log.info('Cleaning cosmics for %s' %self.basename)
         cc = cosmics.cosmicsimage(self.clean_image, gain=1.0, 
                                   readnoise=self.rdnoise, 
                                   sigclip=25.0, sigfrac=0.001, objlim=0.001,

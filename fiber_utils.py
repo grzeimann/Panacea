@@ -878,8 +878,9 @@ def new_fast_norm(image, Fibers, cols=None, mask=None):
         for i,fiber in enumerate(Fibers):
             xsel = np.where(fiber.xind==col)[0]
             init_model[fiber.yind[xsel],i] = fiber.core[xsel]
-        norm[:,col] = lstsq(init_model[mask[:,col]==0,:], 
-                            image[mask[:,col]==0,col])[0]
+        if (mask[:,col]==0).sum()>(a*1./2.):
+            norm[:,col] = lstsq(init_model[mask[:,col]==0,:], 
+                                image[mask[:,col]==0,col])[0]
                             
     for i,fiber in enumerate(Fibers):
         fiber.spectrum = norm[i,:]            
@@ -908,7 +909,34 @@ def get_indices(image, Fibers, fsize, cols=None):
         y=y[ind]
         fiber.yoff = ix[y,x]
         fiber.yind = y + my1
-        fiber.xind = x            
+        fiber.xind = x 
+
+def measure_background(image, Fibers, width=30, niter=3):
+    t = []
+    a,b = image.shape
+    ygrid,xgrid = np.indices(image.shape)
+    ygrid = 1. * ygrid.ravel() / a
+    xgrid = 1. * xgrid.ravel() / b
+    image = image.ravel()
+    s = np.arange(a*b)
+    for fiber in Fibers:
+        t.append(fiber.D*fiber.yind + fiber.xind)
+    t = np.hstack(t)
+    t = np.array(t, dtype=int)
+    ind = np.setdiff1d(s,t)
+    mask = np.zeros((a*b))
+    mask[ind] = 1.
+    mask[ind] = 1.-is_outlier(image[ind])
+    sel = np.where(mask==1.)[0]
+    for i in xrange(niter):
+        V = polyvander2d(xgrid[sel],ygrid[sel],[2,2])
+        sol = np.linalg.lstsq(V, image[sel])[0]
+        vals = np.dot(V,sol) - image[sel]
+        sel = sel[~is_outlier(vals)]
+    V = polyvander2d(xgrid,ygrid,[2,2])
+    back = np.dot(V, sol).reshape(a,b)    
+    return back
+        
             
 def fast_nonparametric_fibermodel(image, Fibers, fsize, bins, sigma, power, 
                                   c1=0.001, c2=0.002, break_fix=4.5, 

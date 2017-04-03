@@ -129,6 +129,7 @@ def biweight_filter2d(a, Order, Ignore_central=(3,3), c=6.0, M=None, func=None):
     else:
         for j in xc:
             A[:,:-j,k] = a[:,j:]
+            k+=1
     
     C = np.ma.array(A, mask=(A == -999).astype(np.int))
     return func(C, axis=(2,))
@@ -293,7 +294,7 @@ def biweight_location(a, c=6.0, M=None, axis=None):
     return M + (d * u * mask).sum(axis=axis) / (u * mask).sum(axis=axis)
     
     
-def biweight_midvariance(a, c=9.0, M=None, axis=None):
+def biweight_midvariance(a, c=6.0, M=None, axis=None):
     """
     Copyright (c) 2011-2016, Astropy Developers    
     
@@ -368,13 +369,15 @@ def biweight_midvariance(a, c=9.0, M=None, axis=None):
     Copy of the astropy function with the "axis" argument added appropriately.
     """
 
-    a = np.array(a, copy=False)
-
     if M is None:
-        if axis is None:
-            M = np.median(a)
-        else:   
-            M = np.median(a, axis=axis)
+        if isinstance(a, np.ma.MaskedArray):
+            func = np.ma.median
+        else:
+            a = np.array(a, copy=False)
+            func = np.median
+        M = func(a, axis=axis)
+    else:
+        a = np.array(a, copy=False)
 
     N = M*1.      
     # set up the difference
@@ -396,8 +399,10 @@ def biweight_midvariance(a, c=9.0, M=None, axis=None):
     u = np.where(MAD == 0., 0., d / c / MAD)
 
     # now remove the outlier points
-    mask = (np.abs(u) < 1).astype(np.int)
-
+    if isinstance(a, np.ma.MaskedArray):
+        mask = (np.abs(u) < 1).astype(np.int) * (1-a.mask.astype(np.int))
+    else:
+        mask = (np.abs(u) < 1).astype(np.int)
     u = u ** 2
     n = mask.sum(axis=axis)
     return n ** 0.5 * ((d*mask)**2 * (1 - u * mask) ** 4).sum(axis=axis) ** 0.5\

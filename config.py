@@ -45,7 +45,7 @@ param_dict = { 'fsize':'fs',
                'wave_res': 'wr'}
 
 param_amp_dict = {'init_lims':'wl', 'specname':'sn', 'dark_mult':'dm',
-                  'bias_mult':'bm'}
+                  'bias_mult':'bm','collapse_lims':'cwl'}
 
 # Bottom Amplifier for each side 
 Amps = ["LL","RU"]
@@ -61,6 +61,12 @@ lrs2b_wl = {"LL": [3633,4655], "RU": [4550,7000]}
 lrs2r_wl = {"LL": [6425,8440], "RU": [8230,10550]}
 virusw_wl = {"LL": [4727,5503]}
 
+# Collapsing wavelengths
+virus_cwl = {"LL": [4250,4750], "RU": [4250,4750]}
+lrs2b_cwl = {"LL": [3633,4655], "RU": [4550,7000]}
+lrs2r_cwl = {"LL": [6425,8440], "RU": [8230,10550]}
+virusw_cwl = {"LL": [4727,5503]}
+
 # Dark multiplier for dark subtraction
 virus_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2b_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
@@ -68,7 +74,7 @@ lrs2r_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 virusw_dm ={"LL": 0.0, "LU": 0.0}
 
 # Bias multiplier for bias subtraction
-virus_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
+virus_bm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
 lrs2b_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2r_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 virusw_bm ={"LL": 0.0, "LU": 0.0}
@@ -80,10 +86,10 @@ lrs2r_sn = {"LL": "lrs2_red", "RU": "lrs2_farred"}
 virusw_sn = {"LL": "virusw"}
 
 # Name of the IFUcen file for fiber positions
-virus_fn = {"LL": ["IFUcen_VIFU",30], "RU": ["IFUcen_VIFU",30]}
-lrs2b_fn = {"LL": ["LRS2_B_UV_mapping.txt",4], "RU": ["LRS2_B_OR_mapping.txt",4]}
-lrs2r_fn = {"LL": ["LRS2_R_NR_mapping.txt",4], "RU": ["LRS2_R_FR_mapping.txt",4]}
-virusw_fn = {"LL": ["virusw_mapping.txt",4]}
+virus_fn = {"L": ["IFUcen_VIFU",30], "R": ["IFUcen_VIFU",30]}
+lrs2b_fn = {"L": ["LRS2_B_UV_mapping.txt",4], "R": ["LRS2_B_OR_mapping.txt",4]}
+lrs2r_fn = {"L": ["LRS2_R_NR_mapping.txt",4], "R": ["LRS2_R_FR_mapping.txt",4]}
+virusw_fn = {"L": ["virusw_mapping.txt",4]}
 
 # Pixel width in radius over which the fibermodel is defined
 virus_fs = 8.
@@ -95,22 +101,22 @@ virusw_fs = 5.
 virus_bn = 31
 lrs2b_bn = 31
 lrs2r_bn = 31
-virusw_bn =31
+virusw_bn = 31
 
 # 
-virus_slope = 0.001
+virus_slope = 0.000
 lrs2b_slope = 0.001
 lrs2r_slope = 0.001
 virusw_slope = 0.001
 
 # 
-virus_intercept = 0.002
+virus_intercept = 0.000
 lrs2b_intercept = 0.002
 lrs2r_intercept = 0.002
 virusw_intercept = 0.002
 
 # 
-virus_breakpoint = 5.
+virus_breakpoint = 6.0
 lrs2b_breakpoint = 4.
 lrs2r_breakpoint = 4.
 virusw_breakpoint = 4.
@@ -170,10 +176,10 @@ lrs2r_wr = 1.0
 virusw_wr = 0.19
 
 # Dispersion scale for making the Fe/CuFe files
-virus_di = {"LL": 1.9, "RU": 1.9}
-lrs2b_di = {"LL": 0.5, "RU": 1.2}
-lrs2r_di = {"LL": 1.0, "RU": 1.0}
-virusw_di = {"LL": 0.19}
+virus_di = {"L": 1.9, "R": 1.9}
+lrs2b_di = {"L": 0.5, "R": 1.2}
+lrs2r_di = {"L": 1.0, "R": 1.0}
+virusw_di = {"L": 0.19}
 
 # Cube pixel scale
 virus_cs = 1.0

@@ -39,6 +39,10 @@ def parse_args(argv=None):
     parser.add_argument("-rs","--reduce_sci", 
                         help='''Reduce Science frames''',
                         action="count", default=0)
+
+    parser.add_argument("-c","--combine_reductions", 
+                        help='''Produce Fe, CuFe, S products''',
+                        action="count", default=0)
                                                                                                 
     parser.add_argument("--ifuslot", nargs='?', type=str, 
                         help='''Single IFUSLOT for processing. [REQUIRED]
@@ -132,13 +136,16 @@ def read_in_raw(args, parser):
     args.refit_fiber_to_fiber = config.refit_fiber_to_fiber
     args.ifucen_fn = getattr(config,instr+'fn')
     args.side_dict = config.Side_dict
-
+    args.disp = getattr(config,instr+'di')
+    args.scale = getattr(config,instr+'cs')
     
     if args.quiet:
         args.kwargs['verbose'] = False
         
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
     observations=[]
+    if args.combine_reductions and not args.reduce_sci:
+        observations.append('sci')
     if args.reduce_sci:
         observations.append('sci')
         if not args.reduce_twi:
