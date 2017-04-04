@@ -5,6 +5,8 @@ Created on Mon Mar 27 14:02:22 2017
 @author: gregz
 """
 
+import matplotlib
+matplotlib.use('agg')
 from args import parse_args
 import time
 import sys
