@@ -20,7 +20,7 @@ import sys
 import re
 import glob
 #import cPickle as pickle
-from fiber_utils import get_trace_from_image, get_indices
+from fiber_utils import get_trace_from_image, get_indices, get_interp_list
 from fiber_utils import check_fiber_trace, measure_background
 from fiber_utils import calculate_wavelength_chi2, get_model_image
 from fiber_utils import check_fiber_profile, check_wavelength_fit
@@ -43,7 +43,7 @@ class Amplifier:
                  fibmodel_nbins=15, make_fib_ind_plots=False, 
                  check_fibermodel=False, fsize=8., sigma=2.5, power=2.5,
                  fiber_group=8, col_group=48, mask=None, wave_nbins=21, 
-                 wave_order=3, default_fib=0, init_lims=None, 
+                 wave_order=3, default_fib=0, init_lims=None, collapse_lims=None,
                  interactive=False, check_wave=False,filt_size_ind=21, 
                  filt_size_agg=51, filt_size_final=51, filt_size_sky=51,
                  col_frac = 0.47, use_trace_ref=False, fiber_date=None,
@@ -51,7 +51,7 @@ class Amplifier:
                  make_skyframe=True, wave_res=1.9, trace_step=4,
                  fibmodel_slope=0.001, fibmodel_intercept=0.002,
                  fibmodel_breakpoint=5., fibmodel_step=4,
-                 fibmodel_interpkind='linear'):
+                 fibmodel_interpkind='linear', cosmic_iterations=1):
         ''' 
         Initialize class
         ----------------
@@ -274,12 +274,14 @@ class Amplifier:
         
         # Masking options (Fiberextract related)
         self.mask = mask
+        self.cosmic_iterations = cosmic_iterations
         
         # Wavelength Solution options
         self.wave_nbins = wave_nbins
         self.wave_order = wave_order
         self.default_fib = default_fib
         self.init_lims = init_lims
+        self.collapse_lims = collapse_lims
         self.interactive = interactive
         self.check_wave = check_wave        
         self.wave_res = wave_res        
@@ -369,22 +371,19 @@ class Amplifier:
         except TypeError:
             hdu.writeto(outname, clobber=True)
             
-    def save(self, image_list, spec_list=[]):
+    def save(self, image_list=[], spec_list=[]):
         '''
         Save the entire amplifier include the list of fibers.  
         This property is not used often as "amp*.pkl" is large and typically
         the fibers can be loaded and the other amplifier properties quickly
         recalculated.
         '''
-        self.log.info('Saving images to %s' %self.path)
+        self.log.info('Saving images/properties to %s' %self.path)
         fn = op.join(self.path, 'multi_%s_%s_%s_%s.fits' %(self.specid, 
                                                            self.ifuslot,
                                                            self.ifuid,
                                                            self.amp))
         fits_list = []
-        if not image_list:
-            self.log.warning('No images found in image_list to save.')
-            return None
         for i,image in enumerate(image_list):
             if i==0:
                 fits_list.append(fits.PrimaryHDU(getattr(self, image)))
@@ -394,141 +393,94 @@ class Amplifier:
             fits_list[-1].header['EXTNAME'] = image
             
         for i, spec in enumerate(spec_list):
-            s = np.array([getattr(fiber, spec) for fiber in self.fibers])
-            fits_list.append(fits.ImageHDU(s))
-            fits_list[-1].header['EXTNAME'] = spec
-
-        hdu = fits.HDUList(fits_list)
-        self.write_to_fits(hdu, fn)
+            try:
+                s = np.array([getattr(fiber, spec) for fiber in self.fibers], dtype='float32')
+                fits_list.append(fits.ImageHDU(s))
+                fits_list[-1].header['EXTNAME'] = spec
+            except AttributeError:
+                self.log.warning('Attribute %s does not exist to save' %spec)
+        if fits_list:
+            hdu = fits.HDUList(fits_list)
+            self.write_to_fits(hdu, fn)
            
+    def load(self, path='path', image_list=[], spec_list=[]):
+        '''
+        Save the entire amplifier include the list of fibers.  
+        This property is not used often as "amp*.pkl" is large and typically
+        the fibers can be loaded and the other amplifier properties quickly
+        recalculated.
+        '''
+        self.log.info('Loading images/properties from %s' %getattr(self, path))
+        fn = op.join(getattr(self, path), 'multi_%s_%s_%s_%s.fits' %(self.specid, 
+                                                           self.ifuslot,
+                                                           self.ifuid,
+                                                           self.amp))
+        try:
+            F = fits.open(fn)
+        except IOError:
+            self.log.error('Failed to open %s' %fn)
+            return None
+        
+        for i,image in enumerate(image_list):
+            try:
+                setattr(self, image, F[image].data)
+            except KeyError:
+                self.log.error('Failed to open extension %s for %s' %(image, fn))
+                
+        for i, spec in enumerate(spec_list):
+            try:
+                a = F[spec].data.shape[0]
+            except KeyError:
+                self.log.error('Failed to open extension %s for %s' %(spec, fn))
+                return None
+            for j in np.arange(a):
+                try:
+                    f = self.fibers[j]
+                except IndexError:    
+                    f = Fiber(self.D, j+1, self.path, self.filename)                
+                    self.fibers.append(f)
+                if spec=='spectrum' and path=='calpath':
+                    setattr(self.fibers[j], 'twi_'+spec, F[spec].data[j])
+                else:
+                    setattr(self.fibers[j], spec, F[spec].data[j])
+            if spec=='trace':
+                get_indices(self.image, self.fibers, self.fsize)
+            if spec=='dead':
+                self.good_fibers = [fiber for fiber in self.fibers 
+                                      if not fiber.dead]
+                self.dead_fibers = [fiber for fiber in self.fibers 
+                                      if fiber.dead]
+            
 
-    def load_fibers(self, path='path', cal=False, info=False, fibmodel=False,
-                    att_list=None):
+    def load_fibermodel(self, path='path'):
         '''
         Load fibers in self.path. Redefine the path for the fiber to self.path
         in case it was copied over. After loaded, evaluate the fibermodel as 
         well as the wavelength solution if available.  
         '''
-        if cal:
-            self.log.info('Loading fiber cals from %s' %getattr(self, path))
-            fn = op.join(getattr(self, path), 'fibercal_%s_%s_%s_%s.fits' %(self.specid, 
-                                                                self.ifuslot,
-                                                                self.ifuid,
-                                                                self.amp))
+        self.log.info('Loading fiber models from %s' %getattr(self, path))
+        fn = op.join(getattr(self, path), 'fibermodel_%s_%s_%s_%s.fits' %(self.specid, 
+                                                            self.ifuslot,
+                                                            self.ifuid,
+                                                            self.amp))
+        try:
+            F = fits.open(fn)
+        except IOError:
+            self.log.warning('Error opening fibers from %s' %fn)
+            self.log.warning('%s does not exist.' %fn)
+            return None
+        ylims = F[1].data
+        a,b = ylims.shape
+        ygrid, xgrid = np.indices(self.image.shape)
+        for i in xrange(a):
             try:
-                F = fits.open(fn)
-            except IOError:
-                self.log.warning('Error opening fibers from %s' %fn)
-                self.log.warning('%s does not exist.' %fn)
+                self.fibers[i]
+            except IndexError:    
+                self.log.warning('Fiber %i does not have the necessary trace info.'  %i)
                 return None
-            
-            shape = F[0].data.shape
-            
-            exts = ['trace','wavelength','fiber_to_fiber']
-            
-            if len(shape)==3:
-                nexts = shape[0]
-                nfibs = shape[1]
-                ncols = shape[2]
-            else:
-                nfibs = shape[0]
-                ncols = shape[1]
-                
-            for i in xrange(nfibs):
-                try:
-                    f = self.fibers[i]
-                except IndexError:    
-                    f = Fiber(self.D, i+1, self.path, self.filename)                
-                    self.fibers.append(f)
-                if len(shape)==2:
-                    if ncols != self.D:
-                        self.fibers[i].trace = self.convert_binning(F[0].data[i,:], ncols)
-                    else:
-                        self.fibers[i].trace = F[0].data[i,:]
-                if len(shape)==3:
-                    for j in xrange(nexts):
-                        if ncols != self.D:
-                            v = self.convert_binning(F[0].data[j,i,:], ncols)
-                        else:
-                            v = F[0].data[j,i,:]
-                        setattr(self.fibers[i], exts[j], v)
-                self.fibers[i].dead = F[1].data[i] == 0
-            
-            self.good_fibers = [fiber for fiber in self.fibers 
-                                      if not fiber.dead]
-            self.dead_fibers = [fiber for fiber in self.fibers 
-                                      if fiber.dead]
-            
-            get_indices(self.image, self.fibers, self.fsize)
-         
-        if info:
-            self.log.info('Loading fiber info from %s' %getattr(self, path))
-            fn = op.join(getattr(self, path), 'fiberinfo_%s_%s_%s_%s.fits' %(self.specid, 
-                                                                self.ifuslot,
-                                                                self.ifuid,
-                                                                self.amp))
-            try:
-                F = fits.open(fn)
-            except IOError:
-                self.log.warning('Error opening fibers from %s' %fn)
-                self.log.warning('%s does not exist.' %fn)
-                return None
-            
-            shape = F[0].data.shape
-            if len(shape)==3:
-                nexts = shape[0]
-                nfibs = shape[1]
-                ncols = shape[2]
-            else:
-                nfibs = shape[0]
-                ncols = shape[1]
-            exts = ['spectrum','sky_spectrum']
-            for i in xrange(nfibs):
-                try:
-                    f = self.fibers[i]
-                except IndexError:    
-                    f = Fiber(self.D, i+1, self.path, self.filename)                
-                    self.fibers.append(f)
-                if len(shape)==2:
-                    if att_list is not None:
-                        if exts[0] in att_list:
-                            self.fibers[i].spectrum = F[0].data[i,:]
-                    else:
-                        self.fibers[i].spectrum = F[0].data[i,:]
-                        
-                if len(shape)==3:
-                    for j in xrange(nexts):
-                        if att_list is not None:
-                            if exts[j] in att_list:
-                                v = F[0].data[j,i,:]
-                                setattr(self.fibers[i], exts[j], v)
-                        else:
-                            v = F[0].data[j,i,:]
-                            setattr(self.fibers[i], exts[j], v)
-        if fibmodel:
-            self.log.info('Loading fiber models from %s' %getattr(self, path))
-            fn = op.join(getattr(self, path), 'fibermodel_%s_%s_%s_%s.fits' %(self.specid, 
-                                                                self.ifuslot,
-                                                                self.ifuid,
-                                                                self.amp))
-            try:
-                F = fits.open(fn)
-            except IOError:
-                self.log.warning('Error opening fibers from %s' %fn)
-                self.log.warning('%s does not exist.' %fn)
-                return None
-            ylims = F[1].data
-            a,b = ylims.shape
-            ygrid, xgrid = np.indices(self.image.shape)
-            for i in xrange(a):
-                try:
-                    f = self.fibers[i]
-                except IndexError:    
-                    self.log.warning('Fiber %i does not have the necessary trace info.'  %i)
-                    return None
-                self.fibers[i].yoff = self.fibers[i].yind - self.fibers[i].trace[self.fibers[i].xind]
-                self.fibers[i].core = F[0].data[i,self.fibers[i].yind-int(ylims[i,0]),
-                                                self.fibers[i].xind]
+            self.fibers[i].yoff = self.fibers[i].yind - self.fibers[i].trace[self.fibers[i].xind]
+            self.fibers[i].core = F[0].data[i,self.fibers[i].yind-int(ylims[i,0]),
+                                            self.fibers[i].xind]
 
     def convert_binning(self, values, b):
         '''
@@ -547,89 +499,101 @@ class Amplifier:
                          (1.*np.arange(b))/b, values)
             
 
-    def save_fibers(self, cal=False, info=False, fibmodel=False):
+    def save_fibermodel(self):
         '''
         Save the fibers to fits file with two extensions
         The first is 3-d for trace, wavelength and fiber_to_fiber
         The second is which fibers are good and not dead
         '''
-        if cal:
-            s = []
-            try: 
-                self.fibers[0].trace
-            except:
-                self.log.warning('Trying to save fibers but none exist.')
+        try: 
+            self.fibers[0].core
+        except:
+            self.log.warning('Trying to save fibermodel but none exist.')
+            return None
+        diff = np.zeros((len(self.fibers),))
+        for i,fiber in enumerate(self.fibers):
+            diff[i] = fiber.trace.max() - fiber.trace.min()
+        cut_size = int(diff.max() + self.fsize*2 + 1)
+        ylims = np.zeros((len(self.fibers),2))
+        fibmodel = np.zeros((len(self.fibers), cut_size, self.D))
+        for i,fiber in enumerate(self.fibers):
+            my1 = int(np.max([0,fiber.trace.min()-self.fsize]))
+            my2 = my1 + cut_size
+            if my2>self.N:
+                my2 = self.N
+                my1 = self.N - cut_size
+            ylims[i,0] = my1
+            ylims[i,1] = my2
+            fibmodel[i,fiber.yind-my1,fiber.xind] = fiber.core
+        s = fits.PrimaryHDU(fibmodel)
+        t = fits.ImageHDU(ylims)
+        hdu = fits.HDUList([s,t])
+        fn = op.join(self.path, 'fibermodel_%s_%s_%s_%s.fits' %(self.specid, 
+                                                               self.ifuslot,
+                                                               self.ifuid,
+                                                               self.amp))
+        self.write_to_fits(hdu, fn)
+
+    def save_fibmodel(self):
+        '''
+        Save the fibers to fits file with two extensions
+        The first is 3-d for trace, wavelength and fiber_to_fiber
+        The second is which fibers are good and not dead
+        '''
+        try: 
+            self.fibers[0].fibmodel
+        except:
+            self.log.warning('Trying to save fibermodel but none exist.')
+            return None
+        ylims = np.zeros((len(self.fibers),2))
+        ylims[:,0] = -self.fsize
+        ylims[:,1] = self.fsize
+        fibmodel = np.zeros((len(self.fibers), self.fibmodel_nbins, self.D))
+        for i,fiber in enumerate(self.fibers):
+            fibmodel[i,:,:] = fiber.fibmodel
+        s = fits.PrimaryHDU(fibmodel)
+        t = fits.ImageHDU(ylims)
+        hdu = fits.HDUList([s,t])
+        fn = op.join(self.path, 'fibermodel_%s_%s_%s_%s.fits' %(self.specid, 
+                                                               self.ifuslot,
+                                                               self.ifuid,
+                                                               self.amp))
+        self.write_to_fits(hdu, fn)
+            
+    def load_fibmodel(self, path='path'):
+        '''
+        Load fibers in self.path. Redefine the path for the fiber to self.path
+        in case it was copied over. After loaded, evaluate the fibermodel as 
+        well as the wavelength solution if available.  
+        '''
+        self.log.info('Loading fiber models from %s' %getattr(self, path))
+        fn = op.join(getattr(self, path), 'fibermodel_%s_%s_%s_%s.fits' %(self.specid, 
+                                                            self.ifuslot,
+                                                            self.ifuid,
+                                                            self.amp))
+        try:
+            F = fits.open(fn)
+        except IOError:
+            self.log.warning('Error opening fibers from %s' %fn)
+            self.log.warning('%s does not exist.' %fn)
+            return None
+        ylims = F[1].data
+        a,b = ylims.shape
+        ygrid, xgrid = np.indices(self.image.shape)
+        for i in xrange(a):
+            try:
+                self.fibers[i]
+            except IndexError:    
+                self.log.warning('Fiber %i does not have the necessary trace info.'  %i)
                 return None
-                
-            self.log.info('Saving fiber data to %s' %self.path)
-            attr_list = ['trace', 'wavelength', 'fiber_to_fiber']
-            cnt = 0
-            for i, attr in enumerate(attr_list):
-                if getattr(self.fibers[0],attr) is not None:
-                    cnt+=1
-                    
-            s = np.zeros((cnt,len(self.fibers), len(self.fibers[0].trace)))
-            for i, attr in enumerate(attr_list):
-                if getattr(self.fibers[0],attr) is not None:
-                    s[i,:,:] = np.array([getattr(fiber,attr) 
-                                       for fiber in self.fibers])
-            t = np.array([not fiber.dead for fiber in self.fibers], dtype=int)
-            s = fits.PrimaryHDU(s)
-            t = fits.ImageHDU(t)
-            hdu = fits.HDUList([s,t])
-            fn = op.join(self.path, 'fibercal_%s_%s_%s_%s.fits' %(self.specid, 
-                                                                   self.ifuslot,
-                                                                   self.ifuid,
-                                                                   self.amp))
-            self.write_to_fits(hdu, fn)
-            
-        if info:
-            s = []
-            
-            self.log.info('Saving fiber data to %s' %self.path)
-            attr_list = ['spectrum', 'sky_spectrum']
-            for attr in attr_list:
-                if getattr(self.fibers[0],attr) is not None:
-                    s.append(np.array([getattr(fiber,attr) 
-                                       for fiber in self.fibers]))
-            s = np.dstack(s)
-            hdu = fits.PrimaryHDU(s)
-            fn = op.join(self.path, 'fiberinfo_%s_%s_%s_%s.fits' %(self.specid, 
-                                                                   self.ifuslot,
-                                                                   self.ifuid,
-                                                                   self.amp))
-            self.write_to_fits(hdu, fn)
-            
-        if fibmodel:
-            try: 
-                self.fibers[0].core
-            except:
-                self.log.warning('Trying to save fibermodel but none exist.')
-                return None
-            diff = np.zeros((len(self.fibers),))
-            for i,fiber in enumerate(self.fibers):
-                diff[i] = fiber.trace.max() - fiber.trace.min()
-            cut_size = int(diff.max() + self.fsize*2 + 1)
-            ylims = np.zeros((len(self.fibers),2))
-            fibmodel = np.zeros((len(self.fibers), cut_size, self.D))
-            for i,fiber in enumerate(self.fibers):
-                my1 = int(np.max([0,fiber.trace.min()-self.fsize]))
-                my2 = my1 + cut_size
-                if my2>self.N:
-                    my2 = self.N
-                    my1 = self.N - cut_size
-                ylims[i,0] = my1
-                ylims[i,1] = my2
-                fibmodel[i,fiber.yind-my1,fiber.xind] = fiber.core
-            s = fits.PrimaryHDU(fibmodel)
-            t = fits.ImageHDU(ylims)
-            hdu = fits.HDUList([s,t])
-            fn = op.join(self.path, 'fibermodel_%s_%s_%s_%s.fits' %(self.specid, 
-                                                                   self.ifuslot,
-                                                                   self.ifuid,
-                                                                   self.amp))
-            self.write_to_fits(hdu, fn)
-            
+            self.fibers[i].yoff = self.fibers[i].yind - self.fibers[i].trace[self.fibers[i].xind]
+            interp_list = get_interp_list(self.fsize, self.fibmodel_nbins, 
+                                          self.fibmodel_interpkind)
+            self.fibers[i].core = np.zeros((len(self.fibers[i].xind),))
+            for j,iv in enumerate(interp_list):
+                self.fibers[i].core += (iv(self.fibers[i].yoff)
+                                        *F[0].data[i, j, self.fibers[i].xind])
+
       
     def orient_image(self):
         '''
@@ -726,6 +690,8 @@ class Amplifier:
             self.get_trace()
         self.log.info('Subtracting background using "blank" pixels for %s' 
                       %self.basename)
+        if self.fibers[0].xind is None:
+            get_indices(self.image, self.fibers, self.fsize)
         self.back = measure_background(self.image, self.fibers)
         self.image[:] = self.image - self.back
         
@@ -757,7 +723,7 @@ class Amplifier:
                       %getattr(self, 'calpath'))
         if getattr(self, 'calpath') is None:
             return None
-        fn = op.join(getattr(self, 'calpath'), 'fibercal_%s_%s_%s_%s.fits' %(self.specid, 
+        fn = op.join(getattr(self, 'calpath'), 'multi_%s_%s_%s_%s.fits' %(self.specid, 
                                                                 self.ifuslot,
                                                                 self.ifuid,
                                                                 self.amp))
@@ -768,11 +734,11 @@ class Amplifier:
             self.log.warning('%s does not exist.' %fn)
             return None
         
-        shape = F[0].data.shape
-        if len(shape)==2:
-            trace_cal = F[0].data[:,:]
-        if len(shape)==3:
-            trace_cal = F[0].data[0,:,:]
+        try:
+            trace_cal = F['trace'].data[:,:]
+        except KeyError:
+            self.log.warning('Error opening trace from %s' %fn)
+            return None       
             
         shift = []
         for i,fiber in enumerate(self.fibers):
@@ -786,8 +752,11 @@ class Amplifier:
             
         self.shift = shift
         smooth_shift = biweight_filter(self.shift, 25)
+        self.log.info("Shift for %s is %0.3f" %(self.amp, biweight_location(np.array(shift))))
         for i,fiber in enumerate(self.fibers):
             fiber.trace = fiber.trace + smooth_shift[i]
+            self.log.info("Shift for fiber %i is %0.3f pixels" %(i+1, smooth_shift[i]))
+
         
         return biweight_location(np.array(shift))
 
@@ -951,7 +920,7 @@ class Amplifier:
                 self.net_trace_shift = self.find_shift()
             self.log.info('Trace measured from %s' %self.basename)
         else:
-            self.load_fibers(path='calpath', cal=True)       
+            self.load(path='calpath', spec_list=['trace','dead'])       
         
         if self.check_trace:
             outfile = op.join(self.path,'trace_%s.png' %self.basename)
@@ -1001,7 +970,7 @@ class Amplifier:
             get_indices(self.image, self.dead_fibers, self.fsize)
                         
         else:
-            self.load_fibers(path='calpath', fibmodel=True)
+            self.load_fibermodel(path='calpath')
                 
         if self.check_fibermodel:
             outfile = op.join(self.path,'fibmodel_%s.png' %self.basename)
@@ -1131,7 +1100,7 @@ class Amplifier:
             self.fill_in_dead_fibers(['wavelength', 'wave_polyvals'])        
 
         else:
-            self.load_fibers(path='calpath', cal=True)
+            self.load(path='calpath', spec_list=['wavelength'])       
             
         if self.check_wave:
             if self.fibers[0].spectrum is None:
@@ -1176,7 +1145,8 @@ class Amplifier:
                                                        self.filt_size_final)
 
         else:
-            self.load_fibers(path='calpath', cal=True)   
+            self.load(path='calpath', spec_list=['fiber_to_fiber'])       
+  
             
         
     def sky_subtraction(self):
@@ -1200,8 +1170,7 @@ class Amplifier:
         if self.fibers[0].wavelength is None:
             self.get_wavelength_solution()
         if self.skypath is not None:
-            self.load_fibers(path='skypath', info=True, 
-                             att_list=['sky_spectrum'])
+            self.load(path='skypath', spec_list=['sky_spectrum'])       
             if self.fibers[0].sky_spectrum is None:
                 self.log.warning("Loading sky spectrum from %s did not work." 
                       %self.skypath)
@@ -1216,10 +1185,27 @@ class Amplifier:
                                              self.mastersky))
         for fib, fiber in enumerate(self.fibers):        
             fiber.sky_subtracted = fiber.spectrum - fiber.sky_spectrum
-            fiber.corrected_spectrum = np.where(fiber.fiber_to_fiber>0.0, 
+            if hasattr(fiber, 'twi_spectrum'):
+                
+                fiber.corrected_spectrum = np.where(fiber.twi_spectrum>0.0, 
+                                                fiber.spectrum 
+                                                / biweight_filter(fiber.twi_spectrum,self.filt_size_final),
+                                                0.0)
+            
+                fiber.corrected_sky_subtracted = np.where(fiber.twi_spectrum>0.0, 
+                                                fiber.sky_subtracted 
+                                                / biweight_filter(fiber.twi_spectrum,self.filt_size_final),
+                                                0.0)  
+            else:
+                fiber.corrected_spectrum = np.where(fiber.fiber_to_fiber>0.0, 
                                                 fiber.spectrum 
                                                 / fiber.fiber_to_fiber,
                                                 0.0)
+            
+                fiber.corrected_sky_subtracted = np.where(fiber.fiber_to_fiber>0.0, 
+                                                fiber.sky_subtracted 
+                                                / fiber.fiber_to_fiber,
+                                                0.0) 
         if self.make_skyframe: 
             self.skyframe = get_model_image(self.image, self.fibers, 
                                             'sky_spectrum', debug=False)
@@ -1246,16 +1232,17 @@ class Amplifier:
         cosmics from sky-subtracted frames.
         
         '''
-        self.log.info('Cleaning cosmics for %s' %self.basename)
-        cc = cosmics.cosmicsimage(self.clean_image, gain=1.0, 
-                                  readnoise=self.rdnoise, 
-                                  sigclip=25.0, sigfrac=0.001, objlim=0.001,
-                                  satlevel=-1.0)
-        cc.run(maxiter=1)
-        c = np.where(cc.mask == True)
-        self.mask = np.zeros(self.image.shape)
-        for x, y in zip(c[0], c[1]):
-            self.mask[x][y] = -1.0 
+        if self.cosmic_iterations>0:
+            self.log.info('Cleaning cosmics for %s' %self.basename)
+            cc = cosmics.cosmicsimage(self.clean_image, gain=1.0, 
+                                      readnoise=self.rdnoise, 
+                                      sigclip=25.0, sigfrac=0.001, objlim=0.001,
+                                      satlevel=-1.0)
+            cc.run(maxiter=self.cosmic_iterations)
+            c = np.where(cc.mask == True)
+            self.mask = np.zeros(self.image.shape)
+            for x, y in zip(c[0], c[1]):
+                self.mask[x][y] = -1.0 
              
              
     def get_master_sky(self, sky=False, norm=False):

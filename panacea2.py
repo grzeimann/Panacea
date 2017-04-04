@@ -12,6 +12,8 @@ import traceback
 import numpy as np
 from spectrograph import Spectrograph
 import os.path as op
+from pyhetdex.cure.distortion import Distortion
+
 
 def execute_function(obj, call, kwargs={}):
     try:
@@ -52,14 +54,26 @@ def get_ifucenfile(args, side, ifuid):
                             args.ifucen_fn[side][0]), 
                   usecols=[0,1,2], skiprows=args.ifucen_fn[side][1])   
     return ifucen
+    
+def get_distortion_file(args):
+    return Distortion(op.join(args.kwargs['virusconfig'], 'DeformerDefaults', 
+                                        'mastertrace_twi_027_L.dist')) 
 
 def main():
     t1 = time.time()
     args = parse_args()
     if args.reduce_twi:
         for amp in args.twi_list:
+            execute_function(amp, 'get_trace')
+            execute_function(amp, 'subtract_background')
             execute_function(amp, 'get_fiber_to_fiber')
-            execute_function(amp, 'save_fibers', {'cal':True, 'fibmodel':True})
+            execute_function(amp, 'save_fibmodel')
+            execute_function(amp, 'save', {'image_list':['image', 'back', 
+                                                         'error'],
+                                           'spec_list':['trace','wavelength',
+                                                        'spectrum',
+                                                        'fiber_to_fiber',
+                                                        'dead']})
     if args.reduce_sci:
         calpath = args.twi_list[0].path
         for amp in args.sci_list:
@@ -67,28 +81,37 @@ def main():
             amp.check_fibermodel=False
             amp.check_wave=False
             execute_function(amp, 'prepare_image')
-            execute_function(amp, 'load_fibers', {'path':'calpath', 'cal':True, 
-                                                  'fibmodel':True})
+            execute_function(amp, 'load', {'path':'calpath',
+                                           'spec_list':['trace','wavelength',
+                                                        'spectrum',
+                                                        'fiber_to_fiber',
+                                                        'dead']})
             execute_function(amp, 'subtract_background')
             if amp.adjust_trace:
                 amp.refit=True
                 execute_function(amp, 'get_trace')
                 amp.refit=False
+            execute_function(amp, 'load_fibmodel', {'path':'calpath'})
             if args.refit_fiber_to_fiber:
                 amp.refit=True
                 execute_function(amp, 'get_fiber_to_fiber')
                 amp.refit=False
             execute_function(amp, 'sky_subtraction')
-            execute_function(amp, 'clean_cosmics')
-            execute_function(amp, 'fiberextract')
-            execute_function(amp, 'sky_subtraction')
+            if amp.cosmic_iterations>0.0:
+                execute_function(amp, 'clean_cosmics')
+                execute_function(amp, 'fiberextract')
+                execute_function(amp, 'sky_subtraction')
             execute_function(amp, 'save', {'image_list':['image',
                                                          'back','clean_image', 
                                                          'continuum_sub', 
                                                          'residual','error'],
                                            'spec_list':['spectrum','wavelength',
                                                         'sky_subtracted',
-                                                        'corrected_spectrum']})
+                                                        'corrected_spectrum',
+                                                        'corrected_sky_subtracted',
+                                                        'twi_spectrum',
+                                                        'fiber_to_fiber',
+                                                        'trace']})
             amp.image = None
             amp.back = None
             amp.clean_image = None
@@ -96,9 +119,11 @@ def main():
             amp.residual = None
             amp.error = None
             
+            
     if args.combine_reductions:
         paths = np.array([amp.path for amp in args.sci_list])
         unique_paths = np.unique([amp.path for amp in args.sci_list])
+        D = get_distortion_file(args)
         for up in unique_paths:
             loc = np.where(up==paths)[0][0]
             spec = Spectrograph(up, args.sci_list[loc].specid, 
@@ -125,6 +150,8 @@ def main():
                 execute_function(spec, 'write_spectrograph_image',
                                  {'side':side, 'ext':'error', 
                                  'prefix':'e.S'})
+                execute_function(spec, 'write_new_distfile', {'D':D,
+                                                              'side':side})
              
                 if args.instr is not "virus":
                     ifucen = get_ifucenfile(args, side, 
@@ -150,16 +177,28 @@ def main():
                 spec.scale = args.scale
                 for side in spec.side_dict:
                     execute_function(spec, 'write_fiberextract',
+                                 {'side':side, 'ext':'spectrum', 
+                                 'prefix':'Fe'})
+                execute_function(spec, 'write_cube', {'ext':'spectrum',
+                                                      'prefix':['CuFe','CoFe']})
+                for side in spec.side_dict:
+                    execute_function(spec, 'write_fiberextract',
                                  {'side':side, 'ext':'corrected_spectrum', 
                                  'prefix':'Fe'})
                 execute_function(spec, 'write_cube', {'ext':'corrected_spectrum',
-                                                      'prefix':['CuFe','CoFe']})
+                                                      'prefix':['CuFeS','CoFeS']})
+                for side in spec.side_dict:
+                    execute_function(spec, 'write_fiberextract',
+                                 {'side':side, 'ext':'twi_spectrum', 
+                                 'prefix':'Fe'})
+                execute_function(spec, 'write_cube', {'ext':'twi_spectrum',
+                                                      'prefix':['CuFeT','CoFeT']})
                 for side in spec.side_dict:
                     execute_function(spec, 'write_fiberextract',
                                  {'side':side, 'ext':'sky_subtracted', 
                                  'prefix':'FeS'})
                 execute_function(spec, 'write_cube', {'ext':'sky_subtracted',
-                                                      'prefix':['CuFeS','CoFeS']})            
+                                                      'prefix':['CuFeSS','CoFeSS']})            
        
     t2 = time.time()
     print("Time Taken: %0.3f" %(t2-t1))

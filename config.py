@@ -20,6 +20,7 @@ use_other_sky = False # Use another sky background for desired sky subtraction
 use_pixelflat = False
 check_fibermodel = True
 check_wave = True
+cosmic_iterations = 0
 
 # Configuration Directories
 rootdir = "/Users/gregz/cure/virus_raw"
@@ -31,7 +32,8 @@ biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias"
 config_dict = {'adjust_trace': 'adjust_trace', 'use_trace_ref':'use_trace_ref',
                'use_pixelflat':'use_pixelflat', 'virusconfig':'virusconfig',
                'darkpath':'darkpath','biaspath':'biaspath', 
-               'check_fibermodel':'check_fibermodel', 'check_wave':'check_wave'}
+               'check_fibermodel':'check_fibermodel', 'check_wave':'check_wave',
+               'cosmic_iterations':'cosmic_iterations'}
 
 # Parameter dictionary for Amplifier reduction inputs 
 param_dict = { 'fsize':'fs',
@@ -68,13 +70,13 @@ lrs2r_cwl = {"LL": [6425,8440], "RU": [8230,10550]}
 virusw_cwl = {"LL": [4727,5503]}
 
 # Dark multiplier for dark subtraction
-virus_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
+virus_dm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
 lrs2b_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2r_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 virusw_dm ={"LL": 0.0, "LU": 0.0}
 
 # Bias multiplier for bias subtraction
-virus_bm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
+virus_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2b_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2r_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 virusw_bm ={"LL": 0.0, "LU": 0.0}

@@ -994,11 +994,16 @@ def fast_nonparametric_fibermodel(image, Fibers, fsize, bins, sigma, power,
             ssol[:,i] = np.linalg.lstsq(V,np.array(solk)[:,i])[0]
         for i,fiber in enumerate(Fibers):
             fiber.core = np.zeros(fiber.xind.shape)
+            fiber.fibmodel = np.zeros((bins, fiber.D))
             v = polyvander2d(fiber.xind/(1.*fiber.D), 
-                                 i/(1.*len(Fibers)*np.ones((len(fiber.xind),))),
+                                 i/(1.*len(Fibers))*np.ones((len(fiber.xind),)),
+                            [2,2])
+            v1 = polyvander2d(np.arange(fiber.D)/(1.*fiber.D), 
+                                 i/(1.*len(Fibers))*np.ones((fiber.D,)),
                             [2,2])
             for j,iv in enumerate(interp_list):
-                fiber.core += iv(fiber.yoff)*np.dot(v, ssol[:,j])
+                fiber.core += iv(fiber.yoff)*np.dot(v, ssol[:,j])            
+                fiber.fibmodel[j,:] = np.dot(v1, ssol[:,j]) 
      
     new_fast_norm(image, Fibers, np.arange(b), mask)
     

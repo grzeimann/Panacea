@@ -10,7 +10,7 @@ import logging
 from astropy.io import fits
 import numpy as np
 from distutils.dir_util import mkpath
-from utils import biweight_location
+from utils import biweight_location, matrixCheby2D_7
 
 __all__ = ["Spectrograph"]
 
@@ -27,6 +27,7 @@ class Spectrograph:
         self.setup_logging()
         self.ifucen = ifucen
         self.side_dict = {"L": ["LL","LU"], "R": ["RU","RL"]}
+        self.sides = ["L","R"]
         self.N = N
         self.D = D
         self.nfib = nfib
@@ -35,6 +36,7 @@ class Spectrograph:
         self.disp = disp
         self.scale = scale
         self.fiberextract = {"L": None, "R": None}
+        self.seeing = scale * 1.5
         
     def setup_logging(self):
         '''Set up a logger for shuffle with a name ``panacea``.
@@ -175,7 +177,7 @@ class Spectrograph:
             outname2 = self.build_cubename(prefix[1])
         self.log.info('Making cube image for %s' %op.basename(outname))
         data = []
-        for side in self.side_dict:
+        for side in self.sides:
             if self.fiberextract[side] is None:
                 self.build_FE(side, ext)
             data.append(self.fiberextract[side])
@@ -193,7 +195,7 @@ class Spectrograph:
             for j in xrange(len(y)):
                 d[:,j,i]= np.sqrt((self.ifucen[:,1] - xgrid[j,i])**2 + 
                             (self.ifucen[:,2] - ygrid[j,i])**2)
-                w[:,j,i] = np.exp(-1./2.*(d[:,j,i]/1.)**2)    
+                w[:,j,i] = np.exp(-1./2.*(d[:,j,i]/self.seeing)**2)    
         ws = w.sum(axis=0)
         for k in xrange(b):
             zgrid[k,:,:] = (data[:,k][:,np.newaxis,np.newaxis]*w).sum(axis=0)/ws
@@ -215,4 +217,53 @@ class Spectrograph:
         hdu.header['CRPIX1'] = x[0]
         hdu.header['CRPIX2'] = y[0]
         self.write_to_fits(hdu, outname2)
+        
+        
+    def write_new_distfile(self, D, side):
+        outname = op.join(self.path,'mastertrace_%s_%s.dist' 
+                                 %(self.specid, side))
+        self.log.info('Making distortion frame for %s' %op.basename(outname))
+        trace = []
+        wave = []
+        size=0
+        for i, amp in enumerate(self.side_dict[side]):
+            F = self.load_file(amp)
+            if F is not None:
+                trace.append(F['trace'].data)
+                size += F['trace'].data.shape[0]
+                wave.append(F['wavelength'].data)
+            else:
+                trace.append(np.zeros((self.nfib,self.D)))
+                size += self.nfib
+                wave.append(np.zeros((self.nfib,self.D)))
+        col = int(self.D / 2)
+        intv = [1, 1+self.N]
+        ypos = np.zeros((size, self.D))
+        ypos[:trace[1].shape[0],:] = trace[1][::-1,:]+intv[1]
+        ypos[trace[1].shape[0]:,:] = trace[0][::-1,:]+intv[0]
+        xpos = np.ones((size,1)) * np.arange(self.D)
+        f1 = ypos[:,col]
+        f0 = np.sort(f1)[::-1]
+        fpos = np.zeros((ypos.shape))
+        for k in np.arange(size):
+            fpos[k,:] = f1[k]
+        wpos = np.zeros((size, self.D))
+        wpos[:wave[1].shape[0],:] = wave[1][::-1,:]
+        wpos[wave[1].shape[0]:,:] = wave[0][::-1,:]      
+        
+        Vxy = matrixCheby2D_7(D._scal_x(xpos.ravel()), 
+                                 D._scal_y(ypos.ravel()))
+        Vwf = matrixCheby2D_7(D._scal_w(wpos.ravel()), 
+                                 D._scal_f(fpos.ravel()))
+        Vxf = matrixCheby2D_7(D._scal_x(xpos.ravel()), 
+                                 D._scal_f(fpos.ravel())) 
+        D.reference_f_.data = f0*1.
+        D.fiber_par_.data = np.linalg.lstsq(Vxy, fpos.ravel())[0]
+        D.wave_par_.data = np.linalg.lstsq(Vxy, wpos.ravel())[0]
+        D.x_par_.data = np.linalg.lstsq(Vwf, xpos.ravel())[0]
+        D.y_par_.data = np.linalg.lstsq(Vwf, ypos.ravel())[0]
+        D.fy_par_.data = np.linalg.lstsq(Vxf, ypos.ravel())[0]
+        D.x_offsets = f0*0.
+        D.wave_offsets = f0*0.
+        D.writeto(outname)
 
