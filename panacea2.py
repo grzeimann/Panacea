@@ -186,7 +186,7 @@ def main():
                                  {'side':side, 'ext':'corrected_spectrum', 
                                  'prefix':'Fe'})
                 execute_function(spec, 'write_cube', {'ext':'corrected_spectrum',
-                                                      'prefix':['CuFeS','CoFeS']})
+                                                      'prefix':['CuFeSS','CoFeSS']})
                 for side in spec.side_dict:
                     execute_function(spec, 'write_fiberextract',
                                  {'side':side, 'ext':'twi_spectrum', 
@@ -198,7 +198,7 @@ def main():
                                  {'side':side, 'ext':'sky_subtracted', 
                                  'prefix':'FeS'})
                 execute_function(spec, 'write_cube', {'ext':'sky_subtracted',
-                                                      'prefix':['CuFeSS','CoFeSS']})            
+                                                      'prefix':['CuFeS','CoFeS']})            
        
     t2 = time.time()
     print("Time Taken: %0.3f" %(t2-t1))
