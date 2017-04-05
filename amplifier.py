@@ -992,7 +992,7 @@ class Amplifier:
                 
         if self.check_fibermodel:
             outfile = op.join(self.path,'fibmodel_%s.png' %self.basename)
-            check_fiber_profile(self.image, self.fibers, outfile, self.fsize)
+            check_fiber_profile(self.image, self.good_fibers, outfile, self.fsize)
 
 
     def fiberextract(self, cols=None):
@@ -1124,7 +1124,7 @@ class Amplifier:
             if self.fibers[0].spectrum is None:
                 self.fiberextract()
             outfile = op.join(self.path,'wavesolution_%s.png' %self.basename)
-            check_wavelength_fit(self.fibers, solar_spec, outfile)
+            check_wavelength_fit(self.good_fibers, solar_spec, outfile)
                 
                     
     def get_fiber_to_fiber(self):
