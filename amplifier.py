@@ -1242,7 +1242,8 @@ class Amplifier:
             c = np.where(cc.mask == True)
             self.mask = np.zeros(self.image.shape)
             for x, y in zip(c[0], c[1]):
-                self.mask[x][y] = -1.0 
+                self.mask[x][y] = -1.0
+            self.error[c[0],c[1]] = -1.0
              
              
     def get_master_sky(self, sky=False, norm=False):

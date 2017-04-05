@@ -20,7 +20,7 @@ use_other_sky = False # Use another sky background for desired sky subtraction
 use_pixelflat = False
 check_fibermodel = True
 check_wave = True
-cosmic_iterations = 0
+cosmic_iterations = 1
 
 # Configuration Directories
 rootdir = "/Users/gregz/cure/virus_raw"
