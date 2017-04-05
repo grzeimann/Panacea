@@ -185,11 +185,11 @@ def main():
                                  {'side':side, 'ext':'spectrum', 
                                  'prefix':'Fe'})
                 execute_function(spec, 'write_cube', {'ext':'spectrum',
-                                                      'prefix':['CuFe','CoFe']}))
+                                                      'prefix':['CuFe','CoFe']})
                 for side in spec.side_dict:
                     execute_function(spec, 'write_fiberextract',
                                  {'side':side, 'ext':'twi_spectrum', 
-                                 'prefix':'Fe'})
+                                 'prefix':'FeT'})
                 execute_function(spec, 'write_cube', {'ext':'twi_spectrum',
                                                       'prefix':['CuFeT','CoFeT']})
                 for side in spec.side_dict:
