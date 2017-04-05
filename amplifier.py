@@ -832,13 +832,29 @@ class Amplifier:
                         d = datetime(int(date[:4]), int(date[4:6]),
                                      int(date[6:]))
                         timediff[i] = np.abs((self.date - d).days)
+                    timesel = np.argsort(timediff)
                     closest_date = dates[np.argmin(timediff)]
-                    ref_file = np.loadtxt(op.join(self.virusconfig, 
+                    loaded = False
+                    k = 0
+                    while not loaded:
+                        closest_date = dates[timesel[k]]
+                        try:
+                            ref_file = np.loadtxt(op.join(self.virusconfig, 
                                                   'Fiber_Locations',
                                                   closest_date, 
                                                   'fiber_loc_%s_%s_%s_%s.txt'
                                                   %(self.specid, self.ifuslot, 
                                                     self.ifuid, self.amp)))
+                            self.log.info('Loading trace reference from %s' %closest_date)
+                            loaded = True
+                        except:
+                            k = k+1
+                            if k >= len(timesel):
+                                loaded=False
+                                self.log.error('Could not find any trace refence file for: %s %s %s %s' 
+                                               %(self.specid, self.ifuslot, 
+                                                    self.ifuid, self.amp))
+                                return None
                 else:    
                     ref_file = np.loadtxt(op.join(self.virusconfig, 
                                                   'Fiber_Locations',
@@ -966,7 +982,9 @@ class Amplifier:
                                                          self.fibmodel_step),
                                           kind=self.fibmodel_interpkind)
 
-            self.fill_in_dead_fibers(['core'])
+            self.fill_in_dead_fibers(['core', 'fibmodel'])
+            for fib, fiber in enumerate(self.dead_fibers):
+                fiber.spectrum = np.zeros((self.D,))
             get_indices(self.image, self.dead_fibers, self.fsize)
                         
         else:

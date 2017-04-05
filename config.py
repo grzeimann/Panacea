@@ -23,10 +23,15 @@ check_wave = True
 cosmic_iterations = 1
 
 # Configuration Directories
-rootdir = "/Users/gregz/cure/virus_raw"
-virusconfig = "/Users/gregz/cure/virus_early/virus_config"
-darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark"
-biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias"
+rootdir = "/work/03946/hetdex/maverick"
+virusconfig = "/work/03946/hetdex/maverick/virus_config"
+darkpath = "/work/03946/hetdex/maverick/virus_config/lib_dark/march"
+biaspath = "/work/03946/hetdex/maverick/virus_config/lib_bias/march"
+
+#rootdir = "/Users/gregz/cure/virus_raw"
+#virusconfig = "/Users/gregz/cure/virus_early/virus_config"
+#darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark/march"
+#biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias/march"
 
 # Config dictionary for Amplifier reduction inputs 
 config_dict = {'adjust_trace': 'adjust_trace', 'use_trace_ref':'use_trace_ref',
@@ -64,7 +69,7 @@ lrs2r_wl = {"LL": [6425,8440], "RU": [8230,10550]}
 virusw_wl = {"LL": [4727,5503]}
 
 # Collapsing wavelengths
-virus_cwl = {"LL": [4250,4750], "RU": [4250,4750]}
+virus_cwl = {"LL": [4900,5350], "RU": [4900,5350]}
 lrs2b_cwl = {"LL": [3633,4655], "RU": [4550,7000]}
 lrs2r_cwl = {"LL": [6425,8440], "RU": [8230,10550]}
 virusw_cwl = {"LL": [4727,5503]}
@@ -76,7 +81,7 @@ lrs2r_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 virusw_dm ={"LL": 0.0, "LU": 0.0}
 
 # Bias multiplier for bias subtraction
-virus_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
+virus_bm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
 lrs2b_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2r_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 virusw_bm ={"LL": 0.0, "LU": 0.0}

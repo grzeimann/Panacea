@@ -15,12 +15,15 @@ import numpy as np
 from spectrograph import Spectrograph
 import os.path as op
 from pyhetdex.cure.distortion import Distortion
+import warnings
 
 
 def execute_function(obj, call, kwargs={}):
     try:
-        func = getattr(obj, call)
-        func(**kwargs)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            func = getattr(obj, call)
+            func(**kwargs)
     except:
         obj.log.error('Error occured while running %s on %s' %(call, obj.basename))
         obj.log.error(sys.exc_info()[0])
