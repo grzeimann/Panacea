@@ -11,7 +11,6 @@ import os.path as op
 from distutils.dir_util import mkpath
 import argparse as ap
 import numpy as np
-import re
 
 
 def parse_args(argv=None):
@@ -76,10 +75,17 @@ def check_criteria(header):
             return True, 'twi'
     except:
         return False, ''
-    
+ 
+    object_list = ['zero']
+    try:
+        if header['IMAGETYP'] in object_list:
+            return True, 'zro'
+    except:
+        return False, ''
+   
     return False, ''
         
-def build_fits(image, args, half, imtype, date, exptime):
+def build_fits(image, args, half, imtype, date, exptime, object_name):
     """Build fits object with proper header for Panacea
     
     Parameters
@@ -129,6 +135,7 @@ def build_fits(image, args, half, imtype, date, exptime):
     hdu.header['IFUID'] = '000'
     hdu.header['DATE-OBS'] = date
     hdu.header['EXPTIME'] =exptime
+    hdu.header['OBJECT'] = object_name
     
     return hdu
     
@@ -197,7 +204,7 @@ def main():
                 else:
                     data = F[0].data[:,:int(b/2)]
                 F1 = build_fits(data, args, h, imtype, 
-                            date, exptime)
+                            date, exptime, object_name)
                 path = op.join(args.output, datefolder, 'virusw', 
                                'virusw%07d' %obsid, 'exp%02d' %exp_num, 
                                'virusw')
