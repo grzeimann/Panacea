@@ -616,12 +616,14 @@ class Amplifier:
         region.  Only calculate the value if one does not exist or 
         recalculate is set to True.
         '''
-        self.log.info('Subtracting overscan %s' %self.basename)
         if self.overscan_value is None:
             self.overscan_value = biweight_location(self.image[
                                               self.biassec[2]:self.biassec[3],
                                               self.biassec[0]:self.biassec[1]])
             self.image[:] -= self.overscan_value
+            self.log.info('Subtracting overscan value %0.3f from %s' 
+                           %(self.overscan_value, self.basename))
+
 
 
     def trim_image(self):
@@ -667,7 +669,7 @@ class Amplifier:
         
     def calculate_photonnoise(self):
         self.log.info('Calculating photon noise for %s' % self.basename)
-        self.error[:] = np.sqrt(self.error**2 + self.image)
+        self.error[:] = np.sqrt(self.error**2 + np.where(self.image>0.,self.image, 0.))
         
         
     def divide_pixelflat(self):
@@ -980,7 +982,8 @@ class Amplifier:
                                           col_group=self.col_group,
                                           cols=np.arange(0, self.D, 
                                                          self.fibmodel_step),
-                                          kind=self.fibmodel_interpkind)
+                                          kind=self.fibmodel_interpkind,
+                                          do_fit=True)
 
             self.fill_in_dead_fibers(['core', 'fibmodel'])
             for fib, fiber in enumerate(self.dead_fibers):
@@ -1252,7 +1255,15 @@ class Amplifier:
         '''
         if self.cosmic_iterations>0:
             self.log.info('Cleaning cosmics for %s' %self.basename)
-            cc = cosmics.cosmicsimage(self.clean_image, gain=1.0, 
+            try:
+                cc = cosmics.cosmicsimage(self.clean_image, gain=1.0, 
+                                      readnoise=self.rdnoise, 
+                                      sigclip=25.0, sigfrac=0.001, objlim=0.001,
+                                      satlevel=-1.0)
+            except:
+                self.log.info('Running clean cosmics on regular image since '
+                              'sky subtraction has not been performed.')
+                cc = cosmics.cosmicsimage(self.image, gain=1.0, 
                                       readnoise=self.rdnoise, 
                                       sigclip=25.0, sigfrac=0.001, objlim=0.001,
                                       satlevel=-1.0)

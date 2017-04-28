@@ -28,7 +28,7 @@ from scipy.signal import medfilt2d
 
 cmap = plt.get_cmap('Greys_r')
 
-AMPS = ["LL", "LU", "RU", "RL"]
+AMPS = ["LL", "LU"]#, "RU", "RL"]
 
 
 def parse_args(argv=None):
@@ -264,8 +264,8 @@ def check_bias(args, amp, folder, edge=3, width=10):
     masterbias = func(big_array, axis=(0,))
     if not args.quick:
         masterbias = biweight_filter2d(masterbias, (25,5),(5,1))
-    else:
-        masterbias = medfilt2d(masterbias, [25,5])
+    #else:
+    #    masterbias = medfilt2d(masterbias, [25,5])
     a,b = masterbias.shape
     #masterbias = biweight_filter2d(masterbias, (25,5), (3,1))
     hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'))

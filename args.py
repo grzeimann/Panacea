@@ -138,20 +138,39 @@ def read_in_raw(args, parser):
     args.side_dict = config.Side_dict
     args.disp = getattr(config,instr+'di')
     args.scale = getattr(config,instr+'cs')
+    args.nfibers = getattr(config, instr+'nf')
     
     if args.quiet:
         args.kwargs['verbose'] = False
-        
+
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
     observations=[]
     if args.combine_reductions and not args.reduce_sci:
         observations.append('sci')
+        args.sci_operations = {}
+        att_list = [attr for attr in dir(config) if not callable(getattr(config, attr)) 
+                                                    and not attr.startswith("__") 
+                                                 if attr[:4] == 'sci_']
+        for att in att_list:
+            args.sci_operations[att[4:]] = getattr(config, att)
     if args.reduce_sci:
         observations.append('sci')
         if not args.reduce_twi:
             observations.append('twi')
+        args.sci_operations = {}
+        att_list = [attr for attr in dir(config) if not callable(getattr(config, attr)) 
+                                                    and not attr.startswith("__") 
+                                                 if attr[:4] == 'sci_']
+        for att in att_list:
+            args.sci_operations[att[4:]] = getattr(config, att)
     if args.reduce_twi:
         observations.append('twi')
+        args.twi_operations = {}
+        att_list = [attr for attr in dir(config) if not callable(getattr(config, attr)) 
+                                                    and not attr.startswith("__") 
+                                                 if attr[:4] == 'twi_']
+        for att in att_list:
+            args.twi_operations[att[4:]] = getattr(config, att) 
     if args.use_other_sky:
         observations.append('sky')
     for obs in observations:
@@ -184,7 +203,7 @@ def read_in_raw(args, parser):
                             amp_list.append(Amplifier(fn, path, **args.kwargs))
                             amp_list[-1].type = obs
                             for Amp in config.Amps: 
-                                if (amp_list[-1].amp == Amp) or config.Amp_dict[Amp]:
+                                if (amp_list[-1].amp == Amp) or (amp_list[-1].amp ==config.Amp_dict[Amp][0]):
                                     for param in config.param_amp_dict:
                                         setattr(amp_list[-1], param, 
                                                 getattr(args, param)[Amp])
@@ -202,7 +221,7 @@ def read_in_raw(args, parser):
                         amp_list.append(Amplifier(fn, path, **args.kwargs))
                         amp_list[-1].type = obs
                         for Amp in config.Amps: 
-                                if (amp_list[-1].amp == Amp) or config.Amp_dict[Amp]:
+                                if (amp_list[-1].amp == Amp) or (amp_list[-1].amp ==config.Amp_dict[Amp][0]):
                                     for param in config.param_amp_dict:
                                         setattr(amp_list[-1], param, 
                                                 getattr(args, param)[Amp])

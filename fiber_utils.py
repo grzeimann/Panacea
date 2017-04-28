@@ -11,7 +11,7 @@ from utils import biweight_location, biweight_midvariance, is_outlier
 from utils import biweight_filter
 from scipy.optimize import nnls
 import scipy
-from scipy.interpolate import interp1d, interp2d
+from scipy.interpolate import interp1d, NearestNDInterpolator, LinearNDInterpolator
 from scipy.linalg import lstsq
 from numpy.polynomial.polynomial import polyvander2d
 import matplotlib.pyplot as plt
@@ -740,7 +740,10 @@ def get_norm_for_gauss_power(siglow=1.,sighigh=4.,powlow=1.5,powhigh=4.):
     v = np.zeros(S.shape)
     for i,s in enumerate(S):
         v[i] = gauss_power(x, s, P[i]).sum()
-    return interp2d(S,P,v, bounds_error=False, fill_value=(1.,1.,1.), kind='linear')
+    X = np.zeros((len(S),2))
+    X[:,0] = S
+    X[:,1] = P
+    return LinearNDInterpolator(X,v, fill_value=1.)
 
 def get_norm_for_power_law(c1, sig, xlen):
     if xlen%2:
@@ -817,13 +820,6 @@ def remeasure_core(image, fibers, fib, neighbor, col_lims, bins, cols,
             sel_list.append([sel,sel2])
             cnt+=1
     kind_full = kind_full.astype(int)
-    #x = np.hstack(x)
-    #ind = np.argsort(x)
-    #x = x[ind]
-    #s = np.where(np.diff(x)>0.1)[0]
-    #if len(s)>bins:
-    #    xinterp = np.hstack([-fsize,x[s],fsize])
-    #else:
     xinterp = np.linspace(-fsize,fsize, bins)
     lx = len(xinterp)
     
@@ -855,7 +851,7 @@ def remeasure_core(image, fibers, fib, neighbor, col_lims, bins, cols,
     for i,v in enumerate(sel_v):        
         I -= Y[:,v] * soli[i]     
     try:
-        sol = lstsq(Y[:,~virus_sel], I)[0]  
+        sol = nnls(Y[:,~virus_sel], I)[0]  
     except:
         print(col_lims)
         return None
@@ -863,7 +859,6 @@ def remeasure_core(image, fibers, fib, neighbor, col_lims, bins, cols,
     solb[sel_v] = soli
     solb[sel_s] = sol
     sol = solb
-
     return xinterp, sol
     
 def new_fast_norm(image, Fibers, cols=None, mask=None):
@@ -942,7 +937,7 @@ def fast_nonparametric_fibermodel(image, Fibers, fsize, bins, sigma, power,
                                   c1=0.001, c2=0.002, break_fix=4.5, 
                                   col_group=40, fib_group=4, cols=None, 
                                   mask=None, kind='linear', niter=1,
-                                  outfile='temp.png'):                                             
+                                  outfile='temp.png', do_fit=True):                                             
     if mask is None:
         mask = np.zeros(image.shape)
     ygrid, xgrid = np.indices(image.shape)                                           
@@ -979,32 +974,43 @@ def fast_nonparametric_fibermodel(image, Fibers, fsize, bins, sigma, power,
         yloc=[]
         for j,col in enumerate(col_grid[:-1]):
             for i in fib_grid:
-                xbin, sol = remeasure_core(image, Fibers, i, fib_group, [col_grid[j],col_grid[j+1]], 
-                               bins, cols, fsize, c1, c2, break_fix, 
-                               interp_list)
+                if do_fit:
+                    xbin, sol = remeasure_core(image, Fibers, i, fib_group, [col_grid[j],col_grid[j+1]], 
+                                               bins, cols, fsize, c1, c2, break_fix, 
+                                               interp_list)
+                else:
+                    xbin = np.linspace(-fsize,fsize, bins)
+                    sol = gauss_power(xbin, sigma, power, norm=1./I(sigma,power))
                 xbink.append(xbin)
                 solk.append(sol)
                 xloc.append(col_grid[j]/2.+col_grid[j+1]/2.)
                 yloc.append(i)
-        V = polyvander2d(np.array(xloc)/(1.*Fibers[0].D),
-                         np.array(yloc)/(1.*len(Fibers)), [2,2])
-        ssol = np.zeros((9,bins))
-        v = []
+        sv = []
+        nv = []
+        X = np.zeros((len(xloc),2))
+        X[:,0] = np.array(xloc)/(1.*Fibers[0].D)
+        X[:,1] = np.array(yloc)/(1.*len(Fibers))
         for i in xrange(bins):
-            ssol[:,i] = np.linalg.lstsq(V,np.array(solk)[:,i])[0]
+            sv.append(LinearNDInterpolator(X, np.array(solk)[:,i]))
+            nv.append(NearestNDInterpolator(X, np.array(solk)[:,i]))
         for i,fiber in enumerate(Fibers):
             fiber.core = np.zeros(fiber.xind.shape)
             fiber.fibmodel = np.zeros((bins, fiber.D))
-            v = polyvander2d(fiber.xind/(1.*fiber.D), 
-                                 i/(1.*len(Fibers))*np.ones((len(fiber.xind),)),
-                            [2,2])
-            v1 = polyvander2d(np.arange(fiber.D)/(1.*fiber.D), 
-                                 i/(1.*len(Fibers))*np.ones((fiber.D,)),
-                            [2,2])
+            x =np.zeros((len(fiber.xind),2))
+            x[:,0] = fiber.xind/(1.*fiber.D)
+            x[:,1] = i/(1.*len(Fibers))*np.ones((len(fiber.xind),))
+            x1 = np.zeros((fiber.D,2))
+            x1[:,0] = np.arange(fiber.D)/(1.*fiber.D) 
+            x1[:,1] = i/(1.*len(Fibers))*np.ones((fiber.D,))
             for j,iv in enumerate(interp_list):
-                fiber.core += iv(fiber.yoff)*np.dot(v, ssol[:,j])            
-                fiber.fibmodel[j,:] = np.dot(v1, ssol[:,j]) 
-     
+                si = sv[j](x)
+                if np.isnan(si).sum():    
+                    si[np.isnan(si)] = nv[j](x[np.isnan(si)])
+                si1 = sv[j](x1)
+                if np.isnan(si1).sum():    
+                    si1[np.isnan(si1)] = nv[j](x1[np.isnan(si1)])    
+                fiber.core += iv(fiber.yoff)*si
+                fiber.fibmodel[j,:] = 1.*si1               
     new_fast_norm(image, Fibers, np.arange(b), mask)
     
     for i,fiber in enumerate(Fibers):
@@ -1285,7 +1291,7 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
     plots = np.arange(1,10)
     cmap = plt.get_cmap('Blues')
     for i in [1, 0.5, 0]:
-        for j in [0.0, 0.5, 1.0]:
+        for j in [0.1, 0.5, 0.9]:
             sub = fig.add_subplot(3, 3, plots[pos])
             pos += 1
             minx = int(j * -1 * xwidth + j * (xlen - 1.))
@@ -1307,8 +1313,8 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
     plt.close(fig)     
 
 def check_fiber_profile(image, Fibers, outfile, fsize,
-                        xwidth=75., yplot_high=0.25, 
-                        yplot_low=-0.01, fib_group=4):
+                        xwidth=75., yplot_high=0.4, 
+                        yplot_low=-0.15, fib_group=4):
     '''
     Plot of the fiber profiles for the top/middle/bottom in the fiber and 
     wavelength direction (3 x 3)
@@ -1359,7 +1365,7 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
                 
                 sub.scatter(Fibers[fib].yoff[sel],
                             Fibers[fib].profile[sel], alpha=0.03, 
-                            edgecolor='none',color=[1.,0.4,0.4],s=70)
+                            edgecolor='none',color=[0./255.,175./255.,202./255.],s=70)
                 sub.scatter(Fibers[fib].yoff[sel],
                             Fibers[fib].profile[sel]
                             -Fibers[fib].core[sel],
@@ -1367,8 +1373,8 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
                             color='k')
                 sub.scatter(Fibers[fib].yoff[sel],
                             Fibers[fib].core[sel],
-                            color=[0.2,0.2,.8], edgecolor='none',
-                            alpha=0.05, s=20)
+                            color=[238./255.,90./255.,18./255.], edgecolor='none',
+                            alpha=0.2, s=20)
             x = np.hstack(x)
             y = np.hstack(y)
             if len(mt)>3:
@@ -1384,7 +1390,7 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
                      "Fiber: %03d, X: %04d-%04d" %(int(i*len(Fibers)),
                                                    minx+1,maxx+1), 
                      fontsize=14)
-            sub.text(-fsize+1, yplot_high-0.05, 
+            sub.text(-fsize+1, yplot_high-0.06, 
                      "Contrast: %0.2f" %(contrast), 
                      fontsize=14)
             sub.set_xlim([-fsize, fsize])

@@ -13,7 +13,7 @@ Works for VIRUS-W as well.
 output = "reductions"
 
 # Common Options
-adjust_trace = True # Adjust science trace for shifts
+adjust_trace = False # Adjust science trace for shifts
 use_trace_ref = True # Use default fiber files to always recover desired fibers
 refit_fiber_to_fiber = False # Adjust fiber to fiber using science
 use_other_sky = False # Use another sky background for desired sky subtraction
@@ -22,13 +22,24 @@ check_fibermodel = True
 check_wave = True
 cosmic_iterations = 1
 
+# OPERATIONS
+twi_prepare_image = True
+twi_get_trace = True
+twi_subtract_background = False
+twi_get_fibermodel = True
+twi_get_wavelength_solution = True
+twi_get_fiber_to_fiber = True
+
+sci_subtract_background = False
+sci_sky_subtraction = True
+
 # Configuration Directories
 rootdir = "/work/03946/hetdex/maverick"
 virusconfig = "/work/03946/hetdex/maverick/virus_config"
 darkpath = "/work/03730/gregz/maverick/lib_dark/march"
 biaspath = "/work/03730/gregz/maverick/lib_bias/march"
 
-#rootdir = "/Users/gregz/cure/virus_raw"
+#rootdir = "/Users/gregz/cure/lrs2_raw"
 #virusconfig = "/Users/gregz/cure/virus_early/virus_config"
 #darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark/march"
 #biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias/march"
@@ -55,7 +66,10 @@ param_amp_dict = {'init_lims':'wl', 'specname':'sn', 'dark_mult':'dm',
                   'bias_mult':'bm','collapse_lims':'cwl'}
 
 # Bottom Amplifier for each side 
+#VIRUS AND LRS2
 Amps = ["LL","RU"]
+#VIRUS-W
+#Amps = ["LL"]
 
 # Connecting the bottom ampliefer with the top and total side
 Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}
@@ -72,7 +86,7 @@ virusw_wl = {"LL": [4727,5503]}
 virus_cwl = {"LL": [4900,5350], "RU": [4900,5350]}
 lrs2b_cwl = {"LL": [3633,4655], "RU": [4550,7000]}
 lrs2r_cwl = {"LL": [6425,8440], "RU": [8230,10550]}
-virusw_cwl = {"LL": [4727,5503]}
+virusw_cwl = {"LL": [4900,5350]}
 
 # Dark multiplier for dark subtraction
 virus_dm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
@@ -85,6 +99,12 @@ virus_bm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
 lrs2b_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2r_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 virusw_bm ={"LL": 0.0, "LU": 0.0}
+
+# Bias multiplier for bias subtraction
+virus_nf = {"LL": 112, "LU": 112, "RU": 112, "RL": 112}
+lrs2b_nf = {"LL": 140, "LU": 140, "RU": 140, "RL": 140}
+lrs2r_nf = {"LL": 140, "LU": 140, "RU": 140, "RL": 140}
+virusw_nf ={"LL": 134, "LU": 134}
 
 # Name prefix for the normalized spectrum used for the wavelength solution
 virus_sn = {"LL": "virus", "RU": "virus"}
@@ -108,22 +128,22 @@ virusw_fs = 5.
 virus_bn = 31
 lrs2b_bn = 31
 lrs2r_bn = 31
-virusw_bn = 31
+virusw_bn = 45
 
 # 
-virus_slope = 0.000
+virus_slope = 0.001
 lrs2b_slope = 0.001
 lrs2r_slope = 0.001
-virusw_slope = 0.001
+virusw_slope = 0.000
 
 # 
 virus_intercept = 0.000
 lrs2b_intercept = 0.002
 lrs2r_intercept = 0.002
-virusw_intercept = 0.002
+virusw_intercept = 0.000
 
 # 
-virus_breakpoint = 6.0
+virus_breakpoint = 5.0
 lrs2b_breakpoint = 4.
 lrs2r_breakpoint = 4.
 virusw_breakpoint = 4.
@@ -168,13 +188,13 @@ virusw_dfn = 48
 virus_sig = 2.5
 lrs2b_sig = 1.4
 lrs2r_sig = 1.4
-virusw_sig = 1.4
+virusw_sig = 1.5
 
 # The initial fibermodel power for initializing bins
 virus_pow = 2.5
 lrs2b_pow = 2.0
 lrs2r_pow = 2.0
-virusw_pow = 2.0
+virusw_pow = 2.8
 
 # Wavelength resolution (for wavelength fit initial guess)
 virus_wr = 1.9

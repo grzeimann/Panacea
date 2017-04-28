@@ -85,7 +85,8 @@ def check_criteria(header):
    
     return False, ''
         
-def build_fits(image, args, half, imtype, date, exptime, object_name):
+def build_fits(image, args, half, imtype, date, exptime, object_name,
+               file_name):
     """Build fits object with proper header for Panacea
     
     Parameters
@@ -121,7 +122,7 @@ def build_fits(image, args, half, imtype, date, exptime, object_name):
     else:
         image = image[::-1,::-1]
         hdu = fits.PrimaryHDU(image)
-        x1,x2,y1,y2 = (1, b, 1, args.overscan_pixel_length)
+        x1,x2,y1,y2 = (1, b, a + 1 - args.overscan_pixel_length, a)
         hdu.header['BIASSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
         x1,x2,y1,y2 = (1, b-45, 1, a - args.overscan_pixel_length)
         hdu.header['TRIMSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
@@ -136,6 +137,7 @@ def build_fits(image, args, half, imtype, date, exptime, object_name):
     hdu.header['DATE-OBS'] = date
     hdu.header['EXPTIME'] =exptime
     hdu.header['OBJECT'] = object_name
+    hdu.header['FILENAME'] = file_name
     
     return hdu
     
@@ -204,7 +206,7 @@ def main():
                 else:
                     data = F[0].data[:,:int(b/2)]
                 F1 = build_fits(data, args, h, imtype, 
-                            date, exptime, object_name)
+                            date, exptime, object_name, op.basename(file_name))
                 path = op.join(args.output, datefolder, 'virusw', 
                                'virusw%07d' %obsid, 'exp%02d' %exp_num, 
                                'virusw')

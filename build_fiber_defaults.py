@@ -14,7 +14,6 @@ import config
 import numpy as np
 import os.path as op
 from args import parse_args
-from amplifier import Amplifier
 from distutils.dir_util import mkpath
 
 
@@ -45,92 +44,32 @@ def find_missing_fibers(frac, amp_obj):
     
 def main():
     args = parse_args()
-    for spec in args.specid:
-        spec_ind_twi = np.where(args.twi_df['Specid'] == spec)[0]
-        for amp in config.Amps:
-            amp_ind_twi = np.where(args.twi_df['Amp'] == amp)[0]
-            twi_sel = np.intersect1d(spec_ind_twi, amp_ind_twi)
-            for ind in twi_sel:
-                if args.debug:
-                    print("Working on Cal for %s, %s" %(spec, amp))                    
-                twi1 = Amplifier(args.twi_df['Files'][ind],
-                                 args.twi_df['Output'][ind],
-                                 calpath=args.twi_df['Output'][ind], 
-                                 debug=True, refit=True, dark_mult=0.0,
-                                 darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir, 
-                                 specname=args.specname[amp],
-                                 use_pixelflat=(args.pixelflats<1),
-                                 init_lims=args.wvl_dict[amp], 
-                                 check_fibermodel=True, check_wave=True,
-                                 fsize=args.fsize, 
-                                 fibmodel_nbins=args.fibmodel_bins,
-                                 sigma=args.fibmodel_sig,
-                                 power=args.fibmodel_pow)
-                twi1.get_trace()
-                fname = op.join(args.configdir,'Fiber_Locations',
-                                args.twidir_date[0],
-                                'fiber_loc_%s_%s_%s_%s.txt' %(
-                                args.twi_df['Specid'][ind],
-                                args.twi_df['Ifuslot'][ind],
-                                args.twi_df['Ifuid'][ind],
-                                amp))
-                if len(twi1.fibers) == args.nfibers[amp]:
-                    print("The correct number of fibers, %i, were found." 
-                          %args.nfibers[amp])
-                    Y = np.zeros((len(twi1.fibers),2))
-                    col = int(twi1.D*config.frac)
-                    for i,fiber in enumerate(twi1.fibers):
-                        Y[i,0] = fiber.trace[col]
-                    print("Printing file for fibers.")
-                    create_fiber_file(fname, config.frac, Y)
-                else:
-                    print("Only found %i fibers instead of the expected %i"
-                          %(len(twi1.fibers), args.nfibers[amp]))
-                    Y = find_missing_fibers(config.frac, twi1)
-                    create_fiber_file(fname, config.frac, Y)
-                twi2 = Amplifier(args.twi_df['Files'][ind].replace(amp, 
-                                                      config.Amp_dict[amp][0]),
-                                 args.twi_df['Output'][ind],
-                                 calpath=args.twi_df['Output'][ind], 
-                                 debug=True, refit=True, dark_mult=0.0,
-                                 darkpath=args.darkdir, biaspath=args.biasdir,
-                                 virusconfig=args.configdir, 
-                                 specname=args.specname[amp],
-                                 use_pixelflat=(args.pixelflats<1),
-                                 init_lims=args.wvl_dict[amp], 
-                                 check_fibermodel=True, check_wave=True,
-                                 fsize=args.fsize, 
-                                 fibmodel_nbins=args.fibmodel_bins,
-                                 sigma=args.fibmodel_sig,
-                                 power=args.fibmodel_pow)
-                twi2.get_trace()
-                folder = op.join(args.configdir,'Fiber_Locations',
-                                args.twidir_date[0])
-                mkpath(folder)
-                fname = op.join(args.configdir,'Fiber_Locations',
-                                args.twidir_date[0],
-                                'fiber_loc_%s_%s_%s_%s.txt' %(
-                                args.twi_df['Specid'][ind],
-                                args.twi_df['Ifuslot'][ind],
-                                args.twi_df['Ifuid'][ind],
-                                config.Amp_dict[amp][0]))
-                               
-                if len(twi2.fibers) == args.nfibers[config.Amp_dict[amp][0]]:
-                    print("The correct number of fibers, %i, were found." 
-                          %args.nfibers[config.Amp_dict[amp][0]])
-                    Y = np.zeros((len(twi2.fibers),2))
-                    col = int(twi2.D*config.frac)
-                    for i,fiber in enumerate(twi2.fibers):
-                        Y[i,0] = fiber.trace[col]
-                    print("Printing file for fibers.")
-                    create_fiber_file(fname, config.frac, Y)
-                else:
-                    print("Only found %i fibers instead of the expected %i"
-                          %(len(twi2.fibers), 
-                            args.nfibers[config.Amp_dict[amp][0]]))
-                    Y = find_missing_fibers(config.frac, twi2)
-                    create_fiber_file(fname, config.frac, Y)
+    for twi in args.twi_list:
+        twi.log.info("Working on Cal for %s, %s" %(twi.ifuslot, twi.amp)) 
+        twi.use_trace_ref = False                   
+        twi.get_trace()
+        folder = op.join(args.kwargs['virusconfig'],'Fiber_Locations',
+                                '%s%s%s' 
+                                %(twi.date.year,twi.date.month, twi.date.day))
+        mkpath(folder)              
+        fname = op.join(folder, 'fiber_loc_%s_%s_%s_%s.txt' %(
+                                twi.specid, twi.ifuslot, twi.ifuid,
+                                twi.amp))
+    
+        if len(twi.fibers) == args.nfibers[twi.amp]:
+            twi.log.info("The correct number of fibers, %i, were found." 
+                          %args.nfibers[twi.amp])
+            Y = np.zeros((len(twi.fibers),2))
+            col = int(twi.D*config.frac)
+            for i,fiber in enumerate(twi.fibers):
+                Y[i,0] = fiber.trace[col]
+            twi.log.info("Printing file for fibers.")
+            create_fiber_file(fname, config.frac, Y)
+        else:
+            twi.log.info("Only found %i fibers instead of the expected %i"
+                          %(len(twi.fibers), args.nfibers[twi.amp]))
+            Y = find_missing_fibers(config.frac, twi)
+            create_fiber_file(fname, config.frac, Y)
                     
 if __name__ == '__main__':
     main()    
