@@ -135,7 +135,17 @@ def read_in_raw(args, parser):
     args.use_other_sky = config.use_other_sky
     args.refit_fiber_to_fiber = config.refit_fiber_to_fiber
     args.ifucen_fn = getattr(config,instr+'fn')
-    args.side_dict = config.Side_dict
+    if args.instr.lower() == 'virusw':
+        args.side_dict = config.Side_dict1
+        args.sides = config.Sides1
+        args.Amps = config.Amps1
+        args.Amp_dict = config.Amp_dict1
+    else:
+        args.side_dict = config.Side_dict
+        args.sides = config.Sides
+        args.Amps = config.Amps
+        args.Amp_dict = config.Amp_dict
+        
     args.disp = getattr(config,instr+'di')
     args.scale = getattr(config,instr+'cs')
     args.nfibers = getattr(config, instr+'nf')
@@ -202,8 +212,8 @@ def read_in_raw(args, parser):
                         for fn in files:
                             amp_list.append(Amplifier(fn, path, **args.kwargs))
                             amp_list[-1].type = obs
-                            for Amp in config.Amps: 
-                                if (amp_list[-1].amp == Amp) or (amp_list[-1].amp ==config.Amp_dict[Amp][0]):
+                            for Amp in args.Amps: 
+                                if (amp_list[-1].amp == Amp) or (amp_list[-1].amp ==args.Amp_dict[Amp][0]):
                                     for param in config.param_amp_dict:
                                         setattr(amp_list[-1], param, 
                                                 getattr(args, param)[Amp])
@@ -220,8 +230,8 @@ def read_in_raw(args, parser):
                         path = op.join(config.output, folder, expn, args.instr)
                         amp_list.append(Amplifier(fn, path, **args.kwargs))
                         amp_list[-1].type = obs
-                        for Amp in config.Amps: 
-                                if (amp_list[-1].amp == Amp) or (amp_list[-1].amp ==config.Amp_dict[Amp][0]):
+                        for Amp in args.Amps: 
+                                if (amp_list[-1].amp == Amp) or (amp_list[-1].amp ==args.Amp_dict[Amp][0]):
                                     for param in config.param_amp_dict:
                                         setattr(amp_list[-1], param, 
                                                 getattr(args, param)[Amp])

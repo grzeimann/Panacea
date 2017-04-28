@@ -146,9 +146,11 @@ def main():
                                 args.sci_list[loc].basename, 
                                 N=args.sci_list[loc].N, D=args.sci_list[loc].D,
                                 nfib=len(args.sci_list[loc].fibers),
-                                scale=args.scale)
+                                scale=args.scale,
+                                side_dict = args.side_dict,
+                                sides = args.sides)
                     
-            for side in spec.side_dict:
+            for side in args.side_dict:
                 ids =  [s for s in np.where(up==paths)[0]
                           if args.sci_list[s].amp[0]==side]
                 spec.wavelim = args.sci_list[ids[0]].init_lims

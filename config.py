@@ -68,13 +68,19 @@ param_amp_dict = {'init_lims':'wl', 'specname':'sn', 'dark_mult':'dm',
 # Bottom Amplifier for each side 
 #VIRUS AND LRS2
 Amps = ["LL","RU"]
-#VIRUS-W
-#Amps = ["LL"]
-
-# Connecting the bottom ampliefer with the top and total side
+Sides = ["L", "R"]
+Side_dict = {"L": ["LL","LU"], "R": ["RU","RL"]}
 Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}
 
-Side_dict = {"L": ["LL","LU"], "R": ["RU","RL"]}
+#VIRUS-W
+Amps1 = ["LL"]
+Sides1 = ["L"]
+Side_dict1 = {"L": ["LL","LU"]}
+Amp_dict1 = {"LL": ["LU","L"]}
+
+# Connecting the bottom ampliefer with the top and total side
+
+
 
 # Wavelength limits for each side as defined by the bottom amplifier id
 virus_wl = {"LL": [3490,5500], "RU": [3490,5500]}

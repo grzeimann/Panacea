@@ -17,7 +17,8 @@ __all__ = ["Spectrograph"]
 class Spectrograph:
     def __init__(self, path, specid, ifuslot, ifuid, basename, ifucen=None,
                  verbose=True, N=None, D=None, nfib=None, wavelim=None,
-                 disp=None, scale=None, collapselim=None):
+                 disp=None, scale=None, collapselim=None, side_dict=None,
+                 sides=None):
         self.path = path
         self.specid = specid
         self.ifuslot = ifuslot
@@ -26,8 +27,8 @@ class Spectrograph:
         self.verbose = verbose
         self.setup_logging()
         self.ifucen = ifucen
-        self.side_dict = {"L": ["LL","LU"], "R": ["RU","RL"]}
-        self.sides = ["L","R"]
+        self.side_dict = side_dict
+        self.sides = sides
         self.N = N
         self.D = D
         self.nfib = nfib
@@ -172,12 +173,14 @@ class Spectrograph:
         if side is not None:
             outname = self.build_outname(side, prefix[0])
             outname2 = self.build_outname(side, prefix[1])
+            side_list = [side]
         else:
             outname = self.build_cubename(prefix[0])
             outname2 = self.build_cubename(prefix[1])
+            side_list = self.sides
         self.log.info('Making cube image for %s' %op.basename(outname))
         data = []
-        for side in self.sides:
+        for side in side_list:
             if self.fiberextract[side] is None:
                 self.build_FE(side, ext)
             data.append(self.fiberextract[side])
