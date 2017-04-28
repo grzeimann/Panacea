@@ -26,8 +26,8 @@ class Spectrograph:
         self.verbose = verbose
         self.setup_logging()
         self.ifucen = ifucen
-        self.side_dict = {"L": ["LL","LU"]}#, "R": ["RU","RL"]}
-        self.sides = ["L"]#,"R"]
+        self.side_dict = {"L": ["LL","LU"], "R": ["RU","RL"]}
+        self.sides = ["L","R"]
         self.N = N
         self.D = D
         self.nfib = nfib
