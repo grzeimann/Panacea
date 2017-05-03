@@ -386,9 +386,9 @@ class Amplifier:
         fits_list = []
         for i,image in enumerate(image_list):
             if i==0:
-                fits_list.append(fits.PrimaryHDU(getattr(self, image)))
+                fits_list.append(fits.PrimaryHDU(np.array(getattr(self, image), dtype='float32')))
             else:
-                fits_list.append(fits.ImageHDU(getattr(self, image)))
+                fits_list.append(fits.ImageHDU(np.array(getattr(self, image), dtype='float32')))
 
             fits_list[-1].header['EXTNAME'] = image
             
