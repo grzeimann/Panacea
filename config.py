@@ -34,15 +34,15 @@ sci_subtract_background = False
 sci_sky_subtraction = True
 
 # Configuration Directories
-#rootdir = "/work/03946/hetdex/maverick"
-#virusconfig = "/work/03946/hetdex/maverick/virus_config"
-#darkpath = "/work/03730/gregz/maverick/lib_dark/march"
-#biaspath = "/work/03730/gregz/maverick/lib_bias/march"
+rootdir = "/work/03946/hetdex/maverick"
+virusconfig = "/work/03946/hetdex/maverick/virus_config"
+darkpath = "/work/03730/gregz/maverick/lib_dark/march"
+biaspath = "/work/03730/gregz/maverick/lib_bias/march"
 
-rootdir = "/Users/gregz/cure/lrs2_raw"
-virusconfig = "/Users/gregz/cure/virus_early/virus_config"
-darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark/march"
-biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias/march"
+#rootdir = "/Users/gregz/cure/lrs2_raw"
+#virusconfig = "/Users/gregz/cure/virus_early/virus_config"
+#darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark/march"
+#biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias/march"
 
 # Config dictionary for Amplifier reduction inputs 
 config_dict = {'adjust_trace': 'adjust_trace', 'use_trace_ref':'use_trace_ref',
