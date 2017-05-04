@@ -11,7 +11,6 @@ import argparse as ap
 import textwrap
 import glob
 import os.path as op
-import config
 from amplifier import Amplifier
 
 def parse_args(argv=None):
@@ -98,6 +97,9 @@ def parse_args(argv=None):
 
     parser.add_argument("-q","--quiet", help='''Turn off logging.''',
                         action="count", default=0)
+    
+    parser.add_argument("-C","--config", help='''Config file (drop the .py)''',
+                        default='config', type=str)
                           
     args = parser.parse_args(args=argv)
 
@@ -106,7 +108,14 @@ def parse_args(argv=None):
     return args
     
 def read_in_raw(args, parser):
-    # Check that the arguments are filled
+
+    if args.config[-3:] == '.py':
+        args.config = args.config[:-3]
+    try:
+        exec('import %s as config' %args.config)
+    except ImportError:
+        msg = 'Could not import %s.py because it did not exist' %args.config
+        parser.error(msg)
     if args.ifuslot:
         args.ifuslot = "%03d" %int(args.ifuslot)
     else:
