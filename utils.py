@@ -193,7 +193,7 @@ def biweight_filter(a, order, ignore_central=3, c=6.0, M=None, func=None):
     
     
 
-def biweight_location(a, c=6.0, M=None, axis=None):
+def biweight_location(a, c=6.0, M=None, axis=None, eps=1e-8):
     """
     Copyright (c) 2011-2016, Astropy Developers        
     
@@ -283,7 +283,7 @@ def biweight_location(a, c=6.0, M=None, axis=None):
     else:
         MAD = median_absolute_deviation(a)
 
-    u = np.where(MAD == 0., 0., d / c / MAD)
+    u = np.where(MAD < eps, 0., d / c / MAD)
     
     # now remove the outlier points
     if isinstance(a, np.ma.MaskedArray):
@@ -294,7 +294,7 @@ def biweight_location(a, c=6.0, M=None, axis=None):
     return M + (d * u * mask).sum(axis=axis) / (u * mask).sum(axis=axis)
     
     
-def biweight_midvariance(a, c=6.0, M=None, axis=None):
+def biweight_midvariance(a, c=6.0, M=None, axis=None, eps=1e-8):
     """
     Copyright (c) 2011-2016, Astropy Developers    
     
@@ -396,7 +396,7 @@ def biweight_midvariance(a, c=6.0, M=None, axis=None):
     else:
         MAD = median_absolute_deviation(a)
     # set up the weighting
-    u = np.where(MAD == 0., 0., d / c / MAD)
+    u = np.where(MAD < eps, 0., d / c / MAD)
 
     # now remove the outlier points
     if isinstance(a, np.ma.MaskedArray):
