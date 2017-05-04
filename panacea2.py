@@ -86,52 +86,60 @@ def main():
                                                         'dead']})
     if args.reduce_sci:
         calpath = args.twi_list[0].path
-        for amp in args.sci_list:
-            amp.calpath = calpath
-            amp.check_fibermodel=False
-            amp.check_wave=False
-            execute_function(amp, 'prepare_image')
-            execute_function(amp, 'load', {'path':'calpath',
-                                           'spec_list':['trace','wavelength',
-                                                        'spectrum',
-                                                        'fiber_to_fiber',
-                                                        'dead']})
-            image_list = ['image','error']
-            spec_list = ['spectrum','wavelength','trace','fiber_to_fiber',
-                         'twi_spectrum']                                           
-            if args.sci_operations['subtract_background']:                                            
-                execute_function(amp, 'subtract_background')
-                image_list.append('back')
-            if amp.adjust_trace:
-                amp.refit=True
-                execute_function(amp, 'get_trace')
-                amp.refit=False
-            execute_function(amp, 'load_fibmodel', {'path':'calpath'})
-            if args.refit_fiber_to_fiber:
-                amp.refit=True
-                execute_function(amp, 'get_fiber_to_fiber')
-                amp.refit=False
-            if args.sci_operations['sky_subtraction']:                                            
-                execute_function(amp, 'sky_subtraction')
-                image_list.append('clean_image')
-                image_list.append('continuum_sub')
-                image_list.append('residual')
-                spec_list.append('sky_subtracted')
-                spec_list.append('corrected_spectrum')
-                spec_list.append('corrected_sky_subtracted')
-            if amp.cosmic_iterations>0.0:
-                execute_function(amp, 'clean_cosmics')
-                execute_function(amp, 'fiberextract')
-                if args.sci_operations['sky_subtraction']:                                            
-                    execute_function(amp, 'sky_subtraction')
-            execute_function(amp, 'save', {'image_list':image_list,
-                                           'spec_list':spec_list})
-            amp.image = None
-            amp.back = None
-            amp.clean_image = None
-            amp.continuum_sub = None
-            amp.residual = None
-            amp.error = None
+        reduce_list = ['sky_list', 'sci_list']
+        for _list in reduce_list:
+            if hasattr(args, _list):
+                for amp in getattr(args, _list):
+                    if args.use_other_sky and _list=='sci_list':
+                        try:
+                            amp.skypath = args.sky_list[0].path
+                        except:
+                            amp.log.error('Could not set skypath, using sky in frame instead.')
+                    amp.calpath = calpath
+                    amp.check_fibermodel=False
+                    amp.check_wave=False
+                    execute_function(amp, 'prepare_image')
+                    execute_function(amp, 'load', {'path':'calpath',
+                                                   'spec_list':['trace','wavelength',
+                                                                'spectrum',
+                                                                'fiber_to_fiber',
+                                                                'dead']})
+                    image_list = ['image','error']
+                    spec_list = ['spectrum','wavelength','trace','fiber_to_fiber',
+                                 'twi_spectrum']                                           
+                    if args.sci_operations['subtract_background']:                                            
+                        execute_function(amp, 'subtract_background')
+                        image_list.append('back')
+                    if amp.adjust_trace:
+                        amp.refit=True
+                        execute_function(amp, 'get_trace')
+                        amp.refit=False
+                    execute_function(amp, 'load_fibmodel', {'path':'calpath'})
+                    if args.refit_fiber_to_fiber:
+                        amp.refit=True
+                        execute_function(amp, 'get_fiber_to_fiber')
+                        amp.refit=False
+                    if args.sci_operations['sky_subtraction']:                                            
+                        execute_function(amp, 'sky_subtraction')
+                        image_list.append('clean_image')
+                        image_list.append('flat_image')
+                        image_list.append('continuum_sub')
+                        image_list.append('residual')
+                        spec_list.append('sky_subtracted')
+                        spec_list.append('sky_spectrum')
+                    if amp.cosmic_iterations>0.0:
+                        execute_function(amp, 'clean_cosmics')
+                        execute_function(amp, 'fiberextract')
+                        if args.sci_operations['sky_subtraction']:                                            
+                            execute_function(amp, 'sky_subtraction')
+                    execute_function(amp, 'save', {'image_list':image_list,
+                                                   'spec_list':spec_list})
+                    amp.image = None
+                    amp.back = None
+                    amp.clean_image = None
+                    amp.continuum_sub = None
+                    amp.residual = None
+                    amp.error = None
             
             
     if args.combine_reductions:
