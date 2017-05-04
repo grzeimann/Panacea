@@ -1231,6 +1231,8 @@ class Amplifier:
             self.skyframe = get_model_image(self.image, self.fibers, 
                                             'sky_spectrum', debug=False)
             self.clean_image = self.image - self.skyframe
+            self.flat_image = np.where(self.skyframe<1e-8, 0.0,
+                                       self.image / self.skyframe)
         if self.do_cont_sub:
             for fib, fiber in enumerate(self.fibers):
                 fiber.continuum = biweight_filter(fiber.spectrum 
