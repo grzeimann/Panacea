@@ -29,7 +29,7 @@ def execute_function(obj, call, kwargs={}):
         obj.log.error(sys.exc_info()[0])
         obj.log.error(traceback.print_exc(file=sys.stdout))
 
-def get_ifucenfile(args, side, ifuid):
+def get_ifucenfile(args, side, ifuid, amp=None):
     if args.instr == "virus":
         if not args.kwargs['use_trace_ref']:
             ifucen = np.loadtxt(op.join(args.kwargs['virusconfig'], 
@@ -58,8 +58,20 @@ def get_ifucenfile(args, side, ifuid):
         ifucen = np.loadtxt(op.join(args.kwargs['virusconfig'], 'IFUcen_files', 
                             args.ifucen_fn[side][0]), 
                   usecols=[0,1,2], skiprows=args.ifucen_fn[side][1])   
-    return ifucen
-    
+                  
+    if amp is None:
+        return ifucen
+    else:
+        if args.instr=="virus" and args.kwargs['use_trace_ref']:
+            if amp=="LL":
+                return ifucen, ifucen[112:224,1:3][::-1,:]
+            if amp=="LU":
+                return ifucen, ifucen[:112,1:3][::-1,:]
+            if amp=="RL":
+                return ifucen, ifucen[224:336,1:3][::-1,:]               
+            if amp=="RU":
+                return ifucen, ifucen[336:,1:3][::-1,:] 
+                
 def get_distortion_file(args):
     return Distortion(op.join(args.kwargs['virusconfig'], 'DeformerDefaults', 
                                         'mastertrace_twi_027_L.dist')) 
@@ -114,7 +126,14 @@ def main():
                         amp.refit=True
                         execute_function(amp, 'get_trace')
                         amp.refit=False
-                    execute_function(amp, 'load_fibmodel', {'path':'calpath'})
+                    if args.sci_operations['remeasure_fibermodel']:  
+                        amp.refit=True
+                        amp.check_fibermodel=True                                          
+                        execute_function(amp, 'get_fibermodel')
+                        execute_function(amp, 'save_fibmodel')
+                        amp.refit=False
+                    else:
+                        execute_function(amp, 'load_fibmodel', {'path':'calpath'})
                     if args.refit_fiber_to_fiber:
                         amp.refit=True
                         execute_function(amp, 'get_fiber_to_fiber')
@@ -132,6 +151,12 @@ def main():
                         execute_function(amp, 'fiberextract')
                         if args.sci_operations['sky_subtraction']:                                            
                             execute_function(amp, 'sky_subtraction')
+                    if args.instr=='virus':
+                        ifucen, temp = get_ifucenfile(args, amp.amp[0], 
+                                            amp.ifuid, amp.amp)
+                        amp.ifupos = temp
+                        image_list.append('ifupos')
+                        
                     execute_function(amp, 'save', {'image_list':image_list,
                                                    'spec_list':spec_list})
                     amp.image = None
