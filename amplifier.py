@@ -45,7 +45,7 @@ class Amplifier:
                  fiber_group=8, col_group=48, mask=None, wave_nbins=21, 
                  wave_order=3, default_fib=0, init_lims=None, collapse_lims=None,
                  interactive=False, check_wave=False,filt_size_ind=21, 
-                 filt_size_agg=51, filt_size_final=51, filt_size_sky=51,
+                 filt_size_agg=551, filt_size_final=75, filt_size_sky=551,
                  col_frac = 0.47, use_trace_ref=False, fiber_date=None,
                  cont_smooth=25, make_residual=True, do_cont_sub=True,
                  make_skyframe=True, wave_res=1.9, trace_step=4,
@@ -335,6 +335,7 @@ class Amplifier:
         else:
             self.error = np.zeros((self.N, self.D), dtype=float)
         self.exptime = F[0].header['EXPTIME']
+        self.ifupos = None
    
     def setup_logging(self):
         '''Set up a logger for shuffle with a name ``amplifier``.
@@ -545,9 +546,7 @@ class Amplifier:
         except:
             self.log.warning('Trying to save fibermodel but none exist.')
             return None
-        ylims = np.zeros((len(self.fibers),2))
-        ylims[:,0] = -self.fsize
-        ylims[:,1] = self.fsize
+        ylims = np.linspace(-1.*self.fsize, self.fsize, self.fibmodel_nbins)
         fibmodel = np.zeros((len(self.fibers), self.fibmodel_nbins, self.D))
         for i,fiber in enumerate(self.fibers):
             fibmodel[i,:,:] = fiber.fibmodel
@@ -577,8 +576,7 @@ class Amplifier:
             self.log.warning('Error opening fibers from %s' %fn)
             self.log.warning('%s does not exist.' %fn)
             return None
-        ylims = F[1].data
-        a,b = ylims.shape
+        a,b,c = F[0].data.shape
         ygrid, xgrid = np.indices(self.image.shape)
         for i in xrange(a):
             try:
@@ -669,7 +667,7 @@ class Amplifier:
         
     def calculate_photonnoise(self):
         self.log.info('Calculating photon noise for %s' % self.basename)
-        self.error[:] = np.sqrt(self.error**2 + np.where(self.image>0.,self.image, 0.))
+        self.error[:] = np.sqrt(self.error**2 + np.where(self.image>1e-8,self.image, 0.))
         
         
     def divide_pixelflat(self):
@@ -1156,8 +1154,10 @@ class Amplifier:
             masterwave = np.hstack(masterwave)
             smoothspec = np.hstack(masterspec)
             ind = np.argsort(masterwave)
-            masterwave[:] = masterwave[ind]
-            smoothspec[:] = smoothspec[ind]
+            masterwave = masterwave[ind]
+            smoothspec = smoothspec[ind]
+            np.savetxt(op.join(self.path,'masterspec_%s.txt'%self.amp), 
+                       np.vstack([masterwave,smoothspec]).swapaxes(0,1))
             self.averagespec = biweight_filter(smoothspec, self.filt_size_agg)
             for fib, fiber in enumerate(self.fibers):
                 fiber.fiber_to_fiber = biweight_filter(fiber.spectrum 
