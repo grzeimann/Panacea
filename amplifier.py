@@ -45,7 +45,7 @@ class Amplifier:
                  fiber_group=8, col_group=48, mask=None, wave_nbins=21, 
                  wave_order=3, default_fib=0, init_lims=None, collapse_lims=None,
                  interactive=False, check_wave=False,filt_size_ind=21, 
-                 filt_size_agg=551, filt_size_final=75, filt_size_sky=551,
+                 filt_size_agg=151, filt_size_final=75, filt_size_sky=151,
                  col_frac = 0.47, use_trace_ref=False, fiber_date=None,
                  cont_smooth=25, make_residual=True, do_cont_sub=True,
                  make_skyframe=True, wave_res=1.9, trace_step=4,
