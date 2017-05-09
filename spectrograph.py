@@ -18,7 +18,7 @@ class Spectrograph:
     def __init__(self, path, specid, ifuslot, ifuid, basename, ifucen=None,
                  verbose=True, N=None, D=None, nfib=None, wavelim=None,
                  disp=None, scale=None, collapselim=None, side_dict=None,
-                 sides=None):
+                 sides=None, header=None):
         self.path = path
         self.specid = specid
         self.ifuslot = ifuslot
@@ -38,6 +38,7 @@ class Spectrograph:
         self.scale = scale
         self.fiberextract = {"L": None, "R": None}
         self.seeing = scale * 1.5
+        self.header = header
         
     def setup_logging(self):
         '''Set up a logger for shuffle with a name ``panacea``.
@@ -121,7 +122,17 @@ class Spectrograph:
         new = np.zeros((self.N*2, self.D))
         new[:self.N,:] = image[0]
         new[self.N:,:] = image[1]
-        hdu = fits.PrimaryHDU(np.array(new, dtype='float32'))
+        hdu = fits.PrimaryHDU(np.array(new, dtype='float32'), 
+                              header=self.header)
+        hdu.header.remove('BIASSEC')
+        hdu.header.remove('TRIMSEC')
+        hdu.header.remove('AMPSEC')
+        hdu.header.remove('DETSEC')
+        hdu.header.remove('CCDSEC')
+        hdu.header['DATASEC']='[%i:%i,%i:%i]'%(1,self.D,1,2*self.N)
+        hdu.header['CCDPOS']=side
+        hdu.header.remove('CCDHALF')
+        hdu.header.remove('AMPLIFIE')
         self.write_to_fits(hdu, outname)
 
 
@@ -162,11 +173,21 @@ class Spectrograph:
         self.log.info('Making fiberextract image for  %s' %op.basename(outname))
         self.build_FE(side, ext)
         hdu = fits.PrimaryHDU(np.array(self.fiberextract[side], 
-                                       dtype='float32'))
+                                       dtype='float32'), header=self.header)
+        hdu.header.remove('BIASSEC')
+        hdu.header.remove('TRIMSEC')
+        hdu.header.remove('AMPSEC')
+        hdu.header.remove('DETSEC')
+        hdu.header.remove('CCDSEC')
         hdu.header['CRVAL1'] = self.wavelim[0]
         hdu.header['CDELT1'] = self.disp
         hdu.header['CD1_1'] = self.disp
         hdu.header['CRPIX1'] = 1
+        hdu.header['CCDPOS']=side
+        hdu.header['DATASEC']='[%i:%i,%i:%i]'%(1,self.fiberextract[side].shape[0],
+                                               1,self.fiberextract[side].shape[1])
+        hdu.header.remove('CCDHALF')
+        hdu.header.remove('AMPLIFIE')
         self.write_to_fits(hdu, outname)  
 
     def write_cube(self, ext, prefix, side=None):
