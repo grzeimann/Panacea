@@ -181,7 +181,8 @@ def main():
                                 nfib=len(args.sci_list[loc].fibers),
                                 scale=args.scale,
                                 side_dict = args.side_dict,
-                                sides = args.sides)
+                                sides = args.sides, 
+                                header=args.sci_list[loc].header)
                     
             for side in args.side_dict:
                 ids =  [s for s in np.where(up==paths)[0]
