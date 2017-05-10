@@ -19,7 +19,6 @@ import numpy as np
 import sys
 import re
 import glob
-#import cPickle as pickle
 from fiber_utils import get_trace_from_image, get_indices, get_interp_list
 from fiber_utils import check_fiber_trace, measure_background
 from fiber_utils import calculate_wavelength_chi2, get_model_image
@@ -453,35 +452,6 @@ class Amplifier:
                                       if fiber.dead]
             
 
-    def load_fibermodel(self, path='path'):
-        '''
-        Load fibers in self.path. Redefine the path for the fiber to self.path
-        in case it was copied over. After loaded, evaluate the fibermodel as 
-        well as the wavelength solution if available.  
-        '''
-        self.log.info('Loading fiber models from %s' %getattr(self, path))
-        fn = op.join(getattr(self, path), 'fibermodel_%s_%s_%s_%s.fits' %(self.specid, 
-                                                            self.ifuslot,
-                                                            self.ifuid,
-                                                            self.amp))
-        try:
-            F = fits.open(fn)
-        except IOError:
-            self.log.warning('Error opening fibers from %s' %fn)
-            self.log.warning('%s does not exist.' %fn)
-            return None
-        ylims = F[1].data
-        a,b = ylims.shape
-        ygrid, xgrid = np.indices(self.image.shape)
-        for i in xrange(a):
-            try:
-                self.fibers[i]
-            except IndexError:    
-                self.log.warning('Fiber %i does not have the necessary trace info.'  %i)
-                return None
-            self.fibers[i].yoff = self.fibers[i].yind - self.fibers[i].trace[self.fibers[i].xind]
-            self.fibers[i].core = F[0].data[i,self.fibers[i].yind-int(ylims[i,0]),
-                                            self.fibers[i].xind]
 
     def convert_binning(self, values, b):
         '''
@@ -499,41 +469,6 @@ class Amplifier:
         return np.interp((1.*np.arange(self.D))/self.D, 
                          (1.*np.arange(b))/b, values)
             
-
-    def save_fibermodel(self):
-        '''
-        Save the fibers to fits file with two extensions
-        The first is 3-d for trace, wavelength and fiber_to_fiber
-        The second is which fibers are good and not dead
-        '''
-        try: 
-            self.fibers[0].core
-        except:
-            self.log.warning('Trying to save fibermodel but none exist.')
-            return None
-        diff = np.zeros((len(self.fibers),))
-        for i,fiber in enumerate(self.fibers):
-            diff[i] = fiber.trace.max() - fiber.trace.min()
-        cut_size = int(diff.max() + self.fsize*2 + 1)
-        ylims = np.zeros((len(self.fibers),2))
-        fibmodel = np.zeros((len(self.fibers), cut_size, self.D))
-        for i,fiber in enumerate(self.fibers):
-            my1 = int(np.max([0,fiber.trace.min()-self.fsize]))
-            my2 = my1 + cut_size
-            if my2>self.N:
-                my2 = self.N
-                my1 = self.N - cut_size
-            ylims[i,0] = my1
-            ylims[i,1] = my2
-            fibmodel[i,fiber.yind-my1,fiber.xind] = fiber.core
-        s = fits.PrimaryHDU(fibmodel)
-        t = fits.ImageHDU(ylims)
-        hdu = fits.HDUList([s,t])
-        fn = op.join(self.path, 'fibermodel_%s_%s_%s_%s.fits' %(self.specid, 
-                                                               self.ifuslot,
-                                                               self.ifuid,
-                                                               self.amp))
-        self.write_to_fits(hdu, fn)
 
     def save_fibmodel(self):
         '''
@@ -1307,4 +1242,11 @@ class Amplifier:
             mastersmooth = np.hstack(mastersmooth)
             mastersmooth[:] = mastersmooth[ind]
             self.mastersmooth = biweight_filter(mastersmooth, 
-                                                self.filt_size_sky)     
+                                                self.filt_size_sky)
+                                                
+    def detect(self):
+        '''
+        Rudimentary Detection algorithm
+        '''
+        
+        
