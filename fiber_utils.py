@@ -20,6 +20,7 @@ import os.path as op
 import numpy as np
 import time
 import sys
+from astropy.convolution import convolve, Gaussian1DKernel
 
 
 def str2bool(v):
@@ -906,7 +907,7 @@ def get_indices(image, Fibers, fsize, cols=None):
         fiber.yind = y + my1
         fiber.xind = x 
 
-def measure_background(image, Fibers, width=30, niter=3):
+def measure_background(image, Fibers, width=30, niter=3, order=3):
     t = []
     a,b = image.shape
     ygrid,xgrid = np.indices(image.shape)
@@ -924,11 +925,11 @@ def measure_background(image, Fibers, width=30, niter=3):
     mask[ind] = 1.-is_outlier(image[ind])
     sel = np.where(mask==1.)[0]
     for i in xrange(niter):
-        V = polyvander2d(xgrid[sel],ygrid[sel],[2,2])
+        V = polyvander2d(xgrid[sel],ygrid[sel],[order,order])
         sol = np.linalg.lstsq(V, image[sel])[0]
         vals = np.dot(V,sol) - image[sel]
         sel = sel[~is_outlier(vals)]
-    V = polyvander2d(xgrid,ygrid,[2,2])
+    V = polyvander2d(xgrid,ygrid,[order,order])
     back = np.dot(V, sol).reshape(a,b)    
     return back
         
@@ -1313,8 +1314,8 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
     plt.close(fig)     
 
 def check_fiber_profile(image, Fibers, outfile, fsize,
-                        xwidth=75., yplot_high=0.4, 
-                        yplot_low=-0.15, fib_group=4):
+                        xwidth=75., yplot_high=0.25, 
+                        yplot_low=-0.05, fib_group=4):
     '''
     Plot of the fiber profiles for the top/middle/bottom in the fiber and 
     wavelength direction (3 x 3)
@@ -1365,15 +1366,15 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
                 
                 sub.scatter(Fibers[fib].yoff[sel],
                             Fibers[fib].profile[sel], alpha=0.03, 
-                            edgecolor='none',color=[0./255.,175./255.,202./255.],s=70)
+                            edgecolor='none',color=[1.0,0.4,0.4],s=70)
                 sub.scatter(Fibers[fib].yoff[sel],
                             Fibers[fib].profile[sel]
                             -Fibers[fib].core[sel],
                             alpha=0.03, edgecolor='none', 
-                            color='k')
+                            color=[0.4, 0.4, 0.4])
                 sub.scatter(Fibers[fib].yoff[sel],
                             Fibers[fib].core[sel],
-                            color=[238./255.,90./255.,18./255.], edgecolor='none',
+                            color=[0.2, 0.2, 0.8], edgecolor='none',
                             alpha=0.2, s=20)
             x = np.hstack(x)
             y = np.hstack(y)
@@ -1395,7 +1396,7 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
                      fontsize=14)
             sub.set_xlim([-fsize, fsize])
             sub.set_ylim([yplot_low, yplot_high])                
-            sub.plot([-fsize,fsize],[0,0],'r-',lw=2)
+            sub.plot([-fsize,fsize],[0,0],'r-',lw=3)
     fig.savefig(outfile)
     plt.close(fig)
     
@@ -1456,4 +1457,52 @@ def check_wavelength_fit(Fibers, sun, outfile, fiber_sel=[107,58,5],
                      fontsize=12)
             sub.set_ylim([ylow, yhigh])
     fig.savefig(outfile)
-    plt.close(fig)         
+    plt.close(fig)  
+
+
+def detect_sources(Fibers, oversample_value, sigma, wave_step):
+    for fiber in Fibers:
+        s = np.diff(fiber.wavelength) / oversample_value
+        t = np.hstack([s, s[-1]])
+        wave_list = []
+        for i in np.arange(oversample_value):
+            wave_list.append([fiber.wavelength + i*t])
+        fiber.oversampled_wave = np.sort(np.hstack(wave_list)).ravel()
+        oversampled_spec = np.interp(fiber.oversampled_wave, fiber.wavelength, 
+                                     fiber.sky_subtracted).ravel()
+        fiber.oversampled_ftf = np.interp(fiber.oversampled_wave, fiber.wavelength, 
+                                     fiber.fiber_to_fiber).ravel()
+        kernel = Gaussian1DKernel(stddev=sigma/oversample_value)
+        fiber.convolved_spec = convolve(oversampled_spec, kernel)
+    spectrum = np.array([fiber.convolved_spec for fiber in Fibers])
+    wavelength = np.array([fiber.oversampled_wave for fiber in Fibers])
+    ftf = np.array([fiber.oversampled_ftf for fiber in Fibers])
+    wvmin = wavelength.min()
+    wvmax = wavelength.max()
+    wave_array = np.arange(wvmin,wvmax+2*wave_step, wave_step)
+    wave_array_fit = wave_array[:-1]+wave_step/2.
+    xind=[]
+    yind=[]
+    lx = 0
+    ly = len(wave_array)-1
+    for i in np.arange(ly):
+        x,y = np.where((wavelength>=wave_array[i]) * (wavelength<wave_array[i+1]))
+        lx = np.max([lx,len(x)])
+        xind.append(x)
+        yind.append(y)
+    A = np.ones((ly,lx))*999
+    B = np.ma.array(A, mask=(A==999).astype(np.int))    
+    for i in np.arange(ly):
+        B[i,:len(xind[i])] = spectrum[xind[i],yind[i]]
+    C = biweight_midvariance(B,axis=(1,))
+    V = np.zeros(spectrum.shape)
+    for i in np.arange(ly):
+        V[xind[i],yind[i]] = np.interp(wavelength[xind[i],yind[i]],wave_array_fit,C)
+    Sig = spectrum/(V*np.sqrt(ftf))
+    Sig[np.isnan(Sig)] = 0.0
+    return Sig
+   
+        
+            
+    
+           
