@@ -1248,5 +1248,5 @@ class Amplifier:
         '''
         Rudimentary Detection algorithm
         '''
-        
+        pass
         
