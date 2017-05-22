@@ -13,7 +13,7 @@ Works for VIRUS-W as well.
 output = "reductions"
 
 # Common Options
-adjust_trace = False # Adjust science trace for shifts
+adjust_trace = True # Adjust science trace for shifts
 use_trace_ref = True # Use default fiber files to always recover desired fibers
 refit_fiber_to_fiber = False # Adjust fiber to fiber using science
 use_other_sky = False # Use another sky background for desired sky subtraction
@@ -32,6 +32,8 @@ twi_get_fiber_to_fiber = True
 
 sci_subtract_background = False
 sci_sky_subtraction = True
+sci_remeasure_fibermodel = False
+sci_significance_map = True
 
 # Configuration Directories
 rootdir = "/work/03946/hetdex/maverick"
@@ -39,7 +41,7 @@ virusconfig = "/work/03946/hetdex/maverick/virus_config"
 darkpath = "/work/03730/gregz/maverick/lib_dark/march"
 biaspath = "/work/03730/gregz/maverick/lib_bias/march"
 
-#rootdir = "/Users/gregz/cure/lrs2_raw"
+#rootdir = "/Users/gregz/cure/virus_raw"
 #virusconfig = "/Users/gregz/cure/virus_early/virus_config"
 #darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark/march"
 #biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias/march"
@@ -77,9 +79,6 @@ Amps1 = ["LL"]
 Sides1 = ["L"]
 Side_dict1 = {"L": ["LL","LU"]}
 Amp_dict1 = {"LL": ["LU","L"]}
-
-# Connecting the bottom ampliefer with the top and total side
-
 
 
 # Wavelength limits for each side as defined by the bottom amplifier id
@@ -137,7 +136,7 @@ lrs2r_bn = 31
 virusw_bn = 45
 
 # 
-virus_slope = 0.001
+virus_slope = 0.000
 lrs2b_slope = 0.001
 lrs2r_slope = 0.001
 virusw_slope = 0.000
@@ -149,7 +148,7 @@ lrs2r_intercept = 0.002
 virusw_intercept = 0.000
 
 # 
-virus_breakpoint = 5.0
+virus_breakpoint = 5.5
 lrs2b_breakpoint = 4.
 lrs2r_breakpoint = 4.
 virusw_breakpoint = 4.
@@ -173,7 +172,7 @@ lrs2r_fibergroup = 4
 virusw_fibergroup = 4
 
 #
-virus_colgroup = 40
+virus_colgroup = 20
 lrs2b_colgroup = 40
 lrs2r_colgroup = 40
 virusw_colgroup = 40

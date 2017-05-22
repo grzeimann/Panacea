@@ -1460,7 +1460,13 @@ def check_wavelength_fit(Fibers, sun, outfile, fiber_sel=[107,58,5],
     plt.close(fig)  
 
 
-def detect_sources(Fibers, oversample_value, sigma, wave_step):
+def calculate_significance(Fibers, image, error, oversample_value=3, sigma=1.3, 
+                           wave_step=4, sigthresh=4, cosmic_avoidance=4, 
+                           interactive=False):
+    '''
+    Calculates the significance of map from extracted spectra.  
+    '''
+    # Oversample and Convolve
     for fiber in Fibers:
         s = np.diff(fiber.wavelength) / oversample_value
         t = np.hstack([s, s[-1]])
@@ -1477,6 +1483,9 @@ def detect_sources(Fibers, oversample_value, sigma, wave_step):
     spectrum = np.array([fiber.convolved_spec for fiber in Fibers])
     wavelength = np.array([fiber.oversampled_wave for fiber in Fibers])
     ftf = np.array([fiber.oversampled_ftf for fiber in Fibers])
+    trace = np.array([fiber.trace for fiber in Fibers])
+    
+    # Calculate Noise
     wvmin = wavelength.min()
     wvmax = wavelength.max()
     wave_array = np.arange(wvmin,wvmax+2*wave_step, wave_step)
@@ -1493,14 +1502,45 @@ def detect_sources(Fibers, oversample_value, sigma, wave_step):
     A = np.ones((ly,lx))*999
     B = np.ma.array(A, mask=(A==999).astype(np.int))    
     for i in np.arange(ly):
-        B[i,:len(xind[i])] = spectrum[xind[i],yind[i]]
+        B[i,:len(xind[i])] = np.where(ftf[xind[i],yind[i]]>1e-8, 
+                                      spectrum[xind[i],yind[i]]/ftf[xind[i],yind[i]],
+                                      0.0)
     C = biweight_midvariance(B,axis=(1,))
     V = np.zeros(spectrum.shape)
     for i in np.arange(ly):
         V[xind[i],yind[i]] = np.interp(wavelength[xind[i],yind[i]],wave_array_fit,C)
+    
+    # Calculate Significance
     Sig = spectrum/(V*np.sqrt(ftf))
-    Sig[np.isnan(Sig)] = 0.0
-    return Sig
+    Sig[~np.isfinite(Sig)] = -999.
+    
+    # Flag values near cosmics
+    cyind, cxind = np.where(error==-1)
+    for xind,yind in zip(cxind,cyind):
+        trace_a = trace[:,xind]
+        fibs = np.where(np.abs(trace_a-yind)<cosmic_avoidance)[0]
+        for fib in fibs:
+            lx = (xind-cosmic_avoidance)*oversample_value
+            hx = (xind+cosmic_avoidance)*oversample_value + 1
+            Sig[fib,lx:hx] = -999.
+    
+    if interactive:
+        import pyds9
+        ds9 = pyds9.DS9()
+        ds9.set_np2arr(image)
+        ds9.set('scale mode zscale')
+        fibind, xind = np.where(Sig>sigthresh)
+        fib_dict = {}
+        for i,fib in enumerate(Fibers):
+            fib_dict[i] = 0
+        for fib, xind in zip(fibind,xind):
+            fib_dict[fib] +=1
+            if fib_dict[fib] < 50:
+                x = 1.*xind/oversample_value + 1
+                y = Fibers[fib].trace[int(x)-1]
+                s = Sig[fib,xind]
+                ds9.set('region','image; circle %f %f %f # color=blue' %(x,y,s))
+    return Sig, wavelength
    
         
             

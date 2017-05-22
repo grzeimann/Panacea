@@ -156,7 +156,10 @@ def main():
                                             amp.ifuid, amp.amp)
                         amp.ifupos = temp
                         image_list.append('ifupos')
-                        
+                    if args.sci_operations['significance_map']:
+                        execute_function(amp, 'get_significance_map')
+                        image_list.append('sig')
+                        image_list.append('sigwave')
                     execute_function(amp, 'save', {'image_list':image_list,
                                                    'spec_list':spec_list})
                     amp.image = None
@@ -165,6 +168,8 @@ def main():
                     amp.continuum_sub = None
                     amp.residual = None
                     amp.error = None
+                    amp.sig = None
+                    amp.sigwave = None
             
             
     if args.combine_reductions:
@@ -181,8 +186,7 @@ def main():
                                 nfib=len(args.sci_list[loc].fibers),
                                 scale=args.scale,
                                 side_dict = args.side_dict,
-                                sides = args.sides, 
-                                header=args.sci_list[loc].header)
+                                sides = args.sides, header=args.sci_list[loc].header)
                     
             for side in args.side_dict:
                 ids =  [s for s in np.where(up==paths)[0]

@@ -24,6 +24,7 @@ from fiber_utils import check_fiber_trace, measure_background
 from fiber_utils import calculate_wavelength_chi2, get_model_image
 from fiber_utils import check_fiber_profile, check_wavelength_fit
 from fiber_utils import fast_nonparametric_fibermodel, new_fast_norm
+from fiber_utils import calculate_significance
 from fiber import Fiber
 import cosmics
 from datetime import datetime
@@ -50,7 +51,8 @@ class Amplifier:
                  make_skyframe=True, wave_res=1.9, trace_step=4,
                  fibmodel_slope=0.001, fibmodel_intercept=0.002,
                  fibmodel_breakpoint=5., fibmodel_step=4,
-                 fibmodel_interpkind='linear', cosmic_iterations=1):
+                 fibmodel_interpkind='linear', cosmic_iterations=1,
+                 sky_scale=1.0):
         ''' 
         Initialize class
         ----------------
@@ -290,6 +292,7 @@ class Amplifier:
         self.filt_size_agg = filt_size_agg
         self.filt_size_final = filt_size_final
         self.filt_size_sky = filt_size_sky
+        self.sky_scale = sky_scale
         
         # Continuum subtraction
         self.cont_smooth = cont_smooth
@@ -485,8 +488,8 @@ class Amplifier:
         fibmodel = np.zeros((len(self.fibers), self.fibmodel_nbins, self.D))
         for i,fiber in enumerate(self.fibers):
             fibmodel[i,:,:] = fiber.fibmodel
-        s = fits.PrimaryHDU(fibmodel)
-        t = fits.ImageHDU(ylims)
+        s = fits.PrimaryHDU(np.array(fibmodel,dtype='float32'))
+        t = fits.ImageHDU(np.array(ylims,dtype='float32'))
         hdu = fits.HDUList([s,t])
         fn = op.join(self.path, 'fibermodel_%s_%s_%s_%s.fits' %(self.specid, 
                                                                self.ifuslot,
@@ -1139,8 +1142,9 @@ class Amplifier:
                 fiber.sky_spectrum = (fiber.fiber_to_fiber 
                                  * np.interp(fiber.wavelength, self.masterwave, 
                                              self.mastersky))
+        
         for fib, fiber in enumerate(self.fibers):        
-            fiber.sky_subtracted = fiber.spectrum - fiber.sky_spectrum
+            fiber.sky_subtracted = fiber.spectrum - fiber.sky_spectrum * self.sky_scale
             if hasattr(fiber, 'twi_spectrum'):
                 
                 fiber.corrected_spectrum = np.where(fiber.twi_spectrum>0.0, 
@@ -1244,9 +1248,12 @@ class Amplifier:
             self.mastersmooth = biweight_filter(mastersmooth, 
                                                 self.filt_size_sky)
                                                 
-    def detect(self):
+    def get_significance_map(self):
         '''
-        Rudimentary Detection algorithm
+        Rudimentary significance map algorithm
         '''
-        pass
+        self.log.info('Calculating significance map for %s' %self.basename)
+        self.sig, self.sigwave = calculate_significance(self.fibers, 
+                                                        self.clean_image, 
+                                                        self.error)
         
