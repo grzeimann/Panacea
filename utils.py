@@ -80,6 +80,25 @@ def median_absolute_deviation(a, axis=None):
     # calculated the median average deviation
     return func(np.abs(a - a_median), axis=axis)
     
+def biweight_bin(binx, longx, longy):
+    '''
+    Compute the biweight location with a moving window of size "order"
+
+    '''
+    diff_array = np.hstack([np.diff(binx),np.diff(binx)[-1]]) / 2.
+    mxcol = 0
+    sel_list = []
+    for i,v in enumerate(binx):
+        sel_list.append(np.where( (longx>(binx[i]-diff_array[i])) 
+                                 *(longx<(binx[i]+diff_array[i])))[0]) 
+        mxcol = np.max([mxcol, len(sel_list[-1])])
+    
+    A = np.ones((len(binx),mxcol))*-999.
+    for i,v in enumerate(binx):
+        A[i,:len(sel_list[i])] = longy[sel_list[i]]
+    C = np.ma.array(A, mask=(A == -999.).astype(np.int))
+    return biweight_location(C, axis=(1,))
+
 
 def biweight_filter2d(a, Order, Ignore_central=(3,3), c=6.0, M=None, func=None):
     '''
@@ -104,17 +123,18 @@ def biweight_filter2d(a, Order, Ignore_central=(3,3), c=6.0, M=None, func=None):
         sys.exit(1)
     if func is None:
         func = biweight_location
+        
     a = np.array(a, copy=False)
     if a.ndim != 2:
         print("Input array/list should be 2-dimensional")
         sys.exit()
 
-    yc = np.arange(Ignore_central[0]/2+1,Order[0]/2)
-    xc = np.arange(Ignore_central[1]/2+1,Order[1]/2)
-    ly = np.max([len(yc),1])
-    lx = np.max([len(xc),1])
+    yc = np.arange(Ignore_central[0]/2+1,Order[0]/2+1)
+    xc = np.arange(Ignore_central[1]/2+1,Order[1]/2+1)
+    ly = np.max([len(yc)*2,1])
+    lx = np.max([len(xc)*2,1])
     size = lx * ly
-    A = np.ones(a.shape + (size,))*-999
+    A = np.ones(a.shape + (size,))*-999.
     k=0
     if Order[0]>1:
         if Order[1]>1:
@@ -122,16 +142,33 @@ def biweight_filter2d(a, Order, Ignore_central=(3,3), c=6.0, M=None, func=None):
                 for j in xc:
                     A[:-i,:-j,k] = a[i:,j:]
                     k+=1
+            for i in yc:
+                for j in xc:
+                    A[i:,j:,k] = a[:-i,:-j]
+                    k+=1
+            for i in yc:
+                for j in xc:
+                    A[:-i,j:,k] = a[i:,:-j]
+                    k+=1
+            for i in yc:
+                for j in xc:
+                    A[i:,:-j,k] = a[:-i,j:]
+                    k+=1
         else:
             for i in yc:
                 A[:-i,:,k] = a[i:,:]
+                k+=1
+            for i in yc:
+                A[i:,:,k] = a[:-i,:]
                 k+=1
     else:
         for j in xc:
             A[:,:-j,k] = a[:,j:]
             k+=1
-    
-    C = np.ma.array(A, mask=(A == -999).astype(np.int))
+        for j in xc:
+            A[:,j:,k] = a[:,:-j]
+            k+=1    
+    C = np.ma.array(A, mask=(A == -999.).astype(np.int))
     return func(C, axis=(2,))
 
 
@@ -294,7 +331,7 @@ def biweight_location(a, c=6.0, M=None, axis=None, eps=1e-8):
     return M + (d * u * mask).sum(axis=axis) / (u * mask).sum(axis=axis)
     
     
-def biweight_midvariance(a, c=6.0, M=None, axis=None, eps=1e-8):
+def biweight_midvariance(a, c=9.0, M=None, axis=None, eps=1e-8, niter=2):
     """
     Copyright (c) 2011-2016, Astropy Developers    
     
@@ -368,45 +405,43 @@ def biweight_midvariance(a, c=6.0, M=None, axis=None, eps=1e-8):
     --------
     Copy of the astropy function with the "axis" argument added appropriately.
     """
-
-    if M is None:
+    for k in np.arange(niter):
         if isinstance(a, np.ma.MaskedArray):
             func = np.ma.median
         else:
             a = np.array(a, copy=False)
             func = np.median
-        M = func(a, axis=axis)
-    else:
-        a = np.array(a, copy=False)
-
-    N = M*1.      
-    # set up the difference
-    if axis is not None:
-        for i in axis:
-            N = np.expand_dims(N, axis=i)
-
-    # set up the difference
-    d = a - N
-
-    # set up the weighting
-    if axis is not None:
-        MAD = median_absolute_deviation(a, axis=axis)
-        for i in axis:
-            MAD = np.expand_dims(MAD, axis=i)
-    else:
-        MAD = median_absolute_deviation(a)
-    # set up the weighting
-    u = np.where(MAD < eps, 0., d / c / MAD)
-
-    # now remove the outlier points
-    if isinstance(a, np.ma.MaskedArray):
-        mask = (np.abs(u) < 1).astype(np.int) * (1-a.mask.astype(np.int))
-    else:
-        mask = (np.abs(u) < 1).astype(np.int)
+        if M is None or k>0:
+            M = func(a, axis=axis)
+        N = M*1.      
+        # set up the difference
+        if axis is not None:
+            for i in axis:
+                N = np.expand_dims(N, axis=i)
+    
+        # set up the difference
+        d = np.asarray(a - N)
+    
+        # set up the weighting
+        if axis is not None:
+            MAD = median_absolute_deviation(a, axis=axis)
+            for i in axis:
+                MAD = np.expand_dims(MAD, axis=i)
+        else:
+            MAD = median_absolute_deviation(a)
+        # set up the weighting
+        u = np.where(MAD < eps, 0., d / c / MAD)
+    
+        # now remove the outlier points
+        if isinstance(a, np.ma.MaskedArray):
+            mask = (np.abs(u) < 1).astype(np.int) * (1-a.mask.astype(np.int))
+            a.mask = 1 - mask
+        else:
+            mask = (np.abs(u) < 1).astype(np.int)
     u = u ** 2
     n = mask.sum(axis=axis)
-    return n ** 0.5 * ((d*mask)**2 * (1 - u * mask) ** 4).sum(axis=axis) ** 0.5\
-        / np.abs(((1 - u * mask) * (1 - 5 * u * mask)).sum(axis=axis))
+    return n ** 0.5 * (mask * d**2 * (1 - u) ** 4).sum(axis=axis) ** 0.5\
+        / np.abs((mask * (1 - u) * (1 - 5 * u)).sum(axis=axis))
 
 
 def is_outlier(points, thresh=3.5):
