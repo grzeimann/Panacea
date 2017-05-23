@@ -16,11 +16,12 @@ output = "reductions"
 adjust_trace = True # Adjust science trace for shifts
 use_trace_ref = True # Use default fiber files to always recover desired fibers
 refit_fiber_to_fiber = False # Adjust fiber to fiber using science
-use_other_sky = False # Use another sky background for desired sky subtraction
+use_other_sky = True # Use another sky background for desired sky subtraction
 use_pixelflat = False
 check_fibermodel = True
 check_wave = True
-cosmic_iterations = 1
+cosmic_iterations = 0
+make_model_image = False
 
 # OPERATIONS
 twi_prepare_image = True
@@ -33,7 +34,7 @@ twi_get_fiber_to_fiber = True
 sci_subtract_background = False
 sci_sky_subtraction = True
 sci_remeasure_fibermodel = False
-sci_significance_map = True
+sci_significance_map = False
 
 # Configuration Directories
 rootdir = "/work/03946/hetdex/maverick"
