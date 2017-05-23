@@ -52,7 +52,7 @@ class Amplifier:
                  fibmodel_slope=0.001, fibmodel_intercept=0.002,
                  fibmodel_breakpoint=5., fibmodel_step=4,
                  fibmodel_interpkind='linear', cosmic_iterations=1,
-                 sky_scale=1.0):
+                 sky_scale=1.0, make_model_image=False):
         ''' 
         Initialize class
         ----------------
@@ -301,6 +301,7 @@ class Amplifier:
         self.make_residual = make_residual
         self.do_cont_sub = do_cont_sub
         self.make_skyframe = make_skyframe
+        self.make_model_image = make_model_image
         
         # Initialized variables
         self.N, self.D = F[0].data.shape
@@ -927,12 +928,17 @@ class Amplifier:
             get_indices(self.image, self.dead_fibers, self.fsize)
                         
         else:
-            self.load_fibermodel(path='calpath')
+            self.load_fibmodel(path='calpath')
                 
         if self.check_fibermodel:
             outfile = op.join(self.path,'fibmodel_%s.png' %self.basename)
             check_fiber_profile(self.image, self.good_fibers, outfile, self.fsize)
-
+        
+        if self.make_model_image:
+            for fib,fiber in enumerate(self.fibers):
+                fiber.fib_mult = np.ones((self.D,))
+            self.fibmodel_image = get_model_image(self.image, self.fibers, 
+                                            'fib_mult', debug=False)
 
     def fiberextract(self, cols=None):
         '''
@@ -1142,9 +1148,9 @@ class Amplifier:
                 fiber.sky_spectrum = (fiber.fiber_to_fiber 
                                  * np.interp(fiber.wavelength, self.masterwave, 
                                              self.mastersky))
-        
-        for fib, fiber in enumerate(self.fibers):        
-            fiber.sky_subtracted = fiber.spectrum - fiber.sky_spectrum * self.sky_scale
+        for fib, fiber in enumerate(self.fibers):    
+            fiber.sky_spectrum *= self.sky_scale
+            fiber.sky_subtracted = fiber.spectrum - fiber.sky_spectrum 
             if hasattr(fiber, 'twi_spectrum'):
                 
                 fiber.corrected_spectrum = np.where(fiber.twi_spectrum>0.0, 
