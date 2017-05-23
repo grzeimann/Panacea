@@ -133,7 +133,8 @@ def main():
                         execute_function(amp, 'save_fibmodel')
                         amp.refit=False
                     else:
-                        execute_function(amp, 'load_fibmodel', {'path':'calpath'})
+                        execute_function(amp, 'get_fibermodel')
+#                        execute_function(amp, 'load_fibmodel', {'path':'calpath'})
                     if args.refit_fiber_to_fiber:
                         amp.refit=True
                         execute_function(amp, 'get_fiber_to_fiber')
@@ -160,6 +161,8 @@ def main():
                         execute_function(amp, 'get_significance_map')
                         image_list.append('sig')
                         image_list.append('sigwave')
+                    if args.kwargs['make_model_image']:
+                        image_list.append('fibmodel_image')
                     execute_function(amp, 'save', {'image_list':image_list,
                                                    'spec_list':spec_list})
                     amp.image = None
@@ -194,6 +197,10 @@ def main():
                 spec.wavelim = args.sci_list[ids[0]].init_lims
                 spec.collapselim = args.sci_list[ids[0]].collapse_lims
                 spec.disp = args.disp[side]
+                if args.kwargs['make_model_image']:
+                    execute_function(spec, 'write_spectrograph_image',
+                                 {  'side':side, 'ext':'fibmodel_image', 
+                                 'prefix':'model_'})                    
                 execute_function(spec, 'write_spectrograph_image',
                                  {'side':side, 'ext':'image', 'prefix':''})
                 execute_function(spec, 'write_spectrograph_image',
@@ -244,12 +251,14 @@ def main():
                                  'prefix':'FeT'})
                 execute_function(spec, 'write_cube', {'ext':'twi_spectrum',
                                                       'prefix':['CuFeT','CoFeT']})
-                for side in spec.side_dict:
-                    execute_function(spec, 'write_fiberextract',
-                                 {'side':side, 'ext':'sky_subtracted', 
-                                 'prefix':'FeS'})
-                execute_function(spec, 'write_cube', {'ext':'sky_subtracted',
-                                                      'prefix':['CuFeS','CoFeS']})            
+                if args.sci_operations['sky_subtraction']:                                            
+
+                    for side in spec.side_dict:
+                        execute_function(spec, 'write_fiberextract',
+                                         {'side':side, 'ext':'sky_subtracted', 
+                                          'prefix':'FeS'})
+                        execute_function(spec, 'write_cube', {'ext':'sky_subtracted',
+                                                  'prefix':['CuFeS','CoFeS']})            
        
     t2 = time.time()
     print("Time Taken: %0.3f" %(t2-t1))
