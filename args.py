@@ -94,6 +94,10 @@ def parse_args(argv=None):
     parser.add_argument("-ske","--skydir_expnum", nargs='?', type=str,
                         help='''Sky Directory exposure number.
                         Ex: \"1\" or \"05\"''', default=None) 
+                        
+    parser.add_argument("-ss","--sky_scale", nargs='?', type=float,
+                        help='''Sky scale factor.
+                        Ex: 1.0''', default=1.0)     
 
     parser.add_argument("-q","--quiet", help='''Turn off logging.''',
                         action="count", default=0)
@@ -141,6 +145,8 @@ def read_in_raw(args, parser):
     for con in config.config_dict:
         args.kwargs[con] = getattr(config, config.config_dict[con]) 
     
+    args.kwargs['sky_scale'] = args.sky_scale
+    args.kwargs['make_model_image'] = config.make_model_image
     args.use_other_sky = config.use_other_sky
     args.refit_fiber_to_fiber = config.refit_fiber_to_fiber
     args.ifucen_fn = getattr(config,instr+'fn')
@@ -244,6 +250,13 @@ def read_in_raw(args, parser):
                                     for param in config.param_amp_dict:
                                         setattr(amp_list[-1], param, 
                                                 getattr(args, param)[Amp])
-        setattr(args,obs+'_list', amp_list)                    
+        setattr(args,obs+'_list', amp_list)
+        if len(getattr(args,obs+'_list'))<1:
+            msg = 'The length of the %s list is 0.\n' %(obs)
+            msg += 'Likely the wrong path was given.\n'
+            msg += 'Check the date, obs, exp.\n'
+            msg += 'If those are correct, check the config file paths.\n'
+            msg += 'Specifically, "rootdir".'
+            parser.error(msg)                                 
 
     return args
