@@ -1499,12 +1499,12 @@ def calculate_significance(Fibers, image, error, oversample_value=3, sigma=1.3,
         lx = np.max([lx,len(x)])
         xind.append(x)
         yind.append(y)
-    A = np.ones((ly,lx))*999
-    B = np.ma.array(A, mask=(A==999).astype(np.int))    
+    A = np.ones((ly,lx))*-999.
     for i in np.arange(ly):
-        B[i,:len(xind[i])] = np.where(ftf[xind[i],yind[i]]>1e-8, 
+        A[i,:len(xind[i])] = np.where(ftf[xind[i],yind[i]]>1e-8, 
                                       spectrum[xind[i],yind[i]]/ftf[xind[i],yind[i]],
                                       0.0)
+    B = np.ma.array(A, mask=(A==-999.).astype(np.int))    
     C = biweight_midvariance(B,axis=(1,))
     V = np.zeros(spectrum.shape)
     for i in np.arange(ly):

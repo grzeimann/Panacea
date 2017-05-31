@@ -12,7 +12,7 @@ from __future__ import (division, print_function, absolute_import,
                         unicode_literals)
 
 from distutils.dir_util import mkpath
-from utils import biweight_location, biweight_filter
+from utils import biweight_location, biweight_filter, biweight_midvariance
 from astropy.io import fits
 import os.path as op
 import numpy as np
@@ -29,7 +29,7 @@ from fiber import Fiber
 import cosmics
 from datetime import datetime
 import logging
-
+import matplotlib.pyplot as plt
 
 __all__ = ["Amplifier"]
 
@@ -315,6 +315,10 @@ class Amplifier:
         self.trimmed = False
         self.overscan_value = None
         self.gain = F[0].header['GAIN']
+        self.ra = F[0].header['TRAJCRA']
+        self.dec = F[0].header['TRAJCDEC']
+        self.pa = F[0].header['PARANGLE']
+        self.rho = F[0].header['RHO_STRT']
         self.rdnoise = F[0].header['RDNOISE']
         self.amp = (F[0].header['CCDPOS'].replace(' ', '') 
                     + F[0].header['CCDHALF'].replace(' ', ''))
@@ -374,6 +378,14 @@ class Amplifier:
             hdu.writeto(outname, overwrite=True)
         except TypeError:
             hdu.writeto(outname, clobber=True)
+
+    def write_header(self, hdu):
+        hdu.header['RA'] = self.ra
+        hdu.header['DEC'] = self.dec
+        hdu.header['PA'] = self.pa
+        hdu.header['RHO'] = self.rho
+        hdu.header['EXPTIME'] = self.exptime
+        return hdu
             
     def save(self, image_list=[], spec_list=[]):
         '''
@@ -404,6 +416,7 @@ class Amplifier:
             except AttributeError:
                 self.log.warning('Attribute %s does not exist to save' %spec)
         if fits_list:
+            fits_list[0] = self.write_header(fits_list[0])
             hdu = fits.HDUList(fits_list)
             self.write_to_fits(hdu, fn)
            
@@ -1262,4 +1275,42 @@ class Amplifier:
         self.sig, self.sigwave = calculate_significance(self.fibers, 
                                                         self.clean_image, 
                                                         self.error)
+    def make_error_analysis(self):
+        wave_step = 4.
+        wavelength = np.array([fiber.wavelength for fiber in self.fibers])
+        ftf = np.array([fiber.fiber_to_fiber for fiber in self.fibers])
+        trace = np.array([np.round(fiber.trace) for fiber in self.fibers], dtype=int)
+                
+        
+        # Calculate Noise
+        wvmin = wavelength.min()
+        wvmax = wavelength.max()
+        wave_array = np.arange(wvmin,wvmax+2*wave_step, wave_step)
+        wave_array_fit = wave_array[:-1]+wave_step/2.
+        xind=[]
+        yind=[]
+        lx = 0
+        ly = len(wave_array)-1
+        for i in np.arange(ly):
+            x,y = np.where((wavelength>=wave_array[i]) * (wavelength<wave_array[i+1]))
+            lx = np.max([lx,len(x)])
+            xind.append(x)
+            yind.append(y)
+        A = np.ones((ly,lx))*-999.
+        B = np.ones((ly,lx))*-999.
+        for i in np.arange(ly):
+            A[i,:len(xind[i])] = np.where(ftf[xind[i],yind[i]]>1e-8, 
+                                          self.clean_image[trace[xind[i],yind[i]],yind[i]]/ftf[xind[i],yind[i]],
+                                          0.0)
+            B[i,:len(xind[i])] = self.error[trace[xind[i],yind[i]],yind[i]]
+        C = np.ma.array(A, mask=(A==-999.).astype(np.int))    
+        D = np.ma.array(B, mask=(B==-999.).astype(np.int))    
+        E = biweight_midvariance(C,axis=(1,))
+        F = biweight_location(D, axis=(1,))
+        self.error_analysis = np.zeros((3,len(wave_array_fit)))
+        self.error_analysis[0,:] = wave_array_fit
+        self.error_analysis[1,:] = F / self.rdnoise
+        self.error_analysis[2,:] = E / self.rdnoise
+        
+                                                         
         

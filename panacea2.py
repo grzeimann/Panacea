@@ -163,6 +163,8 @@ def main():
                         image_list.append('sigwave')
                     if args.kwargs['make_model_image']:
                         image_list.append('fibmodel_image')
+                    execute_function(amp, 'make_error_analysis')
+                    image_list.append('error_analysis')
                     execute_function(amp, 'save', {'image_list':image_list,
                                                    'spec_list':spec_list})
                     amp.image = None
@@ -173,6 +175,7 @@ def main():
                     amp.error = None
                     amp.sig = None
                     amp.sigwave = None
+                    amp.error_analysis = None
             
             
     if args.combine_reductions:

@@ -80,22 +80,22 @@ def median_absolute_deviation(a, axis=None):
     # calculated the median average deviation
     return func(np.abs(a - a_median), axis=axis)
     
-def biweight_bin(binx, longx, longy):
+def biweight_bin(xv, x, y):
     '''
     Compute the biweight location with a moving window of size "order"
 
     '''
-    diff_array = np.hstack([np.diff(binx),np.diff(binx)[-1]]) / 2.
+    diff_array = np.hstack([np.diff(xv),np.diff(xv)[-1]]) / 2.
     mxcol = 0
     sel_list = []
-    for i,v in enumerate(binx):
-        sel_list.append(np.where( (longx>(binx[i]-diff_array[i])) 
-                                 *(longx<(binx[i]+diff_array[i])))[0]) 
+    for i,v in enumerate(xv):
+        sel_list.append(np.where( (x>(xv[i]-diff_array[i])) 
+                                 *(x<(xv[i]+diff_array[i])))[0]) 
         mxcol = np.max([mxcol, len(sel_list[-1])])
     
-    A = np.ones((len(binx),mxcol))*-999.
-    for i,v in enumerate(binx):
-        A[i,:len(sel_list[i])] = longy[sel_list[i]]
+    A = np.ones((len(xv),mxcol))*-999.
+    for i,v in enumerate(xv):
+        A[i,:len(sel_list[i])] = y[sel_list[i]]
     C = np.ma.array(A, mask=(A == -999.).astype(np.int))
     return biweight_location(C, axis=(1,))
 
@@ -331,7 +331,7 @@ def biweight_location(a, c=6.0, M=None, axis=None, eps=1e-8):
     return M + (d * u * mask).sum(axis=axis) / (u * mask).sum(axis=axis)
     
     
-def biweight_midvariance(a, c=9.0, M=None, axis=None, eps=1e-8, niter=2):
+def biweight_midvariance(a, c=6.0, M=None, axis=None, eps=1e-8, niter=1):
     """
     Copyright (c) 2011-2016, Astropy Developers    
     
