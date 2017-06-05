@@ -1292,7 +1292,8 @@ class Amplifier:
         lx = 0
         ly = len(wave_array)-1
         for i in np.arange(ly):
-            x,y = np.where((wavelength>=wave_array[i]) * (wavelength<wave_array[i+1]))
+            x,y = np.where((wavelength>=wave_array[i]) 
+                            * (wavelength<wave_array[i+1]))
             lx = np.max([lx,len(x)])
             xind.append(x)
             yind.append(y)
@@ -1300,17 +1301,20 @@ class Amplifier:
         B = np.ones((ly,lx))*-999.
         for i in np.arange(ly):
             A[i,:len(xind[i])] = np.where(ftf[xind[i],yind[i]]>1e-8, 
-                                          self.clean_image[trace[xind[i],yind[i]],yind[i]]/ftf[xind[i],yind[i]],
+                                          self.clean_image[trace[xind[i],
+                                                                 yind[i]],
+                                                           yind[i]]
+                                          / ftf[xind[i],yind[i]],
                                           0.0)
             B[i,:len(xind[i])] = self.error[trace[xind[i],yind[i]],yind[i]]
         C = np.ma.array(A, mask=(A==-999.).astype(np.int))    
         D = np.ma.array(B, mask=(B==-999.).astype(np.int))    
-        E = biweight_midvariance(C,axis=(1,))
+        E = biweight_midvariance(C, axis=(1,))
         F = biweight_location(D, axis=(1,))
         self.error_analysis = np.zeros((3,len(wave_array_fit)))
         self.error_analysis[0,:] = wave_array_fit
-        self.error_analysis[1,:] = F / self.rdnoise
-        self.error_analysis[2,:] = E / self.rdnoise
+        self.error_analysis[1,:] = F 
+        self.error_analysis[2,:] = E 
         
                                                          
         
