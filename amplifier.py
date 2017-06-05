@@ -385,6 +385,8 @@ class Amplifier:
         hdu.header['PA'] = self.pa
         hdu.header['RHO'] = self.rho
         hdu.header['EXPTIME'] = self.exptime
+        hdu.header['OSCANMN'] = self.overscan_value
+        hdu.header['OSCANSTD'] = self.overscan_noise * self.gain
         return hdu
             
     def save(self, image_list=[], spec_list=[]):
@@ -568,6 +570,9 @@ class Amplifier:
         '''
         if self.overscan_value is None:
             self.overscan_value = biweight_location(self.image[
+                                              self.biassec[2]:self.biassec[3],
+                                              self.biassec[0]:self.biassec[1]])
+            self.overscan_noise = biweight_midvariance(self.image[
                                               self.biassec[2]:self.biassec[3],
                                               self.biassec[0]:self.biassec[1]])
             self.image[:] -= self.overscan_value
