@@ -390,6 +390,10 @@ class Amplifier:
         hdu.header['RAWPATH'] = self.path
         hdu.header['RAWFN'] = self.filename
         hdu.header['FSIZE'] = self.fsize
+        hdu.header['IFUSLOT'] = self.ifuslot
+        hdu.header['SPECID'] = self.specid
+        hdu.header['IFUSID'] = self.ifuid
+        hdu.header['AMP'] = self.amp
         return hdu
             
     def save(self, image_list=[], spec_list=[]):
