@@ -387,6 +387,9 @@ class Amplifier:
         hdu.header['EXPTIME'] = self.exptime
         hdu.header['OSCANMN'] = self.overscan_value
         hdu.header['OSCANSTD'] = self.overscan_noise * self.gain
+        hdu.header['RAWPATH'] = self.path
+        hdu.header['RAWFN'] = self.filename
+        hdu.header['FSIZE'] = self.fsize
         return hdu
             
     def save(self, image_list=[], spec_list=[]):
