@@ -126,7 +126,7 @@ def build_fits(image, args, half, imtype, date, exptime, object_name,
         hdu.header['BIASSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
         x1,x2,y1,y2 = (1, b-45, 1, a - args.overscan_pixel_length)
         hdu.header['TRIMSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
-    hdu.header['GAIN'] = 1.0
+    hdu.header['GAIN'] = 0.62
     hdu.header['RDNOISE'] = 1.0
     hdu.header['CCDPOS'] = 'L'
     hdu.header['CCDHALF'] = half
@@ -135,7 +135,7 @@ def build_fits(image, args, half, imtype, date, exptime, object_name,
     hdu.header['IFUSLOT'] = 000
     hdu.header['IFUID'] = '000'
     hdu.header['DATE-OBS'] = date
-    hdu.header['EXPTIME'] =exptime
+    hdu.header['EXPTIME'] = exptime
     hdu.header['OBJECT'] = object_name
     hdu.header['FILENAME'] = file_name
     
