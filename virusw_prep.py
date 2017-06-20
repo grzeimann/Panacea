@@ -173,6 +173,7 @@ def main():
     unique_date = {}
     
     file_list = glob.glob(op.join(args.folder, '*.fits'))
+    file_list = sorted(file_list)
     for file_name in file_list:
         try:
             F = fits.open(file_name)    
@@ -188,15 +189,16 @@ def main():
             object_name = F[0].header['OBJECT'].split(' ')[0]
             if datefolder not in unique_date:
                 unique_date[datefolder] = {}
-                unique_date[datefolder][object_name] = 1
+                unique_date[datefolder][object_name] = [1,1]
             else:
                 if object_name not in unique_date[datefolder]:
-                    unique_date[datefolder][object_name] = 1
+                    o_cnt = len(unique_date[datefolder]) + 1
+                    unique_date[datefolder][object_name] = [o_cnt,1]
                 else:
-                    unique_date[datefolder][object_name] += 1
+                    unique_date[datefolder][object_name][1] += 1
                     
-            obsid = len(unique_date[datefolder])
-            exp_num = unique_date[datefolder][object_name]
+            obsid = unique_date[datefolder][object_name][0]
+            exp_num = unique_date[datefolder][object_name][1]
             print(file_name,datefolder, object_name, obsid, exp_num)
 
             a,b  = F[0].data.shape
