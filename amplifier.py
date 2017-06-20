@@ -52,7 +52,7 @@ class Amplifier:
                  fibmodel_slope=0.001, fibmodel_intercept=0.002,
                  fibmodel_breakpoint=5., fibmodel_step=4,
                  fibmodel_interpkind='linear', cosmic_iterations=1,
-                 sky_scale=1.0, make_model_image=False):
+                 sky_scale=1.0, make_model_image=False, init_sol=None):
         ''' 
         Initialize class
         ----------------
@@ -285,7 +285,8 @@ class Amplifier:
         self.collapse_lims = collapse_lims
         self.interactive = interactive
         self.check_wave = check_wave        
-        self.wave_res = wave_res        
+        self.wave_res = wave_res    
+        self.init_sol = init_sol
         
         # Smoothing options for individual and master spectra
         self.filt_size_ind = filt_size_ind
@@ -315,10 +316,14 @@ class Amplifier:
         self.trimmed = False
         self.overscan_value = None
         self.gain = F[0].header['GAIN']
-        self.ra = F[0].header['TRAJCRA']
-        self.dec = F[0].header['TRAJCDEC']
-        self.pa = F[0].header['PARANGLE']
-        self.rho = F[0].header['RHO_STRT']
+        new_keywords = ['TRAJCRA', 'TRAJCDEC', 'PARANGLE',
+                        'RHO_STRT']
+        att_list = ['ra', 'dec', 'pa', 'rho']
+        for newk, att in zip(new_keywords, att_list):
+            try:
+                setattr(self, att, F[0].header[newk])
+            except:
+                setattr(self, att, None)
         self.rdnoise = F[0].header['RDNOISE']
         self.amp = (F[0].header['CCDPOS'].replace(' ', '') 
                     + F[0].header['CCDHALF'].replace(' ', ''))
@@ -331,7 +336,7 @@ class Amplifier:
         self.specid = '%03d' %F[0].header['SPECID']
         self.ifuid = F[0].header['IFUID'].replace(' ', '')
         self.ifuslot ='%03d' %F[0].header['IFUSLOT']
-        datetemp = re.split('-',F[0].header['DATE-OBS'])
+        datetemp = re.split('[-,T]',F[0].header['DATE-OBS'])
         self.date = datetime(int(datetemp[0]), int(datetemp[1]), 
                              int(datetemp[2]))
         self.image = np.array(F[0].data, dtype=float)
@@ -1028,7 +1033,8 @@ class Amplifier:
                                                         debug=False, 
                                                   interactive=self.interactive,
                                                         nbins=self.wave_nbins,
-                                                        res=self.wave_res)
+                                                        res=self.wave_res,
+                                                        init_sol=self.init_sol)
                     fiber.wavelength = fw*1.
                     fiber.wave_polyvals = fwp*1.
                     # Boundary check:

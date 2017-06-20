@@ -8,19 +8,20 @@ Works for VIRUS-W as well.
 @author: gregz
 """
 
+import numpy as np
 
 # Output Directory
 output = "reductions"
 
 # Common Options
-adjust_trace = True # Adjust science trace for shifts
-use_trace_ref = True # Use default fiber files to always recover desired fibers
+adjust_trace = False # Adjust science trace for shifts
+use_trace_ref = False # Use default fiber files to always recover desired fibers
 refit_fiber_to_fiber = False # Adjust fiber to fiber using science
-use_other_sky = True # Use another sky background for desired sky subtraction
+use_other_sky = False # Use another sky background for desired sky subtraction
 use_pixelflat = False
 check_fibermodel = True
 check_wave = True
-cosmic_iterations = 0
+cosmic_iterations = 1
 make_model_image = False
 
 # OPERATIONS
@@ -34,7 +35,7 @@ twi_get_fiber_to_fiber = True
 sci_subtract_background = False
 sci_sky_subtraction = True
 sci_remeasure_fibermodel = False
-sci_significance_map = False
+sci_significance_map = True
 
 # Configuration Directories
 rootdir = "/work/03946/hetdex/maverick"
@@ -42,7 +43,7 @@ virusconfig = "/work/03946/hetdex/maverick/virus_config"
 darkpath = "/work/03730/gregz/maverick/lib_dark/march"
 biaspath = "/work/03730/gregz/maverick/lib_bias/march"
 
-#rootdir = "/Users/gregz/cure/virus_raw"
+#rootdir = "/Users/gregz/cure/virusw_raw"
 #virusconfig = "/Users/gregz/cure/virus_early/virus_config"
 #darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark/march"
 #biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias/march"
@@ -75,54 +76,62 @@ Sides = ["L", "R"]
 Side_dict = {"L": ["LL","LU"], "R": ["RU","RL"]}
 Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}
 
-#VIRUS-W
+#VIRUS-W Low Res
 Amps1 = ["LL"]
 Sides1 = ["L"]
 Side_dict1 = {"L": ["LL","LU"]}
 Amp_dict1 = {"LL": ["LU","L"]}
+
+# VIRUS-W High Res
+Amps2 = ["RU"]
+Sides2 = ["R"]
+Side_dict2 = {"R": ["RU","RL"]}
+Amp_dict2 = {"RU": ["RL","R"]}
 
 
 # Wavelength limits for each side as defined by the bottom amplifier id
 virus_wl = {"LL": [3490,5500], "RU": [3490,5500]}
 lrs2b_wl = {"LL": [3633,4655], "RU": [4550,7000]}
 lrs2r_wl = {"LL": [6425,8440], "RU": [8230,10550]}
-virusw_wl = {"LL": [4727,5503]}
+virusw_wl = {"LL": [3830,6000],"RU": [4727,5503]}
+virusw_lowres_initsol = np.array([155.79487795, -420.19605654,  
+                                  2458.0539946 , 3791.40366259])
 
 # Collapsing wavelengths
 virus_cwl = {"LL": [4900,5350], "RU": [4900,5350]}
 lrs2b_cwl = {"LL": [3633,4655], "RU": [4550,7000]}
 lrs2r_cwl = {"LL": [6425,8440], "RU": [8230,10550]}
-virusw_cwl = {"LL": [4900,5350]}
+virusw_cwl = {"LL": [4900,5350], "RU": [4900,5350]}
 
 # Dark multiplier for dark subtraction
 virus_dm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
 lrs2b_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2r_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
-virusw_dm ={"LL": 0.0, "LU": 0.0}
+virusw_dm ={"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 
 # Bias multiplier for bias subtraction
 virus_bm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
 lrs2b_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2r_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
-virusw_bm ={"LL": 0.0, "LU": 0.0}
+virusw_bm ={"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 
 # Bias multiplier for bias subtraction
 virus_nf = {"LL": 112, "LU": 112, "RU": 112, "RL": 112}
 lrs2b_nf = {"LL": 140, "LU": 140, "RU": 140, "RL": 140}
 lrs2r_nf = {"LL": 140, "LU": 140, "RU": 140, "RL": 140}
-virusw_nf ={"LL": 134, "LU": 134}
+virusw_nf ={"LL": 134, "LU": 134, "RU": 134, "RL": 134}
 
 # Name prefix for the normalized spectrum used for the wavelength solution
 virus_sn = {"LL": "virus", "RU": "virus"}
 lrs2b_sn = {"LL": "lrs2_uv", "RU": "lrs2_orange"}
 lrs2r_sn = {"LL": "lrs2_red", "RU": "lrs2_farred"}
-virusw_sn = {"LL": "virusw"}
+virusw_sn = {"LL": "virusw_lowres","RU": "virusw"}
 
 # Name of the IFUcen file for fiber positions
 virus_fn = {"L": ["IFUcen_VIFU",30], "R": ["IFUcen_VIFU",30]}
 lrs2b_fn = {"L": ["LRS2_B_UV_mapping.txt",4], "R": ["LRS2_B_OR_mapping.txt",4]}
 lrs2r_fn = {"L": ["LRS2_R_NR_mapping.txt",4], "R": ["LRS2_R_FR_mapping.txt",4]}
-virusw_fn = {"L": ["virusw_mapping.txt",4]}
+virusw_fn = {"L": ["virusw_mapping.txt",4],"R": ["virusw_mapping.txt",4]}
 
 # Pixel width in radius over which the fibermodel is defined
 virus_fs = 8.
@@ -212,7 +221,7 @@ virusw_wr = 0.19
 virus_di = {"L": 1.9, "R": 1.9}
 lrs2b_di = {"L": 0.5, "R": 1.2}
 lrs2r_di = {"L": 1.0, "R": 1.0}
-virusw_di = {"L": 0.19}
+virusw_di = {"L":0.53,"R": 0.19}
 
 # Cube pixel scale
 virus_cs = 1.0

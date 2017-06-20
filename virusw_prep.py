@@ -39,10 +39,14 @@ def parse_args(argv=None):
                         help='''Output Directory
                         Default: \"virusw_raw"''', 
                         default="virusw_raw")
+                              
                         
     parser.add_argument("--overscan_pixel_length", nargs='?', type=int,
                         help='''number of pixels in overscan''',
                         default=50)                        
+
+    parser.add_argument("-hi","--highres", help='''High Res Mode?''',
+                        action="count", default=0)
                         
     args = parser.parse_args(args=argv)
 
@@ -200,8 +204,12 @@ def main():
             exptime = F[0].header['EXPTIME']
             datetime = ''.join(F[0].header['TIME'].split(' ')[0].split(':'))[:-1]
             half = ['L', 'U']
+            if args.highres:
+                side='R'
+            else:
+                side='L'
             for h in half:
-                if h == 'L':
+                if (h == 'L' and side=='L') or (h=='U' and side=='R'):
                     data = F[0].data[:,int(b/2):]
                 else:
                     data = F[0].data[:,:int(b/2)]
@@ -211,8 +219,8 @@ def main():
                                'virusw%07d' %obsid, 'exp%02d' %exp_num, 
                                'virusw')
                 mkpath(path)
-                outname = op.join(path, '%sT%s_000L%s_%s.fits' 
-                                  %(datefolder, datetime, h, imtype))
+                outname = op.join(path, '%sT%s_000%s%s_%s.fits' 
+                                  %(datefolder, datetime, side,h, imtype))
                 write_to_fits(F1, outname)
                 
 if __name__ == '__main__':

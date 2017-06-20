@@ -58,6 +58,12 @@ def parse_args(argv=None):
                         Default: "blue"
                         Ex: "blue" for LRS2B,
                             "red" for LRS2R.''', default = "blue")
+
+    parser.add_argument("--virusw_res", nargs='?', type=str, 
+                        help='''Instrument side to process. 
+                        Default: "blue"
+                        Ex: "lowres" for low resolution,
+                            "highres" for high resolution.''', default = "lowres")
                                                 
     parser.add_argument("-sd","--scidir_date", nargs='?', type=str,
                         help='''Science Directory Date.     [REQUIRED, if --reduce_sci]
@@ -124,8 +130,9 @@ def read_in_raw(args, parser):
         args.ifuslot = "%03d" %int(args.ifuslot)
     else:
         msg = 'No IFUslot was provided.'
-        parser.error(msg)              
-    
+        parser.error(msg)    
+          
+    args.kwargs = {}
     if args.instr.lower() == 'virus':
         instr = 'virus_'
     if args.instr.lower() == 'lrs2':
@@ -135,8 +142,9 @@ def read_in_raw(args, parser):
             instr = 'lrs2r_'
     if args.instr.lower() == 'virusw':
         instr = 'virusw_' 
-    
-    args.kwargs = {}
+        if args.virusw_res.lower() == 'lowres':
+            args.kwargs['init_sol'] = config.virusw_lowres_initsol
+            
     for param in config.param_dict:
         args.kwargs[param] = getattr(config, instr+config.param_dict[param])
     for param in config.param_amp_dict:
@@ -151,10 +159,16 @@ def read_in_raw(args, parser):
     args.refit_fiber_to_fiber = config.refit_fiber_to_fiber
     args.ifucen_fn = getattr(config,instr+'fn')
     if args.instr.lower() == 'virusw':
-        args.side_dict = config.Side_dict1
-        args.sides = config.Sides1
-        args.Amps = config.Amps1
-        args.Amp_dict = config.Amp_dict1
+        if args.virusw_res.lower() == 'lowres':
+            args.side_dict = config.Side_dict1
+            args.sides = config.Sides1
+            args.Amps = config.Amps1
+            args.Amp_dict = config.Amp_dict1
+        if args.virusw_res.lower() == 'highres':
+            args.side_dict = config.Side_dict2
+            args.sides = config.Sides2
+            args.Amps = config.Amps2
+            args.Amp_dict = config.Amp_dict2
     else:
         args.side_dict = config.Side_dict
         args.sides = config.Sides

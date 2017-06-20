@@ -5,6 +5,7 @@ Created on Fri Jun  2 09:19:46 2017
 @author: gregz
 """
 
+import numpy as np
 from pyhetdex.het.fplane import FPlane
 from pyhetdex.coordinates.tangent_projection import TangentPlane as TP
 import logging
@@ -26,21 +27,23 @@ class Astrometry:
             sys.exit(1)
         else:
             self.fplane = FPlane(self.fplane_file)
-        self.rot = self.get_effective_rotation()
+        self.set_effective_rotation()
         
         # Building tangent plane projection with scale 1"
         self.tp = TP(self.ra, self.dec, self.rot)
         self.tp_ifuslot = None
-        
-    def get_effective_rotation(self):
-        # Making rotation from the PA
-        # TODO: re-derive this formula 
-        self.rot = 360. - (90. + self.pa + self.sys_rot)
+ 
 
-    def update_projection(self):
-        self.rot = self.get_effective_rotation()
-        # Building tangent plane projection with scale 1"
-        self.tp = TP(self.ra+self.dra, self.dec+self.ddec, self.rot)
+    def set_polynomial_platescale(self):
+        self.tp.wcs.a_0_0 = 0.177311
+        self.tp.wcs.a_1_0 = -8.29099e-06
+        self.tp.wcs.a_2_0 = -2.37318e-05
+        self.tp.wcs.b_0_0 = 0.177311
+        self.tp.wcs.b_0_1 = -8.29099e-06
+        self.tp.wcs.b_0_2 = -2.37318e-05
+        self.tp.wcs.a_order=2
+        self.tp.wcs.b_order=2
+        
         
     def setup_logging(self):
         '''Set up a logger for analysis with a name ``shot``.
@@ -62,11 +65,28 @@ class Astrometry:
             self.log = logging.getLogger('astrometry')
             self.log.setLevel(logging.DEBUG)
             self.log.addHandler(handler)
+       
+    def set_effective_rotation(self):
+        # Making rotation from the PA
+        # TODO: re-derive this formula 
+        self.rot = 360. - (90. + self.pa + self.sys_rot)
+
+    def update_projection(self):
+        self.set_effective_rotation()
+        # Building tangent plane projection with scale 1"
+        #dra = self.dra / 3600. / np.cos(np.deg2rad(self.dec))
+        #ddec = self.ddec / 3600.
+        self.tp = TP(self.ra+self.dra, self.dec+self.ddec, self.rot)
             
     def get_ifuslot_ra_dec(self, ifuslot):
         ifu = self.fplane.by_ifuslot(ifuslot)
         # remember to flip x,y 
         return self.tp.xy2raDec(ifu.y, ifu.x)
+
+    def get_ifuspos_ra_dec(self, ifuslot, x, y):
+        ifu = self.fplane.by_ifuslot(ifuslot)
+        # remember to flip x,y 
+        return self.tp.xy2raDec(ifu.y + x, ifu.x + y)
         
     def get_ifuslot_projection(self, ifuslot, imscale, crx, cry):
         ra, dec = self.get_ifuslot_ra_dec(ifuslot)

@@ -331,7 +331,7 @@ def biweight_location(a, c=6.0, M=None, axis=None, eps=1e-8):
     return M + (d * u * mask).sum(axis=axis) / (u * mask).sum(axis=axis)
     
     
-def biweight_midvariance(a, c=6.0, M=None, axis=None, eps=1e-8, niter=1):
+def biweight_midvariance(a, c=15.0, M=None, axis=None, eps=1e-8, niter=1):
     """
     Copyright (c) 2011-2016, Astropy Developers    
     

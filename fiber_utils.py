@@ -454,7 +454,7 @@ def calculate_wavelength_chi2(x, solar_spec, fibers, fibn, group,
                 mn = np.max([ysun.min(),y[xi:xe+1].min()])
                 mx = np.min([ysun.max(),y[xi:xe+1].max()])
                 rn = mx - mn
-                ax.set_ylim([-.1*rn + mn, 1.1*rn+mn])
+                ax.set_ylim([-1.0*rn + mn, 2.0*rn+mn])
                 ax.text(swlow+plotbuff+10,1.0*rn+mn, "STD: %0.5f" %std)
                 plt.show()
                 answer = raw_input("Are you happy with the fit [%0.3f, %0.2f]?" %(scale, wv0))
@@ -1478,7 +1478,7 @@ def calculate_significance(Fibers, image, error, oversample_value=3, sigma=1.3,
                                      fiber.sky_subtracted).ravel()
         fiber.oversampled_ftf = np.interp(fiber.oversampled_wave, fiber.wavelength, 
                                      fiber.fiber_to_fiber).ravel()
-        kernel = Gaussian1DKernel(stddev=sigma/oversample_value)
+        kernel = Gaussian1DKernel(stddev=sigma*oversample_value)
         fiber.convolved_spec = convolve(oversampled_spec, kernel)
     spectrum = np.array([fiber.convolved_spec for fiber in Fibers])
     wavelength = np.array([fiber.oversampled_wave for fiber in Fibers])
