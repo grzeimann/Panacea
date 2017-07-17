@@ -28,7 +28,7 @@ from scipy.signal import medfilt2d
 
 cmap = plt.get_cmap('Greys_r')
 
-AMPS = ["LL", "LU"]#, "RU", "RL"]
+AMPS = ["LL", "LU","RU", "RL"]
 
 
 def parse_args(argv=None):
@@ -56,6 +56,10 @@ def parse_args(argv=None):
     parser.add_argument("--ifuslot", nargs='?', type=str, 
                         help='''Single ifuslot value. [REQUIRED]
                         Ex: "075".''', default = None)
+
+    parser.add_argument("--specid", nargs='?', type=str, 
+                        help='''Single specid value. [REQUIRED]
+                        Ex: "304".''', default = None)
 
     parser.add_argument("--instr", nargs='?', type=str, 
                         help='''Instrument to process. 
