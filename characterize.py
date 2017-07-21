@@ -25,6 +25,9 @@ from operator import itemgetter
 import logging
 from scipy.signal import medfilt2d
 
+matplotlib.rcParams['font.sans-serif'] = "Meiryo"
+matplotlib.rcParams['font.family'] = "sans-serif"
+plt.style.use('seaborn-colorblind')
 
 cmap = plt.get_cmap('Greys_r')
 
@@ -247,6 +250,39 @@ def make_plot(image_dict, outfile_name, vmin=-5, vmax=15):
     plt.subplots_adjust(wspace=0.025, hspace=0.025)    
     fig.savefig(outfile_name)
 
+def make_ptc_plot(mn_dict, vr_dict, gain, rd, outfile_name, lowlim=100, 
+                  highlim=50000):
+    fig = plt.figure(figsize=(6,6))
+    fig, ax = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=True, 
+                           figsize=(6, 6))
+    xhl = np.log10(highlim)
+    xll = np.log10(lowlim)
+    yhl = np.log10(np.sqrt(highlim))
+    yll = np.log10(np.sqrt(lowlim))
+    cnt = 0
+    x = np.logspace(xll,xhl)
+    for i,row in enumerate(ax):
+        for j, cell in enumerate(row):
+            amp = AMPS[cnt]
+            cell.plot(x, np.sqrt(1./gain[amp]*x),'r',label='Shot')
+            cell.plot(x,np.sqrt(rd[amp])*np.ones(x.shape),'g',label='Read Noise')
+            cell.plot(x,np.sqrt(1./gain[amp]*x+rd[amp]),'k', label='Shot+Read')
+            cell.plot(mn_dict[amp], np.sqrt(vr_dict[amp]), label='Measured')
+            cell.text(10**(0.8*(xhl-xll)+xll), 10**(0.3*(yhl-yll)+yll), amp, 
+                       fontsize=24, color='r')
+            cell.set_xlim([lowlim+0.5,highlim])
+            cell.set_ylim([np.sqrt(lowlim)+1.5,np.sqrt(highlim)])
+            cell.set_xscale('log')
+            cell.set_yscale('log')
+            if i==0 and j==0:
+                cell.legend(loc='best', fancybox=True, framealpha=0.5)
+            cnt += 1
+    
+    fig.text(0.5,0.025, 'Signal',ha='center', fontsize=18)
+    fig.text(0.025,0.5, 'Noise', va='center', rotation='vertical', fontsize=18)
+    plt.subplots_adjust(wspace=0.00, hspace=0.00)    
+    fig.savefig(outfile_name)
+
 def check_bias(args, amp, folder, edge=3, width=10):
     # Create empty lists for the left edge jump, right edge jump, and structure
     left_edge, right_edge, structure, overscan = [], [], [], []
@@ -338,7 +374,7 @@ def measure_readnoise(args, amp):
     return S
     
 
-def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
+def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=50):
     sel = [i for i,v in enumerate(args.ptc_list) if v.amp == amp]
     log = args.ptc_list[sel[0]].log
     s_sel = list(np.array(sel)[
@@ -364,20 +400,25 @@ def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=35):
     gn = []
     array_avg = array_avg.ravel()
     array_diff = array_diff.ravel()
-
+    mn_list = []
+    vr_list = []
     for i in xrange(len(bins)-1):
         loc = np.where((array_avg>bins[i]) * (array_avg<bins[i+1]))[0]
         std = func2(array_diff[loc])
-        vr   = (std**2 - 2.*rdnoise**2) / 2.
+        vr   = (std**2)/2.# - 2.*rdnoise**2) / 2.
+        vr_c   = (std**2 - 2.*rdnoise**2) / 2.
         mn = func1(array_avg[loc])
         log.info("%s | Gain: %01.3f | RDNOISE (e-): %01.3f | <ADU>: %0.1f | "
                   "VAR: %0.1f | Pixels: %i" 
-                  %(amp, mn / vr, mn / vr * rdnoise, mn, vr, len(loc))) 
-        gn.append(mn/vr)
-    s = func1(gn)
+                  %(amp, mn / vr_c, mn / vr_c * rdnoise, mn, vr, len(loc))) 
+        gn.append(mn/vr_c)
+        mn_list.append(mn)
+        vr_list.append(vr)
+    sel = np.where((np.array(mn_list) >1000.) * (np.array(mn_list) <15000.))[0]
+    s = func1(np.array(gn)[sel])
     log.info("Average Gain measurement for %s: %0.3f" 
              %(amp, s))
-    return s
+    return s, mn_list, vr_list, rdnoise**2
 
 
 def make_pixelflats(args, amp, folder):
@@ -392,9 +433,9 @@ def make_pixelflats(args, amp, folder):
             masterflat[i,:,:] = am.image
         masterflat = np.median(masterflat, axis=(0,))
         smooth = medfilt2d(masterflat, (151,1))
-        masterflat = np.where(masterflat==0, 0.0, smooth / masterflat)
+        masterflat = np.where(masterflat<1e-8, 0.0, smooth / masterflat)
         smooth = medfilt2d(masterflat, (1,151))
-        pixflat = np.where(masterflat==0, 0.0, smooth / masterflat)
+        pixflat = np.where(masterflat<1e-8, 0.0, smooth / masterflat)
     else:
         print('nothing here')
         #pixflat = np.zeros((len(sel), a, b))
@@ -432,8 +473,8 @@ def write_to_TEX(f, args, overscan, gain, readnoise, darkcounts):
         B.append(darkcounts[amp]*gain[amp]*600.)
     CreateTex.writeObsSummary(f, A, B)
     
-    obs = ['Bias', 'Darks', 'Pixel flats']
-    mastername = ['masterbias', 'masterdark', 'pixelflat']
+    obs = ['Bias', 'Darks', 'Pixel flats', 'Photon Transfer Curve']
+    mastername = ['masterbias', 'masterdark', 'pixelflat', 'ptc']
     for i, v in enumerate(obs):
         A = [v]
         A.append('%s.png' %(mastername[i]))
@@ -475,9 +516,16 @@ def main():
     # Get the gain for each amp
     if not args.dont_check_gain:
         gain = {}
+        mn_dict = {}
+        vr_dict = {}
+        rd = {}
         for amp in AMPS:
-            gain[amp] = measure_gain(args, amp, readnoise[amp])
-
+            gain[amp], mn_dict[amp], vr_dict[amp],rd[amp] = measure_gain(args, amp, 
+                                                                readnoise[amp],
+                                                                 flow=1,
+                                                                 fhigh=60000)
+        make_ptc_plot(mn_dict, vr_dict, gain, rd, op.join(folder, 'ptc.png'),
+                      lowlim=1, highlim=60000)                                                        
     # Get the pixel flat for each amp
     if not args.dont_check_pixelflat:
         masterflat, pixelflat= {}, {}
