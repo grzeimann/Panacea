@@ -27,7 +27,7 @@ from scipy.signal import medfilt2d
 
 matplotlib.rcParams['font.sans-serif'] = "Meiryo"
 matplotlib.rcParams['font.family'] = "sans-serif"
-plt.style.use('seaborn-colorblind')
+#plt.style.use('seaborn-colorblind')
 
 cmap = plt.get_cmap('Greys_r')
 
