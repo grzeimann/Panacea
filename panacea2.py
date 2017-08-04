@@ -14,7 +14,12 @@ import traceback
 import numpy as np
 from spectrograph import Spectrograph
 import os.path as op
-from pyhetdex.cure.distortion import Distortion
+try:
+    from pyhetdex.cure.distortion import Distortion
+    pyhetdex_flag = True
+except:
+    print('Pyhetdex not installed.  Continuing on.')
+    pyhetdex_flag = False
 import warnings
 
 
@@ -71,6 +76,8 @@ def get_ifucenfile(args, side, ifuid, amp=None):
                 return ifucen, ifucen[224:336,1:3][::-1,:]               
             if amp=="RU":
                 return ifucen, ifucen[336:,1:3][::-1,:] 
+        if args.instr=='virusw':
+            return ifucen, ifucen[:,1:3][::-1,:]
                 
 def get_distortion_file(args):
     return Distortion(op.join(args.kwargs['virusconfig'], 'DeformerDefaults', 
@@ -122,7 +129,7 @@ def main():
                     if args.sci_operations['subtract_background']:                                            
                         execute_function(amp, 'subtract_background')
                         image_list.append('back')
-                    if amp.adjust_trace:
+                    if amp.adjust_trace or args.trace_from_sci:
                         amp.refit=True
                         execute_function(amp, 'get_trace')
                         amp.refit=False
@@ -134,7 +141,6 @@ def main():
                         amp.refit=False
                     else:
                         execute_function(amp, 'get_fibermodel')
-#                        execute_function(amp, 'load_fibmodel', {'path':'calpath'})
                     if args.refit_fiber_to_fiber:
                         amp.refit=True
                         execute_function(amp, 'get_fiber_to_fiber')
@@ -152,7 +158,7 @@ def main():
                         execute_function(amp, 'fiberextract')
                         if args.sci_operations['sky_subtraction']:                                            
                             execute_function(amp, 'sky_subtraction')
-                    if args.instr=='virus':
+                    if args.instr=='virus' or args.instr=='virusw':
                         ifucen, temp = get_ifucenfile(args, amp.amp[0], 
                                             amp.ifuid, amp.amp)
                         amp.ifupos = temp
@@ -176,12 +182,14 @@ def main():
                     amp.sig = None
                     amp.sigwave = None
                     amp.error_analysis = None
+                    amp.fibers = None
             
             
     if args.combine_reductions:
         paths = np.array([amp.path for amp in args.sci_list])
         unique_paths = np.unique([amp.path for amp in args.sci_list])
-        D = get_distortion_file(args)
+        if pyhetdex_flag:
+            D = get_distortion_file(args)
         for up in unique_paths:
             loc = np.where(up==paths)[0][0]
             spec = Spectrograph(up, args.sci_list[loc].specid, 
@@ -216,7 +224,8 @@ def main():
                     execute_function(spec, 'write_spectrograph_image',
                                      {'side':side, 'ext':'error', 
                                       'prefix':'e.S'})
-                execute_function(spec, 'write_new_distfile', {'D':D,
+                if pyhetdex_flag:
+                    execute_function(spec, 'write_new_distfile', {'D':D,
                                                               'side':side})
              
                 if args.instr is not "virus":
@@ -247,7 +256,7 @@ def main():
                                  {'side':side, 'ext':'spectrum', 
                                  'prefix':'Fe'})
                 execute_function(spec, 'write_cube', {'ext':'spectrum',
-                                                      'prefix':['CuFe','CoFe']})
+                                                      'prefix':['CuFe','CoFe']})                      
                 for side in spec.side_dict:
                     execute_function(spec, 'write_fiberextract',
                                  {'side':side, 'ext':'twi_spectrum', 
