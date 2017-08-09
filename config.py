@@ -12,10 +12,12 @@ import numpy as np
 
 # Output Directory
 output = "reductions"
+limited_output_files = True
 
 # Common Options
-adjust_trace = False # Adjust science trace for shifts
-use_trace_ref = False # Use default fiber files to always recover desired fibers
+adjust_trace = True # Adjust science trace for shifts
+trace_from_sci = False # if adjust_trace is true, this is overridden
+use_trace_ref = True # Use default fiber files to always recover desired fibers
 refit_fiber_to_fiber = False # Adjust fiber to fiber using science
 use_other_sky = False # Use another sky background for desired sky subtraction
 use_pixelflat = False
@@ -43,7 +45,7 @@ virusconfig = "/work/03946/hetdex/maverick/virus_config"
 darkpath = "/work/03730/gregz/maverick/lib_dark/march"
 biaspath = "/work/03730/gregz/maverick/lib_bias/march"
 
-#rootdir = "/Users/gregz/cure/virusw_raw"
+#rootdir = "/Users/gregz/cure/virus_raw"
 #virusconfig = "/Users/gregz/cure/virus_early/virus_config"
 #darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark/march"
 #biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias/march"
@@ -79,13 +81,13 @@ Amp_dict = {"LL": ["LU","L"], "RU": ["RL","R"]}
 #VIRUS-W Low Res
 Amps1 = ["LL"]
 Sides1 = ["L"]
-Side_dict1 = {"L": ["LL","LU"]}
+Side_dict1 = {"L": ["LL"]}
 Amp_dict1 = {"LL": ["LU","L"]}
 
 # VIRUS-W High Res
 Amps2 = ["RU"]
 Sides2 = ["R"]
-Side_dict2 = {"R": ["RU","RL"]}
+Side_dict2 = {"R": ["RU"]}
 Amp_dict2 = {"RU": ["RL","R"]}
 
 
@@ -107,25 +109,25 @@ virusw_cwl = {"LL": [4900,5350], "RU": [4900,5350]}
 virus_dm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
 lrs2b_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2r_dm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
-virusw_dm ={"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
+virusw_dm ={"LL": 0.0, "RU": 0.0}
 
 # Bias multiplier for bias subtraction
 virus_bm = {"LL": 1.0, "LU": 1.0, "RU": 1.0, "RL": 1.0}
 lrs2b_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
 lrs2r_bm = {"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
-virusw_bm ={"LL": 0.0, "LU": 0.0, "RU": 0.0, "RL": 0.0}
+virusw_bm ={"LL": 0.0, "RU": 0.0}
 
 # Bias multiplier for bias subtraction
 virus_nf = {"LL": 112, "LU": 112, "RU": 112, "RL": 112}
 lrs2b_nf = {"LL": 140, "LU": 140, "RU": 140, "RL": 140}
 lrs2r_nf = {"LL": 140, "LU": 140, "RU": 140, "RL": 140}
-virusw_nf ={"LL": 134, "LU": 134, "RU": 134, "RL": 134}
+virusw_nf ={"LL": 267, "RU": 267}
 
 # Name prefix for the normalized spectrum used for the wavelength solution
 virus_sn = {"LL": "virus", "RU": "virus"}
 lrs2b_sn = {"LL": "lrs2_uv", "RU": "lrs2_orange"}
 lrs2r_sn = {"LL": "lrs2_red", "RU": "lrs2_farred"}
-virusw_sn = {"LL": "virusw_lowres","RU": "virusw"}
+virusw_sn = {"LL": "virusw_lowres", "RU": "virusw"}
 
 # Name of the IFUcen file for fiber positions
 virus_fn = {"L": ["IFUcen_VIFU",30], "R": ["IFUcen_VIFU",30]}
