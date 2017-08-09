@@ -179,10 +179,10 @@ def main():
                     amp.continuum_sub = None
                     amp.residual = None
                     amp.error = None
-                    amp.sig = None
-                    amp.sigwave = None
-                    amp.error_analysis = None
-                    amp.fibers = None
+                    #amp.sig = None
+                    #amp.sigwave = None
+                    #amp.error_analysis = None
+                    #amp.fibers = None
             
             
     if args.combine_reductions:
@@ -192,6 +192,7 @@ def main():
             D = get_distortion_file(args)
         for up in unique_paths:
             loc = np.where(up==paths)[0][0]
+            print(loc)
             spec = Spectrograph(up, args.sci_list[loc].specid, 
                                 args.sci_list[loc].ifuslot, 
                                 args.sci_list[loc].ifuid,
@@ -271,8 +272,8 @@ def main():
                         execute_function(spec, 'write_fiberextract',
                                          {'side':side, 'ext':'sky_subtracted', 
                                           'prefix':'FeS'})
-                        execute_function(spec, 'write_cube', {'ext':'sky_subtracted',
-                                                  'prefix':['CuFeS','CoFeS']})            
+                    execute_function(spec, 'write_cube', {'ext':'sky_subtracted',
+                                           'prefix':['CuFeS','CoFeS']})            
        
     t2 = time.time()
     print("Time Taken: %0.3f" %(t2-t1))
