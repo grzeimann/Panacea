@@ -208,14 +208,16 @@ def main():
                 spec.wavelim = args.sci_list[ids[0]].init_lims
                 spec.collapselim = args.sci_list[ids[0]].collapse_lims
                 spec.disp = args.disp[side]
-                if args.kwargs['make_model_image']:
+                if not args.limited_output_files:
+                    if args.kwargs['make_model_image']:
+                        execute_function(spec, 'write_spectrograph_image',
+                                     {  'side':side, 'ext':'fibmodel_image', 
+                                     'prefix':'model_'})
+                    
                     execute_function(spec, 'write_spectrograph_image',
-                                 {  'side':side, 'ext':'fibmodel_image', 
-                                 'prefix':'model_'})                    
-                execute_function(spec, 'write_spectrograph_image',
-                                 {'side':side, 'ext':'image', 'prefix':''})
-                execute_function(spec, 'write_spectrograph_image',
-                                 {'side':side, 'ext':'error', 'prefix':'e.'})
+                                     {'side':side, 'ext':'image', 'prefix':''})
+                    execute_function(spec, 'write_spectrograph_image',
+                                     {'side':side, 'ext':'error', 'prefix':'e.'})
                 if args.sci_operations['sky_subtraction']:                                            
 
                     execute_function(spec, 'write_spectrograph_image',
@@ -251,20 +253,20 @@ def main():
                                             args.sci_list[loc].ifuid)
                 spec.ifucen = ifucen
                 spec.scale = args.scale
-                for side in spec.side_dict:
-                    execute_function(spec, 'write_fiberextract',
-                                 {'side':side, 'ext':'spectrum', 
-                                 'prefix':'Fe'})
-                execute_function(spec, 'write_cube', {'ext':'spectrum',
-                                                      'prefix':['CuFe','CoFe']})                      
-                for side in spec.side_dict:
-                    execute_function(spec, 'write_fiberextract',
-                                 {'side':side, 'ext':'twi_spectrum', 
-                                 'prefix':'FeT'})
-                execute_function(spec, 'write_cube', {'ext':'twi_spectrum',
-                                                      'prefix':['CuFeT','CoFeT']})
+                if not args.limited_output_files:
+                    for side in spec.side_dict:
+                        execute_function(spec, 'write_fiberextract',
+                                     {'side':side, 'ext':'spectrum', 
+                                     'prefix':'Fe'})
+                    execute_function(spec, 'write_cube', {'ext':'spectrum',
+                                                          'prefix':['CuFe','CoFe']})                      
+                    for side in spec.side_dict:
+                        execute_function(spec, 'write_fiberextract',
+                                     {'side':side, 'ext':'twi_spectrum', 
+                                     'prefix':'FeT'})
+                    execute_function(spec, 'write_cube', {'ext':'twi_spectrum',
+                                                          'prefix':['CuFeT','CoFeT']})
                 if args.sci_operations['sky_subtraction']:                                            
-
                     for side in spec.side_dict:
                         execute_function(spec, 'write_fiberextract',
                                          {'side':side, 'ext':'sky_subtracted', 
