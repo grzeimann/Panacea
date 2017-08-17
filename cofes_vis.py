@@ -64,10 +64,10 @@ def cofes_4x4_plots(prefix="", outfile_name = 'CoFeS_plots.png', vmin=-15, vmax 
 
     """
     t1=time.time()
-    ifunums = np.array([['073', '083', '093', '103'],
-                        ['074', '084', '094', '104'],
-                        ['075', '085', '095', '105'],
-                        ['076', '086', '096', '106']])
+    ifunums = np.array([['blank','073', '083', '093', '103'],
+                        ['044','074', '084', '094', '104'],
+                        ['045','075', '085', '095', '105'],
+                        ['blank','076', '086', '096', '106']])
     cofes_files = glob(prefix + "*.fits")
     assert len(cofes_files) > 0, "There are no fits files that begin with " + "'" + \
                                 prefix + "'" + ". Please fix your typo."
