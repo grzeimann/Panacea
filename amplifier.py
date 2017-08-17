@@ -26,6 +26,7 @@ from fiber_utils import check_fiber_profile, check_wavelength_fit
 from fiber_utils import fast_nonparametric_fibermodel, new_fast_norm
 from fiber_utils import calculate_significance
 from fiber import Fiber
+from scipy.signal import medfilt
 import cosmics
 from datetime import datetime
 import logging
@@ -313,6 +314,8 @@ class Amplifier:
         if self.N == 1074:
             self.N -= 50
             self.D -= 45
+        if self.N == 2048:
+            self.D -= 44
         self.trimmed = False
         self.overscan_value = None
         self.gain = F[0].header['GAIN']
@@ -346,6 +349,8 @@ class Amplifier:
                                                             dtype=float)
         else:
             self.error = np.zeros((self.N, self.D), dtype=float)
+        if self.rdnoise<0.1:
+            self.rdnoise = 2.5
         self.exptime = F[0].header['EXPTIME']
         self.ifupos = None
    
@@ -708,6 +713,11 @@ class Amplifier:
         except KeyError:
             self.log.warning('Error opening trace from %s' %fn)
             return None       
+        if trace_cal.shape[0] != len(self.fibers):
+            self.log.error('Mismatch in number of fibers from cal and sci.')
+            self.log.error('Cal Fibers: %i, Sci Fibers: %i' %(trace_cal.shape[0],
+                                                              len(self.fibers)))
+            self.log.error('BEYOND THIS POINT, THE AMP REDUCTIONS WILL FAIL.')
             
         shift = []
         for i,fiber in enumerate(self.fibers):
@@ -720,10 +730,10 @@ class Amplifier:
             fiber.trace = 1.*trace_cal[i,:]
             
         self.shift = shift
-        smooth_shift = biweight_filter(self.shift, 25)
+        smooth_shift = biweight_filter(self.shift, 7, 1)
         self.log.info("Shift for %s is %0.3f" %(self.amp, biweight_location(np.array(shift))))
         for i,fiber in enumerate(self.fibers):
-            fiber.trace = fiber.trace + smooth_shift[i]
+            fiber.trace = fiber.trace + self.shift[i]#smooth_shift[i]
             self.log.info("Shift for fiber %i is %0.3f pixels" %(i+1, smooth_shift[i]))
 
         
@@ -904,6 +914,7 @@ class Amplifier:
             if self.adjust_trace and self.refit:
                 self.net_trace_shift = self.find_shift()
             self.log.info('Trace measured from %s' %self.basename)
+            get_indices(self.image, self.fibers, self.fsize)
         else:
             self.load(path='calpath', spec_list=['trace','dead'])       
         
@@ -1270,7 +1281,9 @@ class Amplifier:
                 mastersmooth.append(y/fiber.spectrum)
             masterwave.append(fiber.wavelength)
             if sky:            
-                masterspec.append(fiber.spectrum/fiber.fiber_to_fiber)
+                masterspec.append(np.where(fiber.fiber_to_fiber>1e-8,
+                                           fiber.spectrum/fiber.fiber_to_fiber,
+                                           0.0))
         masterwave = np.hstack(masterwave)
         ind = np.argsort(masterwave)
         masterwave[:] = masterwave[ind]
@@ -1285,15 +1298,15 @@ class Amplifier:
             self.mastersmooth = biweight_filter(mastersmooth, 
                                                 self.filt_size_sky)
                                                 
-    def get_significance_map(self):
+    def get_significance_map(self, attr='clean_image'):
         '''
         Rudimentary significance map algorithm
         '''
         self.log.info('Calculating significance map for %s' %self.basename)
         self.sig, self.sigwave = calculate_significance(self.fibers, 
-                                                        self.clean_image, 
+                                                        getattr(self,attr), 
                                                         self.error)
-    def make_error_analysis(self):
+    def make_error_analysis(self, attr='clean_image'):
         wave_step = 4.
         wavelength = np.array([fiber.wavelength for fiber in self.fibers])
         ftf = np.array([fiber.fiber_to_fiber for fiber in self.fibers])
@@ -1319,7 +1332,7 @@ class Amplifier:
         B = np.ones((ly,lx))*-999.
         for i in np.arange(ly):
             A[i,:len(xind[i])] = np.where(ftf[xind[i],yind[i]]>1e-8, 
-                                          self.clean_image[trace[xind[i],
+                                          getattr(self,attr)[trace[xind[i],
                                                                  yind[i]],
                                                            yind[i]]
                                           / ftf[xind[i],yind[i]],
