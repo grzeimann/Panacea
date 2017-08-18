@@ -153,8 +153,10 @@ def read_in_raw(args, parser):
     for con in config.config_dict:
         args.kwargs[con] = getattr(config, config.config_dict[con]) 
     
+    args.limited_output_files = config.limited_output_files
     args.kwargs['sky_scale'] = args.sky_scale
     args.kwargs['make_model_image'] = config.make_model_image
+    args.trace_from_sci = config.trace_from_sci
     args.use_other_sky = config.use_other_sky
     args.refit_fiber_to_fiber = config.refit_fiber_to_fiber
     args.ifucen_fn = getattr(config,instr+'fn')
