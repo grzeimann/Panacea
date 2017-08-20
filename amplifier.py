@@ -46,7 +46,7 @@ class Amplifier:
                  fiber_group=8, col_group=48, mask=None, wave_nbins=21, 
                  wave_order=3, default_fib=0, init_lims=None, collapse_lims=None,
                  interactive=False, check_wave=False,filt_size_ind=21, 
-                 filt_size_agg=151, filt_size_final=75, filt_size_sky=151,
+                 filt_size_agg=251, filt_size_final=35, filt_size_sky=151,
                  col_frac = 0.47, use_trace_ref=False, fiber_date=None,
                  cont_smooth=25, make_residual=True, do_cont_sub=True,
                  make_skyframe=True, wave_res=1.9, trace_step=4,
@@ -337,7 +337,7 @@ class Amplifier:
         self.fibers = []
         self.type = F[0].header['IMAGETYP'].replace(' ', '')
         self.specid = '%03d' %F[0].header['SPECID']
-        self.ifuid = F[0].header['IFUID'].replace(' ', '')
+        self.ifuid = '%03d' %(int(F[0].header['IFUID'].replace(' ', '')))
         self.ifuslot ='%03d' %F[0].header['IFUSLOT']
         datetemp = re.split('[-,T]',F[0].header['DATE-OBS'])
         self.date = datetime(int(datetemp[0]), int(datetemp[1]), 
