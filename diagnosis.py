@@ -242,12 +242,14 @@ def check_not_all_zeros(F, args, fn):
 
 def check_quality(args, F, filename):
     flag = True
-    if not ensure_no_stuckbits(F, args, op.basename(filename)):
-        flag = False
-        args.log.info('%s has stuck bits' %filename)
     if not check_not_all_zeros(F, args, op.basename(filename)):
         flag = False
         args.log.info('%s is all zeros' %filename)
+    if flag:
+        if not ensure_no_stuckbits(F, args, op.basename(filename)):
+            flag = False
+            args.log.info('%s has stuck bits' %filename)
+
     return flag    
 
 def make_dateplot(x, y, outname):
