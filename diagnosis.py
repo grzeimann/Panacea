@@ -163,20 +163,28 @@ def check_bias(args):
         bias_y = []
         for fn in args.bias_list:
             if len(fn.split(amp+'_'))>1:
-                F = fits.open(fn)
-                biassec = re.split('[\[ \] \: \,]', 
-                                   F[0].header['BIASSEC'])[1:-1]
-                biassec = [int(t)-((i+1)%2) for i,t in enumerate(biassec)]
-                data = F[0].data[biassec[2]:biassec[3], biassec[0]:biassec[1]]
-                temp.append(F[0].header['DETTEMP'])
-                bias_y.append(biweight_location(data))
-                base = op.basename(fn)
-                Y, M, D, H, m, S = [int(s) for s in [base[:4],base[4:6],
-                                                 base[6:8],base[9:11],
-                                                 base[11:13],base[13:15]]]
-                date_x.append(datetime.datetime(Y, M, D, H, m, S))
-                del data
-                F.close()
+                try:    
+                    F = fits.open(fn)
+                    flag = True
+                except:
+                    args.log.warning('%s does exist, but must be corrupted.' %fn)
+                    flag = False
+                if flag:
+                    flag = check_quality(args, F, fn)
+                if flag:
+                    biassec = re.split('[\[ \] \: \,]', 
+                                       F[0].header['BIASSEC'])[1:-1]
+                    biassec = [int(t)-((i+1)%2) for i,t in enumerate(biassec)]
+                    data = F[0].data[biassec[2]:biassec[3], biassec[0]:biassec[1]]
+                    temp.append(F[0].header['DETTEMP'])
+                    bias_y.append(biweight_location(data))
+                    base = op.basename(fn)
+                    Y, M, D, H, m, S = [int(s) for s in [base[:4],base[4:6],
+                                                     base[6:8],base[9:11],
+                                                     base[11:13],base[13:15]]]
+                    date_x.append(datetime.datetime(Y, M, D, H, m, S))
+                    del data
+                    F.close()
         print(len(date_x))
         make_plot(date_x, bias_y, 
                   'bias_diagnositic_%s_%s.png'%(args.ifuslot,amp))
@@ -187,14 +195,12 @@ def check_dark(args):
 def get_files(args):
     args.trace_list = []
     args.bias_list = []
-    args.dark_list = []   
-    print(len(args.daterange))
+    args.dark_list = []
+    args.log.info('Looking at %i days' %len(args.daterange))
     for date in args.daterange:
         datestr = '%04d%02d%02d' %(date.year, date.month, date.day)
-        print(datestr)
         files = glob.glob(op.join(args.rootdir, datestr, args.instrument,'*',
                           'exp*', args.instrument,'2*_%s*.fits' %args.ifuslot))
-        
         for fn in files:
             imtype = fn[-8:-5]
             if imtype in ['sci','twi']:
@@ -233,30 +239,15 @@ def check_not_all_zeros(F, args, fn):
     else:
         return True
 
-def check_quality(args, attr):
-    file_list = getattr(args, attr)
-    flag = []
-    for fn in file_list:
-        try:
-            F = fits.open(fn)
-            flag.append(True)
-        except:
-            args.log.error('Failed to open %s' %fn)
-            if not op.exists(fn):
-                args.log.error('%s does not exist' %fn)
-            else:
-                args.log.error('%s does exist, but must be corrupted.' %fn)
-            flag.append(False)
-        if flag[-1]:
-            if not ensure_no_stuckbits(F, args, op.basename(fn)):
-                flag[-1] = False
-                args.log.info('%s has stuck bits' %fn)
-            if not check_not_all_zeros(F, args, op.basename(fn)):
-                flag[-1] = False
-                args.log.info('%s is all zeros' %fn)
-            
-    setattr(args, attr, [fn for fn,fl in zip(file_list, flag) if fl])
-    return args    
+def check_quality(args, F, filename):
+    flag = True
+    if not ensure_no_stuckbits(F, args, op.basename(filename)):
+        flag = False
+        args.log.info('%s has stuck bits' %filename)
+    if not check_not_all_zeros(F, args, op.basename(filename)):
+        flag = False
+        args.log.info('%s is all zeros' %fn)
+    return flag    
 
 def make_plot(x, y, outname):
     fig, ax = plt.subplots()
@@ -280,7 +271,6 @@ def main():
     
     if args.check_bias:
         args.log.info('Investigating bias for %s' %args.ifuslot)
-        args = check_quality(args,'bias_list')
         check_bias(args)
         args.log.info('Done investigating bias for %s' %args.ifuslot)
 
