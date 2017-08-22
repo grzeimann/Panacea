@@ -195,7 +195,7 @@ def check_bias(args):
                   'bias_diagnositic_dettemp_%s_%s.png'%(args.ifuslot,amp),
                   xlims=[-120.,-80.],
                   ylims=[900.,1100.])
-        make_plot(dettemp, bias_y, 
+        make_plot(ambtemp, bias_y, 
                   'bias_diagnositic_ambtemp_%s_%s.png'%(args.ifuslot,amp),
                   xlims=[0.,30.],
                   ylims=[900.,1100.])
