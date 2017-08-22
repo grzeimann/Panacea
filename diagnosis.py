@@ -192,11 +192,11 @@ def check_bias(args):
                       'bias_diagnositic_%s_%s.png'%(args.ifuslot,amp),
                       ylims=[900.,1100.])
         make_plot(dettemp, bias_y, 
-                  'bias_diagnositic_temp_%s_%s.png'%(args.ifuslot,amp),
+                  'bias_diagnositic_dettemp_%s_%s.png'%(args.ifuslot,amp),
                   xlims=[-120.,-80.],
                   ylims=[900.,1100.])
         make_plot(dettemp, bias_y, 
-                  'bias_diagnositic_temp_%s_%s.png'%(args.ifuslot,amp),
+                  'bias_diagnositic_ambtemp_%s_%s.png'%(args.ifuslot,amp),
                   xlims=[0.,30.],
                   ylims=[900.,1100.])
 def check_dark(args):
