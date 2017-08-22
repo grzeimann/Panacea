@@ -246,7 +246,7 @@ def check_quality(args, F, filename):
         args.log.info('%s has stuck bits' %filename)
     if not check_not_all_zeros(F, args, op.basename(filename)):
         flag = False
-        args.log.info('%s is all zeros' %fn)
+        args.log.info('%s is all zeros' %filename)
     return flag    
 
 def make_plot(x, y, outname):
