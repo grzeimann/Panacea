@@ -159,7 +159,8 @@ def check_fiberprofile(args):
 def check_bias(args):
     for amp in args.amps:
         date_x = []
-        temp = []
+        dettemp = []
+        ambtemp = []
         bias_y = []
         args.log.info('Looking at amp: %s' %amp)
         for fn in args.bias_list:
@@ -177,7 +178,8 @@ def check_bias(args):
                                        F[0].header['BIASSEC'])[1:-1]
                     biassec = [int(t)-((i+1)%2) for i,t in enumerate(biassec)]
                     data = F[0].data[biassec[2]:biassec[3], biassec[0]:biassec[1]]
-                    temp.append(F[0].header['DETTEMP'])
+                    dettemp.append(F[0].header['DETTEMP'])
+                    ambtemp.append(F[0].header['AMBTEMP'])
                     bias_y.append(np.mean(data))
                     base = op.basename(fn)
                     Y, M, D, H, m, S = [int(s) for s in [base[:4],base[4:6],
@@ -187,9 +189,16 @@ def check_bias(args):
                     del F[0].data
                     F.close()
         make_dateplot(date_x, bias_y, 
-                  'bias_diagnositic_%s_%s.png'%(args.ifuslot,amp))
-        make_plot(temp, bias_y, 
-                  'bias_diagnositic_temp_%s_%s.png'%(args.ifuslot,amp))
+                      'bias_diagnositic_%s_%s.png'%(args.ifuslot,amp),
+                      ylims=[900.,1100.])
+        make_plot(dettemp, bias_y, 
+                  'bias_diagnositic_temp_%s_%s.png'%(args.ifuslot,amp),
+                  xlims=[-120.,-80.],
+                  ylims=[900.,1100.])
+        make_plot(dettemp, bias_y, 
+                  'bias_diagnositic_temp_%s_%s.png'%(args.ifuslot,amp),
+                  xlims=[0.,30.],
+                  ylims=[900.,1100.])
 def check_dark(args):
     pass
 
@@ -252,7 +261,7 @@ def check_quality(args, F, filename):
 
     return flag    
 
-def make_dateplot(x, y, outname):
+def make_dateplot(x, y, outname, ylims=None):
     fig, ax = plt.subplots()
     fig.autofmt_xdate()
     ax.plot_date(x, y, ls='', marker='x')
@@ -260,16 +269,19 @@ def make_dateplot(x, y, outname):
     ax.xaxis.set_minor_locator(DayLocator())
     ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d'))
     ax.fmt_xdata = DateFormatter('%Y-%m-%d %H:%M:%S')
-    ax.set_ylim([900,1100])
+    if ylims is not None:
+        ax.set_ylim(ylims)
     fig.savefig(outname, dpi=200)
     plt.close(fig)
 
-def make_plot(x, y, outname):
+def make_plot(x, y, outname, xlims=None, ylims=None):
     fig, ax = plt.subplots()
     fig.autofmt_xdate()
     ax.plot(x, y, ls='', marker='x')
-    ax.set_ylim([900,1100])
-    ax.set_xlim([-120.,-80.])
+    if ylims is not None:
+        ax.set_ylim(ylims)
+    if xlims is not None:
+        ax.set_xlim(xlims)
     fig.savefig(outname, dpi=200)
     plt.close(fig)
    
