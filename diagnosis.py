@@ -176,6 +176,7 @@ def check_bias(args):
                 date_x.append(datetime.datetime(Y, M, D, H, m, S))
                 del data
                 F.close()
+        print(len(date_x))
         make_plot(date_x, bias_y, 
                   'bias_diagnositic_%s_%s.png'%(args.ifuslot,amp))
 
