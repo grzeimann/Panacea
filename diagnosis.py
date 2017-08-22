@@ -161,6 +161,7 @@ def check_bias(args):
         date_x = []
         temp = []
         bias_y = []
+        args.log.info('Looking at amp: %s' %amp)
         for fn in args.bias_list:
             if len(fn.split(amp+'_'))>1:
                 try:    
@@ -183,9 +184,8 @@ def check_bias(args):
                                                      base[6:8],base[9:11],
                                                      base[11:13],base[13:15]]]
                     date_x.append(datetime.datetime(Y, M, D, H, m, S))
-                    del data
+                    del F[0].data
                     F.close()
-        print(len(date_x))
         make_plot(date_x, bias_y, 
                   'bias_diagnositic_%s_%s.png'%(args.ifuslot,amp))
 
