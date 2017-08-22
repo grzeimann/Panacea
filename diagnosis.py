@@ -200,7 +200,7 @@ def get_files(args):
     for date in args.daterange:
         datestr = '%04d%02d%02d' %(date.year, date.month, date.day)
         files = glob.glob(op.join(args.rootdir, datestr, args.instrument,'*',
-                          'exp*', args.instrument,'2*_%s*.fits' %args.ifuslot))
+                          'exp01', args.instrument,'2*_%s*.fits' %args.ifuslot))
         for fn in files:
             imtype = fn[-8:-5]
             if imtype in ['sci','twi']:
@@ -259,6 +259,7 @@ def make_plot(x, y, outname):
     ax.fmt_xdata = DateFormatter('%Y-%m-%d %H:%M:%S')
     ax.set_ylim([900,1100])
     fig.savefig(outname, dpi=200)
+    plt.close(fig)
    
 def main():
     '''
