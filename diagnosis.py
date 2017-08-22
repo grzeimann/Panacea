@@ -10,6 +10,7 @@ import os
 import re
 import datetime
 import logging
+import glob
 
 import argparse as ap
 import os.path as op
@@ -190,20 +191,20 @@ def get_files(args):
     print(len(args.daterange))
     for date in args.daterange:
         datestr = '%04d%02d%02d' %(date.year, date.month, date.day)
-        for root, dirs, files in os.walk(op.join(args.rootdir, datestr, 
-                                                 args.instrument)):
-            print(datestr)
-            for fn in files:
-                # Check if '_XXX' is in the file name,
-                # where XXX is the ifuslot, if so then act otherwise continue
-                if len(fn.split('_'+args.ifuslot))>1:
-                    imtype = fn[-8:-5]
-                    if imtype in ['sci','twi']:
-                        args.trace_list.append(op.join(root,fn))
-                    if imtype in ['zro']:
-                        args.bias_list.append(op.join(root,fn))
-                    if imtype in ['drk']:
-                        args.dark_list.append(op.join(root,fn))
+        print(datestr)
+        files = glob.glob(op.join(args.rootdir, datestr, args.instrument,'*',
+                          'exp*', args.instrument,'2*_%s*.fits' %args.ifuslot))
+        
+        for fn in files:
+            imtype = fn[-8:-5]
+            if imtype in ['sci','twi']:
+                args.trace_list.append(fn)
+            if imtype in ['zro']:
+                args.bias_list.append(fn)
+            if imtype in ['drk']:
+                args.dark_list.append(fn)
+        
+                    
     return args
     
 def ensure_no_stuckbits(F, args, fn): 
