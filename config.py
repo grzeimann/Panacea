@@ -44,16 +44,20 @@ rootdir = "/work/03946/hetdex/maverick"
 virusconfig = "/work/03946/hetdex/maverick/virus_config"
 darkpath = "/work/03730/gregz/maverick/lib_dark/march"
 biaspath = "/work/03730/gregz/maverick/lib_bias/march"
+pixflatpath = "/work/03946/hetdex/maverick/virus_config/PixelFlats"
+
 
 #rootdir = "/Users/gregz/cure/virus_raw"
 #virusconfig = "/Users/gregz/cure/virus_early/virus_config"
 #darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark/march"
 #biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias/march"
+#pixflatpath = "/Users/gregz/cure/virus_early/virus_config/PixelFlats"
+
 
 # Config dictionary for Amplifier reduction inputs 
 config_dict = {'adjust_trace': 'adjust_trace', 'use_trace_ref':'use_trace_ref',
                'use_pixelflat':'use_pixelflat', 'virusconfig':'virusconfig',
-               'darkpath':'darkpath','biaspath':'biaspath', 
+               'darkpath':'darkpath','biaspath':'biaspath', 'pixflatpath':'pixflatpath',
                'check_fibermodel':'check_fibermodel', 'check_wave':'check_wave',
                'cosmic_iterations':'cosmic_iterations'}
 

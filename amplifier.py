@@ -36,7 +36,8 @@ __all__ = ["Amplifier"]
 
 class Amplifier:
     def __init__(self, filename, path, name=None, refit=False, calpath=None, 
-                 skypath=None, verbose=True, darkpath=None, biaspath=None, 
+                 skypath=None, verbose=True, darkpath=None, biaspath=None,
+                 pixflatpath=None,
                  virusconfig=None, dark_mult=0., bias_mult=0., 
                  use_pixelflat=True, specname=None, fdist=2., fdist_ref=4., 
                  check_trace=True, adjust_trace=False, trace_poly_order=3,
@@ -239,6 +240,7 @@ class Amplifier:
         self.skypath = skypath
         self.darkpath = darkpath
         self.biaspath = biaspath
+        self.pixflatpath = pixflatpath
         self.specname = specname
         
         # Image manipulation options
@@ -647,8 +649,7 @@ class Amplifier:
     def divide_pixelflat(self):
         if self.use_pixelflat:
             self.log.info('Dividing pixelflat for %s' % self.basename)
-            pixelflat = np.array(fits.open(op.join(self.virusconfig, 
-                                                   'PixelFlats','20161223',
+            pixelflat = np.array(fits.open(op.join(self.pixflatpath,
                                                    'pixelflat_cam%s_%s.fits' 
                                             %(self.specid, self.amp)))[0].data,
                                   dtype=float)
