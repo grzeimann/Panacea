@@ -178,7 +178,7 @@ def check_bias(args):
                     biassec = [int(t)-((i+1)%2) for i,t in enumerate(biassec)]
                     data = F[0].data[biassec[2]:biassec[3], biassec[0]:biassec[1]]
                     temp.append(F[0].header['DETTEMP'])
-                    bias_y.append(biweight_location(data))
+                    bias_y.append(np.mean(data))
                     base = op.basename(fn)
                     Y, M, D, H, m, S = [int(s) for s in [base[:4],base[4:6],
                                                      base[6:8],base[9:11],
@@ -186,9 +186,10 @@ def check_bias(args):
                     date_x.append(datetime.datetime(Y, M, D, H, m, S))
                     del F[0].data
                     F.close()
-        make_plot(date_x, bias_y, 
+        make_dateplot(date_x, bias_y, 
                   'bias_diagnositic_%s_%s.png'%(args.ifuslot,amp))
-
+        make_plot(temp, bias_y, 
+                  'bias_diagnositic_temp_%s_%s.png'%(args.ifuslot,amp))
 def check_dark(args):
     pass
 
@@ -249,7 +250,7 @@ def check_quality(args, F, filename):
         args.log.info('%s is all zeros' %filename)
     return flag    
 
-def make_plot(x, y, outname):
+def make_dateplot(x, y, outname):
     fig, ax = plt.subplots()
     fig.autofmt_xdate()
     ax.plot_date(x, y, ls='', marker='x')
@@ -258,6 +259,15 @@ def make_plot(x, y, outname):
     ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d'))
     ax.fmt_xdata = DateFormatter('%Y-%m-%d %H:%M:%S')
     ax.set_ylim([900,1100])
+    fig.savefig(outname, dpi=200)
+    plt.close(fig)
+
+def make_plot(x, y, outname):
+    fig, ax = plt.subplots()
+    fig.autofmt_xdate()
+    ax.plot(x, y, ls='', marker='x')
+    ax.set_ylim([900,1100])
+    ax.set_xlim([-120.,-80.])
     fig.savefig(outname, dpi=200)
     plt.close(fig)
    
@@ -274,7 +284,6 @@ def main():
         args.log.info('Investigating bias for %s' %args.ifuslot)
         check_bias(args)
         args.log.info('Done investigating bias for %s' %args.ifuslot)
-
     
     if args.check_dark:
         args = check_quality(args,'dark_list')
