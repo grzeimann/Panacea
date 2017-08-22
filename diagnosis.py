@@ -186,11 +186,13 @@ def check_dark(args):
 def get_files(args):
     args.trace_list = []
     args.bias_list = []
-    args.dark_list = []    
+    args.dark_list = []   
+    print(len(args.daterange))
     for date in args.daterange:
         datestr = '%04d%02d%02d' %(date.year, date.month, date.day)
         for root, dirs, files in os.walk(op.join(args.rootdir, datestr, 
                                                  args.instrument)):
+            print(datestr)
             for fn in files:
                 # Check if '_XXX' is in the file name,
                 # where XXX is the ifuslot, if so then act otherwise continue
