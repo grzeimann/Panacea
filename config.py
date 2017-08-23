@@ -96,7 +96,7 @@ Amp_dict2 = {"RU": ["RL","R"]}
 
 
 # Wavelength limits for each side as defined by the bottom amplifier id
-virus_wl = {"LL": [3490,5500], "RU": [3490,5500]}
+virus_wl = {"LL": [3480,5510], "RU": [3480,5510]}
 lrs2b_wl = {"LL": [3633,4655], "RU": [4550,7000]}
 lrs2r_wl = {"LL": [6425,8440], "RU": [8230,10550]}
 virusw_wl = {"LL": [3830,6000],"RU": [4727,5503]}
@@ -224,7 +224,7 @@ lrs2r_wr = 1.0
 virusw_wr = 0.19
 
 # Dispersion scale for making the Fe/CuFe files
-virus_di = {"L": 1.9, "R": 1.9}
+virus_di = {"L": 1.97, "R": 1.97}
 lrs2b_di = {"L": 0.5, "R": 1.2}
 lrs2r_di = {"L": 1.0, "R": 1.0}
 virusw_di = {"L":0.53,"R": 0.19}
