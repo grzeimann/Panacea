@@ -218,7 +218,7 @@ lrs2r_pow = 2.0
 virusw_pow = 2.8
 
 # Wavelength resolution (for wavelength fit initial guess)
-virus_wr = 1.9
+virus_wr = 1.97
 lrs2b_wr = 0.5
 lrs2r_wr = 1.0
 virusw_wr = 0.19
