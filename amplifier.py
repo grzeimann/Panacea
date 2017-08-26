@@ -643,7 +643,8 @@ class Amplifier:
         
     def calculate_photonnoise(self):
         self.log.info('Calculating photon noise for %s' % self.basename)
-        self.error[:] = np.sqrt(self.error**2 + np.where(self.image>1e-8,self.image, 0.))
+        self.error[:] = np.sqrt(self.error**2 
+                                + np.where(self.image>1e-8,self.image, 0.))
         
         
     def divide_pixelflat(self):
@@ -1286,11 +1287,15 @@ class Amplifier:
             if norm:
                 y = biweight_filter(fiber.spectrum, self.filt_size_ind)
                 mastersmooth.append(y/fiber.spectrum)
-            masterwave.append(fiber.wavelength)
-            if sky:            
-                masterspec.append(np.where(fiber.fiber_to_fiber>1e-8,
-                                           fiber.spectrum/fiber.fiber_to_fiber,
-                                           0.0))
+                masterwave.append(fiber.wavelength)
+            if sky:
+                flag = np.ones(fiber.spectrum.shape)
+                flag[fiber.fiber_to_fiber<1e-8] = 0.0
+                flag[fiber.spectrum == 0.0] = 0.0
+                masterspec.append(fiber.spectrum[flag]
+                                  /fiber.fiber_to_fiber[flag])
+                masterwave.append(fiber.wavelength[flag])
+
         masterwave = np.hstack(masterwave)
         ind = np.argsort(masterwave)
         masterwave[:] = masterwave[ind]
