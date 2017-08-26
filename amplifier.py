@@ -1289,9 +1289,9 @@ class Amplifier:
                 mastersmooth.append(y/fiber.spectrum)
                 masterwave.append(fiber.wavelength)
             if sky:
-                flag = np.ones(fiber.spectrum.shape)
-                flag[fiber.fiber_to_fiber<1e-8] = 0.0
-                flag[fiber.spectrum == 0.0] = 0.0
+                flag = np.ones(fiber.spectrum.shape,dtype=bool)
+                flag[fiber.fiber_to_fiber<1e-8] = False
+                flag[fiber.spectrum == 0.0] = False
                 masterspec.append(fiber.spectrum[flag]
                                   /fiber.fiber_to_fiber[flag])
                 masterwave.append(fiber.wavelength[flag])
