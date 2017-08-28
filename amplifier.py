@@ -575,10 +575,13 @@ class Amplifier:
         if self.amp == "LU":
             self.image[:] = self.image[::-1,::-1]
             self.error[:] = self.error[::-1,::-1]
+            if self.mask is not None:
+                self.mask[:] = self.mask[::-1,::-1]
         if self.amp == "RL":
             self.image[:] = self.image[::-1,::-1]
             self.error[:] = self.error[::-1,::-1]
-
+            if self.mask is not None:
+                self.mask[:] = self.mask[::-1,::-1]
             
         
     def subtract_overscan(self):
