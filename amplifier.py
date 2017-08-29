@@ -1161,10 +1161,11 @@ class Amplifier:
             self.averagespec = biweight_filter(biweight_location(
                                                 masterspec,axis=(0,)),
                                                  self.filt_size_agg)
-            for fib, fiber in enumerate(self.fibers):
+            for fib, fiber in enumerate(self.good_fibers):
                 fiber.fiber_to_fiber = np.interp(fiber.wavelength, masterwave, 
                                               masterspec[fib]/self.averagespec)
-
+            for fib,fiber in enumerate(self.dead_fibers):
+                fiber.fiber_to_fiber = np.zeros(fiber.spectrum.shape)
         else:
             self.load(path='calpath', spec_list=['fiber_to_fiber'])       
   
