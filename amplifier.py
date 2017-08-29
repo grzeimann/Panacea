@@ -46,15 +46,16 @@ class Amplifier:
                  check_fibermodel=False, fsize=8., sigma=2.5, power=2.5,
                  fiber_group=8, col_group=48, mask=None, wave_nbins=21, 
                  wave_order=3, default_fib=0, init_lims=None, collapse_lims=None,
-                 interactive=False, check_wave=False,filt_size_ind=21, 
-                 filt_size_agg=251, filt_size_final=35, filt_size_sky=151,
+                 interactive=False, check_wave=False, filt_size_ind=51, 
+                 filt_size_agg=51, filt_size_final=151, filt_size_sky=151,
                  col_frac = 0.47, use_trace_ref=False, fiber_date=None,
                  cont_smooth=25, make_residual=True, do_cont_sub=True,
                  make_skyframe=True, wave_res=1.9, trace_step=4,
                  fibmodel_slope=0.001, fibmodel_intercept=0.002,
                  fibmodel_breakpoint=5., fibmodel_step=4,
                  fibmodel_interpkind='linear', cosmic_iterations=1,
-                 sky_scale=1.0, make_model_image=False, init_sol=None):
+                 sky_scale=1.0, make_model_image=False, init_sol=None,
+                 wavestepsize=0.2):
         ''' 
         Initialize class
         ----------------
@@ -297,7 +298,7 @@ class Amplifier:
         self.filt_size_final = filt_size_final
         self.filt_size_sky = filt_size_sky
         self.sky_scale = sky_scale
-        
+        self.wavestepsize = wavestepsize
         # Continuum subtraction
         self.cont_smooth = cont_smooth
         
@@ -1143,23 +1144,26 @@ class Amplifier:
                 self.get_wavelength_solution()
             self.log.info('Getting Fiber to Fiber for %s' %self.basename)
             masterwave = []
-            masterspec = []
             for fib, fiber in enumerate(self.good_fibers):
                 masterwave.append(fiber.wavelength)
-                masterspec.append(fiber.spectrum)
             masterwave = np.hstack(masterwave)
-            smoothspec = np.hstack(masterspec)
-            ind = np.argsort(masterwave)
-            masterwave = masterwave[ind]
-            smoothspec = smoothspec[ind]
-            np.savetxt(op.join(self.path,'masterspec_%s.txt'%self.amp), 
-                       np.vstack([masterwave,smoothspec]).swapaxes(0,1))
-            self.averagespec = biweight_filter(smoothspec, self.filt_size_agg)
+            masterspec = []
+            stepsize=self.wavestepsize
+            masterwave = np.arange(masterwave.min(),masterwave.max()+stepsize,
+                                   stepsize)
+                                   
+            for fib, fiber in enumerate(self.good_fibers):            
+                masterspec.append(np.interp(masterwave, fiber.wavelength,
+                                            biweight_filter(fiber.spectrum, 
+                                                          self.filt_size_ind)))
+            
+            
+            self.averagespec = biweight_filter(biweight_location(
+                                                masterspec,axis=(0,)),
+                                                 self.filt_size_agg)
             for fib, fiber in enumerate(self.fibers):
-                fiber.fiber_to_fiber = biweight_filter(fiber.spectrum 
-                                      / np.interp(fiber.wavelength, masterwave, 
-                                                  self.averagespec), 
-                                                       self.filt_size_final)
+                fiber.fiber_to_fiber = np.interp(fiber.wavelength, masterwave, 
+                                              masterspec[fib]/self.averagespec)
 
         else:
             self.load(path='calpath', spec_list=['fiber_to_fiber'])       
