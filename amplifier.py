@@ -658,15 +658,14 @@ class Amplifier:
                                                    'pixelflat_cam%s_%s.fits' 
                                             %(self.specid, self.amp)))[0].data,
                                   dtype=float)
-            self.image[:] = np.where(pixelflat > 1e-1, self.image / pixelflat, 
-                                     0.0)
-            self.error[:] = np.where(pixelflat > 1e-1, self.error / pixelflat, 
-                                     -1.0)
-            self.mask = np.where(pixelflat > 1e-1, 0.0, -1.0)
-            sel = np.isfinite(self.image)
-            if (~sel).sum()>0:
-                self.image[~sel] = 0.0
-                self.error[~sel] = -1.0
+            #self.image[:] = np.where(pixelflat > 1e-1, self.image / pixelflat, 
+            #                         0.0)
+            self.error[pixelflat<=0.0] = -1.0
+            #self.mask = np.where(pixelflat > 1e-1, 0.0, -1.0)
+            #sel = np.isfinite(self.image)
+            #if (~sel).sum()>0:
+            #    self.image[~sel] = 0.0
+            #    self.error[~sel] = -1.0
 
     def subtract_background(self):
         if not self.image_prepped:
