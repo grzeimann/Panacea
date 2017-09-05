@@ -98,6 +98,11 @@ def main():
             image_list = ['image','error']
             if args.twi_operations['subtract_background']:
                 image_list.insert(1, 'back')
+            if args.instr=='virus' or args.instr=='virusw':
+                        ifucen, temp = get_ifucenfile(args, amp.amp[0], 
+                                            amp.ifuid, amp.amp)
+                        amp.ifupos = temp
+                        image_list.append('ifupos')
             execute_function(amp, 'save', {'image_list':image_list,
                                            'spec_list':['trace','wavelength',
                                                         'spectrum',
