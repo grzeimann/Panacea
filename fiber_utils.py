@@ -11,6 +11,7 @@ from utils import biweight_location, biweight_midvariance, is_outlier
 from utils import biweight_filter
 from scipy.optimize import nnls
 import scipy
+from scipy.signal import medfilt
 from scipy.interpolate import interp1d, NearestNDInterpolator, LinearNDInterpolator
 from scipy.linalg import lstsq
 from numpy.polynomial.polynomial import polyvander2d
@@ -170,27 +171,47 @@ def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
     peaks_refined = np.zeros(mxkeep.shape)
     peaks_height = np.zeros(mxkeep.shape)
     for j, val in enumerate(mxkeep):
-        ind = np.searchsorted(mnkeep,val)
-        if ind==len(mnkeep):
-            ind-=1
-            mn1 = int(mnkeep[ind])
-            mn2 = int(len(y))
-        elif ind==0:
-            mn1 = int(0)
-            mn2 = int(mnkeep[ind]+1)
-        else:
-            mn1 = int(mnkeep[ind-1])
-            mn2 = int(mnkeep[ind]+1)
-        if val - mn1 > max_to_min_dist:
-            mn1 = int(val - max_to_min_dist)
-        if mn2 - val > (max_to_min_dist + 1):
-            mn2 = int(val + max_to_min_dist + 1)
-        lwa = ((y[mn1:mn2]*x[mn1:mn2]).sum()/(y[mn1:mn2]).sum())
+        mn1 = np.max([int(val - max_to_min_dist),0])
+        mn2 = np.min([int(val + max_to_min_dist+1),len(y)])
+        p0 = np.polyfit(x[mn1:mn2],y[mn1:mn2],2)
+        lwa = -p0[1] / (2.*p0[0])
+        if np.isnan(lwa):
+            lwa = ((y[mn1:mn2]*x[mn1:mn2]).sum()/(y[mn1:mn2]).sum())
+        if lwa<mn1 or lwa>mn2:
+            lwa = ((y[mn1:mn2]*x[mn1:mn2]).sum()/(y[mn1:mn2]).sum())
+
         # Iterating and interpolating to refine the centroid
         for k in xrange(first_order_iter):
             xp = np.linspace(lwa-interp_window, lwa+interp_window, num=50)
-            yp = np.interp(xp, x[mn1:mn2], y[mn1:mn2],left=0,right=0)
-            lwa = (yp*xp).sum()/yp.sum()
+            yp = np.interp(xp, x[mn1:mn2], y[mn1:mn2], left=0, right=0)
+            p0 = np.polyfit(xp,yp,2)
+            lwa = -p0[1] / (2.*p0[0])
+            if np.isnan(lwa):
+                lwa = (yp*xp).sum()/yp.sum()
+            if lwa<mn1 or lwa>mn2:
+                lwa = (yp*xp).sum()/yp.sum()
+                
+#        ind = np.searchsorted(mnkeep,val)
+#        if ind==len(mnkeep):
+#            ind-=1
+#            mn1 = int(mnkeep[ind])
+#            mn2 = int(len(y))
+#        elif ind==0:
+#            mn1 = int(0)
+#            mn2 = int(mnkeep[ind]+1)
+#        else:
+#            mn1 = int(mnkeep[ind-1])
+#            mn2 = int(mnkeep[ind]+1)
+#        if val - mn1 > max_to_min_dist:
+#            mn1 = int(val - max_to_min_dist)
+#        if mn2 - val > (max_to_min_dist + 1):
+#            mn2 = int(val + max_to_min_dist + 1)
+#        lwa = ((y[mn1:mn2]*x[mn1:mn2]).sum()/(y[mn1:mn2]).sum())
+#        # Iterating and interpolating to refine the centroid
+#        for k in xrange(first_order_iter):
+#            xp = np.linspace(lwa-interp_window, lwa+interp_window, num=50)
+#            yp = np.interp(xp, x[mn1:mn2], y[mn1:mn2],left=0,right=0)
+#            lwa = (yp*xp).sum()/yp.sum()
         peaks_refined[j] = lwa
         peaks_height[j] = y[val]
     return peaks_refined, peaks_height 
@@ -310,6 +331,33 @@ def calculate_wavelength(x, y, solar_peaks, solar_spec, window_size=80.,
         t2=time.time()
         print("Time to finish wavelength solution for a single fiber: %0.2f" %(t2-t1))
     return np.polyval(init_sol,x), init_sol
+
+
+def calculate_wavelength_new(x, solar_spec, fibers, fibn, group,
+                              smooth_length=21, init_lims=None, order=3, 
+                              init_sol=None, debug=False, interactive=False, 
+                              nbins=21, wavebuff=100, plotbuff=85, 
+                              fixscale=True, use_leastsq=False, res=1.9):
+    L = len(x)
+    if init_lims is None:
+        init_lims = [np.min(solar_spec[:,0]), np.max(solar_spec[:,0])]
+    if init_sol is not None:
+        init_wave_sol = np.polyval(init_sol, 1. * x / L)
+    y_sun = solar_spec[:,1]  
+    lowfib = np.max([0,fibn-group])
+    highfib = np.min([len(fibers)-1,fibn+group])
+    y = np.array([biweight_filter(fibers[i].spectrum, smooth_length)
+                  / fibers[i].spectrum 
+                  for i in xrange(lowfib,highfib)])
+    y = biweight_location(y,axis=(0,))
+    bins = np.linspace(init_lims[0], init_lims[1], nbins)
+    bins = bins[1:-1]
+    scale = 1.*(init_lims[1] - init_lims[0])/L
+    wv0 = init_lims[0]
+    wave0_save = [] 
+    scale_save = []
+    x_save = []
+    wave_save = []
 
 
 def calculate_wavelength_chi2(x, solar_spec, fibers, fibn, group,
@@ -488,7 +536,7 @@ def calculate_wavelength_chi2(x, solar_spec, fibers, fibn, group,
 
 def get_trace_from_image(image, x_step=4, y_window=3, x_window=5, repeat_length=2,
                          order=3, mx_cut=0.1, max_to_min_dist=5., debug=False,
-                         first_order_iter=5, interp_window=3.):
+                         first_order_iter=5, interp_window=3., xc=None):
     '''
     :param image:
         Image [FITS] from which to fit the trace.
@@ -524,7 +572,8 @@ def get_trace_from_image(image, x_step=4, y_window=3, x_window=5, repeat_length=
     allfibers=[]
     a, b = image.shape
     x = np.arange(a)
-    xc = np.arange(b)[x_window:(b-1-x_window):x_step]
+    if xc is None:
+        xc = np.arange(b)[x_window:(b-1-x_window):x_step]
     if debug:
         t1 = time.time()
     for i in xc:
@@ -854,7 +903,8 @@ def remeasure_core(image, fibers, fib, neighbor, col_lims, bins, cols,
     try:
         sol = nnls(Y[:,~virus_sel], I)[0]  
     except:
-        print(col_lims)
+        print(col_lims, fib)
+        sys.exit(1)
         return None
     solb = np.zeros((lx,))
     solb[sel_v] = soli
@@ -886,7 +936,7 @@ def get_indices(image, Fibers, fsize, cols=None):
     a,b = image.shape
     diff = np.zeros((len(Fibers),))
     if cols is None:
-        cols = np.arange(b)
+        cols = np.arange(int(b/10.),int(9.*b/10.))
     for i,fiber in enumerate(Fibers):
         diff[i] = fiber.trace[cols].max() - fiber.trace[cols].min()
     if Fibers:
@@ -898,7 +948,11 @@ def get_indices(image, Fibers, fsize, cols=None):
         if my2>a:
             my2 = a
             my1 = a - cut_size
-        ix = ygrid[my1:my2,:] - fiber.trace*np.ones((cut_size,1))
+        try:
+            ix = ygrid[my1:my2,:] - fiber.trace*np.ones((my2-my1,1))
+        except:
+            print(my1,my2,cut_size)
+            sys.exit(1)
         y,x = np.where(np.abs(ix)<=fsize)
         ind = np.argsort(x)
         x=x[ind]
@@ -1542,7 +1596,69 @@ def calculate_significance(Fibers, image, error, oversample_value=3, sigma=1.3,
                 ds9.set('region','image; circle %f %f %f # color=blue' %(x,y,s))
     return Sig, wavelength
    
-        
+def get_wavelength_offsets(fibers, binsize, wvstep=0.2, colsize=300):
+    bins = np.hstack([np.arange(0,fibers[0].D,binsize),fibers[0].D])
+    mn = np.min([fiber.wavelength.min() for fiber in fibers])
+    mx = np.min([fiber.wavelength.max() for fiber in fibers])
+    yf = []
+    wv = np.arange(mn,mx,wvstep)
+    pd = []
+    nbins = len(bins)-1
+    for fiber in fibers:
+        y = fiber.spectrum
+        w = fiber.wavelength
+        x = np.arange(fiber.D)
+        s = -999*np.ones((nbins,fiber.D))
+        for i in np.arange(nbins):
+            x0 = int(np.max([0,(bins[i]+bins[i+1])/2 - colsize/2]))
+            x1 = int(np.min([1032,(bins[i]+bins[i+1])/2 + colsize/2]))
             
-    
-           
+            s[i,x0:x1], flag = polynomial_normalization(x, y, x0, x1)
+        s = np.ma.array(s,mask=s==-999.)
+        ym = s.mean(axis=0)
+        ym = biweight_filter(ym, 5, ignore_central=1)
+        pr, ph = find_maxima(w, -1.*(y/ym-1)+1, interp_window=3)
+        pd.append(pr[~np.isnan(pr)])
+        yf.append(np.interp(wv,w,-1.*(y/ym-1)+1,left=0.0,right=0.0))
+    master = biweight_location(yf,axis=(0,))
+    pr,ph = find_maxima(wv, master, y_window=10, interp_window=2.5, 
+                        repeat_length=3, first_order_iter=5, 
+                        max_to_min_dist=15)
+    sel = (ph>1.03) * (~np.isnan(pr))
+    pr = pr[sel]
+    ph = ph[sel]
+    wk = []
+    for p,fiber in zip(pd,fibers):
+        
+        c = p[:,None] - pr
+        a = np.where(np.abs(c)<4.)
+        x = pr[a[1]]
+        y = p[a[0]] - pr[a[1]]
+        sel = np.argsort(x)
+        x = x[sel]
+        y = y[sel]
+        m = medfilt(y,15)
+        good = ~is_outlier(y-m) 
+        p0 = np.polyfit(x[good],y[good],3)
+        wk.append(np.polyval(p0,fiber.wavelength))
+    return wk
+            
+def polynomial_normalization(x, y, x0, x1, lowsig=0.5, highsig=3.,
+                                       niter=5, order=3):
+    xf = x[x0:x1]
+    yf = y[x0:x1]
+    p0 = np.polyfit(xf,yf,1)
+    ym = np.polyval(p0,xf)
+    diff = ym - yf
+    mad = np.median(np.abs(diff))
+    mzs = 0.6745 * diff / mad
+    sel = (mzs<lowsig)*(mzs>-highsig)
+    for i in np.arange(niter):
+        p0 = np.polyfit(xf[sel],yf[sel],1)
+        ym = np.polyval(p0,xf)
+        diff = ym - yf
+        mad = np.median(np.abs(diff))
+        mzs = 0.6745 * diff / mad
+        sel = (mzs<lowsig)*(mzs>-highsig)
+    p0 = np.polyfit(xf[sel],yf[sel],order)
+    return np.polyval(p0,xf), sel

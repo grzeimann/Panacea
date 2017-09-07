@@ -13,6 +13,7 @@ from __future__ import (division, print_function, absolute_import,
 
 from distutils.dir_util import mkpath
 from utils import biweight_location, biweight_filter, biweight_midvariance
+from utils import biweight_bin
 from astropy.io import fits
 import os.path as op
 import numpy as np
@@ -24,7 +25,7 @@ from fiber_utils import check_fiber_trace, measure_background
 from fiber_utils import calculate_wavelength_chi2, get_model_image
 from fiber_utils import check_fiber_profile, check_wavelength_fit
 from fiber_utils import fast_nonparametric_fibermodel, new_fast_norm
-from fiber_utils import calculate_significance
+from fiber_utils import calculate_significance, get_wavelength_offsets
 from fiber import Fiber
 from scipy.signal import medfilt
 import cosmics
@@ -1112,8 +1113,19 @@ class Amplifier:
                     solar_spec = np.zeros((len(self.masterwave),2))
                     solar_spec[:,0] = self.masterwave
                     solar_spec[:,1] = self.mastersmooth
+            for k in np.arange(2):        
+                offset = get_wavelength_offsets(self.good_fibers, 25)
+                for off, fiber in zip(offset, self.good_fibers):
+                    fiber.wavelength = fiber.wavelength - off
+            for k in np.arange(self.good_fibers[0].D):
+                x = [fiber.trace[k] for fiber in self.good_fibers]
+                y = [fiber.wavelength[k] for fiber in self.good_fibers]
+                p0 = np.polyfit(x,y,3)
+                z = np.polyval(p0,x)
+                for i,fiber in enumerate(self.good_fibers):
+                    fiber.wavelength[k] = z[i]
             self.fill_in_dead_fibers(['wavelength', 'wave_polyvals'])        
-
+            
         else:
             self.load(path='calpath', spec_list=['wavelength'])       
             
@@ -1142,6 +1154,7 @@ class Amplifier:
             if self.fibers[0].wavelength is None:
                 self.get_wavelength_solution()
             self.log.info('Getting Fiber to Fiber for %s' %self.basename)
+            
             masterwave = []
             for fib, fiber in enumerate(self.good_fibers):
                 masterwave.append(fiber.wavelength)
@@ -1161,10 +1174,18 @@ class Amplifier:
                                                 masterspec,axis=(0,)),
                                                  self.filt_size_agg)
             for fib, fiber in enumerate(self.good_fibers):
-                fiber.fiber_to_fiber = np.interp(fiber.wavelength, masterwave, 
-                                              masterspec[fib]/self.averagespec)
+                fiber.fiber_to_fiber = biweight_filter(np.interp(fiber.wavelength, masterwave, 
+                                              masterspec[fib]/self.averagespec),
+                                              self.filt_size_ind)
             for fib,fiber in enumerate(self.dead_fibers):
                 fiber.fiber_to_fiber = np.zeros(fiber.spectrum.shape)
+#            for i in np.arange(2):
+#                self.get_binned_sky()
+#                for fib, fiber in enumerate(self.good_fibers):
+#                    x = fiber.wavelength
+#                    y = fiber.spectrum/np.interp(x,self.masterwave,self.mastersky)
+#                    p0 = np.polyfit(x,y,11)
+#                    fiber.fiber_to_fiber = np.polyval(p0,x)
         else:
             self.load(path='calpath', spec_list=['fiber_to_fiber'])       
   
@@ -1199,7 +1220,7 @@ class Amplifier:
                 self.skypath = None
         self.log.info('Subtracting sky for %s' %self.basename)
         if self.skypath is None:
-            self.get_master_sky(sky=True)
+            self.get_binned_sky()                
             for fib, fiber in enumerate(self.fibers):
                 fiber.sky_spectrum = (fiber.fiber_to_fiber 
                                  * np.interp(fiber.wavelength, self.masterwave, 
@@ -1285,6 +1306,7 @@ class Amplifier:
         using a biweight average of a wavelength ordered master array.
         
         '''
+        
         masterwave = []
         if sky:
             masterspec = []
@@ -1366,5 +1388,18 @@ class Amplifier:
         self.error_analysis[1,:] = F 
         self.error_analysis[2,:] = E 
         
-                                                         
+    def get_binned_sky(self):
+        masterwave,masterspec = [],[]
+        for fiber in self.good_fibers:
+            masterwave.append(fiber.wavelength)
+            masterspec.append(fiber.spectrum/fiber.fiber_to_fiber)
+        masterwave = np.hstack(masterwave)
+        masterspec = np.hstack(masterspec)
+
+        self.masterwave = np.arange(masterwave.min(),masterwave.max()
+                                               +self.wavestepsize,
+                               self.wavestepsize)
+                               
+        self.mastersky = biweight_bin(self.masterwave,masterwave,
+                                      masterspec)                                                         
         

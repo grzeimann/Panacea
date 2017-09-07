@@ -171,62 +171,92 @@ def biweight_filter2d(a, Order, Ignore_central=(3,3), c=6.0, M=None, func=None):
     C = np.ma.array(A, mask=(A == -999.).astype(np.int))
     return func(C, axis=(2,))
 
-
 def biweight_filter(a, order, ignore_central=3, c=6.0, M=None, func=None):
-    '''
-    Compute the biweight location with a moving window of size "order"
-
-    '''
-    if not isinstance(order, int):
-        print("The order should be an integer")
-        sys.exit(1)
-    if not isinstance(ignore_central, int):
-        print("The ignore_central value should be an integer")
-        sys.exit(1)        
+  
     if order%2==0:
         order+=1
     if ignore_central%2==0:
         ignore_central+=1
-    if order-3 <= ignore_central:
-        print("The order-3 should be larger than ignore_central.")
-        sys.exit(1)
     if func is None:
         func = biweight_location
+    if ignore_central+3 >= order:
+        print('The order, %i, should be +3 higher than ignore_central, %i.' 
+              %(order, ignore_central))
+        sys.exit(1)
     a = np.array(a, copy=False)
-    if a.ndim != 1:
-        print("Input array/list should be 1-dimensional")
-        sys.exit()
-    ignore = [order/2]
-    for i in xrange(ignore_central/2):
-        ignore.append(order/2 - i - 1)
-        ignore.append(order/2 + i + 1)
-    half_order = order / 2    
-    order_array = np.delete(np.arange(order), ignore)
-    A = np.zeros((len(a)-order+1, len(order_array)))
+    if ignore_central > 0:
+        yc = np.arange(ignore_central/2+1,order/2+1)
+    else:
+        yc = np.arange(0,order/2+1)
+    ly = np.max([len(yc)*2,1])
+    A = np.ones(a.shape + (ly,))*-999.
     k=0
-    for i in order_array:
-        if (order-i-1) == 0:
-            A[:,k] = a[i:]
-        else:
-            A[:,k] = a[i:-(order-i-1)]
-        k+=1
-    
-    Ab = func(A, axis=(1,))
-    A1 = np.zeros((half_order,))
-    A2 = np.zeros((half_order,))
-    for i in xrange(half_order):
-        ignore_l = [i]
-        ignore_h = [half_order]
-        for j in xrange(ignore_central/2):
-            if (i - j - 1) >=0:
-                ignore_l.append(i - j - 1)
-            ignore_l.append(i + j + 1)
-            if i > j:
-                ignore_h.append(half_order+j+1)
-            ignore_h.append(half_order-j-1)
-        A1[i] = func(np.delete(a[:(half_order+i+1)], ignore_l))
-        A2[-(i+1)] = func(np.delete(a[-(half_order+i+1):], ignore_h))
-    return np.hstack([A1,Ab,A2])
+    if order>1:
+        for i in yc:
+            A[:-i,k] = a[i:]
+            k+=1
+        for i in yc:
+            A[i:,k] = a[:-i]
+            k+=1  
+    C = np.ma.array(A, mask=(A == -999.).astype(np.int))
+    return func(C, axis=(1,))
+
+
+#def biweight_filter(a, order, ignore_central=3, c=6.0, M=None, func=None):
+#    '''
+#    Compute the biweight location with a moving window of size "order"
+#
+#    '''
+#    if not isinstance(order, int):
+#        print("The order should be an integer")
+#        sys.exit(1)
+#    if not isinstance(ignore_central, int):
+#        print("The ignore_central value should be an integer")
+#        sys.exit(1)        
+#    if order%2==0:
+#        order+=1
+#    if ignore_central%2==0:
+#        ignore_central+=1
+#    if order-3 <= ignore_central:
+#        print("The order-3 should be larger than ignore_central.")
+#        sys.exit(1)
+#    if func is None:
+#        func = biweight_location
+#    a = np.array(a, copy=False)
+#    if a.ndim != 1:
+#        print("Input array/list should be 1-dimensional")
+#        sys.exit()
+#    ignore = [order/2]
+#    for i in xrange(ignore_central/2):
+#        ignore.append(order/2 - i - 1)
+#        ignore.append(order/2 + i + 1)
+#    half_order = order / 2    
+#    order_array = np.delete(np.arange(order), ignore)
+#    A = np.zeros((len(a)-order+1, len(order_array)))
+#    k=0
+#    for i in order_array:
+#        if (order-i-1) == 0:
+#            A[:,k] = a[i:]
+#        else:
+#            A[:,k] = a[i:-(order-i-1)]
+#        k+=1
+#    
+#    Ab = func(A, axis=(1,))
+#    A1 = np.zeros((half_order,))
+#    A2 = np.zeros((half_order,))
+#    for i in xrange(half_order):
+#        ignore_l = [i]
+#        ignore_h = [half_order]
+#        for j in xrange(ignore_central/2):
+#            if (i - j - 1) >=0:
+#                ignore_l.append(i - j - 1)
+#            ignore_l.append(i + j + 1)
+#            if i > j:
+#                ignore_h.append(half_order+j+1)
+#            ignore_h.append(half_order-j-1)
+#        A1[i] = func(np.delete(a[:(half_order+i+1)], ignore_l))
+#        A2[-(i+1)] = func(np.delete(a[-(half_order+i+1):], ignore_h))
+#    return np.hstack([A1,Ab,A2])
     
     
 
