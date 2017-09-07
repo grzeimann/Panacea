@@ -479,28 +479,8 @@ def is_outlier(points, thresh=3.5):
     modified_z_score = 0.6745 * diff / med_abs_deviation
 
     return modified_z_score > thresh
- 
-def piecewise_polynomial_normalization(y, x0, x1, lowsig=0.5, highsig=3.,
-                                       niter=5):
-    x = np.arange(len(y))
-    xf = x[x0:x1]
-    yf = y[x0:x1]
-    p0 = np.polyfit(xf,yf,1)
-    ym = np.polyval(p0,xf)
-    diff = ym - yf
-    mad = np.median(np.abs(diff))
-    mzs = 0.6745 * diff / mad
-    sel = (mzs<lowsig)*(mzs>-highsig)
-    for i in np.arange(niter):
-        p0 = np.polyfit(xf[sel],yf[sel],1)
-        ym = np.polyval(p0,xf)
-        diff = ym - yf
-        mad = np.median(np.abs(diff))
-        mzs = 0.6745 * diff / mad
-        sel = (mzs<lowsig)*(mzs>-highsig)
-    
-    p0 = np.polyfit(xf[sel],yf[sel],3)
-    return np.polyval(p0,xf), sel
+
+
 
    
 def matrixCheby2D_7(x, y):
