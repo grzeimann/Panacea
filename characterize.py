@@ -60,6 +60,14 @@ def parse_args(argv=None):
                         help='''Single ifuslot value. [REQUIRED]
                         Ex: "075".''', default = None)
 
+    parser.add_argument("-us","--use_structure", 
+                        help='''Use well defined structure.''',
+                        action="count", default=0)
+
+    parser.add_argument("--date", nargs='?', type=str, 
+                        help='''If using "use_structure then [REQUIRED].
+                        Ex: "20170912".''', default = None)
+
     parser.add_argument("--specid", nargs='?', type=str, 
                         help='''Single specid value. [REQUIRED]
                         Ex: "304".''', default = None)
@@ -151,19 +159,19 @@ def parse_args(argv=None):
                         action="count", default=0)
 
     parser.add_argument("-dcd","--dont_check_dark", 
-                        help='''Don't make masterbias.''',
+                        help='''Don't make masterdark.''',
                         action="count", default=0)
 
     parser.add_argument("-dcr","--dont_check_readnoise", 
-                        help='''Don't make masterbias.''',
+                        help='''Don't check the readnoise.''',
                         action="count", default=0)
                         
     parser.add_argument("-dcg","--dont_check_gain", 
-                        help='''Don't make masterbias.''',
+                        help='''Don't check the gain.''',
                         action="count", default=0)                        
 
     parser.add_argument("-dcp","--dont_check_pixelflat", 
-                        help='''Don't make masterbias.''',
+                        help='''Don't make pixelflat.''',
                         action="count", default=0)
 
                           
@@ -183,6 +191,19 @@ def read_in_raw(args):
 
     labels = ['dir_date', 'dir_obsid', 'dir_expnum']
     observations = []
+    if args.use_structure:
+        if args.date is None:
+            msg = '"use_structure" is True but no date was set.'
+            log.error(msg) 
+        args.biadir_date = args.date
+        args.biadir_obsid = '%03d%04d' %(int(args.specid), 10)
+        args.drkdir_date = args.date
+        args.drkdir_obsid = '%03d%04d' %(int(args.specid), 12)
+        args.ptcdir_date = args.date
+        args.ptcdir_obsid = '%03d%04d' %(int(args.specid), 9)
+        args.pxfdir_date = args.date
+        args.pxfdir_obsid = '%03d%04d' %(int(args.specid), 5)
+            
     if not args.dont_check_bias:
         observations.append('bia')
     if not args.dont_check_dark:
