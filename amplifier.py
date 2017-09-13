@@ -26,6 +26,7 @@ from fiber_utils import calculate_wavelength_chi2, get_model_image
 from fiber_utils import check_fiber_profile, check_wavelength_fit
 from fiber_utils import fast_nonparametric_fibermodel, new_fast_norm
 from fiber_utils import calculate_significance, get_wavelength_offsets
+from fiber_utils import bspline_x0
 from fiber import Fiber
 from scipy.signal import medfilt
 import cosmics
@@ -56,7 +57,8 @@ class Amplifier:
                  fibmodel_breakpoint=5., fibmodel_step=4,
                  fibmodel_interpkind='linear', cosmic_iterations=1,
                  sky_scale=1.0, make_model_image=False, init_sol=None,
-                 wavestepsize=0.2):
+                 wavestepsize=1., nknots=51, bspline_binsize=200.,
+                 bspline_waveres=2.5):
         ''' 
         Initialize class
         ----------------
@@ -302,6 +304,9 @@ class Amplifier:
         self.wavestepsize = wavestepsize
         # Continuum subtraction
         self.cont_smooth = cont_smooth
+        self.nknots = nknots
+        self.bspline_binsize = bspline_binsize
+        self.bspline_waveres = bspline_waveres
         
         # Image Options
         self.make_residual = make_residual
@@ -1156,36 +1161,39 @@ class Amplifier:
             self.log.info('Getting Fiber to Fiber for %s' %self.basename)
             
             masterwave = []
+            masterspec = []
+            k=0
+            inds = []
             for fib, fiber in enumerate(self.good_fibers):
                 masterwave.append(fiber.wavelength)
+                masterspec.append(fiber.spectrum)
+                inds.append(k)
+                k += self.D
             masterwave = np.hstack(masterwave)
-            masterspec = []
-            stepsize=self.wavestepsize
-            masterwave = np.arange(masterwave.min(),masterwave.max()+stepsize,
-                                   stepsize)
-                                   
-            for fib, fiber in enumerate(self.good_fibers):            
-                masterspec.append(np.interp(masterwave, fiber.wavelength,
-                                            biweight_filter(fiber.spectrum, 
-                                                          self.filt_size_ind)))
-            
-            
-            self.averagespec = biweight_filter(biweight_location(
-                                                masterspec,axis=(0,)),
-                                                 self.filt_size_agg)
-            for fib, fiber in enumerate(self.good_fibers):
-                fiber.fiber_to_fiber = biweight_filter(np.interp(fiber.wavelength, masterwave, 
-                                              masterspec[fib]/self.averagespec),
-                                              self.filt_size_ind)
+            masterspec = np.hstack(masterspec)
+            B, c = bspline_x0(masterwave, nknots=self.nknots)
+
+            smooth = []
+            for fiber,ind in zip(self.good_fibers,inds):
+                sol = np.linalg.lstsq(c[int(ind):int(ind+self.D),:],fiber.spectrum)[0]
+                smooth.append(np.dot(c[int(ind):int(ind+self.D),:],sol))
+            wv = np.arange(masterwave.min(),masterwave.max()+self.wavestepsize,
+                           self.wavestepsize)
+            asmooth = np.hstack(smooth)
+            avgsmooth = biweight_bin(wv,masterwave,asmooth)
+            for fiber, sm in zip(self.good_fibers, smooth):
+                sm_tot = np.interp(fiber.wavelength,wv,avgsmooth)
+                fiber.fiber_to_fiber = sm / sm_tot   
+            self.get_bspline_sky()
+            for fiber,ind in zip(self.good_fibers,inds):
+                spec = np.interp(fiber.wavelength ,self.masterwave, 
+                                 self.mastersky)
+                sol=np.linalg.lstsq(c[int(ind):int(ind+self.D),:],
+                                    fiber.spectrum/spec)[0]
+                fiber.fiber_to_fiber = np.dot(c[int(ind):int(ind+self.D),:], sol)
             for fib,fiber in enumerate(self.dead_fibers):
                 fiber.fiber_to_fiber = np.zeros(fiber.spectrum.shape)
-#            for i in np.arange(2):
-#                self.get_binned_sky()
-#                for fib, fiber in enumerate(self.good_fibers):
-#                    x = fiber.wavelength
-#                    y = fiber.spectrum/np.interp(x,self.masterwave,self.mastersky)
-#                    p0 = np.polyfit(x,y,11)
-#                    fiber.fiber_to_fiber = np.polyval(p0,x)
+#            
         else:
             self.load(path='calpath', spec_list=['fiber_to_fiber'])       
   
@@ -1220,7 +1228,7 @@ class Amplifier:
                 self.skypath = None
         self.log.info('Subtracting sky for %s' %self.basename)
         if self.skypath is None:
-            self.get_binned_sky()                
+            self.get_bspline_sky()                
             for fib, fiber in enumerate(self.fibers):
                 fiber.sky_spectrum = (fiber.fiber_to_fiber 
                                  * np.interp(fiber.wavelength, self.masterwave, 
@@ -1402,4 +1410,28 @@ class Amplifier:
                                
         self.mastersky = biweight_bin(self.masterwave,masterwave,
                                       masterspec)                                                         
+
+    def get_bspline_sky(self):
+        self.log.info('Calculating master sky using bspline approximation')
+        masterwave,masterspec = [],[]
+        for fiber in self.good_fibers:
+            masterwave.append(fiber.wavelength)
+            masterspec.append(fiber.spectrum/fiber.fiber_to_fiber)
+        masterwave = np.hstack(masterwave)
+        masterspec = np.hstack(masterspec)
+        ind = np.argsort(masterwave)
+        masterwave = masterwave[ind]
+        masterspec = masterspec[ind]
+        self.masterwave = masterwave
+        bins = np.arange(masterwave.min(), 
+                         masterwave.max()+self.bspline_binsize, 
+                         self.bspline_binsize)
+        self.mastersky = np.zeros(masterwave.shape)
+        for i in np.arange(len(bins)-1):
+            sel = np.where((masterwave>=bins[i])*(masterwave<bins[i+1]))[0]
+            B,c = bspline_x0(masterwave[sel],
+                             nknots=int(self.bspline_binsize
+                                      /self.bspline_waveres))
+            sol = np.linalg.lstsq(c,masterspec[sel])[0]
+            self.mastersky[sel] = np.dot(c,sol) 
         

@@ -22,7 +22,8 @@ import numpy as np
 import time
 import sys
 from astropy.convolution import convolve, Gaussian1DKernel
-
+from bspline import Bspline
+import splinelab
 
 def str2bool(v):
     '''
@@ -1662,3 +1663,16 @@ def polynomial_normalization(x, y, x0, x1, lowsig=0.5, highsig=3.,
         sel = (mzs<lowsig)*(mzs>-highsig)
     p0 = np.polyfit(xf[sel],yf[sel],order)
     return np.polyval(p0,xf), sel
+    
+def bspline_x0(x, y=None, nknots=21, p=3):
+    if y is not None:
+        s = np.cumsum(np.abs(np.diff(np.hstack([y,y[-1]]))))
+        v = np.interp(np.linspace(0,1,nknots), s/s.max(), 
+                      (x-x.min())/(x.max()-x.min()))
+    else:
+        v = np.linspace(0,1,nknots)
+    k = splinelab.augknt(v, p)  # add endpoint repeats as appropriate for spline order p
+    B     = Bspline(k, p)
+    xi =  (x-x.min())/(x.max()-x.min()+0.1)
+    c = np.array([B(xp) for xp in xi])
+    return B, c
