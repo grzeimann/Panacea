@@ -13,7 +13,7 @@ from __future__ import (division, print_function, absolute_import,
 
 from distutils.dir_util import mkpath
 from utils import biweight_location, biweight_filter, biweight_midvariance
-from utils import biweight_bin
+from utils import biweight_bin, is_outlier
 from astropy.io import fits
 import os.path as op
 import numpy as np
@@ -230,7 +230,7 @@ class Amplifier:
         if not op.exists(filename):
             self.log.warning("File Does Not Exist: %s" %filename)
             return None
-        F = fits.open(filename)
+        F = fits.open(filename,ignore_missing_end=True)
         self.header = F[0].header
         self.name = name
         self.filename = op.abspath(filename)
@@ -1175,8 +1175,12 @@ class Amplifier:
 
             smooth = []
             for fiber,ind in zip(self.good_fibers,inds):
-                sol = np.linalg.lstsq(c[int(ind):int(ind+self.D),:],fiber.spectrum)[0]
+                m = medfilt(fiber.spectrum,9)
+                sel = np.where(is_outlier(m-fiber.spectrum)==0)[0]
+                sol = np.linalg.lstsq(c[int(ind):int(ind+self.D),:][sel,:],
+                                      fiber.spectrum[sel])[0]
                 smooth.append(np.dot(c[int(ind):int(ind+self.D),:],sol))
+ 
             wv = np.arange(masterwave.min(),masterwave.max()+self.wavestepsize,
                            self.wavestepsize)
             asmooth = np.hstack(smooth)
@@ -1185,12 +1189,24 @@ class Amplifier:
                 sm_tot = np.interp(fiber.wavelength,wv,avgsmooth)
                 fiber.fiber_to_fiber = sm / sm_tot   
             self.get_bspline_sky()
+            k=0
+            B, c = bspline_x0(masterwave, nknots=7)
             for fiber,ind in zip(self.good_fibers,inds):
                 spec = np.interp(fiber.wavelength ,self.masterwave, 
                                  self.mastersky)
-                sol=np.linalg.lstsq(c[int(ind):int(ind+self.D),:],
-                                    fiber.spectrum/spec)[0]
-                fiber.fiber_to_fiber = np.dot(c[int(ind):int(ind+self.D),:], sol)
+                m = medfilt(fiber.spectrum/spec,9)
+                sel = np.where(is_outlier(m-fiber.spectrum/spec)==0)[0]
+                sol=np.linalg.lstsq(c[int(ind):int(ind+self.D),:][sel,:],
+                                    (fiber.spectrum/spec)[sel])[0]
+                fiber.fiber_to_fiber = np.dot(c[int(ind):int(ind+self.D),:], 
+                                              sol)
+                plt.figure(figsize=(8,6))
+                plt.scatter(fiber.wavelength,fiber.spectrum/spec,alpha=0.2)
+                plt.plot(fiber.wavelength,fiber.fiber_to_fiber,'k-')
+                plt.axis([3500,5500,0.8,1.2])
+                plt.savefig(op.join(self.path,'test_%s_%i.png'%(self.amp,k)))
+                plt.close()
+                k+=1
             for fib,fiber in enumerate(self.dead_fibers):
                 fiber.fiber_to_fiber = np.zeros(fiber.spectrum.shape)
 #            
