@@ -1194,7 +1194,7 @@ class Amplifier:
                 fiber.fiber_to_fiber = sm / sm_tot   
             self.get_bspline_sky()
             k=0
-            B, c = bspline_x0(masterwave, nknots=7)
+            B, c = bspline_x0(masterwave, nknots=21)
             for fiber,ind in zip(self.good_fibers,inds):
                 spec = np.interp(fiber.wavelength ,self.masterwave, 
                                  self.mastersky)
