@@ -230,7 +230,11 @@ class Amplifier:
         if not op.exists(filename):
             self.log.warning("File Does Not Exist: %s" %filename)
             return None
-        F = fits.open(filename,ignore_missing_end=True)
+        try:
+            F = fits.open(filename)
+        except:
+            self.log.error("%s could not be opened with Amplifier class" %filename)
+            return None
         self.header = F[0].header
         self.name = name
         self.filename = op.abspath(filename)
