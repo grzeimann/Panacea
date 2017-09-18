@@ -366,7 +366,16 @@ class Amplifier:
             self.rdnoise = 2.5
         self.exptime = F[0].header['EXPTIME']
         self.ifupos = None
-   
+        try:
+            self.ampname = F[0].header['AMPNAME']
+        except:
+            self.ampname = None
+        if self.ampname is None:
+            try:
+                self.ampname = F[0].header['AMPLIFIE']
+            except:
+                self.ampname = None            
+            
     def setup_logging(self):
         '''Set up a logger for shuffle with a name ``amplifier``.
     
@@ -593,7 +602,12 @@ class Amplifier:
             self.error[:] = self.error[::-1,::-1]
             if self.mask is not None:
                 self.mask[:] = self.mask[::-1,::-1]
-            
+        if self.ampname is not None:
+            if self.ampname == 'LR' or self.ampname == 'UL':
+                self.image[:] = self.image[:,::-1]
+                self.error[:] = self.error[:,::-1]
+                if self.mask is not None:
+                    self.mask[:] = self.mask[:,::-1]
         
     def subtract_overscan(self):
         '''
