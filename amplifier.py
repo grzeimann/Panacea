@@ -58,7 +58,8 @@ class Amplifier:
                  fibmodel_interpkind='linear', cosmic_iterations=1,
                  sky_scale=1.0, make_model_image=False, init_sol=None,
                  wavestepsize=1., nknots=51, bspline_binsize=200.,
-                 bspline_waveres=2.5):
+                 bspline_waveres=2.5, sky_iterations=3,
+                 sky_sigthresh=2.5):
         ''' 
         Initialize class
         ----------------
@@ -308,9 +309,13 @@ class Amplifier:
         self.wavestepsize = wavestepsize
         # Continuum subtraction
         self.cont_smooth = cont_smooth
+        
+        # Sky / Fiber to Fiber
         self.nknots = nknots
         self.bspline_binsize = bspline_binsize
         self.bspline_waveres = bspline_waveres
+        self.sky_iterations = sky_iterations
+        self.sky_sigthresh = sky_sigthresh
         
         # Image Options
         self.make_residual = make_residual
@@ -1467,5 +1472,11 @@ class Amplifier:
                              nknots=int(self.bspline_binsize
                                       /self.bspline_waveres))
             sol = np.linalg.lstsq(c,masterspec[sel])[0]
+            for j in np.arange(self.sky_iterations):
+                v = np.dot(c,sol)
+                d = masterspec[sel] - v
+                bv = biweight_midvariance(d)
+                sel1 = d < (self.sky_sigthresh * bv)
+                sol = np.linalg.lstsq(c[sel1,:],masterspec[sel][sel1])[0]
             self.mastersky[sel] = np.dot(c,sol) 
         
