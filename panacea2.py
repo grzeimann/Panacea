@@ -46,7 +46,7 @@ def get_ifucenfile(args, side, ifuid, amp=None):
                                    skiprows=args.ifucen_fn[side][1])
             
         else:
-            if ifuid == '004':
+            if (ifuid == '004') or (ifuid == '005'):
                 ifucen = np.loadtxt(op.join(args.kwargs['virusconfig'],
                                         'IFUcen_files',
                                         'IFUcen_HETDEX_reverse_R.txt'),
