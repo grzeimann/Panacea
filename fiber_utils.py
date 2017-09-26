@@ -944,11 +944,9 @@ def get_indices(image, Fibers, fsize, cols=None):
         cut_size = int(diff.max() + fsize*2 + 1)
     # Calculate initial fiber model and trace-y reference frame
     for i,fiber in enumerate(Fibers):
-        my1 = int(np.max([0,fiber.trace.min()-fsize]))
-        my2 = my1 + cut_size
-        if my2>a:
-            my2 = a
-            my1 = a - cut_size
+        my1 = int(np.max([0,fiber.trace.min()-fsize-1]))
+        my2 = int(np.min([a,fiber.trace.max()+fsize+1]))
+        
         try:
             ix = ygrid[my1:my2,:] - fiber.trace*np.ones((my2-my1,1))
         except:
@@ -1369,7 +1367,7 @@ def check_fiber_trace(image, Fibers, outfile, xwidth=75., ywidth=75.):
     plt.close(fig)     
 
 def check_fiber_profile(image, Fibers, outfile, fsize,
-                        xwidth=75., yplot_high=0.25, 
+                        xwidth=50., yplot_high=0.25, 
                         yplot_low=-0.05, fib_group=4):
     '''
     Plot of the fiber profiles for the top/middle/bottom in the fiber and 
@@ -1401,7 +1399,6 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
     a,b = image.shape
     pos = 0
     plots = np.arange(1,10)
-    xwidth=50.
     for i in [0.9, 0.5, 0.1]:
         for j in [0.2, 0.5, 0.8]:
             sub = fig.add_subplot(3, 3, plots[pos])
@@ -1411,6 +1408,7 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
             x = []
             y = []
             mt = []
+            mxk = []
             for fib in np.arange(int(i*len(Fibers))-fib_group,
                                  int(i*len(Fibers))+fib_group+1):
                 mt.append(Fibers[fib].trace[int(maxx/2.+minx/2.)])
@@ -1431,6 +1429,7 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
                             Fibers[fib].core[sel],
                             color=[0.2, 0.2, 0.8], edgecolor='none',
                             alpha=0.2, s=20)
+                mxk.append(Fibers[fib].yoff[sel].max())
             x = np.hstack(x)
             y = np.hstack(y)
             if len(mt)>3:
@@ -1449,6 +1448,8 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
             sub.text(-fsize+1, yplot_high-0.06, 
                      "Contrast: %0.2f" %(contrast), 
                      fontsize=14)
+            sub.text(-fsize+1, yplot_high-0.09,
+                     "X max: %0.2f" %(np.max(mxk)))
             sub.set_xlim([-fsize, fsize])
             sub.set_ylim([yplot_low, yplot_high])                
             sub.plot([-fsize,fsize],[0,0],'r-',lw=3)
