@@ -159,6 +159,8 @@ def read_in_raw(args, parser):
     args.trace_from_sci = config.trace_from_sci
     args.use_other_sky = config.use_other_sky
     args.refit_fiber_to_fiber = config.refit_fiber_to_fiber
+    args.adjust_ftf = config.adjust_ftf
+    args.kwargs['adjust_ftf'] = config.adjust_ftf
     args.ifucen_fn = getattr(config,instr+'fn')
     if args.instr.lower() == 'virusw':
         if args.virusw_res.lower() == 'lowres':

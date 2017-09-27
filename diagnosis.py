@@ -199,6 +199,7 @@ def check_bias(args):
                   'bias_diagnositic_ambtemp_%s_%s.png'%(args.ifuslot,amp),
                   xlims=[0.,30.],
                   ylims=[900.,1100.])
+                  
 def check_dark(args):
     pass
 

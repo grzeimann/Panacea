@@ -59,8 +59,18 @@ def get_ifucenfile(args, side, ifuid, amp=None):
                                         'IFUcen_HETDEX.txt'),
                                         usecols=[0,1,2,4],
                                    skiprows=args.ifucen_fn[side][1])
-                if ifuid == '005':
+                if ifuid in ['003','005','008']:
                     ifucen[224:,:] = ifucen[-1:223:-1,:]
+                if ifuid == '007':
+                    ifucen[37,1:3], ifucen[38,1:3] = ifucen[38,1:3], ifucen[37,1:3]
+                if ifuid == '025':
+                    ifucen[208,1:3], ifucen[213,1:3] = ifucen[213,1:3], ifucen[208,1:3]
+                if ifuid == '030':
+                    ifucen[445,1:3], ifucen[446,1:3] = ifucen[446,1:3], ifucen[445,1:3]
+                if ifuid == '038':
+                    ifucen[302,1:3], ifucen[303,1:3] = ifucen[303,1:3], ifucen[302,1:3]
+                if ifuid == '041':
+                    ifucen[251,1:3], ifucen[252,1:3] = ifucen[252,1:3], ifucen[251,1:3]
     else:
         ifucen = np.loadtxt(op.join(args.kwargs['virusconfig'], 'IFUcen_files', 
                             args.ifucen_fn[side][0]), 
@@ -152,6 +162,8 @@ def main():
                         amp.refit=True
                         execute_function(amp, 'get_fiber_to_fiber')
                         amp.refit=False
+                    if args.adjust_ftf:
+                        execute_function(amp, 'get_fiber_to_fiber')
                     if args.sci_operations['sky_subtraction']:                                            
                         execute_function(amp, 'sky_subtraction')
                         image_list.append('clean_image')

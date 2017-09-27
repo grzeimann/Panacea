@@ -96,25 +96,6 @@ def setup_logging():
         log.addHandler(handler)
     return log
 
-
-def astrometry(opts, ifuslot, pos, ra, dec, pa):
-    # Read in the Fplane File
-    fplane = FPlane(opts.fplane)
-    
-    rot = 360.0 - (pa + 90. + sys_rot)
-    # Set up the Tangent Plane projection
-    tp = TP(ra, dec, rot)
-
-    # Get IFU positions for given ifuslot
-    ifu = fplane.by_ifuslot(ifuslot)
-
-    # remember to flip x,y 
-    xfp = pos[:,0] + ifu.y
-    yfp = pos[:,1] + ifu.x
-    ra_dec = np.zeros((len(xfp),2))
-    ra_dec[:,0], ra_dec[:,1] = tp.xy2raDec(xfp, yfp)
-    return ra_dec
-    
     
 def get_shot_info_from_input(args):
     '''
@@ -293,7 +274,38 @@ def fiber_to_fiber_shot(shot, folder, instr, ifuslots, amps_list,
         y = func(avg_spec / average, (1,smooth_scale))
         fiber_to_fiber.append(y)
     return fiber_to_fiber, std_wave
+
+
+def starextract(argsv=None, seeing=1.5, wavescale=1.9):
+    '''
+    Parameters
+    ----------
+    args : list of strings, optional
+        command line
+    '''
+    log = setup_logging()
+    parser = ap.ArgumentParser(description="""Calculate the fiber
+                                     to fiber across a shot.""",
+                                     parents=[astro_parent, ])
+                                     
+    parser.add_argument('--pos', nargs='?', type=str, 
+                            help='''"x,y"''', default=None)
+                            
+                          
+    args = parser.parse_args(argsv)
+    if args.pos is None:
+        log.error('No position argument "--pos" given.')
+        sys.exit(1)
+    args.ifuslots = args.ifuslots.replace(" ", "").split(',') 
+    
+    try:
+        x,y = [float(i) for i in args.pos.replace(" ", "").split(',')] 
+    except:
+        log.error('Could not proper read in %s as an x,y position' %args.pos)
+        sys.exit(1)
         
+    for ifuslot in args.ifuslots:
+        pass
         
 def get_astrometry(argsv=None, collapse_lim1=5050, collapse_lim2=5400, 
                    imscale=0.5, seeing=1.5):

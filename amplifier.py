@@ -59,7 +59,7 @@ class Amplifier:
                  sky_scale=1.0, make_model_image=False, init_sol=None,
                  wavestepsize=1., nknots=51, bspline_binsize=200.,
                  bspline_waveres=2.5, sky_iterations=3,
-                 sky_sigthresh=2.5):
+                 sky_sigthresh=2.5, adjust_ftf=False):
         ''' 
         Initialize class
         ----------------
@@ -316,6 +316,7 @@ class Amplifier:
         self.bspline_waveres = bspline_waveres
         self.sky_iterations = sky_iterations
         self.sky_sigthresh = sky_sigthresh
+        self.adjust_ftf = adjust_ftf
         
         # Image Options
         self.make_residual = make_residual
@@ -1213,28 +1214,74 @@ class Amplifier:
                 fiber.fiber_to_fiber = sm / sm_tot   
             self.get_bspline_sky()
             k=0
-            B, c = bspline_x0(masterwave, nknots=21)
+            #B, c = bspline_x0(masterwave, nknots=21)
             for fiber,ind in zip(self.good_fibers,inds):
                 spec = np.interp(fiber.wavelength ,self.masterwave, 
                                  self.mastersky)
-                m = medfilt(fiber.spectrum/spec,9)
+                m = medfilt(fiber.spectrum/spec,25)
                 sel = np.where(is_outlier(m-fiber.spectrum/spec)==0)[0]
+                sel = np.intersect1d(sel,np.arange(5,self.D-5))
+                sel2 = np.setdiff1d(np.arange(self.D),sel)
                 sol=np.linalg.lstsq(c[int(ind):int(ind+self.D),:][sel,:],
                                     (fiber.spectrum/spec)[sel])[0]
                 fiber.fiber_to_fiber = np.dot(c[int(ind):int(ind+self.D),:], 
                                               sol)
-                #plt.figure(figsize=(8,6))
-                #plt.scatter(fiber.wavelength,fiber.spectrum/spec,alpha=0.2)
-                #plt.plot(fiber.wavelength,fiber.fiber_to_fiber,'k-')
-                #plt.axis([3500,5500,0.8,1.2])
-                #plt.savefig(op.join(self.path,'test_%s_%i.png'%(self.amp,k)))
+                plt.figure(figsize=(8,6))
+                plt.scatter(fiber.wavelength,fiber.spectrum/spec,alpha=0.2)
+                plt.scatter(fiber.wavelength[sel2],
+                            fiber.spectrum[sel2]/spec[sel2],marker='x',
+                            color='k')
+                plt.plot(fiber.wavelength,m,'r--')
+                plt.plot(fiber.wavelength,fiber.fiber_to_fiber,'k-')
+                plt.axis([3470,5530,0.6,1.4])
+                plt.savefig(op.join(self.path,'test_%s_%i.png'%(self.amp,k)))
                 plt.close()
                 k+=1
             for fib,fiber in enumerate(self.dead_fibers):
                 fiber.fiber_to_fiber = np.zeros(fiber.spectrum.shape)
-#            
+                
+            s = np.arange(3480,5500,250)
+            self.get_bspline_sky()
+            colors = plt.get_cmap('RdBu')(np.arange(112)/111.)
+
+            plt.figure(figsize=(8,6))
+            ax1 = plt.subplot(2,1,1)
+            ax2 = plt.subplot(2,1,2)
+            ax1.set_position([0.15,0.35,0.7,0.5])
+            ax2.set_position([0.15,0.15,0.7,0.2])
+            
+            for fib,fiber in enumerate(self.fibers):
+                v = np.interp(fiber.wavelength,self.masterwave,self.mastersky)
+                ax1.scatter(fiber.wavelength, 
+                            fiber.spectrum/fiber.fiber_to_fiber,
+                            s=5, color=colors[fib])
+                ax2.scatter(fiber.wavelength, 
+                            (fiber.spectrum/fiber.fiber_to_fiber - v) / v,
+                            s=10, color=colors[fib],alpha=0.3)
+            ax1.plot(self.masterwave,self.mastersky,'k-')
+            ax2.plot([3480,5520],[0,0],'k--')
+            for v in s[:-1]:                
+                ax1.set_xlim([v,v+270])
+                ax2.set_xlim([v,v+270])
+                xl = np.searchsorted(self.masterwave,v)
+                xh = np.searchsorted(self.masterwave,v+270)
+                mn = self.mastersky[xl:xh].min()
+                mx = self.mastersky[xl:xh].max()
+                ax1.set_ylim([mn-(mx-mn)*0.1, mn+(mx-mn)*1.1])
+                ax2.set_ylim([-0.05,0.05])
+                plt.savefig(op.join(self.path,'testfib_%s_%0.1f.png'%(self.amp,v)))
+            plt.close()
         else:
-            self.load(path='calpath', spec_list=['fiber_to_fiber'])       
+            self.load(path='calpath', spec_list=['fiber_to_fiber'])
+            if self.adjust_ftf:
+                self.log.info('Adjusting Fiber to Fiber from file')
+                Fcor = np.loadtxt(op.join(self.virusconfig, 'FtFcor', 
+                                         '%s%s.sdat' %(self.ifuslot,self.amp)))
+                for fiber,cor in zip(self.fibers,Fcor):
+                    fiber.fiber_to_fiber = fiber.fiber_to_fiber + cor[1]
+                    self.log.info('Adjusting fiber %i, by %0.3f' 
+                                    %(fiber.fibnum,cor[1]))    
+                
   
             
         
@@ -1471,12 +1518,15 @@ class Amplifier:
             B,c = bspline_x0(masterwave[sel],
                              nknots=int(self.bspline_binsize
                                       /self.bspline_waveres))
-            sol = np.linalg.lstsq(c,masterspec[sel])[0]
+            m = medfilt(masterspec[sel],15)
+            sel1 = np.where(is_outlier(m-masterspec[sel])==0)[0]
+            sol = np.linalg.lstsq(c[sel1,:],masterspec[sel][sel1])[0]
             for j in np.arange(self.sky_iterations):
                 v = np.dot(c,sol)
                 d = masterspec[sel] - v
                 bv = biweight_midvariance(d)
-                sel1 = d < (self.sky_sigthresh * bv)
+                sel1 = np.abs(d) < (self.sky_sigthresh * bv)
                 sol = np.linalg.lstsq(c[sel1,:],masterspec[sel][sel1])[0]
             self.mastersky[sel] = np.dot(c,sol) 
+            
         

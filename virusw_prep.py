@@ -11,6 +11,7 @@ import os.path as op
 from distutils.dir_util import mkpath
 import argparse as ap
 import numpy as np
+from utils import biweight_location
 
 
 def parse_args(argv=None):
@@ -89,7 +90,7 @@ def check_criteria(header):
    
     return False, ''
         
-def build_fits(image, args, half, imtype, date, exptime, object_name,
+def build_fits(image, args, half, side, imtype, date, exptime, object_name,
                file_name):
     """Build fits object with proper header for Panacea
     
@@ -116,27 +117,19 @@ def build_fits(image, args, half, imtype, date, exptime, object_name,
     
     image = np.rot90(image)
     image = np.fliplr(image)    
-    a,b = image.shape
-    if half == 'L':
-        hdu = fits.PrimaryHDU(image)
-        x1,x2,y1,y2 = (1, b, a + 1 - args.overscan_pixel_length, a)
-        hdu.header['BIASSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
-        x1,x2,y1,y2 = (46, b, 1, a - args.overscan_pixel_length)
-        hdu.header['TRIMSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
-    else:
-        image = image[::-1,::-1]
-        hdu = fits.PrimaryHDU(image)
-        x1,x2,y1,y2 = (1, b, a + 1 - args.overscan_pixel_length, a)
-        hdu.header['BIASSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
-        x1,x2,y1,y2 = (1, b-45, 1, a - args.overscan_pixel_length)
-        hdu.header['TRIMSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
+    a,b = image.shape        
+    hdu = fits.PrimaryHDU(image)
+    x1,x2,y1,y2 = (1, 44, 1, a)
+    hdu.header['BIASSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
+    x1,x2,y1,y2 = (45, b, 1, a)
+    hdu.header['TRIMSEC'] = '[%i:%i,%i:%i]' %(x1,x2,y1,y2)
     hdu.header['GAIN'] = 0.62
     hdu.header['RDNOISE'] = 1.0
-    hdu.header['CCDPOS'] = 'L'
+    hdu.header['CCDPOS'] = side
     hdu.header['CCDHALF'] = half
     hdu.header['IMAGETYP'] = imtype    
-    hdu.header['SPECID'] = 000
-    hdu.header['IFUSLOT'] = 000
+    hdu.header['SPECID'] = 0
+    hdu.header['IFUSLOT'] = 0
     hdu.header['IFUID'] = '000'
     hdu.header['DATE-OBS'] = date
     hdu.header['EXPTIME'] = exptime
@@ -172,8 +165,7 @@ def main():
     
     unique_date = {}
     
-    file_list = glob.glob(op.join(args.folder, '*.fits'))
-    file_list = sorted(file_list)
+    file_list = sorted(glob.glob(op.join(args.folder, '*.fits')))
     for file_name in file_list:
         try:
             F = fits.open(file_name)    
@@ -205,25 +197,26 @@ def main():
             date = F[0].header['DATE']
             exptime = F[0].header['EXPTIME']
             datetime = ''.join(F[0].header['TIME'].split(' ')[0].split(':'))[:-1]
-            half = ['L', 'U']
             if args.highres:
-                side='R'
+                side = 'R'
+                half = 'U'
             else:
-                side='L'
-            for h in half:
-                if (h == 'L' and side=='L') or (h=='U' and side=='R'):
-                    data = F[0].data[:,int(b/2):]
-                else:
-                    data = F[0].data[:,:int(b/2)]
-                F1 = build_fits(data, args, h, imtype, 
+                side = 'L'
+                half = 'L'
+            data = np.hstack([F[0].data[:,:1024]
+                              -biweight_location(F[0].data[-43:,:1024]),
+                              F[0].data[:,1124:]
+                              -biweight_location(F[0].data[-43:,1124:])])
+            F1 = build_fits(data, args, half, side, imtype, 
                             date, exptime, object_name, op.basename(file_name))
-                path = op.join(args.output, datefolder, 'virusw', 
-                               'virusw%07d' %obsid, 'exp%02d' %exp_num, 
-                               'virusw')
-                mkpath(path)
-                outname = op.join(path, '%sT%s_000%s%s_%s.fits' 
-                                  %(datefolder, datetime, side,h, imtype))
-                write_to_fits(F1, outname)
+            path = op.join(args.output, datefolder, 'virusw', 
+                           'virusw%07d' %obsid, 'exp%02d' %exp_num, 
+                           'virusw')
+            mkpath(path)
+            outname = op.join(path, '%sT%s_000%s%s_%s.fits' 
+                              %(datefolder, datetime, side, 'U', imtype))
+            write_to_fits(F1, outname)
+            
                 
 if __name__ == '__main__':
     main()    

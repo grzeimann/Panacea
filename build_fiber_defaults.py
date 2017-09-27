@@ -49,7 +49,7 @@ def main():
         twi.use_trace_ref = False                   
         twi.get_trace()
         folder = op.join(args.kwargs['virusconfig'],'Fiber_Locations',
-                                '%s%s%s' 
+                                '%04d%02d%02d' 
                                 %(twi.date.year,twi.date.month, twi.date.day))
         mkpath(folder)              
         fname = op.join(folder, 'fiber_loc_%s_%s_%s_%s.txt' %(

@@ -19,8 +19,9 @@ adjust_trace = True # Adjust science trace for shifts
 trace_from_sci = False # if adjust_trace is true, this is overridden
 use_trace_ref = True # Use default fiber files to always recover desired fibers
 refit_fiber_to_fiber = False # Adjust fiber to fiber using science
+adjust_ftf = False # Adjust fiber to fiber using look-up table
 use_other_sky = False # Use another sky background for desired sky subtraction
-use_pixelflat = False
+use_pixelflat = True
 check_fibermodel = True
 check_wave = True
 cosmic_iterations = 1
@@ -40,18 +41,18 @@ sci_remeasure_fibermodel = False
 sci_significance_map = True
 
 # Configuration Directories
-rootdir = "/work/03946/hetdex/maverick"
-virusconfig = "/work/03946/hetdex/maverick/virus_config"
-darkpath = "/work/03730/gregz/maverick/lib_dark/march"
-biaspath = "/work/03730/gregz/maverick/lib_bias/march"
-pixflatpath = "/work/03946/hetdex/maverick/virus_config/PixelFlats"
+#rootdir = "/work/03946/hetdex/maverick"
+#virusconfig = "/work/03946/hetdex/maverick/virus_config"
+#darkpath = "/work/03730/gregz/maverick/lib_dark/march"
+#biaspath = "/work/03730/gregz/maverick/lib_bias/march"
+#pixflatpath = "/work/03946/hetdex/maverick/virus_config/PixelFlats"
 
 
-#rootdir = "/Users/gregz/cure/virus_raw"
-#virusconfig = "/Users/gregz/cure/virus_early/virus_config"
-#darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark/march"
-#biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias/march"
-#pixflatpath = "/Users/gregz/cure/virus_early/virus_config/PixelFlats"
+rootdir = "/Users/gregz/cure/virus_raw"
+virusconfig = "/Users/gregz/cure/virus_early/virus_config"
+darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark/march"
+biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias/march"
+pixflatpath = "/Users/gregz/cure/virus_early/virus_config/PixelFlats"
 
 
 # Config dictionary for Amplifier reduction inputs 
