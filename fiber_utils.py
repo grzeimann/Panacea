@@ -185,11 +185,14 @@ def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
         for k in xrange(first_order_iter):
             xp = np.linspace(lwa-interp_window, lwa+interp_window, num=50)
             yp = np.interp(xp, x[mn1:mn2], y[mn1:mn2], left=0, right=0)
-            p0 = np.polyfit(xp,yp,2)
-            lwa = -p0[1] / (2.*p0[0])
-            if np.isnan(lwa):
-                lwa = (yp*xp).sum()/yp.sum()
-            if lwa<mn1 or lwa>mn2:
+            try:
+                p0 = np.polyfit(xp,yp,2)
+                lwa = -p0[1] / (2.*p0[0])
+                if np.isnan(lwa):
+                    lwa = (yp*xp).sum()/yp.sum()
+                if lwa<mn1 or lwa>mn2:
+                    lwa = (yp*xp).sum()/yp.sum()
+            except:
                 lwa = (yp*xp).sum()/yp.sum()
                 
 #        ind = np.searchsorted(mnkeep,val)
@@ -1665,15 +1668,18 @@ def polynomial_normalization(x, y, x0, x1, lowsig=0.5, highsig=3.,
     p0 = np.polyfit(xf[sel],yf[sel],order)
     return np.polyval(p0,xf), sel
     
-def bspline_x0(x, y=None, nknots=21, p=3):
+def bspline_x0(x, y=None, nknots=21, nknots2=21, p=3):
     if y is not None:
-        s = np.cumsum(np.abs(np.diff(np.hstack([y,y[-1]]))))
-        v = np.interp(np.linspace(0,1,nknots), s/s.max(), 
+        s = np.cumsum(np.abs(np.diff(np.diff(y))))
+        s = np.hstack([0,s/s.max(),1])
+        v = np.interp(np.linspace(0,1,nknots), s, 
                       (x-x.min())/(x.max()-x.min()))
+        v = np.sort(np.hstack([np.linspace(0,1,nknots2),
+                               v]))
     else:
         v = np.linspace(0,1,nknots)
     k = splinelab.augknt(v, p)  # add endpoint repeats as appropriate for spline order p
-    B     = Bspline(k, p)
+    B = Bspline(k, p)
     xi =  (x-x.min())/(x.max()-x.min()+0.1)
     c = np.array([B(xp) for xp in xi])
     return B, c
