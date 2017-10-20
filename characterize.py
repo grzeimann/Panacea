@@ -151,6 +151,9 @@ def parse_args(argv=None):
     parser.add_argument("-dcp", "--dont_check_pixelflat",
                         help='''Don't make pixelflat.''',
                         action="count", default=0)
+    parser.add_argument("-dcm", "--dont_check_mask",
+                        help='''Don't check masked fiber flats''',
+                        action="count", default=0)
 
     args = parser.parse_args(args=argv)
 
@@ -180,7 +183,7 @@ def read_in_raw(args):
         args.drkdir_date = args.date
         args.drkdir_obsid = '%03d%04d' % (int(args.specid), 12)
         args.ptcdir_date = args.date
-        args.ptcdir_obsid = '%03d%04d' % (int(args.specid), 9)
+        args.ptcdir_obsid = '%03d%04d' % (int(args.specid), 1)  # 9
         args.pxfdir_date = args.date
         args.pxfdir_obsid = '%03d%04d' % (int(args.specid), 5)
         args.fltdir_date = args.date
@@ -194,6 +197,8 @@ def read_in_raw(args):
         observations.append('ptc')
     if not args.dont_check_pixelflat:
         observations.append('pxf')
+    if not args.dont_check_mask:
+        observations.append('flt')
     for obs in observations:
         amp_list = []
         for label in labels[:2]:
@@ -220,7 +225,7 @@ def read_in_raw(args):
                                          "exp{:02d}".format(int(expnum)),
                                          args.instr)
                         files = sorted(glob.glob(op.join(args.rootdir, folder,
-                                                         '*_%s*'
+                                                         '*_%s*.fits'
                                                          % args.ifuslot)))
                         for fn in files:
                             amp_list.append(Amplifier(fn, '', name=obs))
@@ -233,7 +238,8 @@ def read_in_raw(args):
                                                          int(obsid)))
                     files = sorted(glob.glob(op.join(args.rootdir, folder, '*',
                                                      args.instr,
-                                                     '*_%s*' % args.ifuslot)))
+                                                     '*_%s*.fits'
+                                                     % args.ifuslot)))
                     for fn in files:
                         amp_list.append(Amplifier(fn, '', name=obs))
                         amp_list[-1].subtract_overscan()
@@ -320,7 +326,7 @@ def check_bias(args, amp, folder, edge=3, width=10):
 
     log.info('Writing masterbias_%s.fits' % (amp))
     hdu.writeto(op.join(folder, 'masterbias_%s_%s.fits' % (args.specid, amp)),
-                clobber=True)
+                overwrite=True)
 
     left_edge = func(masterbias[:, edge:edge+width])
     right_edge = func(masterbias[:, (b-width-edge):(b-edge)])
@@ -335,7 +341,7 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
     # Create empty lists for the left edge jump, right edge jump, and structure
     dark_counts = []
 
-    # Select only the bias frames that match the input amp, e.g., "RU"
+    # Select only the dark frames that match the input amp, e.g., "RU"
     sel = [i for i, v in enumerate(args.drk_list) if v.amp == amp]
     log = args.drk_list[sel[0]].log
 
@@ -346,11 +352,11 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
     log.info('Writing masterdark_%s.fits' % (amp))
     big_array = np.array([v.image - masterbias
                           for v in itemgetter(*sel)(args.drk_list)])
-    masterdark = func(big_array,  axis=(0,))
+    masterdark = func(big_array, axis=(0,))
     a, b = masterdark.shape
     hdu = fits.PrimaryHDU(np.array(masterdark, dtype='float32'))
     hdu.writeto(op.join(folder, 'masterdark_%s_%s.fits' % (args.specid, amp)),
-                clobber=True)
+                overwrite=True)
 
     # Loop through the bias list and measure the jump/structure
     for am in itemgetter(*sel)(args.drk_list):
@@ -413,20 +419,25 @@ def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=50):
     vr_list = []
     for i in xrange(len(bins)-1):
         loc = np.where((array_avg > bins[i]) * (array_avg < bins[i+1]))[0]
-        std = func2(array_diff[loc])
-        vr = (std**2) / 2.
-        vr_c = (std**2 - 2.*rdnoise**2) / 2.
-        mn = func1(array_avg[loc])
-        log.info("%s | Gain: %01.3f | RDNOISE (e-): %01.3f | <ADU>: %0.1f | "
-                 "VAR: %0.1f | Pixels: %i"
-                 % (amp, mn / vr_c, mn / vr_c * rdnoise, mn, vr, len(loc)))
-        gn.append(mn / vr_c)
-        mn_list.append(mn)
-        vr_list.append(vr)
+        if len(loc) > 1e3:
+            std = func2(array_diff[loc])
+            vr = (std**2) / 2.
+            vr_c = (std**2 - 2.*rdnoise**2) / 2.
+            mn = func1(array_avg[loc])
+            log.info("%s | Gain: %01.3f | RDNOISE (e-): %01.3f | <ADU>: %0.1f"
+                     " | VAR: %0.1f | Pixels: %i"
+                     % (amp, mn / vr_c, mn / vr_c * rdnoise, mn, vr, len(loc)))
+            gn.append(mn / vr_c)
+            mn_list.append(mn)
+            vr_list.append(vr)
     sel = np.where((np.array(mn_list) > 1000.)*(np.array(mn_list) < 15000.))[0]
-    s = func1(np.array(gn)[sel])
-    log.info("Average Gain measurement for %s: %0.3f"
-             % (amp, s))
+    if len(sel) > 2:
+        s = func1(np.array(gn)[sel])
+        log.info("Average Gain measurement for %s: %0.3f"
+                 % (amp, s))
+    else:
+        log.warning("Not enough points for gain measurement, using -99.0")
+        s = -99.
     return s, mn_list, vr_list, rdnoise**2
 
 
@@ -447,9 +458,97 @@ def make_pixelflats(args, amp, folder):
 
     hdu = fits.PrimaryHDU(np.array(pixflat, dtype='float32'))
     log.info('Writing pixelflat_%s.fits' % amp)
-    hdu.writeto(op.join(folder, 'pixelflat_%s.fits' % amp), clobber=True)
+    hdu.writeto(op.join(folder, 'pixelflat_%s.fits' % amp), overwrite=True)
 
     return masterflat, pixflat
+
+
+def power_law(x, c1, c2=.5, c3=.15, c4=1., sig=2.5):
+        return c1 / (c2 + c3 * np.power(np.abs(x / sig), c4))
+
+
+def check_masked_fibers(args, amp, masterbias, masterdark, outname, folder):
+    # Select only the bias frames that match the input amp, e.g., "RU"
+    sel = [i for i, v in enumerate(args.flt_list) if v.amp == amp]
+    log = args.flt_list[sel[0]].log
+
+    if len(sel) <= 2 or args.quick:
+        func = np.median
+    else:
+        func = biweight_location
+    log.info('Writing mastermaskflat_%s.fits' % (amp))
+    big_array = np.array([v.image - masterbias - masterdark
+                          for v in itemgetter(*sel)(args.flt_list)])
+    mastermaskflat = func(big_array, axis=(0,))
+
+    A = args.flt_list[sel[0]]
+    A.image = mastermaskflat
+    A.orient_image()
+    hdu = fits.PrimaryHDU(np.array(A.image, dtype='float32'))
+    hdu.writeto(op.join(folder, 'mastermaskedflat_%s_%s.fits'
+                                % (args.specid, amp)),
+                overwrite=True)
+    A.image_prepped = True
+    A.use_trace_ref = False
+    A.refit = True
+    A.use_pixelflat = False
+    A.trace_y_window = 50.
+    A.trace_repeat_length = 40
+    A.gain = 1.
+    A.get_trace()
+
+    n, d = A.image.shape
+    col = np.arange(d)
+    nwave = 3
+    fsize = 15
+    radius = 5.
+    fibs = [2, 5]
+    cols = np.arange(d)
+    f, ax = plt.subplots(len(fibs), nwave, sharey=True, sharex=True,
+                         figsize=(nwave*4, len(fibs)*4))
+    stot = 0
+    for fiber in A.fibers:
+        llim = np.array(np.max([np.zeros((d,)), fiber.trace-radius], axis=0),
+                        dtype=int)
+        ulim = np.array(np.min([np.ones((d,))*n, fiber.trace+radius+1],
+                               axis=0),
+                        dtype=int)
+        for ll, ul, c in zip(llim, ulim, cols):
+            stot += A.image[ll:ul, c].sum()
+    sbig = A.image.sum()
+    splaw = 100. * (sbig - stot) / (sbig * 1.)
+    f.suptitle('The percentage of flux in the powerlaw is: %0.3f%%' % splaw)
+    for fi, fib in enumerate(fibs):
+        fiber = A.fibers[fib]
+        llim = np.array(np.max([np.zeros((d,)), fiber.trace-fsize], axis=0),
+                        dtype=int)
+        ulim = np.array(np.min([np.ones((d,))*n, fiber.trace+fsize+1], axis=0),
+                        dtype=int)
+        nstep = int((n-100.) / nwave)
+        for i in np.arange(nwave):
+            cols = np.arange(50+i*nstep, 50+(i+1)*nstep)
+            y = []
+            x = []
+            for col in cols:
+                yi = A.image[llim[col]:ulim[col], col]
+                y.append(yi / yi.sum())
+                x.append(np.arange(llim[col], ulim[col]) - fiber.trace[col])
+            x = np.hstack(np.array(x))
+            xs = np.sort(x)
+            y = np.hstack(np.array(y))
+            ax[fi, i].scatter(x, y, alpha=0.1, s=5)
+            ax[fi, i].plot(xs, power_law(xs, 0.0004), 'r-')
+            ax[fi, i].set_ylim([0.0001, 0.4])
+            ax[fi, i].set_yscale('log')
+            ax[fi, i].set_xlim([-fsize, fsize])
+            if i == 0:
+                ax[fi, i].set_ylabel('Fiber %i around y=%i'
+                                     % (fib+1, int(np.mean(fiber.trace))))
+    f.text(0.5, 0.04, 'Pixels from Fiber Trace', ha='center')
+    f.text(0.04, 0.5, 'Normalized Amplitude', va='center', rotation='vertical')
+    plt.savefig(outname)
+    plt.close(f)
+    return mastermaskflat
 
 
 def relative_throughput(args):
@@ -534,6 +633,19 @@ def main():
 
         make_plot(pixelflat, op.join(folder, 'pixelflat.png'), vmin=0.95,
                   vmax=1.05)
+
+    if not (args.dont_check_dark or args.dont_check_bias or
+            args.dont_check_mask):
+        mastermaskflat = {}
+        for amp in AMPS:
+            mastermaskflat[amp] = check_masked_fibers(args, amp,
+                                                      masterbias[amp],
+                                                      masterdark[amp],
+                                                      op.join(folder,
+                                                              'mask_%s.png'
+                                                              % amp),
+                                                      folder)
+
     # Writing everything to a ".tex" file
     if not (args.dont_check_bias or args.dont_check_dark or
             args.dont_check_readnoise or args.dont_check_gain or
