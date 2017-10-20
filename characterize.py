@@ -183,7 +183,7 @@ def read_in_raw(args):
         args.drkdir_date = args.date
         args.drkdir_obsid = '%03d%04d' % (int(args.specid), 12)
         args.ptcdir_date = args.date
-        args.ptcdir_obsid = '%03d%04d' % (int(args.specid), 1)  # 9
+        args.ptcdir_obsid = '%03d%04d' % (int(args.specid), 9)
         args.pxfdir_date = args.date
         args.pxfdir_obsid = '%03d%04d' % (int(args.specid), 5)
         args.fltdir_date = args.date
