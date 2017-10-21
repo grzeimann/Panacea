@@ -59,7 +59,8 @@ class Amplifier:
                  sky_scale=1.0, make_model_image=False, init_sol=None,
                  wavestepsize=1., nknots=51, bspline_binsize=200.,
                  bspline_waveres=2.5, sky_iterations=3,
-                 sky_sigthresh=2.5, adjust_ftf=False):
+                 sky_sigthresh=2.5, adjust_ftf=False, trace_y_window=3.,
+                 trace_repeat_length=2):
         ''' 
         Initialize class
         ----------------
@@ -267,6 +268,8 @@ class Amplifier:
         self.fdist_ref = fdist_ref
         self.fiber_date = fiber_date
         self.trace_step = trace_step
+        self.trace_y_window = trace_y_window
+        self.trace_repeat_length = trace_repeat_length
         
         # Fibermodel options
         self.fibmodel_poly_order = fibmodel_poly_order
@@ -337,7 +340,10 @@ class Amplifier:
             self.D -= 44
         self.trimmed = False
         self.overscan_value = None
-        self.gain = F[0].header['GAIN']
+        try:
+            self.gain = F[0].header['GAIN']
+        except:
+            self.gain = 1.
         new_keywords = ['TRAJCRA', 'TRAJCDEC', 'PARANGLE',
                         'RHO_STRT']
         att_list = ['ra', 'dec', 'pa', 'rho']
@@ -346,7 +352,10 @@ class Amplifier:
                 setattr(self, att, F[0].header[newk])
             except:
                 setattr(self, att, None)
-        self.rdnoise = F[0].header['RDNOISE']
+        try:
+            self.rdnoise = F[0].header['RDNOISE']
+        except:
+            self.rdnoise = 3.
         self.amp = (F[0].header['CCDPOS'].replace(' ', '') 
                     + F[0].header['CCDHALF'].replace(' ', ''))
         trim = re.split('[\[ \] \: \,]', F[0].header['TRIMSEC'])[1:-1]
@@ -362,14 +371,15 @@ class Amplifier:
         self.date = datetime(int(datetemp[0]), int(datetemp[1]), 
                              int(datetemp[2]))
         self.image = np.array(F[0].data, dtype=float)
+        if self.rdnoise<0.1:
+            self.rdnoise = 2.5
         self.image_prepped = False
         if self.gain>0:
             self.error = self.rdnoise / self.gain * np.ones((self.N,self.D), 
                                                             dtype=float)
         else:
             self.error = np.zeros((self.N, self.D), dtype=float)
-        if self.rdnoise<0.1:
-            self.rdnoise = 2.5
+        
         self.exptime = F[0].header['EXPTIME']
         self.ifupos = None
         try:
@@ -654,7 +664,9 @@ class Amplifier:
                                             %(self.specid, self.amp)))[0].data, 
                               dtype=float)
             self.image[:] = self.image - self.dark_mult * darkimage
-            #self.error[:] = np.sqrt(self.error**2 + self.gain*self.dark_mult*darkimage)
+            # error in ADU calculation
+            self.error[:] = np.sqrt(self.error**2 
+                                    + 1./self.gain*self.dark_mult*darkimage)
             
             
     def subtract_bias(self):
@@ -718,10 +730,10 @@ class Amplifier:
         '''
         self.subtract_overscan()
         self.trim_image()
-        self.multiply_gain()
-        self.calculate_photonnoise()
         self.subtract_bias()
         self.subtract_dark()
+        self.multiply_gain()
+        self.calculate_photonnoise()        
         self.divide_pixelflat()
         self.orient_image()
         self.image_prepped = True
@@ -773,7 +785,7 @@ class Amplifier:
         smooth_shift = biweight_filter(self.shift, 7, 1)
         self.log.info("Shift for %s is %0.3f" %(self.amp, biweight_location(np.array(shift))))
         for i,fiber in enumerate(self.fibers):
-            fiber.trace = fiber.trace + self.shift[i]#smooth_shift[i]
+            fiber.trace = fiber.trace + smooth_shift[i]
             self.log.info("Shift for fiber %i is %0.3f pixels" %(i+1, smooth_shift[i]))
 
         
@@ -839,7 +851,9 @@ class Amplifier:
             self.log.info('Measuring the trace from %s' %self.basename)
             allfibers, xc = get_trace_from_image(self.image, interp_window=2.5,
                                                  debug=False, mx_cut=0.1,
-                                                 x_step=self.trace_step)
+                                                 x_step=self.trace_step,
+                                                 y_window=self.trace_y_window,
+                                                 repeat_length=self.trace_repeat_length)
             brcol = np.argmin(np.abs(xc-self.D*self.col_frac))
             if self.use_trace_ref:
                 if self.fiber_date is None:
