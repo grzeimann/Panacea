@@ -344,6 +344,8 @@ class Amplifier:
             self.gain = F[0].header['GAIN']
         except:
             self.gain = 1.
+        if self.gain == 0.0:
+            self.gain = 1.
         new_keywords = ['TRAJCRA', 'TRAJCDEC', 'PARANGLE',
                         'RHO_STRT']
         att_list = ['ra', 'dec', 'pa', 'rho']
