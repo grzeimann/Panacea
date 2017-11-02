@@ -1291,12 +1291,15 @@ class Amplifier:
             self.load(path='calpath', spec_list=['fiber_to_fiber'])
             if self.adjust_ftf:
                 self.log.info('Adjusting Fiber to Fiber from file')
-                Fcor = np.loadtxt(op.join(self.virusconfig, 'FtFcor', 
+                try:
+                    Fcor = np.loadtxt(op.join(self.virusconfig, 'FtFcor', 
                                          '%s%s.sdat' %(self.ifuslot,self.amp)))
-                for fiber,cor in zip(self.fibers,Fcor):
-                    fiber.fiber_to_fiber = fiber.fiber_to_fiber + cor[1]
-                    self.log.info('Adjusting fiber %i, by %0.3f' 
-                                    %(fiber.fibnum,cor[1]))    
+                    for fiber,cor in zip(self.fibers,Fcor):
+                        fiber.fiber_to_fiber = fiber.fiber_to_fiber + cor[1]
+                        self.log.info('Adjusting fiber %i, by %0.3f' 
+                                      %(fiber.fibnum,cor[1]))    
+                except:
+                    self.log.warning('No fiber to fiber file found.')
                 
   
             
