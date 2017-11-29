@@ -34,6 +34,11 @@ cmap = plt.get_cmap('Greys_r')
 
 AMPS = ["LL", "LU", "RU", "RL"]
 
+def write_fits(hdu, name):
+    try:
+        hdu.writeto(name, overwrite=True)
+    except:
+        hdu.writeto(name, clobber=True)
 
 def setup_logging():
     '''Setup Logging for MCSED, which allows us to track status of calls and
@@ -325,8 +330,8 @@ def check_bias(args, amp, folder, edge=3, width=10):
     hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'))
 
     log.info('Writing masterbias_%s.fits' % (amp))
-    hdu.writeto(op.join(folder, 'masterbias_%s_%s.fits' % (args.specid, amp)),
-                overwrite=True)
+    write_fits(hdu,
+               op.join(folder, 'masterbias_%s_%s.fits' % (args.specid, amp))_
 
     left_edge = func(masterbias[:, edge:edge+width])
     right_edge = func(masterbias[:, (b-width-edge):(b-edge)])
@@ -355,8 +360,8 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
     masterdark = func(big_array, axis=(0,))
     a, b = masterdark.shape
     hdu = fits.PrimaryHDU(np.array(masterdark, dtype='float32'))
-    hdu.writeto(op.join(folder, 'masterdark_%s_%s.fits' % (args.specid, amp)),
-                overwrite=True)
+    write_fits(hdu,
+               op.join(folder, 'masterdark_%s_%s.fits' % (args.specid, amp)))
 
     # Loop through the bias list and measure the jump/structure
     for am in itemgetter(*sel)(args.drk_list):
@@ -458,7 +463,7 @@ def make_pixelflats(args, amp, folder):
 
     hdu = fits.PrimaryHDU(np.array(pixflat, dtype='float32'))
     log.info('Writing pixelflat_%s.fits' % amp)
-    hdu.writeto(op.join(folder, 'pixelflat_%s.fits' % amp), overwrite=True)
+    write_fits(hdu, op.join(folder, 'pixelflat_%s.fits' % amp))
 
     return masterflat, pixflat
 
@@ -485,9 +490,8 @@ def check_masked_fibers(args, amp, masterbias, masterdark, outname, folder):
     A.image = mastermaskflat
     A.orient_image()
     hdu = fits.PrimaryHDU(np.array(A.image, dtype='float32'))
-    hdu.writeto(op.join(folder, 'mastermaskedflat_%s_%s.fits'
-                                % (args.specid, amp)),
-                overwrite=True)
+    write_fits(hdu, op.join(folder, 'mastermaskedflat_%s_%s.fits'
+                                    % (args.specid, amp)))
     A.image_prepped = True
     A.use_trace_ref = False
     A.refit = True
