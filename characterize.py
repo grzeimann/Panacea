@@ -331,7 +331,7 @@ def check_bias(args, amp, folder, edge=3, width=10):
 
     log.info('Writing masterbias_%s.fits' % (amp))
     write_fits(hdu,
-               op.join(folder, 'masterbias_%s_%s.fits' % (args.specid, amp))_
+               op.join(folder, 'masterbias_%s_%s.fits' % (args.specid, amp)))
 
     left_edge = func(masterbias[:, edge:edge+width])
     right_edge = func(masterbias[:, (b-width-edge):(b-edge)])
