@@ -29,6 +29,8 @@ from fiber_utils import calculate_significance, get_wavelength_offsets
 from fiber_utils import bspline_x0
 from fiber import Fiber
 from scipy.signal import medfilt
+from scipy.interpolate import splrep, splev
+from scipy.ndimage.filters import percentile_filter
 import cosmics
 from datetime import datetime
 import logging
@@ -58,7 +60,7 @@ class Amplifier:
                  fibmodel_interpkind='linear', cosmic_iterations=1,
                  sky_scale=1.0, make_model_image=False, init_sol=None,
                  wavestepsize=1., nknots=51, bspline_binsize=200.,
-                 bspline_waveres=2.5, sky_iterations=3,
+                 bspline_waveres=1.0, sky_iterations=3,
                  sky_sigthresh=2.5, adjust_ftf=False, trace_y_window=3.,
                  trace_repeat_length=2):
         ''' 
@@ -430,6 +432,7 @@ class Amplifier:
             hdu.writeto(outname, clobber=True)
 
     def write_header(self, hdu):
+        hdu.header = self.header
         hdu.header['RA'] = self.ra
         hdu.header['DEC'] = self.dec
         hdu.header['PA'] = self.pa
@@ -1158,10 +1161,11 @@ class Amplifier:
                     solar_spec = np.zeros((len(self.masterwave),2))
                     solar_spec[:,0] = self.masterwave
                     solar_spec[:,1] = self.mastersmooth
-            for k in np.arange(2):        
-                offset = get_wavelength_offsets(self.good_fibers, 25)
-                for off, fiber in zip(offset, self.good_fibers):
-                    fiber.wavelength = fiber.wavelength - off
+            #for k in np.arange(2):        
+            #    offset = get_wavelength_offsets(self.good_fibers, 25)
+            #    for off, fiber in zip(offset, self.good_fibers):
+            #        self.log.info('Fiber wavelength offset is: %0.2f' % off)
+            #        fiber.wavelength = fiber.wavelength - off
             for k in np.arange(self.good_fibers[0].D):
                 x = [fiber.trace[k] for fiber in self.good_fibers]
                 y = [fiber.wavelength[k] for fiber in self.good_fibers]
@@ -1249,44 +1253,14 @@ class Amplifier:
                             color='k')
                 plt.plot(fiber.wavelength,m,'r--')
                 plt.plot(fiber.wavelength,fiber.fiber_to_fiber,'k-')
-                plt.axis([3470,5530,0.6,1.4])
+                plt.axis([self.init_lims[0],self.init_lims[1],0.6,1.4])
                 plt.savefig(op.join(self.path,'test_%s_%i.png'%(self.amp,k)))
                 plt.close()
                 k+=1
             for fib,fiber in enumerate(self.dead_fibers):
                 fiber.fiber_to_fiber = np.zeros(fiber.spectrum.shape)
                 
-            s = np.arange(3480,5500,250)
-            self.get_bspline_sky()
-            colors = plt.get_cmap('RdBu')(np.arange(112)/111.)
-
-            plt.figure(figsize=(8,6))
-            ax1 = plt.subplot(2,1,1)
-            ax2 = plt.subplot(2,1,2)
-            ax1.set_position([0.15,0.35,0.7,0.5])
-            ax2.set_position([0.15,0.15,0.7,0.2])
             
-            for fib,fiber in enumerate(self.fibers):
-                v = np.interp(fiber.wavelength,self.masterwave,self.mastersky)
-                ax1.scatter(fiber.wavelength, 
-                            fiber.spectrum/fiber.fiber_to_fiber,
-                            s=5, color=colors[fib])
-                ax2.scatter(fiber.wavelength, 
-                            (fiber.spectrum/fiber.fiber_to_fiber - v) / v,
-                            s=10, color=colors[fib],alpha=0.3)
-            ax1.plot(self.masterwave,self.mastersky,'k-')
-            ax2.plot([3480,5520],[0,0],'k--')
-            for v in s[:-1]:                
-                ax1.set_xlim([v,v+270])
-                ax2.set_xlim([v,v+270])
-                xl = np.searchsorted(self.masterwave,v)
-                xh = np.searchsorted(self.masterwave,v+270)
-                mn = self.mastersky[xl:xh].min()
-                mx = self.mastersky[xl:xh].max()
-                ax1.set_ylim([mn-(mx-mn)*0.1, mn+(mx-mn)*1.1])
-                ax2.set_ylim([-0.05,0.05])
-                plt.savefig(op.join(self.path,'testfib_%s_%0.1f.png'%(self.amp,v)))
-            plt.close()
         else:
             self.load(path='calpath', spec_list=['fiber_to_fiber'])
             if self.adjust_ftf:
@@ -1331,15 +1305,18 @@ class Amplifier:
                       %self.skypath)
                 self.log.info("Setting skypath to None for this amplifier.")
                 self.skypath = None
+            else: 
+                for fiber in self.fibers:
+                    fiber.sky_spectrum *= self.sky_scale
+                self.build_mastersky()
         self.log.info('Subtracting sky for %s' %self.basename)
         if self.skypath is None:
-            self.get_bspline_sky()                
+            self.alt_sky_model()                
             for fib, fiber in enumerate(self.fibers):
                 fiber.sky_spectrum = (fiber.fiber_to_fiber 
                                  * np.interp(fiber.wavelength, self.masterwave, 
                                              self.mastersky))
         for fib, fiber in enumerate(self.fibers):    
-            fiber.sky_spectrum *= self.sky_scale
             fiber.sky_subtracted = fiber.spectrum - fiber.sky_spectrum 
             if hasattr(fiber, 'twi_spectrum'):
                 
@@ -1365,9 +1342,9 @@ class Amplifier:
         if self.make_skyframe: 
             self.skyframe = get_model_image(self.image, self.fibers, 
                                             'sky_spectrum', debug=False)
+            self.flat_image = get_model_image(self.image, self.fibers, 
+                                            'fiber_to_fiber', debug=False)
             self.clean_image = self.image - self.skyframe
-            self.flat_image = np.where(self.skyframe<1e-8, 0.0,
-                                       self.image / self.skyframe)
         if self.do_cont_sub:
             for fib, fiber in enumerate(self.fibers):
                 fiber.continuum = biweight_filter(fiber.spectrum 
@@ -1381,7 +1358,7 @@ class Amplifier:
             self.model = get_model_image(self.image, self.fibers, 'spectrum', 
                                          debug=False)
             self.residual = self.image - self.model
-        
+        self.plot_fib_sky()
         
     def clean_cosmics(self):
         '''
@@ -1518,15 +1495,18 @@ class Amplifier:
 
     def get_bspline_sky(self):
         self.log.info('Calculating master sky using bspline approximation')
-        masterwave,masterspec = [],[]
-        for fiber in self.good_fibers:
+        masterwave,masterspec,masterfib = [],[],[]
+        for i,fiber in enumerate(self.good_fibers):
             masterwave.append(fiber.wavelength)
             masterspec.append(fiber.spectrum/fiber.fiber_to_fiber)
+            masterfib.append(i*np.ones(fiber.wavelength.shape, dtype=int))
         masterwave = np.hstack(masterwave)
         masterspec = np.hstack(masterspec)
+        masterfib = np.hstack(masterfib)
         ind = np.argsort(masterwave)
         masterwave = masterwave[ind]
         masterspec = masterspec[ind]
+        masterfib = masterfib[ind]
         self.masterwave = masterwave
         bins = np.arange(masterwave.min(), 
                          masterwave.max()+self.bspline_binsize, 
@@ -1537,8 +1517,12 @@ class Amplifier:
             B,c = bspline_x0(masterwave[sel],
                              nknots=int(self.bspline_binsize
                                       /self.bspline_waveres))
-            m = medfilt(masterspec[sel],15)
-            sel1 = np.where(is_outlier(m-masterspec[sel])==0)[0]
+            m = percentile_filter(masterspec[sel], 50, 15)
+            d = masterspec[sel]-m
+            bv = biweight_midvariance(d)
+            nothigh = np.abs(d) < (self.sky_sigthresh*bv)
+            sel1 = np.where(nothigh)[0]
+
             sol = np.linalg.lstsq(c[sel1,:],masterspec[sel][sel1])[0]
             for j in np.arange(self.sky_iterations):
                 v = np.dot(c,sol)
@@ -1547,5 +1531,72 @@ class Amplifier:
                 sel1 = np.abs(d) < (self.sky_sigthresh * bv)
                 sol = np.linalg.lstsq(c[sel1,:],masterspec[sel][sel1])[0]
             self.mastersky[sel] = np.dot(c,sol) 
-            
         
+     
+    def alt_sky_model(self):
+        fac = 10
+        mn = 1e9
+        mx = 0.
+        for fiber in self.good_fibers:
+            mn = np.min([mn, fiber.wavelength.min()])
+            mx = np.max([mx, fiber.wavelength.max()])
+        xs = np.linspace(0, 1, self.D*fac)
+        A = np.zeros((len(xs), len(self.good_fibers)))
+        for i, fiber in enumerate(self.good_fibers):
+            y = fiber.spectrum / fiber.fiber_to_fiber
+            xp = np.interp(fiber.wavelength, np.linspace(mn, mx, self.D*fac),
+                           xs, left=0.0, right=0.0)
+            tck = splrep(xp, y)
+            A[:, i] = splev(xs, tck)
+        ys = biweight_location(A, axis=(1,))
+        self.masterwave = np.linspace(mn, mx, self.D*fac)
+        B, c = bspline_x0(self.masterwave, nknots=self.D)
+        sol = np.linalg.lstsq(c, ys)[0]
+        self.mastersky = np.dot(c, sol)
+        
+    def build_mastersky(self):
+        masterwave = []
+        mastersky = []
+        for fiber in self.good_fibers:
+            masterwave.append(fiber.wavelength)
+            mastersky.append(fiber.sky_spectrum/fiber.fiber_to_fiber)
+        masterwave = np.hstack(masterwave)
+        mastersky = np.hstack(mastersky)
+        ind = np.argsort(masterwave)
+        self.masterwave = masterwave[ind]
+        self.mastersky = mastersky[ind]
+        
+    def plot_fib_sky(self):
+        s = np.arange(self.masterwave.min(),
+                      self.masterwave.max()+self.bspline_binsize, 
+                      self.bspline_binsize)
+        nfibs = len(self.fibers)
+        colors = plt.get_cmap('RdBu')(np.arange(nfibs)/(nfibs-1.))
+
+        plt.figure(figsize=(8,6))
+        ax1 = plt.subplot(2,1,1)
+        ax2 = plt.subplot(2,1,2)
+        ax1.set_position([0.15,0.35,0.7,0.5])
+        ax2.set_position([0.15,0.15,0.7,0.2])
+        
+        for fib,fiber in enumerate(self.fibers):
+            v = np.interp(fiber.wavelength,self.masterwave,self.mastersky)
+            ax1.scatter(fiber.wavelength, 
+                        fiber.spectrum/fiber.fiber_to_fiber,
+                        s=5, color=colors[fib])
+            ax2.scatter(fiber.wavelength, 
+                        (fiber.spectrum/fiber.fiber_to_fiber - v) / v,
+                        s=10, color=colors[fib],alpha=0.3)
+        ax1.plot(self.masterwave,self.mastersky,'k-')
+        ax2.plot(self.init_lims[0],self.init_lims[1],[0,0],'k--')
+        for v in s[:-1]:                
+            ax1.set_xlim([v,v+self.bspline_binsize])
+            ax2.set_xlim([v,v+self.bspline_binsize])
+            xl = np.searchsorted(self.masterwave,v)
+            xh = np.searchsorted(self.masterwave,v+270)
+            mn = self.mastersky[xl:xh].min()
+            mx = self.mastersky[xl:xh].max()
+            ax1.set_ylim([mn-(mx-mn)*0.1, mn+(mx-mn)*1.1])
+            ax2.set_ylim([-0.05,0.05])
+            plt.savefig(op.join(self.path,'testfib_%s_%0.1f.png'%(self.amp,v)))
+        plt.close()
