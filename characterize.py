@@ -9,6 +9,7 @@ Incomplete Documentation
 
 """
 import matplotlib
+matplotlib.use('agg')
 import argparse as ap
 import numpy as np
 import glob
@@ -24,7 +25,6 @@ import logging
 from scipy.signal import medfilt2d
 import matplotlib.pyplot as plt
 
-matplotlib.use('agg')
 
 matplotlib.rcParams['font.sans-serif'] = "Meiryo"
 matplotlib.rcParams['font.family'] = "sans-serif"
