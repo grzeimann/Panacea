@@ -64,8 +64,7 @@ import numpy as np
 import math
 import scipy.signal as signal
 import scipy.ndimage as ndimage
-import pyfits
-
+from astropy.io import fits
 
 
 # We define the laplacian kernel to be used
@@ -638,7 +637,7 @@ def fromfits(infilename, hdu = 0, verbose = True):
 	Use hdu to specify which HDU you want (default = primary = 0)
 	"""
 	
-	pixelarray, hdr = pyfits.getdata(infilename, hdu, header=True)
+	pixelarray, hdr = fits.getdata(infilename, hdu, header=True)
 	pixelarray = np.asarray(pixelarray).transpose()
 	
 	pixelarrayshape = pixelarray.shape
@@ -666,9 +665,9 @@ def tofits(outfilename, pixelarray, hdr = None, verbose = True):
 		os.remove(outfilename)
 	
 	if hdr == None: # then a minimal header will be created 
-		hdu = pyfits.PrimaryHDU(pixelarray.transpose())
+		hdu = fits.PrimaryHDU(pixelarray.transpose())
 	else: # this if else is probably not needed but anyway ...
-		hdu = pyfits.PrimaryHDU(pixelarray.transpose(), hdr)
+		hdu = fits.PrimaryHDU(pixelarray.transpose(), hdr)
 
 	hdu.writeto(outfilename)
 	
