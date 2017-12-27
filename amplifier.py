@@ -637,13 +637,15 @@ class Amplifier:
         recalculate is set to True.
         '''
         if self.overscan_value is None:
-            self.overscan_value = biweight_location(self.image[
-                                              self.biassec[2]:self.biassec[3],
-                                              self.biassec[0]:self.biassec[1]])
-            self.overscan_noise = biweight_midvariance(self.image[
-                                              self.biassec[2]:self.biassec[3],
-                                              self.biassec[0]:self.biassec[1]])
-            self.image[:] -= self.overscan_value
+            ly = self.biassec[2]
+            hy = self.biassec[3]
+            lx = self.biassec[0]+1
+            hx = self.biassec[1]
+            self.overscan_value = biweight_location(self.image[ly:hy, lx:hx])
+            self.overscan_col = biweight_location(self.image[ly:hy, lx:hx],
+                                                  axis=(1,))
+            self.overscan_noise = biweight_midvariance(self.image[ly:hy,lx:hx])
+            self.image[:] = self.image - self.overscan_col
             self.log.info('Subtracting overscan value %0.3f from %s' 
                            %(self.overscan_value, self.basename))
 
