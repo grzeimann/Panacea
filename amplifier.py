@@ -645,7 +645,7 @@ class Amplifier:
             self.overscan_col = biweight_location(self.image[ly:hy, lx:hx],
                                                   axis=(1,))
             self.overscan_noise = biweight_midvariance(self.image[ly:hy,lx:hx])
-            self.image[:] = self.image - self.overscan_col
+            self.image[:] = self.image - self.overscan_col[:,np.newaxis]
             self.log.info('Subtracting overscan value %0.3f from %s' 
                            %(self.overscan_value, self.basename))
 
