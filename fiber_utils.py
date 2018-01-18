@@ -1421,7 +1421,7 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
             maxsel = np.argmin(np.abs(x))
             peak = y[maxsel]
             trough = y[minsel]
-            contrast = (peak - trough*2) / (peak + trough*2)
+            contrast = (peak - trough*2.) / (peak + trough*2.)
             sub.text(-fsize+1, yplot_high-0.03, 
                      "Fiber: %03d, X: %04d-%04d" %(int(i*len(Fibers)),
                                                    minx+1,maxx+1), 
