@@ -194,28 +194,6 @@ def find_maxima(x, y, y_window=3, interp_window=2.5, repeat_length=2,
                     lwa = (yp*xp).sum()/yp.sum()
             except:
                 lwa = (yp*xp).sum()/yp.sum()
-                
-#        ind = np.searchsorted(mnkeep,val)
-#        if ind==len(mnkeep):
-#            ind-=1
-#            mn1 = int(mnkeep[ind])
-#            mn2 = int(len(y))
-#        elif ind==0:
-#            mn1 = int(0)
-#            mn2 = int(mnkeep[ind]+1)
-#        else:
-#            mn1 = int(mnkeep[ind-1])
-#            mn2 = int(mnkeep[ind]+1)
-#        if val - mn1 > max_to_min_dist:
-#            mn1 = int(val - max_to_min_dist)
-#        if mn2 - val > (max_to_min_dist + 1):
-#            mn2 = int(val + max_to_min_dist + 1)
-#        lwa = ((y[mn1:mn2]*x[mn1:mn2]).sum()/(y[mn1:mn2]).sum())
-#        # Iterating and interpolating to refine the centroid
-#        for k in xrange(first_order_iter):
-#            xp = np.linspace(lwa-interp_window, lwa+interp_window, num=50)
-#            yp = np.interp(xp, x[mn1:mn2], y[mn1:mn2],left=0,right=0)
-#            lwa = (yp*xp).sum()/yp.sum()
         peaks_refined[j] = lwa
         peaks_height[j] = y[val]
     return peaks_refined, peaks_height 
@@ -1443,7 +1421,7 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
             maxsel = np.argmin(np.abs(x))
             peak = y[maxsel]
             trough = y[minsel]
-            contrast = (peak - trough*2) / peak
+            contrast = (peak - trough*2) / (peak + trough*2)
             sub.text(-fsize+1, yplot_high-0.03, 
                      "Fiber: %03d, X: %04d-%04d" %(int(i*len(Fibers)),
                                                    minx+1,maxx+1), 
@@ -1451,8 +1429,6 @@ def check_fiber_profile(image, Fibers, outfile, fsize,
             sub.text(-fsize+1, yplot_high-0.06, 
                      "Contrast: %0.2f" %(contrast), 
                      fontsize=14)
-            sub.text(-fsize+1, yplot_high-0.09,
-                     "X max: %0.2f" %(np.max(mxk)))
             sub.set_xlim([-fsize, fsize])
             sub.set_ylim([yplot_low, yplot_high])                
             sub.plot([-fsize,fsize],[0,0],'r-',lw=3)
@@ -1616,7 +1592,7 @@ def get_wavelength_offsets(fibers, binsize, wvstep=0.2, colsize=300):
         s = -999*np.ones((nbins,fiber.D))
         for i in np.arange(nbins):
             x0 = int(np.max([0,(bins[i]+bins[i+1])/2 - colsize/2]))
-            x1 = int(np.min([1032,(bins[i]+bins[i+1])/2 + colsize/2]))
+            x1 = int(np.min([fibers[0].D,(bins[i]+bins[i+1])/2 + colsize/2]))
             
             s[i,x0:x1], flag = polynomial_normalization(x, y, x0, x1)
         s = np.ma.array(s,mask=s==-999.)
