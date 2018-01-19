@@ -240,7 +240,10 @@ class Amplifier:
             self.log.error("%s could not be opened with Amplifier class" %filename)
             return None
         self.header = F[0].header
-        self.header.remove('bzero')
+        try:
+            self.header.remove('bzero')
+        except:
+            self.log.warning('No BZERO to remove')
         self.name = name
         self.filename = op.abspath(filename)
         self.basename = op.basename(filename)[:-5]
