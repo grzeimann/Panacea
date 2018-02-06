@@ -14,6 +14,7 @@ import argparse as ap
 import numpy as np
 import glob
 import os.path as op
+import os
 import sys
 from amplifier import Amplifier
 from utils import biweight_location, biweight_midvariance
@@ -24,6 +25,8 @@ from operator import itemgetter
 import logging
 from scipy.signal import medfilt2d
 import matplotlib.pyplot as plt
+from fiber_utils import fit_continuum_sky, find_maxima
+from utils import biweight_bin
 
 
 matplotlib.rcParams['font.sans-serif'] = "Meiryo"
@@ -34,11 +37,13 @@ cmap = plt.get_cmap('Greys_r')
 
 AMPS = ["LL", "LU", "RU", "RL"]
 
+
 def write_fits(hdu, name):
     try:
         hdu.writeto(name, overwrite=True)
     except:
         hdu.writeto(name, clobber=True)
+
 
 def setup_logging():
     '''Setup Logging for MCSED, which allows us to track status of calls and
@@ -123,10 +128,10 @@ def parse_args(argv=None):
                         help='''Root Directory
                         Default: \"/work/03946/hetdex/maverick\"''',
                         default="/work/03946/hetdex/maverick")
-    obstype = ['bia', 'drk', 'pxf', 'ptc', 'flt']
-    obsletter = ['b', 'd', 'x', 'p', 'f']
+    obstype = ['bia', 'drk', 'pxf', 'ptc', 'msk', 'ldl', 'arc']
+    obsletter = ['b', 'd', 'x', 'p', 'm', 'l', 'a']
     obsname = ['Bias', 'Dark', 'Pixel Flat', 'Photon Transfer Curve',
-               'Masked Fiber Flat']
+               'Masked Fiber Flat', 'LDLS Fiber Flat', 'Arc Lamp']
     for t, l, n in zip(obstype, obsletter, obsname):
         parser.add_argument("-%sd" % l, "--%sdir_date" % t, nargs='?',
                             type=str, help=''' %s Directory Date.''' % n,
@@ -159,7 +164,9 @@ def parse_args(argv=None):
     parser.add_argument("-dcm", "--dont_check_mask",
                         help='''Don't check masked fiber flats''',
                         action="count", default=0)
-
+    parser.add_argument("-dcl", "--dont_check_ldls",
+                        help='''Don't check ldls fiber flats''',
+                        action="count", default=0)
     args = parser.parse_args(args=argv)
 
     return args
@@ -191,9 +198,12 @@ def read_in_raw(args):
         args.ptcdir_obsid = '%03d%04d' % (int(args.specid), 9)
         args.pxfdir_date = args.date
         args.pxfdir_obsid = '%03d%04d' % (int(args.specid), 5)
-        args.fltdir_date = args.date
-        args.fltdir_obsid = '%03d%04d' % (int(args.specid), 3)
-
+        args.mskdir_date = args.date
+        args.mskdir_obsid = '%03d%04d' % (int(args.specid), 3)
+        args.ldldir_date = args.date
+        args.ldldir_obsid = '%03d%04d' % (int(args.specid), 1)
+        args.arcdir_date = args.date
+        args.arcdir_obsid = '%03d%04d' % (int(args.specid), 2)
     if not args.dont_check_bias:
         observations.append('bia')
     if not args.dont_check_dark:
@@ -203,7 +213,11 @@ def read_in_raw(args):
     if not args.dont_check_pixelflat:
         observations.append('pxf')
     if not args.dont_check_mask:
-        observations.append('flt')
+        observations.append('msk')
+    if not args.dont_check_ldls:
+        observations.append('ldl')
+        observations.append('arc')
+
     for obs in observations:
         amp_list = []
         for label in labels[:2]:
@@ -233,10 +247,8 @@ def read_in_raw(args):
                                                          '*_%s*.fits'
                                                          % args.ifuslot)))
                         for fn in files:
-                            amp_list.append(Amplifier(fn, '', name=obs))
-                            amp_list[-1].subtract_overscan()
-                            amp_list[-1].trim_image()
-                            args.specid = amp_list[-1].specid
+                            amp = op.basename(fn).split('_')[1][-2:]
+                            amp_list.append([fn, obs, amp])
                 else:
                     folder = op.join(date, args.instr,
                                      "{:s}{:07d}".format(args.instr,
@@ -246,10 +258,9 @@ def read_in_raw(args):
                                                      '*_%s*.fits'
                                                      % args.ifuslot)))
                     for fn in files:
-                        amp_list.append(Amplifier(fn, '', name=obs))
-                        amp_list[-1].subtract_overscan()
-                        amp_list[-1].trim_image()
-                        args.specid = amp_list[-1].specid
+                        amp = op.basename(fn).split('_')[1][-2:]
+                        amp_list.append([fn, obs, amp])
+
         setattr(args, obs + '_list', amp_list)
 
     return args
@@ -310,16 +321,23 @@ def check_bias(args, amp, folder, edge=3, width=10):
     # Create empty lists for the left edge jump, right edge jump, and structure
     left_edge, right_edge, structure, overscan = [], [], [], []
 
-    # Select only the bias frames that match the input amp, e.g., "RU"
-    sel = [i for i, v in enumerate(args.bia_list) if v.amp == amp]
-    log = args.bia_list[sel[0]].log
+    bia_list = []
+    for itm in args.bia_list:
+        if itm[2] == amp:
+            bia_list.append(Amplifier(itm[0], '', name=itm[1]))
+            bia_list[-1].subtract_overscan()
+            bia_list[-1].trim_image()
 
-    overscan_list = [[v.overscan_value for i, v in enumerate(args.bia_list)
+    # Select only the bias frames that match the input amp, e.g., "RU"
+    sel = [i for i, v in enumerate(bia_list) if v.amp == amp]
+    log = bia_list[sel[0]].log
+
+    overscan_list = [[v.overscan_value for i, v in enumerate(bia_list)
                       if v.amp == amp]]
     overscan = biweight_location(overscan_list)
     log.info('Overscan value for %s: %0.3f' % (amp, overscan))
     # Loop through the bias list and measure the jump/structure
-    big_array = np.array([v.image for v in itemgetter(*sel)(args.bia_list)])
+    big_array = np.array([v.image for v in itemgetter(*sel)(bia_list)])
     if args.quick:
         func = np.median
     else:
@@ -339,16 +357,23 @@ def check_bias(args, amp, folder, edge=3, width=10):
 
     log.info('Left edge - Overscan, Right edge - Overscan: %0.3f, %0.3f'
              % (left_edge, right_edge))
+
     return left_edge, right_edge, structure, overscan, masterbias
 
 
 def check_darks(args, amp, folder, masterbias, edge=3, width=10):
     # Create empty lists for the left edge jump, right edge jump, and structure
     dark_counts = []
+    drk_list = []
+    for itm in args.drk_list:
+        if itm[2] == amp:
+            drk_list.append(Amplifier(itm[0], '', name=itm[1]))
+            drk_list[-1].subtract_overscan()
+            drk_list[-1].trim_image()
 
     # Select only the dark frames that match the input amp, e.g., "RU"
-    sel = [i for i, v in enumerate(args.drk_list) if v.amp == amp]
-    log = args.drk_list[sel[0]].log
+    sel = [i for i, v in enumerate(drk_list) if v.amp == amp]
+    log = drk_list[sel[0]].log
 
     if len(sel) <= 2 or args.quick:
         func = np.median
@@ -356,7 +381,7 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
         func = biweight_location
     log.info('Writing masterdark_%s.fits' % (amp))
     big_array = np.array([v.image - masterbias
-                          for v in itemgetter(*sel)(args.drk_list)])
+                          for v in itemgetter(*sel)(drk_list)])
     masterdark = func(big_array, axis=(0,))
     a, b = masterdark.shape
     hdu = fits.PrimaryHDU(np.array(masterdark, dtype='float32'))
@@ -364,21 +389,28 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
                op.join(folder, 'masterdark_%s_%s.fits' % (args.specid, amp)))
 
     # Loop through the bias list and measure the jump/structure
-    for am in itemgetter(*sel)(args.drk_list):
+    for am in itemgetter(*sel)(drk_list):
         a, b = am.image.shape
         dark_counts.append(func(am.image - masterbias) / am.exptime)
     s = biweight_location(dark_counts)
     log.info('Average Dark counts/s: %0.5f' % s)
+
     return s, masterdark
 
 
 def measure_readnoise(args, amp):
     # Select only the bias frames that match the input amp, e.g., "RU"
-    sel = [i for i, v in enumerate(args.bia_list) if v.amp == amp]
-    log = args.bia_list[sel[0]].log
+    bia_list = []
+    for itm in args.bia_list:
+        if itm[2] == amp:
+            bia_list.append(Amplifier(itm[0], '', name=itm[1]))
+            bia_list[-1].subtract_overscan()
+            bia_list[-1].trim_image()
+    sel = [i for i, v in enumerate(bia_list) if v.amp == amp]
+    log = bia_list[sel[0]].log
     # Make array of all bias images for given amp
     array_images = np.array([bia.image for bia in
-                             itemgetter(*sel)(args.bia_list)])
+                             itemgetter(*sel)(bia_list)])
 
     # Measure the biweight midvariance (sigma) for a given pixel and take
     # the biweight average over all sigma to reduce the noise in the first
@@ -395,12 +427,18 @@ def measure_readnoise(args, amp):
 
 
 def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=50):
-    sel = [i for i, v in enumerate(args.ptc_list) if v.amp == amp]
-    log = args.ptc_list[sel[0]].log
+    ptc_list = []
+    for itm in args.ptc_list:
+        if itm[2] == amp:
+            ptc_list.append(Amplifier(itm[0], '', name=itm[1]))
+            ptc_list[-1].subtract_overscan()
+            ptc_list[-1].trim_image()
+    sel = [i for i, v in enumerate(ptc_list) if v.amp == amp]
+    log = ptc_list[sel[0]].log
     s_sel = list(np.array(sel)[
-                 np.array([args.ptc_list[i].basename for i in sel]).argsort()])
+                 np.array([ptc_list[i].basename for i in sel]).argsort()])
     npairs = len(sel) / 2
-    a, b = args.ptc_list[sel[0]].image.shape
+    a, b = ptc_list[sel[0]].image.shape
     array_avg = np.zeros((npairs, a, b))
     array_diff = np.zeros((npairs, a, b))
     if args.quick:
@@ -410,8 +448,8 @@ def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=50):
         func1 = biweight_location
         func2 = biweight_midvariance
     for i in xrange(npairs):
-        F1 = args.ptc_list[s_sel[2*i]].image
-        F2 = args.ptc_list[s_sel[2*i+1]].image
+        F1 = ptc_list[s_sel[2*i]].image
+        F2 = ptc_list[s_sel[2*i+1]].image
         m1 = func1(F1)
         m2 = func1(F2)
         array_avg[i, :, :] = (F1 + F2) / 2.
@@ -447,13 +485,19 @@ def measure_gain(args, amp, rdnoise, flow=500, fhigh=35000, fnum=50):
 
 
 def make_pixelflats(args, amp, folder):
-    sel = [i for i, v in enumerate(args.pxf_list) if v.amp == amp]
-    log = args.pxf_list[sel[0]].log
+    pxf_list = []
+    for itm in args.pxf_list:
+        if itm[2] == amp:
+            pxf_list.append(Amplifier(itm[0], '', name=itm[1]))
+            pxf_list[-1].subtract_overscan()
+            pxf_list[-1].trim_image()
+    sel = [i for i, v in enumerate(pxf_list) if v.amp == amp]
+    log = pxf_list[sel[0]].log
 
-    a, b = args.pxf_list[sel[0]].image.shape
+    a, b = pxf_list[sel[0]].image.shape
     masterflat = np.zeros((len(sel), a, b))
 
-    for i, am in enumerate(itemgetter(*sel)(args.pxf_list)):
+    for i, am in enumerate(itemgetter(*sel)(pxf_list)):
         masterflat[i, :, :] = am.image
     masterflat = np.median(masterflat, axis=(0,))
     smooth = medfilt2d(masterflat, (151, 1))
@@ -472,21 +516,153 @@ def power_law(x, c1, c2=.5, c3=.15, c4=1., sig=2.5):
         return c1 / (c2 + c3 * np.power(np.abs(x / sig), c4))
 
 
-def check_masked_fibers(args, amp, masterbias, masterdark, outname, folder):
-    # Select only the bias frames that match the input amp, e.g., "RU"
-    sel = [i for i, v in enumerate(args.flt_list) if v.amp == amp]
-    log = args.flt_list[sel[0]].log
-
-    if len(sel) <= 2 or args.quick:
+def make_master_image(args, amp_list, masterbias, masterdark):
+    ''' Make a master image from a selection in a list '''
+    if len(amp_list) <= 2 or args.quick:
         func = np.median
     else:
         func = biweight_location
-    log.info('Writing mastermaskflat_%s.fits' % (amp))
     big_array = np.array([v.image - masterbias - masterdark
-                          for v in itemgetter(*sel)(args.flt_list)])
-    mastermaskflat = func(big_array, axis=(0,))
+                          for v in amp_list])
+    master = func(big_array, axis=(0,))
+    return master
 
-    A = args.flt_list[sel[0]]
+
+def get_average_spec(fibers, nbins=1000):
+    masterwave = []
+    masterspec = []
+    for fib, fiber in enumerate(fibers):
+        masterwave.append(fiber.wavelength)
+        masterspec.append(fiber.spectrum)
+    masterwave = np.hstack(masterwave)
+    masterspec = np.hstack(masterspec)
+    nwave = np.linspace(masterwave.min(), masterwave.max(), nbins)
+    return nwave, biweight_bin(nwave, masterwave, masterspec)
+
+
+def check_ldls(args, amp, masterbias, masterdark, outname, folder, gain):
+    ''' Works on contrast/fibermodel/wavelength/trace '''
+    # Select only the bias frames that match the input amp, e.g., "RU"
+    ldl_list = []
+    for itm in args.ldl_list:
+        if itm[2] == amp:
+            ldl_list.append(Amplifier(itm[0], '', name=itm[1]))
+            ldl_list[-1].subtract_overscan()
+            ldl_list[-1].trim_image()
+    sel = [i for i, v in enumerate(ldl_list) if v.amp == amp]
+    log = ldl_list[sel[0]].log
+    log.info('Writing masterflat_%s.fits' % (amp))
+    masterflat = make_master_image(args, ldl_list, masterbias, masterdark)
+
+    A = ldl_list[sel[0]]
+    A.image = masterflat
+    A.orient_image()
+    hdu = fits.PrimaryHDU(np.array(A.image, dtype='float32'))
+    write_fits(hdu, op.join(folder, 'masterflat_%s_%s.fits'
+                                    % (args.specid, amp)))
+    A.image_prepped = True
+    A.use_trace_ref = False
+    A.refit = True
+    A.use_pixelflat = False
+    A.gain = gain
+    A.multiply_gain()
+    A.check_fibermodel = True
+    A.check_trace = False
+    A.path = folder
+    A.get_fibermodel()
+    os.rename(op.join(folder, 'fibmodel_%s.png' % A.basename),
+              op.join(folder, 'contrast_%s.png' % amp))
+    A.fibers = get_wavelength_from_arc(args, amp, masterbias, masterdark,
+                                       outname, folder, A.fibers)
+    A.fiberextract()
+    wave, avgspec = get_average_spec(A.fibers)
+    colors = plt.get_cmap('RdBu')(np.linspace(0., 1., len(A.fibers)))
+    fig = plt.figure(figsize=(12, 8))
+    for i, fiber in enumerate(A.fibers):
+        plt.plot(fiber.wavelength, fiber.spectrum, color=colors[i],
+                 alpha=0.3)
+    plt.plot(wave, avgspec, color='magenta', lw=4, label='Average')
+    plt.xlim([3480, 5530])
+    plt.ylim([0., 300000.])
+    plt.xlabel('Wavelength')
+    plt.ylabel('e- per exposure')
+    plt.legend()
+    plt.savefig(op.join(folder, 'ldls_spectra_%s.png' % amp))
+    plt.close(fig)
+    return masterflat
+
+
+def get_wavelength_from_arc(args, amp, masterbias, masterdark, outname, folder,
+                            fibers):
+    # Select only the bias frames that match the input amp, e.g., "RU"
+    arc_list = []
+    for itm in args.arc_list:
+        if itm[2] == amp:
+            arc_list.append(Amplifier(itm[0], '', name=itm[1]))
+            arc_list[-1].subtract_overscan()
+            arc_list[-1].trim_image()
+    sel = [i for i, v in enumerate(arc_list) if v.amp == amp]
+    log = arc_list[sel[0]].log
+    log.info('Writing masterarc_%s.fits' % (amp))
+    masterflat = make_master_image(args, arc_list, masterbias, masterdark)
+
+    A = arc_list[sel[0]]
+    A.image = masterflat
+    A.orient_image()
+    A.image_prepped = True
+    hdu = fits.PrimaryHDU(np.array(A.image, dtype='float32'))
+    write_fits(hdu, op.join(folder, 'masterarc_%s_%s.fits'
+                                    % (args.specid, amp)))
+    A.fibers = list(fibers)
+    A.fiberextract()
+    wave_list = [[3652.1026, 78], [4046.5539, 277], [4077.8298, 293],
+                 [4358.3253, 435], [4678.149, 596], [4799.912, 658],
+                 [5085.822, 808], [5460.7366, 1005]]
+
+    for fiber in A.fibers:
+        y = fiber.spectrum
+        x = np.arange(len(y))
+        d1 = np.diff(y)
+        selu = np.where(d1 > 1e4)[0]
+        sell = np.where(d1 < -1e4)[0]
+        ind = []
+        for i in selu:
+            cont = True
+            for j in ind:
+                if np.abs(j - i) < 5:
+                    cont = False
+            if cont:
+                u = selu[np.where(np.abs(selu - i) < 10)[0]]
+                l = sell[np.where(np.abs(sell - i) < 10)[0]]
+                v = (u.sum() + l.sum()) / (len(u) + len(l))
+                ind.append(v)
+        pr = np.array(ind) / 2.
+        d = []
+        for wvi in wave_list:
+            loc = np.argmin(np.abs(pr - wvi[1]))
+            if np.abs(pr[loc] - wvi[1]) < 30:
+                d.append([pr[loc], wvi[0]])
+        d = np.array(d)
+        p0 = np.polyfit(d[:, 0] / 1032., d[:, 1], 3)
+        fiber.wavelength = np.polyval(p0, x / 2. / 1032.)
+
+    return A.fibers
+
+
+def check_masked_fibers(args, amp, masterbias, masterdark, outname, folder):
+    # Select only the bias frames that match the input amp, e.g., "RU"
+    msk_list = []
+    for itm in args.msk_list:
+        if itm[2] == amp:
+            msk_list.append(Amplifier(itm[0], '', name=itm[1]))
+            msk_list[-1].subtract_overscan()
+            msk_list[-1].trim_image()
+    sel = [i for i, v in enumerate(msk_list) if v.amp == amp]
+    log = msk_list[sel[0]].log
+    log.info('Writing mastermaskflat_%s.fits' % (amp))
+    mastermaskflat = make_master_image(args, msk_list, masterbias, masterdark)
+
+    A = msk_list[sel[0]]
     A.image = mastermaskflat
     A.orient_image()
     hdu = fits.PrimaryHDU(np.array(A.image, dtype='float32'))
@@ -499,6 +675,7 @@ def check_masked_fibers(args, amp, masterbias, masterdark, outname, folder):
     A.trace_y_window = 50.
     A.trace_repeat_length = 40
     A.gain = 1.
+    A.check_trace = False
     A.get_trace()
 
     n, d = A.image.shape
@@ -577,10 +754,19 @@ def write_to_TEX(f, args, overscan, gain, readnoise, darkcounts):
     obs = ['Bias', 'Darks', 'Pixel flats', 'Photon Transfer Curve']
     mastername = ['masterbias', 'masterdark', 'pixelflat', 'ptc']
     for i, v in enumerate(obs):
-        A = [v]
+        CreateTex.writeImageSummary(f, v)
+        A = []
         A.append('%s.png' % (mastername[i]))
         A.append(v)
-        CreateTex.writeImageSummary(f, A)
+        CreateTex.writeFigure(f, A)
+    obs = ['Masked Flats', 'Fiber Profiles', 'LDLS Spectra']
+    mastername = ['mask', 'contrast', 'ldls_spectra']
+    for i, v in enumerate(obs):
+        CreateTex.writeImageSummary(f, v)
+        for amp in AMPS:
+            name = mastername[i] + ('_%s.png' % amp)
+            A = [name, v + (': %s' % amp)]
+            CreateTex.writeFigure(f, A)
 
 
 def main():
@@ -650,6 +836,15 @@ def main():
                                                               % amp),
                                                       folder)
 
+    if not (args.dont_check_dark or args.dont_check_bias or
+            args.dont_check_ldls):
+        masterflat = {}
+        for amp in AMPS:
+            masterflat[amp] = check_ldls(args, amp, masterbias[amp],
+                                         masterdark[amp],
+                                         op.join(folder,
+                                                 'contrast_%s.png' % amp),
+                                         folder, gain[amp])
     # Writing everything to a ".tex" file
     if not (args.dont_check_bias or args.dont_check_dark or
             args.dont_check_readnoise or args.dont_check_gain or
