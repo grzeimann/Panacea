@@ -11,7 +11,7 @@ from utils import biweight_location, biweight_midvariance, is_outlier
 from utils import biweight_filter
 from scipy.optimize import nnls
 import scipy
-from scipy.signal import medfilt
+from scipy.signal import medfilt, savgol_filter
 from scipy.interpolate import interp1d, NearestNDInterpolator, LinearNDInterpolator
 from scipy.linalg import lstsq
 from numpy.polynomial.polynomial import polyvander2d
@@ -1659,3 +1659,15 @@ def bspline_x0(x, y=None, nknots=21, nknots2=21, p=3):
     xi =  (x-x.min())/(x.max()-x.min()+0.1)
     c = np.array([B(xp) for xp in xi])
     return B, c
+
+def fit_continuum_sky(wv, sky, fil_len=95, func=np.array):
+    skym_s = 1.*sky
+    sky_sm = savgol_filter(skym_s, fil_len, 1)
+    for i in np.arange(5):
+        mad = np.median(np.abs(sky - sky_sm))
+        outlier = func(sky - sky_sm) > 1.5 * mad
+        skym_s = 1.*sky
+        skym_s[outlier] = np.interp(wv[outlier], wv[~outlier],
+                                    sky_sm[~outlier])
+        sky_sm = savgol_filter(skym_s, fil_len, 1)
+    return sky_sm
