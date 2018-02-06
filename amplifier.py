@@ -46,7 +46,7 @@ class Amplifier:
                  use_pixelflat=True, specname=None, fdist=2., fdist_ref=4., 
                  check_trace=True, adjust_trace=False, trace_poly_order=3,
                  fibmodel_poly_order=3, use_default_fibmodel=False, 
-                 fibmodel_nbins=15, make_fib_ind_plots=False, 
+                 fibmodel_nbins=31, make_fib_ind_plots=False, 
                  check_fibermodel=False, fsize=8., sigma=2.5, power=2.5,
                  fiber_group=8, col_group=48, mask=None, wave_nbins=21, 
                  wave_order=3, default_fib=0, init_lims=None, collapse_lims=None,
@@ -55,8 +55,8 @@ class Amplifier:
                  col_frac = 0.47, use_trace_ref=False, fiber_date=None,
                  cont_smooth=25, make_residual=True, do_cont_sub=True,
                  make_skyframe=True, wave_res=1.9, trace_step=4,
-                 fibmodel_slope=0.001, fibmodel_intercept=0.002,
-                 fibmodel_breakpoint=5., fibmodel_step=4,
+                 fibmodel_slope=0.000, fibmodel_intercept=0.000,
+                 fibmodel_breakpoint=5.5, fibmodel_step=4,
                  fibmodel_interpkind='linear', cosmic_iterations=1,
                  sky_scale=1.0, make_model_image=False, init_sol=None,
                  wavestepsize=1., nknots=51, bspline_binsize=200.,
@@ -975,7 +975,8 @@ class Amplifier:
             A[:,1] = [fiber.trace[int(self.D/6.)] for fiber in self.fibers]
             A[:,2] = [fiber.trace[int(self.D/2.)] for fiber in self.fibers]
             A[:,3] = [fiber.trace[int(5.*self.D/6.)] for fiber in self.fibers]
-            np.savetxt(fn, A)
+            if self.check_trace:
+                np.savetxt(fn, A)
             if self.adjust_trace and self.refit:
                 self.net_trace_shift = self.find_shift()
             self.log.info('Trace measured from %s' %self.basename)
