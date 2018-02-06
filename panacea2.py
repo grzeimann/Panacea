@@ -90,6 +90,15 @@ def get_ifucenfile(args, side, ifuid, amp=None):
                 return ifucen, ifucen[336:,1:3][::-1,:] 
         if args.instr=='virusw':
             return ifucen, ifucen[:,1:3][::-1,:]
+        if args.instr=='lrs2':
+            if amp=="LL":
+                return ifucen, ifucen[140:,1:3][::-1,:]
+            if amp=="LU":
+                return ifucen, ifucen[:140,1:3][::-1,:]
+            if amp=="RL":
+                return ifucen, ifucen[:140,1:3][::-1,:]               
+            if amp=="RU":
+                return ifucen, ifucen[140:,1:3][::-1,:] 
                 
 def get_distortion_file(args):
     return Distortion(op.join(args.kwargs['virusconfig'], 'DeformerDefaults', 
@@ -110,11 +119,10 @@ def main():
             image_list = ['image','error']
             if args.twi_operations['subtract_background']:
                 image_list.insert(1, 'back')
-            if args.instr=='virus' or args.instr=='virusw':
-                        ifucen, temp = get_ifucenfile(args, amp.amp[0], 
-                                            amp.ifuid, amp.amp)
-                        amp.ifupos = temp
-                        image_list.append('ifupos')
+            ifucen, temp = get_ifucenfile(args, amp.amp[0], 
+                                          amp.ifuid, amp.amp)
+            amp.ifupos = temp
+            image_list.append('ifupos')
             execute_function(amp, 'save', {'image_list':image_list,
                                            'spec_list':['trace','wavelength',
                                                         'spectrum',
@@ -122,7 +130,7 @@ def main():
                                                         'dead']})
     if args.reduce_sci:
         calpath = args.twi_list[0].path
-        reduce_list = ['sky_list', 'sci_list']
+        reduce_list = ['sci_list']
         for _list in reduce_list:
             if hasattr(args, _list):
                 for amp in getattr(args, _list):
@@ -150,6 +158,8 @@ def main():
                         amp.refit=True
                         execute_function(amp, 'get_trace')
                         amp.refit=False
+                        
+                        
                     if args.sci_operations['remeasure_fibermodel']:  
                         amp.refit=True
                         amp.check_fibermodel=True                                          
@@ -164,6 +174,7 @@ def main():
                         amp.refit=False
                     if args.adjust_ftf:
                         execute_function(amp, 'get_fiber_to_fiber')
+                    execute_function(amp, 'fiberextract')
                     if args.sci_operations['sky_subtraction']:                                            
                         execute_function(amp, 'sky_subtraction')
                         image_list.append('clean_image')
@@ -177,7 +188,7 @@ def main():
                         execute_function(amp, 'fiberextract')
                         if args.sci_operations['sky_subtraction']:                                            
                             execute_function(amp, 'sky_subtraction')
-                    if args.instr=='virus' or args.instr=='virusw':
+                    if args.instr in ['virus', 'virusw', 'lrs2']:
                         ifucen, temp = get_ifucenfile(args, amp.amp[0], 
                                             amp.ifuid, amp.amp)
                         amp.ifupos = temp
@@ -188,8 +199,9 @@ def main():
                         image_list.append('sigwave')
                     if args.kwargs['make_model_image']:
                         image_list.append('fibmodel_image')
-                    execute_function(amp, 'make_error_analysis')
-                    image_list.append('error_analysis')
+                    if args.sci_operations['sky_subtraction']:                                            
+                        execute_function(amp, 'make_error_analysis')
+                        image_list.append('error_analysis')
                     execute_function(amp, 'save', {'image_list':image_list,
                                                    'spec_list':spec_list})
                     amp.image = None
