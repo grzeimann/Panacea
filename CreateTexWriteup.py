@@ -293,6 +293,28 @@ Other \\dotfill \\theother \\\\[0.5cm]
         f.flush()
 
     @classmethod
+    def writeFigure(cls, f, A):
+        """Write rows to webpage file ``f``
+
+        Parameters
+        ----------
+        f : file-like object
+            where to write to; must have a ``write`` method
+        """
+        u = '''
+
+\\begin{figure}[H]
+\\makebox[\\textwidth][c]{\\includegraphics[width=1.5\\textwidth]{%s}}
+\\label{testtable}
+\\caption{%s}
+\\end{figure}
+
+
+''' % (tuple(A))
+        f.write(u)
+        f.flush()
+
+    @classmethod
     def writeImageSummary(cls, f, A):
         """Write rows to webpage file ``f``
 
@@ -303,22 +325,11 @@ Other \\dotfill \\theother \\\\[0.5cm]
         """
         s = '''
 \\section{%s}
-''' %A[0]
+''' % A
 
-        t = ''' 
+        t = '''
 % MAKE COMMENTS HERE'''
-
-        u = '''
-
-\\begin{figure}[H]
-\\makebox[\\textwidth][c]{\\includegraphics[width=1.2\\textwidth]{%s}}
-\\label{testtable}
-\\caption{%s}
-\\end{figure}
-
-
-''' %(tuple(A[1:]))
-        f.write(s+t+u)
+        f.write(s+t)
         f.flush()
 
 
