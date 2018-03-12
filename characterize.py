@@ -814,6 +814,10 @@ def main():
             darkcounts[amp], masterdark[amp] = check_darks(args, amp, folder,
                                                            masterbias[amp])
         make_plot(masterdark, op.join(folder, 'masterdark.png'))
+    else:
+        darkcounts, masterdark = {}, {}
+        for amp in AMPS:
+            darkcounts[amp], masterdark[amp] = (0., 0.)
 
     # Get the readnoise for each amp
     if not args.dont_check_readnoise:
