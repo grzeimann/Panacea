@@ -516,10 +516,13 @@ def power_law(x, c1, c2=.5, c3=.15, c4=1., sig=2.5):
         return c1 / (c2 + c3 * np.power(np.abs(x / sig), c4))
 
 
-def make_master_image(args, amp_list, masterbias, masterdark):
+def make_master_image(args, amp_list, masterbias, masterdark, use_mean=False):
     ''' Make a master image from a selection in a list '''
     if len(amp_list) <= 2 or args.quick:
-        func = np.median
+        if use_mean:
+            func = np.mean
+        else:
+            func = np.median
     else:
         func = biweight_location
     big_array = np.array([v.image - masterbias - masterdark
@@ -576,6 +579,14 @@ def check_ldls(args, amp, masterbias, masterdark, outname, folder, gain):
                                        outname, folder, A.fibers)
     A.fiberextract()
     wave, avgspec = get_average_spec(A.fibers)
+    waven = np.vstack([fiber.wavelength for fiber in A.fibers])
+    specn = np.vstack([fiber.spectrum for fiber in A.fibers])
+    waver, specr = rectify(waven, specn)
+    hdu = fits.PrimaryHDU(np.array(specr, dtype='float32'))
+    hdu.header['CRVAL1'] = waver[0]
+    hdu.header['CDELT1'] = waver[1] - wave[0]
+    write_fits(hdu, op.join(folder, 'Femasterflat_%s_%s.fits'
+                                    % (args.specid, amp)))
     colors = plt.get_cmap('RdBu')(np.linspace(0., 1., len(A.fibers)))
     fig = plt.figure(figsize=(12, 8))
     for i, fiber in enumerate(A.fibers):
@@ -604,7 +615,8 @@ def get_wavelength_from_arc(args, amp, masterbias, masterdark, outname, folder,
     sel = [i for i, v in enumerate(arc_list) if v.amp == amp]
     log = arc_list[sel[0]].log
     log.info('Writing masterarc_%s.fits' % (amp))
-    masterflat = make_master_image(args, arc_list, masterbias, masterdark)
+    masterflat = make_master_image(args, arc_list, masterbias, masterdark,
+                                   use_mean=True)
 
     A = arc_list[sel[0]]
     A.image = masterflat
@@ -767,6 +779,14 @@ def write_to_TEX(f, args, overscan, gain, readnoise, darkcounts):
             name = mastername[i] + ('_%s.png' % amp)
             A = [name, v + (': %s' % amp)]
             CreateTex.writeFigure(f, A)
+
+
+def rectify(wave, spec, dl=1., flagv=np.nan):
+    wv = np.arange(wave.min(), wave.max(), dl)
+    specr = np.zeros((spec.shape[0], len(wv)))
+    for i in np.arange(spec.shape[0]):
+        specr[i, :] = np.interp(wv, wave[i], spec[i], left=flagv, right=flagv)
+    return wv, specr, flagv
 
 
 def main():
