@@ -22,7 +22,7 @@ def build_filenames(args):
 
     filename = op.join(args.rootdir, args.date, args.instrument,
                        '%s%07d' % (args.instrument, int(args.observation)),
-                       expstr, args.instrument, 'multi*.fits')
+                       expstr, args.instrument, 'multi*LL.fits')
     print(filename)
     filenames = glob.glob(filename)
     ifuslot_list = [op.basename(fn).split('_')[2] for fn in filenames]
