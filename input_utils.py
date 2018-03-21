@@ -42,7 +42,7 @@ def setup_parser():
 
 def setup_basic_parser():
     ''' BRIEF DESCRIPTION '''
-    parser = ap.ArgumentParser(add_help=False)
+    parser = ap.ArgumentParser(add_help=True)
 
     parser.add_argument("-d", "--date",
                         help='''Date, e.g., 20170321, YYYYMMDD''',
