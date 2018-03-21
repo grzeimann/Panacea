@@ -25,7 +25,7 @@ def build_filenames(args):
                        expstr, args.instrument, 'multi*.fits')
     print(filename)
     filenames = glob.glob(filename)
-    ifuslot_list = [op.basename(fn).split('_')[0][:3] for fn in filenames]
+    ifuslot_list = [op.basename(fn).split('_')[2] for fn in filenames]
     ifuslots = np.unique(ifuslot_list)
     exposure_list = [op.basename(op.dirname(op.dirname(fn)))[3:]
                      for fn in filenames]
