@@ -39,8 +39,8 @@ args.log = setup_logging(logname='amazeballs')
 filenames, ifuslots, exposures, i_list, e_list = build_filenames(args)
 args.log.info(exposures)
 for exposure in exposures:
-    file_list = [fn for fn, e in zip(filenames, exposures) if e == exposure]
-    ifuslot_list = [i for i, e in zip(i_list, exposures) if e == exposure]
+    file_list = [fn for fn, e in zip(filenames, e_list) if e == exposure]
+    ifuslot_list = [i for i, e in zip(i_list, e_list) if e == exposure]
     args.log.info(ifuslot_list)
 
     
