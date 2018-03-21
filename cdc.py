@@ -21,7 +21,7 @@ def build_filenames(args):
         expstr = 'exp%02d' % args.exposure_number
 
     filename = op.join(args.rootdir, args.date, args.instrument,
-                       '%s%07d' % (args.instrument, args.observation),
+                       '%s%07d' % (args.instrument, int(args.observation)),
                        expstr, args.instrument, 'multi*.fits')
     filenames = glob.glob(filename)
     ifuslot_list = [op.basename(fn).split('_')[0][:3] for fn in filenames]
