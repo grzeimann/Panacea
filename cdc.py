@@ -39,6 +39,6 @@ filenames, ifuslots, exposures, i_list, e_list = build_filenames(args)
 for exposure in exposures:
     file_list = [fn for fn, e in zip(filenames, exposures) if e == exposure]
     ifuslot_list = [i for i, e in zip(ifuslots, exposures) if e == exposure]
-    print(ifuslot_list)
+    args.log.info(ifuslot_list)
 
     
