@@ -18,11 +18,12 @@ def build_filenames(args):
     if args.exposure_number is None:
         expstr = 'exp*'
     else:
-        expstr = 'exp%02d' % args.exposure_number
+        expstr = 'exp%02d' % int(args.exposure_number)
 
     filename = op.join(args.rootdir, args.date, args.instrument,
                        '%s%07d' % (args.instrument, int(args.observation)),
                        expstr, args.instrument, 'multi*.fits')
+    print(filename)
     filenames = glob.glob(filename)
     ifuslot_list = [op.basename(fn).split('_')[0][:3] for fn in filenames]
     ifuslots = np.unique(ifuslot_list)
