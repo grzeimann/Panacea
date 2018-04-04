@@ -50,11 +50,12 @@ parser.add_argument("-t", "--target",
 parser.add_argument("-s", "--side",
                     help='''red or blue''',
                     type=str, default='red')
-args = parser.parse_args(args=['-sd', '20170101', '-dl', '500', '-r',
+args = parser.parse_args(args=['-sd', '20170422', '-dl', '1', '-r',
                                '/Users/gregz/cure/lrs2_raw', '-in', 'lrs2',
-                               '-t', 'GALAXY_', '-s', 'red'])
+                               '-t', 'GC', '-s', 'blue'])
+                    
 if args.side.lower() == 'blue':
-    ifslot = '056'
+    ifuslot = '056'
 else:
     ifuslot = '066'
 args.log = setup_logging(logname='build_panacea_command')
@@ -75,13 +76,13 @@ for datet in args.daterange:
         objectname = fits.open(filename)[0].header['OBJECT']
         if args.target.lower() in objectname.lower():
             science_target_list.append(keystring)
+            print(keystring, objectname)
         if filename[-8:-5] == 'twi':
             twi_list.append(keystring)
         for standard in standard_names:
             if standard.lower() in objectname.lower():
                 if ifuslot in objectname.lower():
                     standard_list.append(keystring)
-                    print(keystring, objectname)
         del objectname
 
 twi_file = []
@@ -94,7 +95,26 @@ for science_targ in science_target_list:
     obsid = science_targ.split('_')[1]
     datet = dt(int(date[:4]), int(date[4:6]), int(date[6:]))
     closest_date, diff = find_match(datet, twi_list)
-    closest_date_st, diff_st = find_match(datet, standard_list)
+    if len(standard_list):
+        closest_date_st, diff_st = find_match(datet, standard_list)
+        if diff_st < 1:
+            standard_str = ('python panacea/panacea2.py -td %s -to %s -te 1 '
+                            '--instr %s --instr_side %s --ifuslot %s -sd %s '
+                            '-so %s -rs'
+                            % (twi_list[closest_date].split('_')[0],
+                               twi_list[closest_date].split('_')[1],
+                               args.instrument, args.side, ifuslot,
+                               standard_list[closest_date_st].split('_')[0],
+                               standard_list[closest_date_st].split('_')[1]))
+            std_file.append(standard_str)
+            standard_str = ('python panacea/test_fit_lrs2.py --instr %s '
+                            '--rootdir %s --side %s -d %s -o %s -e %d'
+                            % (args.instrument, '/Users/gregz/cure/reductions',
+                               args.side,
+                               standard_list[closest_date_st].split('_')[0],
+                               standard_list[closest_date_st].split('_')[1],
+                               1))
+            std_post.append(standard_str)
     if closest_date not in no_repeats:
         no_repeats.append(closest_date)
         twi_panacea_str = ('python panacea/panacea2.py -td %s -to %s -te 1 '
@@ -109,23 +129,5 @@ for science_targ in science_target_list:
                       twi_list[closest_date].split('_')[1],
                       args.instrument, args.side, ifuslot, date, obsid))
     sci_file.append(panacea_str)
-    if diff_st < 1:
-        standard_str = ('python panacea/panacea2.py -td %s -to %s -te 1 '
-                        '--instr %s --instr_side %s --ifuslot %s -sd %s '
-                        '-so %s -rs'
-                        % (twi_list[closest_date].split('_')[0],
-                           twi_list[closest_date].split('_')[1],
-                           args.instrument, args.side, ifuslot,
-                           standard_list[closest_date_st].split('_')[0],
-                           standard_list[closest_date_st].split('_')[1]))
-        std_file.append(standard_str)
-        standard_str = ('python panacea/test_fit_lrs2.py --instr %s '
-                        '--rootdir %s --side %s -d %s -o %s -e %d'
-                        % (args.instrument, '/Users/gregz/cure/reductions',
-                           args.side,
-                           standard_list[closest_date_st].split('_')[0],
-                           standard_list[closest_date_st].split('_')[1],
-                           1))
-        std_post.append(standard_str)
 std_file = np.unique(std_file)
 std_post = np.unique(std_post)
