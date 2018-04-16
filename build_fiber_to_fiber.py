@@ -159,8 +159,8 @@ def main():
                     splinecoeff = np.zeros((sp.shape[0], c.shape[1]))
                     for i, d in enumerate(div):
                         sel = np.where(np.isfinite(d))[0]
-                        splinecoeff[i, :] = np.linalg.lstsq(c[sel, :], d[sel],
-                                                            rcond=None)[0]
+                        splinecoeff[i, :] = np.linalg.lstsq(c[sel, :],
+                                                            d[sel])[0]
                     ifu_spline_dict[ifu].append(splinecoeff)
     mkpath(args.outdir)
     fig.savefig(op.join(args.outdir, 'avgspec.png'))
