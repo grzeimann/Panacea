@@ -147,11 +147,15 @@ def main():
                 allspec = np.array(allspec)
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
                 for sp, ifu in zip(allspec, ifuslot_list):
+                    args.log.info('Working on %s' % ifu)
                     div = sp / avgspec
                     splinecoeff = np.zeros((sp.shape[0], c.shape[1]))
                     for i, d in enumerate(div):
-                        splinecoeff[i, :] = np.linalg.lstsq(c, d,
-                                                            rcond=None)[0]
+                        try:
+                            splinecoeff[i, :] = np.linalg.lstsq(c, d,
+                                                                rcond=None)[0]
+                        except:
+                            args.log.warn('Issue with spline fit.')
                     ifu_spline_dict[ifu].append(splinecoeff)
 
     ifu_ftf_dict = {}
