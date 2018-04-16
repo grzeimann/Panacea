@@ -152,18 +152,15 @@ def main():
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
                 plt.plot(rectwave, avgspec, label='%s_%s_%s'
                          % (date, obsid, exposure))
-                args.log.info(avgspec)
+                args.log.info(allspec.shape)
                 for sp, ifu in zip(allspec, ifuslot_list):
                     args.log.info('Working on %s' % ifu)
                     div = sp / avgspec
                     splinecoeff = np.zeros((sp.shape[0], c.shape[1]))
                     for i, d in enumerate(div):
-                        try:
-                            splinecoeff[i, :] = np.linalg.lstsq(c, d,
-                                                                rcond=None)[0]
-                        except:
-                            continue
-                            args.log.warn('Issue with spline fit.')
+                        sel = np.where(np.isnan(d))[0]
+                        splinecoeff[i, :] = np.linalg.lstsq(c[sel, :], d[sel],
+                                                            rcond=None)[0]
                     ifu_spline_dict[ifu].append(splinecoeff)
     mkpath(args.outdir)
     fig.savefig(op.join(args.outdir, 'avgspec.png'))
