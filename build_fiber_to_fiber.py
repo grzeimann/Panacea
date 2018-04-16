@@ -158,7 +158,7 @@ def main():
                                   (div.shape[0] * div.shape[1]))
                     splinecoeff = np.zeros((sp.shape[0], c.shape[1]))
                     for i, d in enumerate(div):
-                        sel = np.where(~np.isnan(d))[0]
+                        sel = np.where(np.isfinite(d))[0]
                         splinecoeff[i, :] = np.linalg.lstsq(c[sel, :], d[sel],
                                                             rcond=None)[0]
                     ifu_spline_dict[ifu].append(splinecoeff)
