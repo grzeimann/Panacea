@@ -3,6 +3,8 @@
 Build new Fiber to Fiber
 """
 
+import matplotlib
+matplotlib.use('agg')
 import glob
 import numpy as np
 import os.path as op
