@@ -70,7 +70,12 @@ def grab_attribute(filename, args, attributes=[],
             args.log.warning('%s not found, filling with zeros' % name)
             for i, attribute in enumerate(attributes):
                 s[i].append(np.zeros((112, 1032)))
-    return [np.vstack(si) for si in s]
+    try:
+        V = [np.vstack(si) for si in s]
+    except:
+        args.log.error([sii.shape for si in s for sii in si])
+        sys.exit(1)
+    return V
 
 
 def rectify(wave, spec, rectified_dlam=1., minwave=None, maxwave=None):
@@ -153,9 +158,8 @@ def main():
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
                 plt.plot(rectwave, avgspec, label='%s_%s_%s'
                          % (date, obsid, exposure))
-                args.log.info(allspec.shape)
                 for sp, ifu in zip(allspec, ifuslot_list):
-                    args.log.info('Working on %s' % ifu)
+                    args.log.info('Working on ifuslot %s' % ifu)
                     div = sp / avgspec
                     splinecoeff = np.zeros((sp.shape[0], c.shape[1]))
                     for i, d in enumerate(div):
