@@ -13,8 +13,6 @@ from fiber_utils import bspline_x0
 from input_utils import setup_parser, set_daterange, setup_logging
 from scipy.interpolate import splev, splrep
 from utils import biweight_location
-import matplotlib
-matplotlib.use('agg')
 
 
 def check_if_type(date, obsid, args):
@@ -161,6 +159,7 @@ def main():
                     splinecoeff = np.zeros((sp.shape[0], c.shape[1]))
                     for i, d in enumerate(div):
                         sel = np.where(np.isnan(d))[0]
+                        args.log.info(d)
                         splinecoeff[i, :] = np.linalg.lstsq(c[sel, :], d[sel],
                                                             rcond=None)[0]
                     ifu_spline_dict[ifu].append(splinecoeff)
