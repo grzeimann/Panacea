@@ -13,6 +13,8 @@ from fiber_utils import bspline_x0
 from input_utils import setup_parser, set_daterange, setup_logging
 from scipy.interpolate import splev, splrep
 from utils import biweight_location
+import matplotlib
+matplotlib.use('agg')
 
 
 def check_if_type(date, obsid, args):
@@ -101,6 +103,7 @@ def rectify(wave, spec, rectified_dlam=1., minwave=None, maxwave=None):
 
 
 def main():
+    import matplotlib.pyplot as plt
     parser = setup_parser()
     parser.add_argument("-t", "--type",
                         help='''Observation Type, twi or sci''',
@@ -115,6 +118,7 @@ def main():
     ifu_spline_dict = {}
     # HARDCODED SIZE FOR SPEED BUT MUST MATCH SIZE OF "rw" BELOW.
     B, c = bspline_x0(np.linspace(0, 1, 2001), nknots=7)
+    fig = plt.figure(figsize=(8,6))
     for datet in args.daterange:
         date = '%04d%02d%02d' % (datet.year, datet.month, datet.day)
         obsids = glob.glob(op.join(args.rootdir, date, args.instrument,
@@ -146,6 +150,9 @@ def main():
                 rectwave = rw
                 allspec = np.array(allspec)
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
+                plt.plot(rectwave, avgspec, label='%s_%s_%s'
+                         % (date, obsid, exposure))
+                args.log.info(avgspec)
                 for sp, ifu in zip(allspec, ifuslot_list):
                     args.log.info('Working on %s' % ifu)
                     div = sp / avgspec
@@ -155,11 +162,13 @@ def main():
                             splinecoeff[i, :] = np.linalg.lstsq(c, d,
                                                                 rcond=None)[0]
                         except:
+                            continue
                             args.log.warn('Issue with spline fit.')
                     ifu_spline_dict[ifu].append(splinecoeff)
-
-    ifu_ftf_dict = {}
     mkpath(args.outdir)
+    fig.savefig(op.join(args.outdir, 'avgspec.png'))
+    ifu_ftf_dict = {}
+
     for ifu in ifu_spline_dict:
         fibers_spline_coeff = biweight_location(np.array(ifu_spline_dict[ifu]),
                                                 axis=(0,))
@@ -168,7 +177,7 @@ def main():
             ftf[i, :] = np.dot(c, fiber)
         ifu_ftf_dict[ifu] = ftf
         P = fits.PrimaryHDU(np.array(ftf, dtype='float32'))
-        P.writeto(args.outdir, '%s_ftf.fits' % ifu, overwrite=True)
+        P.writeto(op.join(args.outdir, '%s_ftf.fits' % ifu), overwrite=True)
 
 if __name__ == '__main__':
     main()
