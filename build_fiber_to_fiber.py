@@ -92,10 +92,13 @@ def rectify(wave, spec, rectified_dlam=1., minwave=None, maxwave=None):
     xs = np.linspace(0, 1, len(rect_wave))
     xn = np.interp(wnew, rect_wave, xs)
     for i in np.arange(spec.shape[0]):
-        y = spec[i] / dlam[i]
-        xp = np.interp(wave[i], rect_wave, xs)
-        tck = splrep(xp, y)
-        rect_spec[i, :] = splev(xn, tck)
+        if np.all(spec[i] == 0):
+            rect_spec[i, :] = 0.0
+        else:
+            y = spec[i] / dlam[i]
+            xp = np.interp(wave[i], rect_wave, xs)
+            tck = splrep(xp, y)
+            rect_spec[i, :] = splev(xn, tck)
     rect_wave = wnew * 1.
     return rect_wave, rect_spec
 
@@ -154,8 +157,6 @@ def main():
                 for sp, ifu in zip(allspec, ifuslot_list):
                     args.log.info('Working on %s' % ifu)
                     div = sp / avgspec
-                    args.log.info(np.isnan(div).sum() * 1. /
-                                  (div.shape[0] * div.shape[1]))
                     splinecoeff = np.zeros((sp.shape[0], c.shape[1]))
                     for i, d in enumerate(div):
                         sel = np.where(np.isfinite(d))[0]
