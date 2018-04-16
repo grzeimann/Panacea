@@ -156,6 +156,8 @@ def main():
                 for sp, ifu in zip(allspec, ifuslot_list):
                     args.log.info('Working on %s' % ifu)
                     div = sp / avgspec
+                    args.log.info(np.isnan(div).sum() * 1. /
+                                  (div.shape[0] * div.shape[1]))
                     splinecoeff = np.zeros((sp.shape[0], c.shape[1]))
                     for i, d in enumerate(div):
                         sel = np.where(np.isnan(d))[0]
