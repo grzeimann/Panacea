@@ -70,7 +70,7 @@ def grab_attribute(filename, args, attributes=[],
             args.log.warning('%s not found, filling with zeros' % name)
             for i, attribute in enumerate(attributes):
                 s[i].append(np.zeros((112, 1032)))
-        if s[i][-1] != (112, 1032):
+        if s[i][-1].shape != (112, 1032):
             s[i][-1] = np.zeros((112, 1032))
     try:
         V = [np.vstack(si) for si in s]
