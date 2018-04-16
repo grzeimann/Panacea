@@ -35,7 +35,7 @@ def check_if_type(date, obsid, args):
         return False
 
 
-def build_filenames(date, obside, args):
+def build_filenames(date, obsid, args):
     '''
     Build directory structure and search for unique observations, and return
     a single file for each observation and exposure.
