@@ -129,7 +129,7 @@ def main():
     ifu_spline_dict = {}
     # HARDCODED SIZE FOR SPEED BUT MUST MATCH SIZE OF "rw" BELOW.
     B, c = bspline_x0(np.linspace(0, 1, 2001), nknots=7)
-    fig = plt.figure(figsize=(8,6))
+    fig = plt.figure(figsize=(8, 6))
     for datet in args.daterange:
         date = '%04d%02d%02d' % (datet.year, datet.month, datet.day)
         obsids = glob.glob(op.join(args.rootdir, date, args.instrument,
@@ -161,7 +161,8 @@ def main():
                 rectwave = rw
                 allspec = np.array(allspec)
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
-                plt.plot(rectwave, avgspec, label='%s_%s_%s'
+                norm = np.nanmedian(avgspec)
+                plt.plot(rectwave, avgspec / norm, label='%s_%s_%s'
                          % (date, obsid, exposure))
                 for sp, ifu in zip(allspec, ifuslot_list):
                     args.log.info('Working on ifuslot %s' % ifu)
@@ -173,6 +174,7 @@ def main():
                                                             d[sel])[0]
                     ifu_spline_dict[ifu].append(splinecoeff)
     mkpath(args.outdir)
+    plt.legend()
     fig.savefig(op.join(args.outdir, 'avgspec.png'))
     ifu_ftf_dict = {}
 
