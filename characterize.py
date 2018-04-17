@@ -786,7 +786,7 @@ def rectify(wave, spec, dl=1., flagv=np.nan):
     specr = np.zeros((spec.shape[0], len(wv)))
     for i in np.arange(spec.shape[0]):
         specr[i, :] = np.interp(wv, wave[i], spec[i], left=flagv, right=flagv)
-    return wv, specr, flagv
+    return wv, specr
 
 
 def main():
