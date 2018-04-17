@@ -662,7 +662,7 @@ def get_wavelength_from_arc(args, amp, masterbias, masterdark, outname, folder,
         d = []
         for wvi in wave_list:
             loc = np.argmin(np.abs(pr - wvi[1]))
-            if np.abs(pr[loc] - wvi[1]) < 30:
+            if np.abs(pr[loc] - wvi[1]) < 15*fac:
                 d.append([pr[loc], wvi[0]])
         d = np.array(d)
         log.info(d)
