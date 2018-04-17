@@ -380,6 +380,7 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
     else:
         func = biweight_location
     log.info('Writing masterdark_%s.fits' % (amp))
+    print(sel)
     if len(sel) == 1:
         big_array = (v.image - masterbias)[np.newaxis, :, :]
     else:
