@@ -645,8 +645,8 @@ def get_wavelength_from_arc(args, amp, masterbias, masterdark, outname, folder,
         plt.figure()
         plt.plot(d1)
         plt.plot(y)
-        plt.savefig(op.join(folder, 'test_arc.png'))
         plt.ylim([-1e2, 1e2])
+        plt.savefig(op.join(folder, 'test_arc_%s.png' % amp))
         plt.close()
         for i in selu:
             cont = True
@@ -665,8 +665,8 @@ def get_wavelength_from_arc(args, amp, masterbias, masterdark, outname, folder,
             if np.abs(pr[loc] - wvi[1]) < 30:
                 d.append([pr[loc], wvi[0]])
         d = np.array(d)
-        p0 = np.polyfit(d[:, 0] / 1032., d[:, 1], 3)
-        fiber.wavelength = np.polyval(p0, x / 2. / 1032.)
+        p0 = np.polyfit(d[:, 0] / (len(y)*1.), d[:, 1], 3)
+        fiber.wavelength = np.polyval(p0, x / (len(y)*1.))
 
     return A.fibers
 
