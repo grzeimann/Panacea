@@ -380,8 +380,11 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
     else:
         func = biweight_location
     log.info('Writing masterdark_%s.fits' % (amp))
-    big_array = np.array([v.image - masterbias
-                          for v in itemgetter(*sel)(drk_list)])
+    if len(sel) == 1:
+        big_array = (v.image - masterbias)[np.newaxis, :, :]
+    else:
+        big_array = np.array([v.image - masterbias
+                              for v in itemgetter(*sel)(drk_list)])
     masterdark = func(big_array, axis=(0,))
     a, b = masterdark.shape
     hdu = fits.PrimaryHDU(np.array(masterdark, dtype='float32'))
