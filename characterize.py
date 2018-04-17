@@ -644,7 +644,6 @@ def get_wavelength_from_arc(args, amp, masterbias, masterdark, outname, folder,
         ind = []
         plt.figure()
         plt.plot(d1)
-        plt.plot(y)
         plt.ylim([-1e2, 1e2])
         plt.savefig(op.join(folder, 'test_arc_%s.png' % amp))
         plt.close()
@@ -658,11 +657,12 @@ def get_wavelength_from_arc(args, amp, masterbias, masterdark, outname, folder,
                 l = sell[np.where(np.abs(sell - i) < 10)[0]]
                 v = (u.sum() + l.sum()) / (len(u) + len(l))
                 ind.append(v)
-        pr = np.array(ind) / 2.
+        fac = len(y) / 1032
+        pr = np.array(ind) / fac
         d = []
         for wvi in wave_list:
             loc = np.argmin(np.abs(pr - wvi[1]))
-            if np.abs(pr[loc] - wvi[1]) < 50:
+            if np.abs(pr[loc] - wvi[1]) < 30:
                 d.append([pr[loc], wvi[0]])
         d = np.array(d)
         log.info(d)
