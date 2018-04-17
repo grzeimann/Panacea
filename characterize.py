@@ -380,7 +380,6 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
     else:
         func = biweight_location
     log.info('Writing masterdark_%s.fits' % (amp))
-    print(sel, len(sel))
     if len(sel) == 1:
         big_array = (v.image - masterbias)[np.newaxis, :, :]
     else:
@@ -393,7 +392,8 @@ def check_darks(args, amp, folder, masterbias, edge=3, width=10):
                op.join(folder, 'masterdark_%s_%s.fits' % (args.specid, amp)))
 
     # Loop through the bias list and measure the jump/structure
-    for am in itemgetter(*sel)(drk_list):
+    for s in sel:
+        am = drk_list[s]
         a, b = am.image.shape
         dark_counts.append(func(am.image - masterbias) / am.exptime)
     s = biweight_location(dark_counts)
