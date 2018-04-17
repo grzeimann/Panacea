@@ -639,13 +639,14 @@ def get_wavelength_from_arc(args, amp, masterbias, masterdark, outname, folder,
         y = fiber.spectrum
         x = np.arange(len(y))
         d1 = np.diff(y)
-        selu = np.where(d1 > 1e4)[0]
-        sell = np.where(d1 < -1e4)[0]
+        selu = np.where(d1 > 1e2)[0]
+        sell = np.where(d1 < -1e2)[0]
         ind = []
         plt.figure()
         plt.plot(d1)
         plt.plot(y)
         plt.savefig(op.join(folder, 'test_arc.png'))
+        plt.ylim([-1e2, 1e2])
         plt.close()
         for i in selu:
             cont = True
