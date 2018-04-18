@@ -642,11 +642,6 @@ def get_wavelength_from_arc(args, amp, masterbias, masterdark, outname, folder,
         selu = np.where(d1 > 1e2)[0]
         sell = np.where(d1 < -1e2)[0]
         ind = []
-        plt.figure()
-        plt.plot(d1)
-        plt.ylim([-1e2, 1e2])
-        plt.savefig(op.join(folder, 'test_arc_%s.png' % amp))
-        plt.close()
         for i in selu:
             cont = True
             for j in ind:
