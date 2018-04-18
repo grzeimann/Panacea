@@ -667,7 +667,6 @@ def get_wavelength_from_arc(args, amp, masterbias, masterdark, outname, folder,
                 off = pr[loc] - wvi[1]
                 d.append([pr[loc], wvi[0]])
         d = np.array(d)
-        log.info(d)
         p0 = np.polyfit(d[:, 0] / (len(y)*1.), d[:, 1], 3)
         fiber.wavelength = np.polyval(p0, x / (len(y)*1.))
 
