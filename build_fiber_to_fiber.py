@@ -170,7 +170,7 @@ def main():
                 allspec = np.array(allspec)
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
                 X = np.arange(len(rw))
-                XL = np.array_split(X)
+                XL = np.array_split(X, 40)
                 xloc = np.array([np.median(xl) for xl in XL])
                 xloc = (xloc - 0.) / (len(rw) - 1.)
                 B, c = bspline_matrix(xloc, nknots=7)
