@@ -8,20 +8,30 @@ matplotlib.use('agg')
 import glob
 import numpy as np
 import os.path as op
+import splinelab
+
 
 from astropy.io import fits
 from distutils.dir_util import mkpath
-from fiber_utils import bspline_x0
 from input_utils import setup_parser, set_daterange, setup_logging
 from scipy.interpolate import splev, splrep
 from utils import biweight_location
+from bspline import Bspline
+
+
+def bspline_matrix(x, nknots, norm=False):
+    ''' Make the bspline knot matrix for linalg calculation later '''
+    v = np.linspace(0, 1, nknots)
+    k = splinelab.augknt(v, 3)
+    B = Bspline(k, 3)
+    if norm:
+        x = (x - x.min()) / (x.max() - x.min() + 0.1)
+    c = np.array([B(xp) for xp in x])
+    return B, c
 
 
 def check_if_type(date, obsid, args):
-    '''
-    Build directory structure and search for unique observations, and return
-    a single file for each observation and exposure.
-    '''
+    ''' Test if header has IMAGETYP '''
     filenames = glob.glob(op.join(args.rootdir, date, args.instrument,
                                   args.instrument + obsid, 'exp01',
                                   args.instrument, 'multi_*_*_*_LL.fits'))
@@ -39,8 +49,8 @@ def check_if_type(date, obsid, args):
 
 def build_filenames(date, obsid, args):
     '''
-    Build directory structure and search for unique observations, and return
-    a single file for each observation and exposure.
+    Build directory structure and search for all the files in a given
+    observation and exposure.
     '''
     if args.type == 'twi':
         expstr = '01'
@@ -75,12 +85,8 @@ def grab_attribute(filename, args, attributes=[],
         for i, attribute in enumerate(attributes):
             if s[i][-1].shape != (112, 1032):
                 s[i][-1] = np.zeros((112, 1032))
-    try:
-        V = [np.vstack(si) for si in s]
-    except:
-        args.log.error([sii.shape for si in s for sii in si])
-        sys.exit(1)
-    return V
+
+    return [np.array(si) for si in s]
 
 
 def rectify(wave, spec, rectified_dlam=1., minwave=None, maxwave=None):
@@ -114,7 +120,6 @@ def rectify(wave, spec, rectified_dlam=1., minwave=None, maxwave=None):
 
 
 def main():
-    import matplotlib.pyplot as plt
     parser = setup_parser()
     parser.add_argument("-t", "--type",
                         help='''Observation Type, twi or sci''',
@@ -128,8 +133,7 @@ def main():
 
     ifu_spline_dict = {}
     # HARDCODED SIZE FOR SPEED BUT MUST MATCH SIZE OF "rw" BELOW.
-    B, c = bspline_x0(np.linspace(0, 1, 2001), nknots=7)
-    fig = plt.figure(figsize=(8, 6))
+    B, C = bspline_matrix(np.linspace(0, 1, 2001), nknots=7)
     for datet in args.daterange:
         date = '%04d%02d%02d' % (datet.year, datet.month, datet.day)
         obsids = glob.glob(op.join(args.rootdir, date, args.instrument,
@@ -141,41 +145,48 @@ def main():
             filenames, ifus, exps, i_list, e_list = build_filenames(date,
                                                                     obsid,
                                                                     args)
-            for ifu in ifus:
-                if ifu not in ifu_spline_dict:
-                    ifu_spline_dict[ifu] = []
             for exposure in exps:
                 file_list = [fn for fn, e in zip(filenames, e_list)
                              if e == exposure]
                 ifuslot_list = [i for i, e in zip(i_list, e_list)
                                 if e == exposure]
+                ifuslot_amp = ['%s%s' % (ifu, amp) for ifu in ifuslot_list
+                               for amp in ['LL', 'LU', 'RU', 'RL']]
+                for ifua in ifuslot_amp:
+                    if ifua not in ifu_spline_dict:
+                        ifu_spline_dict[ifua] = []
                 args.log.info('Building Fiber to Fiber for %s, observation %s,'
                               ' exposure %s' % (date, obsid, exposure))
-                allspec = ([])
+                allspec = []
                 for filen, ifu in zip(file_list, ifuslot_list):
                     wave, spec = grab_attribute(filen, args,
                                                 attributes=['wavelength',
-                                                            'spectrum'])
-                    rw, rs = rectify(wave, spec, minwave=3500., maxwave=5500.)
-                    allspec.append(rs)
-                rectwave = rw
+                                                            'spectrum'],
+                                                amps=['LL', 'LU', 'RU', 'RL'])
+                    for wv, sp in zip(wave, spec):
+                        rw, rs = rectify(wave, spec, minwave=3500.,
+                                         maxwave=5500.)
+                        allspec.append(rs)
                 allspec = np.array(allspec)
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
-                norm = np.nanmedian(avgspec)
-                plt.plot(rectwave, avgspec / norm, label='%s_%s_%s'
-                         % (date, obsid, exposure))
-                for sp, ifu in zip(allspec, ifuslot_list):
-                    args.log.info('Working on ifuslot %s' % ifu)
+                X = np.arange(len(rw))
+                XL = np.array_split(X)
+                xloc = np.array([np.median(xl) for xl in XL])
+                xloc = (xloc - 0.) / (len(rw) - 1.)
+                B, c = bspline_matrix(xloc, nknots=7)
+                for sp, ifua in zip(allspec, ifuslot_amp):
+                    args.log.info('Working on ifuslot %s' % ifua)
                     div = sp / avgspec
                     splinecoeff = np.zeros((sp.shape[0], c.shape[1]))
-                    for i, d in enumerate(div):
-                        sel = np.where(np.isfinite(d))[0]
+                    div_list = np.array_split(div, 40, axis=1)
+                    mdiv = [np.nanmedian(d, axis=1) for d in div_list]
+                    mdiv = np.array(mdiv).swapaxes(0, 1)
+                    for i, fiber in enumerate(mdiv):
+                        sel = np.where(np.isfinite(fiber))[0]
                         splinecoeff[i, :] = np.linalg.lstsq(c[sel, :],
-                                                            d[sel])[0]
-                    ifu_spline_dict[ifu].append(splinecoeff)
+                                                            fiber[sel])[0]
+                    ifu_spline_dict[ifua].append(splinecoeff)
     mkpath(args.outdir)
-    plt.legend()
-    fig.savefig(op.join(args.outdir, 'avgspec.png'))
     ifu_ftf_dict = {}
 
     for ifu in ifu_spline_dict:
@@ -183,7 +194,7 @@ def main():
                                                 axis=(0,))
         ftf = np.zeros(rs.shape)
         for i, fiber in enumerate(fibers_spline_coeff):
-            ftf[i, :] = np.dot(c, fiber)
+            ftf[i, :] = np.dot(C, fiber)
         ifu_ftf_dict[ifu] = ftf
         P = fits.PrimaryHDU(np.array(ftf, dtype='float32'))
         P.writeto(op.join(args.outdir, '%s_ftf.fits' % ifu), overwrite=True)
