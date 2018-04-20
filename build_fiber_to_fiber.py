@@ -164,7 +164,7 @@ def main():
                                                             'spectrum'],
                                                 amps=['LL', 'LU', 'RU', 'RL'])
                     for wv, sp in zip(wave, spec):
-                        rw, rs = rectify(wave, spec, minwave=3500.,
+                        rw, rs = rectify(wv, sp, minwave=3500.,
                                          maxwave=5500.)
                         allspec.append(rs)
                 allspec = np.array(allspec)
