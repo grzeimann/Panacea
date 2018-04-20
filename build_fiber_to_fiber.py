@@ -159,6 +159,7 @@ def main():
                               ' exposure %s' % (date, obsid, exposure))
                 allspec = []
                 for filen, ifu in zip(file_list, ifuslot_list):
+                    args.log.info('Reading in %s' % filen)
                     wave, spec = grab_attribute(filen, args,
                                                 attributes=['wavelength',
                                                             'spectrum'],
