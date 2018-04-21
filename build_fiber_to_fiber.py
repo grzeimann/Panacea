@@ -160,11 +160,13 @@ def main():
                 allspec = []
                 for filen, ifu in zip(file_list, ifuslot_list):
                     args.log.info('Reading in %s' % filen)
+                    amps = ['LL', 'LU', 'RU', 'RL']
                     wave, spec = grab_attribute(filen, args,
                                                 attributes=['wavelength',
                                                             'spectrum'],
-                                                amps=['LL', 'LU', 'RU', 'RL'])
-                    for wv, sp in zip(wave, spec):
+                                                amps=amps)
+                    for wv, sp, amp in zip(wave, spec, amps):
+                        args.log.info('Rectifying %s%s' % (ifu, amp))
                         rw, rs = rectify(wv, sp, minwave=3500.,
                                          maxwave=5500.)
                         allspec.append(rs)
