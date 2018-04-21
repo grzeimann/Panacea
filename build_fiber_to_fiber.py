@@ -166,7 +166,6 @@ def main():
                                                             'spectrum'],
                                                 amps=amps)
                     for wv, sp, amp in zip(wave, spec, amps):
-                        args.log.info('Rectifying %s%s' % (ifu, amp))
                         rw, rs = rectify(wv, sp, minwave=3500.,
                                          maxwave=5500.)
                         allspec.append(rs)
