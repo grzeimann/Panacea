@@ -9,6 +9,7 @@ import glob
 import numpy as np
 import os.path as op
 import splinelab
+import fitsio
 
 
 from astropy.io import fits
@@ -75,9 +76,8 @@ def grab_attribute(filename, args, attributes=[],
     for amp in amps:
         name = basename + '_%s.fits' % amp
         try:
-            F = fits.open(name)
             for i, attribute in enumerate(attributes):
-                s[i].append(F[attribute].data)
+                s[i].append(fitsio.read(name, attribute))
         except IOError:
             args.log.warning('%s not found, filling with zeros' % name)
             for i, attribute in enumerate(attributes):
