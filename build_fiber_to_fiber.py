@@ -183,7 +183,7 @@ def main():
                                          maxwave=5500.)
                         allspec.append(rs)
                         name = filen[:-8] + '_%s.fits' % amp
-                        filename_dict['%s%s'].append(name)
+                        filename_dict['%s%s' % (ifu, amp)].append(name)
                 allspec = np.array(allspec)
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
                 X = np.arange(len(rw))
