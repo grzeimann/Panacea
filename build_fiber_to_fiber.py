@@ -89,6 +89,17 @@ def grab_attribute(filename, args, attributes=[],
     return [np.array(si) for si in s]
 
 
+def put_attribute(filename, args, data, attributes=[]):
+    ''' put specified attributes into multi* file '''
+    try:
+        for i, attribute in enumerate(attributes):
+            F = fitsio.FITS(filename, 'rw')
+            F[attribute].write(data[i])
+    except IOError:
+        for i, attribute in enumerate(attributes):
+            args.log.warning('%s not found to add %s' % attribute)
+
+
 def rectify(wave, spec, rectified_dlam=1., minwave=None, maxwave=None):
     ''' Rectify spectra to same "rect_wave" '''
     dlam = np.zeros(wave.shape)
@@ -132,6 +143,7 @@ def main():
     args = set_daterange(args)
 
     ifu_spline_dict = {}
+    filename_dict = {}
     # HARDCODED SIZE FOR SPEED BUT MUST MATCH SIZE OF "rw" BELOW.
     B, C = bspline_matrix(np.linspace(0, 1, 2001), nknots=7)
     for datet in args.daterange:
@@ -155,6 +167,7 @@ def main():
                 for ifua in ifuslot_amp:
                     if ifua not in ifu_spline_dict:
                         ifu_spline_dict[ifua] = []
+                        filename_dict[ifua] = []
                 args.log.info('Building Fiber to Fiber for %s, observation %s,'
                               ' exposure %s' % (date, obsid, exposure))
                 allspec = []
@@ -169,6 +182,8 @@ def main():
                         rw, rs = rectify(wv, sp, minwave=3500.,
                                          maxwave=5500.)
                         allspec.append(rs)
+                        name = filen[:-8] + '_%s.fits' % amp
+                        filename_dict['%s%s'].append(name)
                 allspec = np.array(allspec)
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
                 X = np.arange(len(rw))
@@ -188,9 +203,8 @@ def main():
                         splinecoeff[i, :] = np.linalg.lstsq(c[sel, :],
                                                             fiber[sel])[0]
                     ifu_spline_dict[ifua].append(splinecoeff)
-    mkpath(args.outdir)
-    ifu_ftf_dict = {}
 
+    ifu_ftf_dict = {}
     for ifu in ifu_spline_dict:
         fibers_spline_coeff = biweight_location(np.array(ifu_spline_dict[ifu]),
                                                 axis=(0,))
@@ -198,8 +212,9 @@ def main():
         for i, fiber in enumerate(fibers_spline_coeff):
             ftf[i, :] = np.dot(C, fiber)
         ifu_ftf_dict[ifu] = ftf
-        P = fits.PrimaryHDU(np.array(ftf, dtype='float32'))
-        P.writeto(op.join(args.outdir, '%s_ftf.fits' % ifu), overwrite=True)
+        for filename in filename_dict[ifu]:
+            args.log.info('Writing Fiber to Fiber to %s' % filename)
+            put_attribute(filename, args, [ftf], attributes=['fiber_to_fiber'])
 
 if __name__ == '__main__':
     main()
