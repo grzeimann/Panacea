@@ -162,7 +162,7 @@ def main():
                         allspec.append(rs)
                         ftf.append(Ftf)
                         name = filen[:-8] + '_%s.fits' % amp
-                        filename_list['%s%s' % (ifu, amp)].append(name)
+                        filename_list.append(name)
                 allspec = np.array(allspec)
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
                 interval = 40
