@@ -174,19 +174,20 @@ def main():
                 for i in np.arange(len(rw) / interval):
                     cols = np.arange(i * interval, (i + 1) * interval)
                     X.append(rw[i + interval/2])
-                    y = np.median(ftf[:, :, cols], axis=2)
-                    y2 = np.median(allspec[:, :, cols] / avgspec[cols], axis=2)
+                    y = np.nanmedian(ftf[:, :, cols], axis=2)
+                    y2 = np.nanmedian(allspec[:, :, cols] / avgspec[cols],
+                                      axis=2)
                     offset = y2 - y
-                    offset_array[:, i] = np.median(offset, axis=1)
+                    offset_array[:, i] = np.nanmedian(offset, axis=1)
                     thresh = 3. * mad_std(offset - offset_array[:, i:(i+1)])
                     for j in np.arange(offset.shape[0]):
                         sel = np.where(np.abs(offset[j, :]) < thresh)[0]
-                        offset_array[j, i] = np.median(offset[j, sel])
+                        offset_array[j, i] = np.nanmedian(offset[j, sel])
                 X = np.hstack(X)
                 for filen, spec, f, offset in zip(filename_list, allspec, ftf,
                                                   offset_array):
                     args.log.info('Sky Subtracting %s' % filen)
-                    new = np.interp(rw, X, offset) + f
+                    new = np.interp(rw, X, offset, left=0.0, right=0.0) + f
                     sky = avgspec * new
                     sky_sub = spec - sky
                     put_attribute(filen, args, [sky, sky_sub],
