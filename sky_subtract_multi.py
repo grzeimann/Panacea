@@ -173,7 +173,7 @@ def main():
                 offset_array = np.zeros((allspec.shape[0], len(rw) / interval))
                 for i in np.arange(len(rw) / interval):
                     cols = np.arange(i * interval, (i + 1) * interval)
-                    X.append(rw[int((i+1./2) * interval)])
+                    X.append(rw[int((i + 0.5) * interval)])
                     y = np.nanmedian(ftf[:, :, cols], axis=2)
                     y2 = np.nanmedian(allspec[:, :, cols] / avgspec[cols],
                                       axis=2)
@@ -184,10 +184,14 @@ def main():
                         sel = np.where(np.abs(offset[j, :]) < thresh)[0]
                         offset_array[j, i] = np.nanmedian(offset[j, sel])
                 X = np.hstack(X)
+                args.log.info(X)
                 for filen, spec, f, offset in zip(filename_list, allspec, ftf,
                                                   offset_array):
                     args.log.info('Sky Subtracting %s' % filen)
+                    args.log.info(offset)
                     new = np.interp(rw, X, offset, left=0.0, right=0.0) + f
+                    args.log.info(new)
+                    sys.exit(1)
                     sky = avgspec * new
                     sky_sub = spec - sky
                     put_attribute(filen, args, [sky, sky_sub],
