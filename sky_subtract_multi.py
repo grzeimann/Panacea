@@ -161,7 +161,7 @@ def main():
                         rw, rs = rectify(wv, sp, minwave=3500., maxwave=5500.)
                         allspec.append(rs)
                         if Ftf.shape == (112, 1032):
-                            ftf.append(np.zeros(112, 2001))
+                            ftf.append(np.zeros((112, 2001)))
                         else:
                             ftf.append(Ftf)
                         name = filen[:-8] + '_%s.fits' % amp
