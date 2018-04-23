@@ -166,11 +166,10 @@ def main():
                 allspec, ftf = [np.array(x) for x in [allspec, ftf]]
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
                 interval = 40
-                max_value = len(rw) / interval * interval
                 X = []
                 offset_array = np.zeros((allspec.shape[0], len(rw) / interval))
-                for i in np.arange(0, max_value, interval):
-                    cols = np.arange(i, i + interval)
+                for i in np.arange(len(rw) / interval):
+                    cols = np.arange(i * interval, (i + 1) * interval)
                     X.append(rw[i + interval/2])
                     y = np.median(ftf[:, :, cols], axis=2)
                     y2 = np.median(allspec[:, :, cols] / avgspec[cols], axis=2)
