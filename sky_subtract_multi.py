@@ -173,7 +173,7 @@ def main():
                 offset_array = np.zeros((allspec.shape[0], len(rw) / interval))
                 for i in np.arange(len(rw) / interval):
                     cols = np.arange(i * interval, (i + 1) * interval)
-                    X.append(rw[i + interval/2])
+                    X.append(rw[(i+1./2) * interval])
                     y = np.nanmedian(ftf[:, :, cols], axis=2)
                     y2 = np.nanmedian(allspec[:, :, cols] / avgspec[cols],
                                       axis=2)
