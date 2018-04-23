@@ -146,10 +146,8 @@ def main():
                              if e == exposure]
                 ifuslot_list = [i for i, e in zip(i_list, e_list)
                                 if e == exposure]
-                ifuslot_amp = ['%s%s' % (ifu, amp) for ifu in ifuslot_list
-                               for amp in ['LL', 'LU', 'RU', 'RL']]
 
-                args.log.info('Building Fiber to Fiber for %s, observation %s,'
+                args.log.info('Working on %s, observation %s,'
                               ' exposure %s' % (date, obsid, exposure))
                 allspec, ftf, filename_list = ([], [], [])
                 for filen, ifu in zip(file_list, ifuslot_list):
@@ -185,6 +183,7 @@ def main():
                 X = np.hstack(X)
                 for filen, spec, f, offset in zip(filename_list, allspec, ftf,
                                                   offset_array):
+                    args.log.info('Sky Subtracting %s' % filen)
                     new = np.interp(rw, X, offset) + f
                     sky = avgspec * new
                     sky_sub = spec - sky
