@@ -163,7 +163,7 @@ def main():
                         ftf.append(Ftf)
                         name = filen[:-8] + '_%s.fits' % amp
                         filename_list.append(name)
-                allspec = np.array(allspec)
+                allspec, ftf = [np.array(x) for x in [allspec, ftf]]
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
                 interval = 40
                 max_value = len(rw) / interval * interval
