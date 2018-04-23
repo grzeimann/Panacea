@@ -160,7 +160,10 @@ def main():
                     for wv, sp, amp, Ftf in zip(wave, spec, amps, FtF):
                         rw, rs = rectify(wv, sp, minwave=3500., maxwave=5500.)
                         allspec.append(rs)
-                        ftf.append(Ftf)
+                        if Ftf.shape == (112, 1032):
+                            ftf.append(np.zeros(112, 2001))
+                        else:
+                            ftf.append(Ftf)
                         name = filen[:-8] + '_%s.fits' % amp
                         filename_list.append(name)
                 allspec, ftf = [np.array(x) for x in [allspec, ftf]]
