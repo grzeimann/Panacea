@@ -155,7 +155,7 @@ def main():
                     amps = ['LL', 'LU', 'RU', 'RL']
                     wave, spec, FtF = grab_attribute(filen, args, attributes=[
                                                      'wavelength', 'spectrum',
-                                                     'fiber_to_fiber'],
+                                                     'fiber_to_fiber_1'],
                                                      amps=amps)
                     for wv, sp, amp, Ftf in zip(wave, spec, amps, FtF):
                         rw, rs = rectify(wv, sp, minwave=3500., maxwave=5500.)
