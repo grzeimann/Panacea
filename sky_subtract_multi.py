@@ -81,7 +81,7 @@ def put_attribute(filename, args, data, attributes=[]):
     try:
         for i, attribute in enumerate(attributes):
             F = fitsio.FITS(filename, 'rw')
-            F[attribute].write(data[i])
+            F.write(data[i], extname=attribute+'_1')
     except IOError:
         for i, attribute in enumerate(attributes):
             args.log.warning('%s not found to add %s' % attribute)
