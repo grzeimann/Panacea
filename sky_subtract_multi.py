@@ -12,10 +12,9 @@ import fitsio
 
 
 from astropy.io import fits
-from distutils.dir_util import mkpath
 from input_utils import setup_parser, set_daterange, setup_logging
 from scipy.interpolate import splev, splrep
-from utils import biweight_location
+from astropy.stats import mad_std
 
 
 
@@ -75,6 +74,17 @@ def grab_attribute(filename, args, attributes=[],
                 s[i][-1] = np.zeros((112, 1032))
 
     return [np.array(si) for si in s]
+
+
+def put_attribute(filename, args, data, attributes=[]):
+    ''' put specified attributes into multi* file '''
+    try:
+        for i, attribute in enumerate(attributes):
+            F = fitsio.FITS(filename, 'rw')
+            F[attribute].write(data[i])
+    except IOError:
+        for i, attribute in enumerate(attributes):
+            args.log.warning('%s not found to add %s' % attribute)
 
 
 def rectify(wave, spec, rectified_dlam=1., minwave=None, maxwave=None):
@@ -141,7 +151,7 @@ def main():
 
                 args.log.info('Building Fiber to Fiber for %s, observation %s,'
                               ' exposure %s' % (date, obsid, exposure))
-                allspec, ftf = ([], [])
+                allspec, ftf, filename_list = ([], [], [])
                 for filen, ifu in zip(file_list, ifuslot_list):
                     args.log.info('Reading in %s' % filen)
                     amps = ['LL', 'LU', 'RU', 'RL']
@@ -153,19 +163,34 @@ def main():
                         rw, rs = rectify(wv, sp, minwave=3500., maxwave=5500.)
                         allspec.append(rs)
                         ftf.append(Ftf)
+                        name = filen[:-8] + '_%s.fits' % amp
+                        filename_list['%s%s' % (ifu, amp)].append(name)
                 allspec = np.array(allspec)
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
-                ifuslot_offset_dict = {}
-                for i in np.arange(0, 2000, 20):
-                    cols = np.arange(i, i+20)
+                interval = 40
+                max_value = len(rw) / interval * interval
+                X = []
+                offset_array = np.zeros((allspec.shape[0], len(rw) / interval))
+                for i in np.arange(0, max_value, interval):
+                    cols = np.arange(i, i + interval)
+                    X.append(rw[i + interval/2])
                     y = np.median(ftf[:, :, cols], axis=2)
                     y2 = np.median(allspec[:, :, cols] / avgspec[cols], axis=2)
-                    for j, ifuamp in enumerate(ifuslot_amp):
-                        if ifuamp not in ifuslot_offset_dict:
-                            ifuslot_offset_dict[ifuamp] = []
-                        offset = y2[j, :] - y[j, :]
-                        offsetm = np.median(offset)
-                        ifuslot_offset_dict[ifuamp].append(offsetm)
+                    offset = y2 - y
+                    offset_array[:, i] = np.median(offset, axis=1)
+                    thresh = 3. * mad_std(offset - offset_array[:, i:(i+1)])
+                    for j in np.arange(offset.shape[0]):
+                        sel = np.where(np.abs(offset[j, :]) < thresh)[0]
+                        offset_array[j, i] = np.median(offset[j, sel])
+                X = np.hstack(X)
+                for filen, spec, f, offset in zip(filename_list, allspec, ftf,
+                                                  offset_array):
+                    new = np.interp(rw, X, offset) + f
+                    sky = avgspec * new
+                    sky_sub = spec - sky
+                    put_attribute(filen, args, [sky, sky_sub],
+                                  attributes=['sky_spectrum',
+                                              'sky_subtracted'])
 
 if __name__ == '__main__':
     main()
