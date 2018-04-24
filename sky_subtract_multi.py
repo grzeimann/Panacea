@@ -161,8 +161,6 @@ def main():
                     for wv, sp, amp, Ftf in zip(wave, spec, amps, FtF):
                         rw, rs = rectify(wv, sp, minwave=3500., maxwave=5500.)
                         allspec.append(rs)
-                        args.log.info(Ftf.shape)
-                        args.log.info(Ftf)
                         if Ftf.shape == (112, 1032):
                             ftf.append(np.zeros((112, 2001)))
                         else:
@@ -173,7 +171,6 @@ def main():
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
                 interval = 40
                 X = []
-                args.log.info(ftf)
                 offset_array = np.zeros((allspec.shape[0], len(rw) / interval))
                 for i in np.arange(len(rw) / interval):
                     cols = np.arange(i * interval, (i + 1) * interval)
@@ -191,10 +188,7 @@ def main():
                 for filen, spec, f, offset in zip(filename_list, allspec, ftf,
                                                   offset_array):
                     args.log.info('Sky Subtracting %s' % filen)
-                    args.log.info(offset)
                     new = np.interp(rw, X, offset, left=0.0, right=0.0) + f
-                    args.log.info(new)
-                    sys.exit(1)
                     sky = avgspec * new
                     sky_sub = spec - sky
                     put_attribute(filen, args, [sky, sky_sub],
