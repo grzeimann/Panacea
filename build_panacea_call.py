@@ -50,9 +50,7 @@ parser.add_argument("-t", "--target",
 parser.add_argument("-s", "--side",
                     help='''red or blue''',
                     type=str, default='red')
-args = parser.parse_args(args=['-sd', '20170422', '-dl', '1', '-r',
-                               '/Users/gregz/cure/lrs2_raw', '-in', 'lrs2',
-                               '-t', 'GC', '-s', 'blue'])
+args = parser.parse_args(args=None)
                     
 if args.side.lower() == 'blue':
     ifuslot = '056'
@@ -131,3 +129,6 @@ for science_targ in science_target_list:
     sci_file.append(panacea_str)
 std_file = np.unique(std_file)
 std_post = np.unique(std_post)
+print(twi_file)
+print(sci_file)
+print(std_file)
