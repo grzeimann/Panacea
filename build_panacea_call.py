@@ -129,6 +129,6 @@ for science_targ in science_target_list:
     sci_file.append(panacea_str)
 std_file = np.unique(std_file)
 std_post = np.unique(std_post)
-print(twi_file)
-print(sci_file)
-print(std_file)
+for f in [twi_file, sci_file, std_file]:
+    for call in f:
+        print(call)
