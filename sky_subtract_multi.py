@@ -160,6 +160,8 @@ def main():
                     for wv, sp, amp, Ftf in zip(wave, spec, amps, FtF):
                         rw, rs = rectify(wv, sp, minwave=3500., maxwave=5500.)
                         allspec.append(rs)
+                        args.log.info(Ftf.shape)
+                        args.log.info(Ftf)
                         if Ftf.shape == (112, 1032):
                             ftf.append(np.zeros((112, 2001)))
                         else:
