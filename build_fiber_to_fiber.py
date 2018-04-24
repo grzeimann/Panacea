@@ -135,9 +135,12 @@ def main():
     parser.add_argument("-t", "--type",
                         help='''Observation Type, twi or sci''',
                         type=str, default='twi')
-    parser.add_argument("-o", "--outdir",
-                        help='''Out directory for fiber to fiber''',
-                        type=str, default='temp')
+    parser.add_argument("-n", "--nknots",
+                        help='''Number of knots for bspline''',
+                        type=int, default=7)
+    parser.add_argument("-b", "--nbins",
+                        help='''Number of bins to collapse data
+                        for bspline fit''', type=int, default=40)
     args = parser.parse_args(args=None)
     args.log = setup_logging(logname='build_ftf')
     args = set_daterange(args)
@@ -145,7 +148,7 @@ def main():
     ifu_spline_dict = {}
     filename_dict = {}
     # HARDCODED SIZE FOR SPEED BUT MUST MATCH SIZE OF "rw" BELOW.
-    B, C = bspline_matrix(np.linspace(0, 1, 2001), nknots=7)
+    B, C = bspline_matrix(np.linspace(0, 1, 2001), nknots=args.nknots)
     for datet in args.daterange:
         date = '%04d%02d%02d' % (datet.year, datet.month, datet.day)
         obsids = glob.glob(op.join(args.rootdir, date, args.instrument,
@@ -187,15 +190,15 @@ def main():
                 allspec = np.array(allspec)
                 avgspec = np.nanmedian(allspec, axis=(0, 1))
                 X = np.arange(len(rw))
-                XL = np.array_split(X, 40)
+                XL = np.array_split(X, args.nbins)
                 xloc = np.array([np.median(xl) for xl in XL])
                 xloc = (xloc - 0.) / (len(rw) - 1.)
-                B, c = bspline_matrix(xloc, nknots=7)
+                B, c = bspline_matrix(xloc, nknots=args.nknots)
                 for sp, ifua in zip(allspec, ifuslot_amp):
                     args.log.info('Working on ifuslot %s' % ifua)
                     div = sp / avgspec
                     splinecoeff = np.zeros((sp.shape[0], c.shape[1]))
-                    div_list = np.array_split(div, 40, axis=1)
+                    div_list = np.array_split(div, args.nbins, axis=1)
                     mdiv = [np.nanmedian(d, axis=1) for d in div_list]
                     mdiv = np.array(mdiv).swapaxes(0, 1)
                     for i, fiber in enumerate(mdiv):
