@@ -51,7 +51,7 @@ parser.add_argument("-s", "--side",
                     help='''red or blue''',
                     type=str, default='red')
 args = parser.parse_args(args=None)
-                    
+
 if args.side.lower() == 'blue':
     ifuslot = '056'
 else:
@@ -96,7 +96,7 @@ for science_targ in science_target_list:
     if len(standard_list):
         closest_date_st, diff_st = find_match(datet, standard_list)
         if diff_st < 1:
-            standard_str = ('python panacea/panacea2.py -td %s -to %s -te 1 '
+            standard_str = ('python Panacea/panacea2.py -td %s -to %s -te 1 '
                             '--instr %s --instr_side %s --ifuslot %s -sd %s '
                             '-so %s -rs'
                             % (twi_list[closest_date].split('_')[0],
@@ -105,7 +105,7 @@ for science_targ in science_target_list:
                                standard_list[closest_date_st].split('_')[0],
                                standard_list[closest_date_st].split('_')[1]))
             std_file.append(standard_str)
-            standard_str = ('python panacea/test_fit_lrs2.py --instr %s '
+            standard_str = ('python Panacea/test_fit_lrs2.py --instr %s '
                             '--rootdir %s --side %s -d %s -o %s -e %d'
                             % (args.instrument, '/Users/gregz/cure/reductions',
                                args.side,
@@ -115,13 +115,13 @@ for science_targ in science_target_list:
             std_post.append(standard_str)
     if closest_date not in no_repeats:
         no_repeats.append(closest_date)
-        twi_panacea_str = ('python panacea/panacea2.py -td %s -to %s -te 1 '
+        twi_panacea_str = ('python Panacea/panacea2.py -td %s -to %s -te 1 '
                            '--instr %s --instr_side %s --ifuslot %s -rt'
                            % (twi_list[closest_date].split('_')[0],
                               twi_list[closest_date].split('_')[1],
                               args.instrument, args.side, ifuslot))
         twi_file.append(twi_panacea_str)
-    panacea_str = ('python panacea/panacea2.py -td %s -to %s -te 1 --instr %s '
+    panacea_str = ('python Panacea/panacea2.py -td %s -to %s -te 1 --instr %s '
                    '--instr_side %s --ifuslot %s -sd %s -so %s -rs'
                    % (twi_list[closest_date].split('_')[0],
                       twi_list[closest_date].split('_')[1],
