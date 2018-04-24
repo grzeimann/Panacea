@@ -71,7 +71,8 @@ def grab_attribute(filename, args, attributes=[],
                 s[i].append(np.zeros((112, 1032)))
         for i, attribute in enumerate(attributes):
             if s[i][-1].shape != (112, 1032):
-                s[i][-1] = np.zeros((112, 1032))
+                if attribute is not 'fiber_to_fiber_1':
+                    s[i][-1] = np.zeros((112, 1032))
 
     return [np.array(si) for si in s]
 
