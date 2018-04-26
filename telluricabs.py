@@ -10,6 +10,8 @@
 import telfit
 import numpy as np
 import matplotlib.pyplot as plt
+from astropy.convolution import Gaussian1DKernel, convolve
+from scipy.interpolate import splrep, splev
 
 try:
     import seaborn as sns
@@ -43,9 +45,9 @@ class TelluricAbs:
         self.spec = spec
         self.data = telfit.DataStructures.xypoint(x=self.wave/10.,
                                                   y=self.spec)
-
         self.fitter = telfit.TelluricFitter()
         self.fitter.SetObservatory('McDonald')
+        self.modeler = telfit.Modeler()
         self.RH = RH
         self.T = T
         self.P = P
@@ -54,6 +56,23 @@ class TelluricAbs:
                                      waveend=self.data.x[-1]+5.0))
         self.set_weather_values()
         self.set_resolution()
+
+    def get_model(self, lowwave, highwave, wave, humidity=50., o2=180000.,
+                  resolution=0.2):
+        lowfreq = 1e8 / highwave
+        highfreq = 1e8 / lowwave
+        m = self.modeler.MakeModel(lowfreq=lowfreq, highfreq=highfreq,
+                                   humidity=humidity, o2=o2)
+        m.x = m.x * 10.
+        tck = splrep(m.x, m.y)
+        newwave = np.arange(m.x.min(), m.x.max(), np.min(np.diff(m.x)))
+        ntrans = splev(newwave, tck)
+        kernel = resolution / np.min(np.diff(m.x))
+        G = Gaussian1DKernel(kernel)
+        smooth = convolve(ntrans, G)
+        tck = splrep(newwave, smooth)
+        lowres = splev(wave, tck)
+        return lowres
 
     def set_weather_values(self):
         ''' set weather data for different observations '''
@@ -69,7 +88,6 @@ class TelluricAbs:
                                                1.3*resolution)))
         if not fixed:
             self.fitter.FitVariabe(dict(resolution=resolution))
-
 
     def fit_telluric_abs(self):
         self.fitter.FitVariable(dict(h2o=self.RH))
