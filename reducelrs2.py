@@ -38,7 +38,7 @@ except ImportError:
 class ReduceLRS2:
     ''' Wrapper for reduction routines with processed data, multi*.fits '''
     def __init__(self, base_filename, side, use_twi=True,
-                 config_folder='/Users/gregz/cure/virus_early/virus_config/',
+                 config_folder='/work/03946/hetdex/maverick/virus_config/',
                  fplane_file=None):
         '''
         This serves as a wrapper for astrometry, DAR, extraction, and
