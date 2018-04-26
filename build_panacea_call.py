@@ -107,7 +107,7 @@ for science_targ in science_target_list:
             std_file.append(standard_str)
             standard_str = ('python Panacea/response_lrs2.py --instr %s '
                             '--rootdir %s --side %s -d %s -o %s -e %d'
-                            % (args.instrument, args.rootdir, args.side,
+                            % (args.instrument, 'reductions', args.side,
                                standard_list[closest_date_st].split('_')[0],
                                standard_list[closest_date_st].split('_')[1],
                                1))
