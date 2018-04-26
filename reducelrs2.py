@@ -1,7 +1,7 @@
-""" Panacea - throughput.py
+""" Panacea - reducelrs2.py
 
 
-1) Measures differential atmospheric refraction
+1) STEPS
 
 .. moduleauthor:: Greg Zeimann <gregz@astro.as.utexas.edu>
 
@@ -13,12 +13,19 @@ from fiber_utils import bspline_x0
 from utils import biweight_location, is_outlier
 from astropy.io import fits
 from dar import Dar
-from scipy.interpolate import splrep, splev
+from scipy.interpolate import splrep, splev, interp1d
 from scipy.signal import savgol_filter
 from input_utils import setup_logging
 from astrometry import Astrometry
+from astroquery.irsa_dust import IrsaDust
+import astropy.coordinates as coord
+import astropy.units as u
 
-# from telluricabs import TelluricAbs
+try:
+    from telluricabs import TelluricAbs
+except ImportError:
+    print('Telluric Fitter not accessible, please check installation')
+
 try:
     from pyhetdex.het.telescope import HetpupilModel
     hetpupil_installed = True
@@ -31,8 +38,8 @@ except ImportError:
 class ReduceLRS2:
     ''' Wrapper for reduction routines with processed data, multi*.fits '''
     def __init__(self, base_filename, side, use_twi=True,
-                 standard_folder='/Users/gregz/cure/virus_early/virus_config/'
-                 'standards', fplane_file=None):
+                 config_folder='/Users/gregz/cure/virus_early/virus_config/',
+                 fplane_file=None):
         '''
         This serves as a wrapper for astrometry, DAR, extraction, and
         throughput.
@@ -50,43 +57,82 @@ class ReduceLRS2:
         '''
         self.base_filename = base_filename
         self.side = side
-        self.standard_folder = standard_folder
+        self.config_folder = config_folder
+        self.standard_folder = op.join(config_folder, 'standards')
+        self.ftfcor_folder = op.join(config_folder, 'FtFcor')
         self.use_twi = use_twi
         self.fplane_file = fplane_file
-        self.ifuslot = self.basename(self.base_filename).split('_')[2]
+        self.goodfibers = None
+        self.ifuslot = op.basename(self.base_filename).split('_')[2]
         self.log = setup_logging('throughput')
         if self.side.lower() == 'bl':
+            self.instr_name = 'lrs2_uv'
             self.amps = ['LL', 'LU']
-            self.wave_lims = [3640., 4610.]
+            self.wave_lims = [3640., 4620.]
         elif self.side.lower() == 'br':
-            self.amps = ['RL', 'RU']
-            self.wave_lims = [4680., 6960.]
+            self.instr_name = 'lrs2_orange'
+            self.amps = ['RU', 'RL']
+            self.wave_lims = [4650., 6960.]
         if self.side.lower() == 'rl':
+            self.instr_name = 'lrs2_red'
             self.amps = ['LL', 'LU']
             self.wave_lims = [6450., 8400.]
         elif self.side.lower() == 'rr':
-            self.amps = ['RL', 'RU']
+            self.instr_name = 'lrs2_farred'
+            self.amps = ['RU', 'RL']
             self.wave_lims = [8275., 10500.]
         self.read_in_files()
         self.get_astrometry()
+        self.dar = Dar(self.ifux, self.ifuy, self.spec, self.wave,
+                       goodfibers=self.goodfibers)
+
+    def get_extinction_mag(self, ra, dec, wave):
+        '''
+        Get galactic extinction in magnitudes for ra, dec
+
+        Parameters
+        ----------
+        ra : float
+            Right Ascension in degrees
+        dec : float
+            Declination in degrees
+        wave : array
+            Wavelengths for galactic extinction
+
+        Outputs
+        -------
+        Amag : array
+            Galactic Extinction in magnitudes for input ra, dec at
+            wavelengths set by input wave
+        '''
+        coo = coord.SkyCoord(ra*u.deg, dec*u.deg, frame='fk5')
+        table = IrsaDust.get_extinction_table(coo)
+        Amag = np.interp(wave, table['LamEff'], table['A_SFD'])
+        return Amag
 
     def get_astrometry(self):
         ''' Set the RA, dec for each Fiber '''
-        self.astrom = Astrometry(self.header['TRAJCRA']*15.,
-                                 self.header['TRAJCDEC'],
-                                 self.header['PARANGLE'], 0., 0.,
-                                 fplane_file=self.fplane_file)
-        self.ra, self.dec = self.astrom.get_ifuspos_ra_dec(self.ifuslot,
-                                                           self.ifux,
-                                                           self.ifuy)
+        try:
+            self.astrom = Astrometry(self.header['TRAJCRA']*15.,
+                                     self.header['TRAJCDEC'],
+                                     self.header['PARANGLE'], 0., 0.,
+                                     fplane_file=self.fplane_file)
+            self.ra, self.dec = self.astrom.get_ifuspos_ra_dec(self.ifuslot,
+                                                               self.ifux,
+                                                               self.ifuy)
+        except:
+            self.log.warning('Astrometry did not work because of -999999.')
+            self.ra, self.dec = (self.ifux, self.ifuy)
 
     def get_dar_model(self):
         '''
         Use the Dar class to retreive or measure the Dar, rectifyied the
         spectrum, and extract a source using a PSF model.
         '''
-        self.dar = Dar(self.ifux, self.ifuy, self.spec, self.wave)
+        self.log.info('Measuring DAR model and rectifying spectra')
         self.dar.measure_dar()
+#        self.dar.measure_dar(fixed_list=[self.dar.tinker_params[0],
+#                                         self.dar.tinker_params[1]])
         self.dar.psfextract()
         list_var = self.restrict_wavelengths(self.dar.rect_wave, self.dar.flux,
                                              self.dar.back, self.dar.rect_spec)
@@ -113,7 +159,7 @@ class ReduceLRS2:
         '''
         self.log.info('Reading in initial reductions from %s' %
                       self.base_filename)
-        x, y, spec, wave, twi = ([], [], [], [], [])
+        x, y, spec, wave, twi, tr = ([], [], [], [], [], [])
         for amp in self.amps:
             fn = self.base_filename + ('_%s.fits' % amp)
             F = fits.open(fn)
@@ -122,6 +168,11 @@ class ReduceLRS2:
             spec.append(F['spectrum'].data)
             twi.append(F['twi_spectrum'].data)
             wave.append(F['wavelength'].data)
+            if amp in ['LU', 'RL']:
+                addtr = F[0].data.shape[0]
+            else:
+                addtr = 0.
+            tr.append(F['trace'].data + addtr)
         self.header = dict(F[0].header)
         self.object = F[0].header['OBJECT'][:-6]
         self.exptime = F[0].header['EXPTIME']
@@ -133,14 +184,17 @@ class ReduceLRS2:
         self.ifuy = np.hstack(y)
         self.spec = np.vstack(spec)
         self.wave = np.vstack(wave)
-        twi = np.vstack(twi)
+        self.trace = np.vstack(tr)
+        self.twi = np.vstack(twi)
         if self.use_twi:
-            spec = twi * 1.
+            spec = self.twi * 1.
         else:
             spec = self.spec * 1.
         self.ftf = self.get_fiber_to_fiber(self.wave, spec)
+        #self.adjust_ftf_from_twi_to_sky()
         for i in np.arange(self.spec.shape[0]):
             self.spec[i, :] /= self.ftf[i, :]
+        self.define_good_fibers()
 
     def get_standard_spectrum_from_file(self):
         ''' Read standard spectrum for self.object and convert to f_lam '''
@@ -151,6 +205,17 @@ class ReduceLRS2:
         fnu = 10**(0.4 * (-48.6 - standardmag))
         self.standard_flam = fnu * 2.99792e18 / wave**2
         self.standard_wave = wave
+        test1 = np.any(self.standard_wave > 7500)
+        test2 = np.all(self.standard_wave < 10500)
+        if (test1 * test2):
+            sel = np.where(self.standard_wave > 7500)[0]
+            p0 = np.polyfit(self.standard_wave[sel],
+                            np.log10(self.standard_flam[sel]), 1)
+            mdiff = np.median(np.diff(self.standard_wave))
+            x = np.arange(self.standard_wave[-1] + mdiff, 10500 + mdiff, mdiff)
+            yext = 10**np.polyval(p0, x)
+            self.standard_wave = np.hstack([self.standard_wave, x])
+            self.standard_flam = np.hstack([self.standard_flam, yext])
 
     def get_mirror_illumination(self, fn=None):
         ''' Use Hetpupil from Cure to calculate mirror illumination (cm^2) '''
@@ -183,16 +248,25 @@ class ReduceLRS2:
         if not hasattr(self, 'standard_wave'):
             self.get_standard_spectrum_from_file()
         xl = np.searchsorted(self.standard_wave, self.dar.rect_wave.min(),
-                             side='left')
+                             side='left') - 1
         xh = np.searchsorted(self.standard_wave, self.dar.rect_wave.max(),
-                             side='right')
-        self.binned_clam = np.interp(self.standard_wave[xl:xh],
-                                     self.dar.rect_wave, self.clam)
+                             side='right') + 1
+        indices = np.digitize(self.standard_wave[xl:xh], self.dar.rect_wave)
+        bins = np.array_split(self.clam, indices)
+        self.binned_clam = np.hstack([np.median(bin0) for bin0 in bins])[1:]
         self.R = self.standard_flam[xl:xh] / self.binned_clam
-        self.R_wave = self.standard_wave[xl:xh]
-        B, c = bspline_x0(self.R_wave, nknots=11)
-        sol = np.linalg.lstsq(c, self.R)[0]
-        self.smooth_R = np.dot(c, sol)
+        interpolator = interp1d(self.standard_wave[xl:xh], self.R,
+                                kind='cubic', fill_value='extrapolate')
+        self.R = interpolator(self.dar.rect_wave)
+        self.R = (np.interp(self.dar.rect_wave, self.standard_wave,
+                           self.standard_flam) / self.clam)
+        self.R_wave = self.dar.rect_wave
+        size = int(250. / np.diff(self.R_wave).mean())
+        if size % 2 == 0:
+            size = size + 1
+        if size <= 1:
+            size += 2
+        self.smooth_R = savgol_filter(self.R, size, 1)
 
     def adjust_ftf_from_twi_to_sky(self):
         '''
@@ -201,7 +275,13 @@ class ReduceLRS2:
         are not yet understood
         '''
         self.log.info('Adjusting Fiber to Fiber')
-        pass
+        Cor = np.loadtxt(op.join(self.ftfcor_folder, self.instr_name + '.txt'))
+        if hasattr(self, 'ftf') and self.use_twi:
+            self.ftf = self.ftf + Cor[:, 1:2]
+
+    def define_good_fibers(self, thresh=0.5):
+        if hasattr(self, 'ftf'):
+            self.goodfibers = np.where(np.median(self.ftf, axis=1) > thresh)[0]
 
     def get_fiber_to_fiber(self, wavelength, spec, fac=10, knots=15):
         '''
@@ -223,6 +303,7 @@ class ReduceLRS2:
         mn, mx = (wavelength.min(), wavelength.max())
         N, D = spec.shape
         wv = np.linspace(mn, mx, fac*D)
+        self.inspect_wv = wv
         xs = np.linspace(0, 1, D*fac)
         A = np.zeros((len(xs), N))
         i = 0
@@ -234,6 +315,7 @@ class ReduceLRS2:
             i += 1
         ys = biweight_location(A, axis=(1,))
         Anew = A / ys[:, np.newaxis]
+        self.inspect = Anew
         B, c = bspline_x0(wv, nknots=knots)
         smooth = np.zeros(Anew.shape)
         for i in np.arange(Anew.shape[1]):
