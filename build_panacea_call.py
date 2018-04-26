@@ -105,10 +105,9 @@ for science_targ in science_target_list:
                                standard_list[closest_date_st].split('_')[0],
                                standard_list[closest_date_st].split('_')[1]))
             std_file.append(standard_str)
-            standard_str = ('python Panacea/test_fit_lrs2.py --instr %s '
+            standard_str = ('python Panacea/response_lrs2.py --instr %s '
                             '--rootdir %s --side %s -d %s -o %s -e %d'
-                            % (args.instrument, '/Users/gregz/cure/reductions',
-                               args.side,
+                            % (args.instrument, args.rootdir, args.side,
                                standard_list[closest_date_st].split('_')[0],
                                standard_list[closest_date_st].split('_')[1],
                                1))
@@ -129,6 +128,6 @@ for science_targ in science_target_list:
     sci_file.append(panacea_str)
 std_file = np.unique(std_file)
 std_post = np.unique(std_post)
-for f in [twi_file, sci_file, std_file]:
+for f in [twi_file, sci_file, std_file, std_post]:
     for call in f:
         print(call)
