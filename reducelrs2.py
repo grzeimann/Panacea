@@ -326,8 +326,7 @@ class ReduceLRS2:
                 sel = np.arange(0, xh-xl, dtype=int)
             else:
                 sel = np.where(is_outlier(m - Anew[xl:xh, i]) == 0)[0]
-            sol = np.linalg.lstsq(c[xl:xh, :][sel, :], Anew[xl:xh, i][sel],
-                                  rcond=None)[0]
+            sol = np.linalg.lstsq(c[xl:xh, :][sel, :], Anew[xl:xh, i][sel])[0]
             smooth[:, i] = np.dot(c, sol)
         ftf = np.zeros(spec.shape)
         for i in np.arange(smooth.shape[1]):
