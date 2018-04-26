@@ -109,6 +109,6 @@ for side in sides:
     P.R = np.interp(P.dar.rect_wave, x1, y2) / P.clam
     hdu = fits.PrimaryHDU(np.array([P.dar.rect_wave, P.R, P.clam_old,
                                     P.clam_unred], dtype='float32'))
-    hdu[0].header = P.header
+    hdu.header = P.header
     hdu.writeto(op.join(outfolder, 'responsecurve_%s.fits' % side),
                 overwrite=True)
