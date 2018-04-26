@@ -220,7 +220,6 @@ def get_files(args):
                 args.bias_list.append(fn)
             if imtype in ['drk']:
                 args.dark_list.append(fn)
-        
                     
     return args
     
