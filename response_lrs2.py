@@ -10,9 +10,30 @@ from reducelrs2 import ReduceLRS2
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.table import Table
-from telluricabs import TelluricAbs
 import os.path as op
+from astropy.io import fits
+from scipy.signal import savgol_filter
 from input_utils import setup_basic_parser, setup_logging
+
+
+def fit_continuum(wv, sky, skip=3, fil_len=95, func=np.array):
+    skym_s = 1. * sky
+    sky_sm = savgol_filter(skym_s, fil_len, 1)
+    allind = np.arange(len(wv), dtype=int)
+    for i in np.arange(5):
+        mad = np.median(np.abs(sky - sky_sm))
+        outlier = func(sky - sky_sm) > 1.5 * mad
+        sel = np.where(outlier)[0]
+        for j in np.arange(1, skip+1):
+            sel = np.union1d(sel, sel + 1)
+            sel = np.union1d(sel, sel - 1)
+        sel = np.sort(np.unique(sel))
+        sel = sel[skip:-skip]
+        good = np.setdiff1d(allind, sel)
+        skym_s = 1.*sky
+        skym_s[sel] = np.interp(wv[sel], wv[good], sky_sm[good])
+        sky_sm = savgol_filter(skym_s, fil_len, 1)
+    return sky_sm
 
 
 def build_filename(args, multiname):
@@ -28,9 +49,8 @@ def build_filename(args, multiname):
 
 parser = setup_basic_parser()
 
-args = parser.parse_args(['--instr', 'lrs2', '--rootdir',
-                          '/Users/gregz/cure/reductions', '--side', 'red',
-                          '-d', '20171126', '-o', '0000022', '-e', '1'])
+# ['-d', '20171126', '-o', '0000021', '-e', '1',  '-r', '/Users/gregz/cure/reductions', '--side', 'blue', '--instr', 'lrs2']
+args = parser.parse_args()
 args.log = setup_logging(logname='response_lrs2')
 args.observation = int(args.observation)
 args.exposure_number = int(args.exposure_number)
@@ -38,13 +58,14 @@ args.exposure_number = int(args.exposure_number)
 fplane_file = ('/work/03946/hetdex/maverick/virus_config/fplane/'
                'fplane20180419.txt')
 
-fig9, ax9 = plt.subplots(1, 1, figsize=(8, 6))
 if args.side == 'blue':
     multiname = 'multi_503_056_7001'
     sides = ['BL', 'BR']
+    skipv = 3
 else:
     multiname = 'multi_502_066_7002'
     sides = ['RL', 'RR']
+    skipv = 7
 
 for side in sides:
     filebase = build_filename(args, multiname)
@@ -56,10 +77,6 @@ for side in sides:
     for i, ind in enumerate(np.arange(100, len(P.dar.rect_wave), 100)):
         outname = op.join(outfolder, 'psf_standard_%04d_%s.png' % (ind, side))
         P.dar.check_psf_fit(index=ind, outname=outname)
-#    T = TelluricAbs(P.dar.rect_wave, P.dar.flux, 20., 300., 797., 22.)
-#    absorp = T.get_model(P.dar.rect_wave.min()-5., P.dar.rect_wave.max()+5.,
-#                         P.dar.rect_wave, resolution=1.05, o2=210000.,
-#                         humidity=30)
 
     attr = P.dar.tinker_params + ['fwhm']
     fig, ax = plt.subplots(len(attr), 1, sharex=True, figsize=(len(attr),
@@ -76,14 +93,22 @@ for side in sides:
                                                          side)))
     plt.close(fig)
     P.convert_units()
-#    P.clam = P.clam / absorp
+    P.clam_old = 1. * P.clam
+    x = P.dar.rect_wave
+    P.clam_unred = -1. * fit_continuum(P.dar.rect_wave, -P.clam, skip=skipv)
     Alam = P.get_extinction_mag(np.mean(P.ra), np.mean(P.dec),
                                 P.dar.rect_wave / 1e4)
-    P.clam = 10**(0.4 * Alam) * P.clam
-    P.compare_spectrum_to_standard()
-    ax9.plot(P.R_wave, P.smooth_R)
-    ax9.set_ylim([0, 0.6e-8])
-    ax9.set_xlim([3000, 11000])
 
-fig9.savefig('Response_%s_%07d_%s.png' % (args.date, args.observation,
-                                          args.side))
+    P.clam = 10**(0.4 * Alam) * P.clam_unred
+    P.get_standard_spectrum_from_file()
+    xl = np.searchsorted(P.standard_wave, P.dar.rect_wave.min())-2
+    xh = np.searchsorted(P.standard_wave, P.dar.rect_wave.max())+2
+    x1 = P.standard_wave[xl:xh]
+    y1 = P.standard_flam[xl:xh]
+    y2 = P.dar.robust_poly_fit(x1, y1, 3)
+    P.R = np.interp(P.dar.rect_wave, x1, y2) / P.clam
+    hdu = fits.PrimaryHDU(np.array([P.dar.rect_wave, P.R, P.clam_old,
+                                    P.clam_unred], dtype='float32'))
+    hdu[0].header = P.header
+    hdu.writeto(op.join(outfolder, 'responsecurve_%s.fits' % side),
+                overwrite=True)
