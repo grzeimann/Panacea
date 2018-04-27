@@ -94,7 +94,8 @@ class Dar:
     def grab_archive_psf_model(self):
         pass
 
-    def locate_point_source(self, wavebinsize=None, fixed_list=None):
+    def locate_point_source(self, wavebinsize=None, fixed_list=None,
+                            bins=None):
         '''
         Use a polynomial background + moffat profile to model collapsed
         spectra.  Useful for DAR and point source extraction.
@@ -108,8 +109,9 @@ class Dar:
             wavebinsize = self.wavebinsize
         if not hasattr(self, 'rect_wave'):
             self.rectify()
-        bins = np.arange(self.wave.min(), self.wave.max()+wavebinsize,
-                         wavebinsize)
+        if bins is None:
+            bins = np.arange(self.wave.min(), self.wave.max()+wavebinsize,
+                             wavebinsize)
         A = np.zeros((len(bins) - 1, len(self.tinker_params) + 2))
         for i, v in enumerate(bins[:-1]):
             self.fixed_params(parameters=None, value=False)
