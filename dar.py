@@ -110,8 +110,7 @@ class Dar:
         if not hasattr(self, 'rect_wave'):
             self.rectify()
         if bins is None:
-            bins = np.arange(self.wave.min(), self.wave.max()+wavebinsize,
-                             wavebinsize)
+            bins = np.arange(self.wave.min(), self.wave.max(), wavebinsize)
         A = np.zeros((len(bins) - 1, len(self.tinker_params) + 2))
         for i, v in enumerate(bins[:-1]):
             self.fixed_params(parameters=None, value=False)
