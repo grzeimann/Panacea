@@ -72,8 +72,8 @@ for side in sides:
     outfolder = op.dirname(filebase)
     P = ReduceLRS2(filebase, side, fplane_file=fplane_file)
     P.dar.rectify(minwave=P.wave_lims[0], maxwave=P.wave_lims[1])
-    x = P.dar.rect_wave
-    A = P.dar.locate_point_source(bins=[x.mean()-100., x.mean+100.])
+    x = np.mean(P.dar.rect_wave)
+    A = P.dar.locate_point_source(bins=[x-100., x+100.])
     for j, parname in enumerate(P.dar.tinker_params):
         getattr(P.dar.PSF, parname).value = A[0, j+1]
     P.dar.measure_dar(fixed_list=['alpha', 'gamma', 'ratio'])
