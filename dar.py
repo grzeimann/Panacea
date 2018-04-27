@@ -23,7 +23,7 @@ from input_utils import setup_logging
 
 class Dar:
     ''' Differential atmospheric refraction from bright star '''
-    def __init__(self, x, y, spec, wave, wavebinsize=200,
+    def __init__(self, x, y, spec, wave, wavebinsize=50,
                  polyorder=3, rectified_dlam=None, psfmodel=AsymMoffat2D,
                  backmodel=Polynomial2D, goodfibers=None):
         '''
