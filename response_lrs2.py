@@ -71,9 +71,10 @@ for side in sides:
     filebase = build_filename(args, multiname)
     outfolder = op.dirname(filebase)
     P = ReduceLRS2(filebase, side, fplane_file=fplane_file)
-    P.get_dar_model()
+    P.dar.rectify(minwave=P.wave_lims[0], maxwave=P.wave_lims[1])
     P.dar.measure_dar(fixed_list=['alpha', 'gamma', 'ratio'])
     P.dar.measure_dar(fixed_list=['x_0', 'y_0'])
+    P.dar.psfextract()
     for i, ind in enumerate(np.arange(100, len(P.dar.rect_wave), 100)):
         outname = op.join(outfolder, 'psf_standard_%04d_%s.png' % (ind, side))
         P.dar.check_psf_fit(index=ind, outname=outname)
