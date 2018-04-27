@@ -76,6 +76,7 @@ for side in sides:
     A = P.dar.locate_point_source(bins=[x-100., x+100.])
     for j, parname in enumerate(P.dar.tinker_params):
         getattr(P.dar.PSF, parname).value = A[0, j+1]
+    P.log.info(A)
     P.dar.measure_dar(fixed_list=['alpha', 'gamma', 'ratio'])
     P.dar.psfextract()
     for i, ind in enumerate(np.arange(100, len(P.dar.rect_wave), 100)):
