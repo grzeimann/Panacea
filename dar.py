@@ -18,11 +18,12 @@ from scipy.interpolate import splev, splrep
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import RANSACRegressor
 from sklearn.pipeline import Pipeline
+from input_utils import setup_logging
 
 
 class Dar:
     ''' Differential atmospheric refraction from bright star '''
-    def __init__(self, x, y, spec, wave, wavebinsize=50,
+    def __init__(self, x, y, spec, wave, wavebinsize=200,
                  polyorder=3, rectified_dlam=None, psfmodel=AsymMoffat2D,
                  backmodel=Polynomial2D, goodfibers=None):
         '''
@@ -62,6 +63,7 @@ class Dar:
         self.polyorder = polyorder
         self.rectified_dlam = rectified_dlam
         self.rectify()
+        self.log = setup_logging('dar')
 
     def rectify(self, minwave=None, maxwave=None):
         ''' Rectify spectra to same "rect_wave" '''
@@ -146,13 +148,6 @@ class Dar:
                               self.y[self.goodfibers], self.Z[self.goodfibers])
             self.model = fit
             self.Back, self.PSF = self.model
-#            self.quick_check_psf_fit(self.x, self.y, self.Z,
-#                                     self.PSF(self.x, self.y),
-#                                     self.Back(self.x, self.y))
-#            ans = raw_input('Column: %0.1f.  Ready for next one?' % A[i, 0])
-#            if ans.lower() == 'q':
-#                import sys
-#                sys.exit(1)
             for j, parname in enumerate(self.tinker_params):
                 A[i, j+1] = getattr(self.PSF, parname).value
 
@@ -168,10 +163,10 @@ class Dar:
                           ('linear', RANSACRegressor())])
         try:
             model = model.fit(x[:, np.newaxis], y)
+            return model.predict(x[:, np.newaxis])
         except:
-            plt.scatter(x[:, np.newaxis], y)
-            sys.exit(1)
-        return model.predict(x[:, np.newaxis])
+            self.log.warn('Polynomial fit failed.  Using median value')
+            return np.ones(x.shape) * np.nanmedian(y)
 
     def measure_dar(self, fixed_list=None):
         ''' Measure PSF model as a function of wavelength '''
