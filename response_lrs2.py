@@ -74,8 +74,9 @@ for side in sides:
     P.dar.rectify(minwave=P.wave_lims[0], maxwave=P.wave_lims[1])
     x = np.mean(P.dar.rect_wave)
     A = P.dar.locate_point_source(bins=[x-100., x+100.])
+    P.dar.PSF.dar_wave = A[:, 0]
     for j, parname in enumerate(P.dar.tinker_params):
-        getattr(P.dar.PSF, parname).value = A[0, j+1]
+        setattr(P.dar.PSF, 'dar_' + parname, A[:, j+1])
     P.log.info(A)
     P.dar.measure_dar(fixed_list=['alpha', 'gamma', 'ratio'])
     P.dar.psfextract()
