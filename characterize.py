@@ -634,13 +634,17 @@ def get_wavelength_from_arc(args, amp, masterbias, masterdark, outname, folder,
     wave_list = [[3652.1026, 78], [4046.5539, 277], [4077.8298, 293],
                  [4358.3253, 435], [4678.149, 596], [4799.912, 658],
                  [5085.822, 808], [5460.7366, 1005]]
-
+    
+    if len(A.fibers[0].spectrum) > 1032:
+        thresh = 1e4
+    else:
+        thresh = 1e2
     for fiber in A.fibers:
         y = fiber.spectrum
         x = np.arange(len(y))
         d1 = np.diff(y)
-        selu = np.where(d1 > 1e2)[0]
-        sell = np.where(d1 < -1e2)[0]
+        selu = np.where(d1 > thresh)[0]
+        sell = np.where(d1 < -thresh)[0]
         ind = []
         for i in selu:
             cont = True
