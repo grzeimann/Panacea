@@ -147,9 +147,9 @@ class Spectrograph:
                 size += F[ext].data.shape[0]
                 wave.append(F['wavelength'].data)
             else:
-                image.append(np.zeros((self.nfib,self.D)))
-                size += self.nfib
-                wave.append(np.zeros((self.nfib,self.D)))
+                image.append(np.zeros((112,self.D)))
+                size += 112
+                wave.append(np.zeros((112,self.D)))
         new = np.zeros((size, self.D))
         new[:image[1].shape[0],:] = image[1][::-1,:]
         new[image[1].shape[0]:,:] = image[0][::-1,:]
