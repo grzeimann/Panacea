@@ -17,7 +17,6 @@ from scipy.interpolate import splrep, splev, interp1d
 from scipy.signal import savgol_filter
 from input_utils import setup_logging
 from astrometry import Astrometry
-from astroquery.irsa_dust import IrsaDust
 import astropy.coordinates as coord
 import astropy.units as u
 
@@ -104,7 +103,8 @@ class ReduceLRS2:
         Amag : array
             Galactic Extinction in magnitudes for input ra, dec at
             wavelengths set by input wave
-        '''
+        '''        
+        from astroquery.irsa_dust import IrsaDust
         coo = coord.SkyCoord(ra*u.deg, dec*u.deg, frame='fk5')
         table = IrsaDust.get_extinction_table(coo)
         Amag = np.interp(wave, table['LamEff'], table['A_SFD'])
@@ -131,8 +131,6 @@ class ReduceLRS2:
         '''
         self.log.info('Measuring DAR model and rectifying spectra')
         self.dar.measure_dar()
-#        self.dar.measure_dar(fixed_list=[self.dar.tinker_params[0],
-#                                         self.dar.tinker_params[1]])
         self.dar.psfextract()
         list_var = self.restrict_wavelengths(self.dar.rect_wave, self.dar.flux,
                                              self.dar.back, self.dar.rect_spec)
