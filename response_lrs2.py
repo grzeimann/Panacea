@@ -95,11 +95,7 @@ for side in sides:
     P.convert_units()
     P.clam_old = 1. * P.clam
     x = P.dar.rect_wave
-    P.clam_unred = -1. * fit_continuum(P.dar.rect_wave, -P.clam, skip=skipv)
-    Alam = P.get_extinction_mag(np.mean(P.ra), np.mean(P.dec),
-                                P.dar.rect_wave / 1e4)
-
-    P.clam = 10**(0.4 * Alam) * P.clam_unred
+    P.clam = -1. * fit_continuum(P.dar.rect_wave, -P.clam, skip=skipv)
     P.get_standard_spectrum_from_file()
     xl = np.searchsorted(P.standard_wave, P.dar.rect_wave.min())-2
     xh = np.searchsorted(P.standard_wave, P.dar.rect_wave.max())+2
@@ -108,7 +104,7 @@ for side in sides:
     y2 = P.dar.robust_poly_fit(x1, y1, 3)
     P.R = np.interp(P.dar.rect_wave, x1, y2) / P.clam
     hdu = fits.PrimaryHDU(np.array([P.dar.rect_wave, P.R, P.clam_old,
-                                    P.clam_unred], dtype='float32'))
+                                    P.clam], dtype='float32'))
     for key in P.header:
         hdu.header[key] = P.header[key]
     hdu.writeto(op.join(outfolder, 'responsecurve_%s.fits' % side),
