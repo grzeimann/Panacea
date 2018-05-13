@@ -84,6 +84,7 @@ for datet in args.daterange:
             if standard.lower() in objectname.lower():
                 if ifuslot in objectname.lower():
                     standard_list.append(keystring)
+                    print(keystring, objectname)
         del objectname
 
 twi_file = []
