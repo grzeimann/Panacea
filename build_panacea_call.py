@@ -50,6 +50,9 @@ parser.add_argument("-t", "--target",
 parser.add_argument("-s", "--side",
                     help='''red or blue''',
                     type=str, default='red')
+parser.add_argument("-st", "--standards",
+                    help='''set to true if just looking at standards''',
+                    type=bool, default=False)
 args = parser.parse_args(args=None)
 
 if args.side.lower() == 'blue':
@@ -88,7 +91,12 @@ sci_file = []
 std_file = []
 std_post = []
 no_repeats = []
-for science_targ in science_target_list:
+if args.standards:
+    target_list = standard_list
+else:
+    target_list = science_target_list
+
+for science_targ in target_list:
     date = science_targ.split('_')[0]
     obsid = science_targ.split('_')[1]
     datet = dt(int(date[:4]), int(date[4:6]), int(date[6:]))
