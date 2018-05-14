@@ -7,6 +7,7 @@ import glob
 import numpy as np
 import os.path as op
 import sys
+import slurmfile
 
 from astropy.io import fits
 from datetime import datetime as dt
@@ -137,6 +138,20 @@ for science_targ in target_list:
     sci_file.append(panacea_str)
 std_file = np.unique(std_file)
 std_post = np.unique(std_post)
-for f in [twi_file, sci_file, std_file, std_post]:
-    for call in f:
-        print(call)
+for f, basename in zip([twi_file, sci_file, std_file, std_post],
+                       ['rtwi', 'rsci', 'rstd', 'rresponse']):
+    chunks = np.array_split(f, len(f) / 20 + 1)
+    for j, chunk in enumerate(chunks):
+        n = len(chunk)
+        name = basename+'_%i' % (j+1)
+        f = open(name+'.slurm', 'w')
+        s = slurmfile.slurmstring % (n, '%j', name)
+        f.write(s)
+        f.close()
+        f = open(name, 'w')
+        s = []
+        for call in chunk:
+            s.append(call)
+        f.write(s.join('\n'))
+        f.close()
+        print('sbatch %s.slurm' % name)
