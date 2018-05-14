@@ -78,14 +78,15 @@ for datet in args.daterange:
         objectname = fits.open(filename)[0].header['OBJECT']
         if args.target.lower() in objectname.lower():
             science_target_list.append(keystring)
-            print(keystring, objectname)
+            print('Science File Found: %s, %s' % (keystring, objectname))
         if filename[-8:-5] == 'twi':
             twi_list.append(keystring)
         for standard in standard_names:
             if standard.lower() in objectname.lower():
                 if ifuslot in objectname.lower():
                     standard_list.append(keystring)
-                    print(keystring, objectname)
+                    print('Standard Star File Found: %s, %s'
+                          % (keystring, objectname))
         del objectname
 
 twi_file = []
@@ -152,6 +153,6 @@ for f, basename in zip([twi_file, sci_file, std_file, std_post],
         s = []
         for call in chunk:
             s.append(call)
-        f.write(s.join('\n'))
+        f.write('\n'.join(s))
         f.close()
         print('sbatch %s.slurm' % name)
