@@ -22,7 +22,7 @@ slurmstring = '''#!/bin/bash
 #SBATCH -J HETDEX              # Job name
 #SBATCH -n %i                  # Total number of tasks
 #SBATCH -p gpu                 # Queue name
-#SBATCH -o reduction.o%j          # Name of stdout output file (%j expands to jobid)
+#SBATCH -o reduction.o%s       # Name of stdout output file
 #SBATCH -t 01:30:00            # Run time (hh:mm:ss)
 #SBATCH -A Hobby-Eberly-Telesco
 #------------------------------------------------------
