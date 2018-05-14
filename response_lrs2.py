@@ -89,7 +89,7 @@ for side in sides:
         a.plot(P.dar.dar_wave, getattr(P.dar, 'dar_'+at), color='darkorange')
         a.set_title(at)
     T = Table(T)
-    T.write(op.join(outfolder, 'dar_info.dat'), format='ascii')
+    T.write(op.join(outfolder, 'dar_info_%s.dat' % side), format='ascii')
     fig.savefig(op.join(outfolder,
                         'dar_standard_%s_%07d_%s.png' % (args.date,
                                                          args.observation,
