@@ -81,11 +81,11 @@ for side in sides:
     attr = P.dar.tinker_params + ['fwhm']
     fig, ax = plt.subplots(len(attr), 1, sharex=True, figsize=(len(attr),
                            len(attr)*3))
-    T = np.zeros((len(attr)+1, len(P.dar.dar_wave)))
-    T[0] = P.dar.dar_wave
+    T = np.zeros((len(P.dar.dar_wave), len(attr)+1))
+    T[:, 0] = P.dar.dar_wave
     for a, at, cnt in zip(ax, attr, np.arange(1, len(attr)+1)):
         a.scatter(P.dar.dar_wave, P.dar.A[:, cnt])
-        T[cnt] = P.dar.A[:, cnt]
+        T[:, cnt] = P.dar.A[:, cnt]
         a.plot(P.dar.dar_wave, getattr(P.dar, 'dar_'+at), color='darkorange')
         a.set_title(at)
     T = Table(T)
