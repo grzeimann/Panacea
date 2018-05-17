@@ -18,7 +18,7 @@ standard_names = ['HD_19445', 'SA95-42', 'GD50', 'HZ_4', 'G191B2B', 'FEIGE_25',
                   'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
                   'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
                   'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
-                  'BD+17_4708', 'FEIGE_110', 'GD248']
+                  'BD_+17_4708', 'FEIGE_110', 'GD248']
 
 
 def build_filenames(date, args):
