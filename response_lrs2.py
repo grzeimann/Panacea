@@ -16,6 +16,14 @@ from scipy.signal import savgol_filter
 from input_utils import setup_basic_parser, setup_logging
 
 
+standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B', 'FEIGE_25',
+                  'HILTNER_600', 'G193-74', 'PG0823+546', 'HD_84937',
+                  'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
+                  'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
+                  'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
+                  'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4']
+
+
 def fit_continuum(wv, sky, skip=3, fil_len=95, func=np.array):
     skym_s = 1. * sky
     sky_sm = savgol_filter(skym_s, fil_len, 1)
@@ -71,6 +79,9 @@ for side in sides:
     filebase = build_filename(args, multiname)
     outfolder = op.dirname(filebase)
     P = ReduceLRS2(filebase, side, fplane_file=fplane_file)
+    for standard in standard_names:
+        if standard.lower() in P.object.lower():
+            P.object = standard.lower()
     P.dar.rectify(minwave=P.wave_lims[0], maxwave=P.wave_lims[1])
     P.dar.measure_dar()
     P.dar.psfextract()
