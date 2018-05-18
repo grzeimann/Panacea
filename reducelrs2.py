@@ -67,11 +67,11 @@ class ReduceLRS2:
         if self.side.lower() == 'bl':
             self.instr_name = 'lrs2_uv'
             self.amps = ['LL', 'LU']
-            self.wave_lims = [3640., 4620.]
+            self.wave_lims = [3640., 4640.]
         elif self.side.lower() == 'br':
             self.instr_name = 'lrs2_orange'
             self.amps = ['RU', 'RL']
-            self.wave_lims = [4650., 6960.]
+            self.wave_lims = [4655., 6960.]
         if self.side.lower() == 'rl':
             self.instr_name = 'lrs2_red'
             self.amps = ['LL', 'LU']
@@ -228,6 +228,10 @@ class ReduceLRS2:
             self.log.info('Using default mirror illumination value')
             self.area = 50. * 1e4
         self.log.info('Mirror illumination: %0.2f m^2' % (self.area/1e4))
+
+    def get_error(self, fac=0.7):
+        self.dar.rect_spec_error = np.sqrt((3.*1.15)**2 +
+                                           self.dar.rect_spec*fac)
 
     def convert_units(self):
         ''' convert cnts/A to cnts/A/s/cm^2 '''
