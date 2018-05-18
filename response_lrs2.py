@@ -105,9 +105,12 @@ for side in sides:
     x1 = P.standard_wave[xl:xh]
     y1 = P.standard_flam[xl:xh]
     y2 = P.dar.robust_poly_fit(x1, y1, 3)
+    y3 = np.interp(P.dar.rect_wave, x1, y2)
+    exp = y3 * P.area * P.exptime / 6.26e-27 / (3e18 / P.dar.rect_wave)
+    through = P.dar.flux / exp
     P.R = np.interp(P.dar.rect_wave, x1, y2) / P.clam
     hdu = fits.PrimaryHDU(np.array([P.dar.rect_wave, P.R, P.clam_old,
-                                    P.clam], dtype='float32'))
+                                    P.clam, through], dtype='float32'))
     for key in P.header:
         hdu.header[key] = P.header[key]
     hdu.writeto(op.join(outfolder, 'responsecurve_%s.fits' % side),
