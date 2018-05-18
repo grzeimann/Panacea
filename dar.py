@@ -297,6 +297,9 @@ class Dar:
             self.back_model[:, i] = self.Back(self.x, self.y)
             xo = self.PSF.parameters[1]
             yo = self.PSF.parameters[2]
-            self.flux[i] = (self.PSF(xp.ravel()+xo, yp.ravel()+yo).sum() *
-                            (boxsize_forintegral / boxsize_gridlength)**2)
-            self.back[i] = (self.Back(xo, yo))
+            self.flux[i] = (self.PSF(xgrid.ravel()+xo,
+                                     ygrid.ravel()+yo).sum() *
+                            (boxsize_forintegral / boxsize_gridlength)**2 /
+                            (0.295**2 * np.pi))
+            self.back[i] = (self.Back(xo, yo) * self.flux[i] /
+                            self.PSF.parameters[0])
