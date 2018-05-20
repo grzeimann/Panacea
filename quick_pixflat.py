@@ -86,7 +86,7 @@ def get_filenames(args, date, obsid, amp, ifuslot='022', specname='virus'):
 
 def make_master_amp(args, date, obs, amp, ifuslot='022'):
     amp_list = []
-    filenames = get_filenames(date, obs, amp, ifuslot)
+    filenames = get_filenames(args, date, obs, amp, ifuslot)
     for fn in filenames:
         amp_list.append(Amplifier(fn, '', **kwargs))
         amp_list[-1].subtract_overscan()
