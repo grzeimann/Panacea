@@ -8,11 +8,16 @@ Created on Sun May 20 07:39:27 2018
 import numpy as np
 import os.path as op
 import glob
+from distutils.dir_util import mkpath
 from input_utils import setup_basic_parser, setup_logging
 from amplifier import Amplifier
 from astropy.io import fits
 from scipy.signal import savgol_filter
-from photutils import Background2D, SigmaClip, SExtractorBackground
+from photutils import Background2D, SExtractorBackground
+try:
+    from photutils import SigmaClip
+except:
+    from astropy.stats import SigmaClip
 from photutils import detect_sources
 from astropy.convolution import Gaussian2DKernel
 from astropy.stats import gaussian_fwhm_to_sigma
@@ -24,7 +29,6 @@ kwargs = {'refit': True, 'use_pixelflat': False, 'dark_mult': 0.0,
           'check_fibermodel': True, 'fibmodel_slope': 0.001, 'fsize': 6.,
           'fibmodel_intercept': 0.002, 'fibmodel_breakpoint': 4.}
 
-basedir = '/Users/gregz/cure/raw'
 parser = setup_basic_parser()
 parser.add_argument("-fx", "--filter_x_size",
                     help='''List of filter sizes in x-direction for each loop''',
@@ -74,13 +78,13 @@ def fit_continuum(wv, sky, mask, fil_len=95, func=np.array):
     return sky_sm
 
 
-def get_filenames(date, obsid, amp, ifuslot='022', specname='virus'):
-    name = op.join(basedir, date, specname, specname + '%07d' % int(obsid),
+def get_filenames(args, date, obsid, amp, ifuslot='022', specname='virus'):
+    name = op.join(args.rootdir, date, specname, specname + '%07d' % int(obsid),
                    'exp*', specname, '*%s%s*.fits' % (ifuslot, amp))
     return sorted(glob.glob(name))
 
 
-def make_master_amp(date, obs, amp, ifuslot='022'):
+def make_master_amp(args, date, obs, amp, ifuslot='022'):
     amp_list = []
     filenames = get_filenames(date, obs, amp, ifuslot)
     for fn in filenames:
@@ -94,7 +98,7 @@ def make_master_amp(date, obs, amp, ifuslot='022'):
 
 def main():
     for j, amp in enumerate(AMPS):
-        ldls = make_master_amp(args.date, args.observation, amp,
+        ldls = make_master_amp(args, args.date, args.observation, amp,
                                ifuslot=args.ifuslot)
         ldls.image /= np.nanmedian(ldls.image)
         x = np.arange(ldls.image.shape[1])
@@ -130,6 +134,7 @@ def main():
         ldls.temp = temp
         ldls.mask = mask
         hdu = fits.PrimaryHDU(np.array(ldls.pixelflat, dtype='float32'))
+        mkpath(op.join('pixelflat', args.date))
         hdu.writeto('pixelflat/pixelflat_cam%s_%s.fits' % (ldls.specid, amp),
                     overwrite=True)
 
