@@ -132,8 +132,8 @@ def main():
         ldls.mask = mask
         hdu = fits.PrimaryHDU(np.array(ldls.pixelflat, dtype='float32'))
         mkpath(op.join('pixelflat', args.date))
-        hdu.writeto('pixelflat/pixelflat_cam%s_%s.fits' % (ldls.specid, amp),
-                    overwrite=True)
+        hdu.writeto('pixelflat/%s/pixelflat_cam%s_%s.fits' %
+                    (args.date, ldls.specid, amp), overwrite=True)
 
 if __name__ == '__main__':
     main()
