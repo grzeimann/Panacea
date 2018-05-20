@@ -28,7 +28,7 @@ basedir = '/Users/gregz/cure/raw'
 parser = setup_basic_parser()
 parser.add_argument("-fx", "--filter_x_size",
                     help='''List of filter sizes in x-direction for each loop''',
-                    type=str, default=None)
+                    type=str, default='75, 63, 51, 39')
 args = parser.parse_args(['--instr', 'virus', '--rootdir',
                           '/Users/gregz/cure/raw', '--ifuslot', '022',
                           '-d', '20180519', '-o', '0008000',
