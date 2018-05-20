@@ -33,10 +33,11 @@ parser = setup_basic_parser()
 parser.add_argument("-fx", "--filter_x_size",
                     help='''List of filter sizes in x-direction for each loop''',
                     type=str, default='75, 63, 51, 39')
-args = parser.parse_args(['--instr', 'virus', '--rootdir',
-                          '/Users/gregz/cure/raw', '--ifuslot', '022',
-                          '-d', '20180519', '-o', '0008000',
-                          '-fx', '75, 63, 51, 39'])
+                    #['--instr', 'virus', '--rootdir',
+                    #      '/Users/gregz/cure/raw', '--ifuslot', '022',
+                    #      '-d', '20180519', '-o', '0008000',
+                    #      '-fx', '75, 63, 51, 39']
+args = parser.parse_args(args=None)
 args.filter_x_size = [int(x) for x in args.filter_x_size.split(',')]
 args.log = setup_logging(logname='pixelflat')
 
