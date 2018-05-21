@@ -122,7 +122,7 @@ for side in sides:
     y3 = np.interp(P.dar.rect_wave, x1, y2)
     area = P.area / 55e4 * (np.pi * 500**2)
     args.log.info('Exposure time: %0.2f' % P.exptime)
-    exp = y1 * area * (P.exptime-7.) / 6.63e-27 / (3e18 / x1)
+    exp = y1 * area * (P.exptime-3.5) / 6.63e-27 / (3e18 / x1)
     x0 = P.dar.rect_wave
     P.flux_binned_wave = x1[1:-1]
     P.flux_bin = np.zeros(x1[1:-1].shape)
@@ -138,10 +138,11 @@ for side in sides:
     model = Pipeline([('poly', PolynomialFeatures(degree=7)),
                       ('linear', RANSACRegressor())])
     model.fit(x[:, np.newaxis], y)
+    roughthrough = np.interp(P.dar.rect_wave, x, y)
     through = model.predict(P.dar.rect_wave[:, np.newaxis])
     P.R = np.interp(P.dar.rect_wave, x1, y2) / P.clam
     hdu = fits.PrimaryHDU(np.array([P.dar.rect_wave, P.R, P.clam_old,
-                                    P.clam, through], dtype='float32'))
+                                    roughthrough, through], dtype='float32'))
     for key in P.header:
         hdu.header[key] = P.header[key]
     hdu.writeto(op.join(outfolder, 'responsecurve_%s.fits' % side),
