@@ -134,7 +134,7 @@ for side in sides:
     sel = np.isfinite(X)
     x = P.flux_binned_wave[sel]
     y = X[sel]
-    model = Pipeline([('poly', PolynomialFeatures(degree=3)),
+    model = Pipeline([('poly', PolynomialFeatures(degree=7)),
                       ('linear', RANSACRegressor())])
     model.fit(x[:, np.newaxis], y)
     through = model.predict(P.dar.rect_wave[:, np.newaxis])
