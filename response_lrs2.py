@@ -14,6 +14,9 @@ import os.path as op
 from astropy.io import fits
 from scipy.signal import savgol_filter
 from input_utils import setup_basic_parser, setup_logging
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import RANSACRegressor
+from sklearn.pipeline import Pipeline
 
 
 standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B', 'FEIGE_25',
@@ -111,14 +114,30 @@ for side in sides:
     x = P.dar.rect_wave
     P.clam = -1. * fit_continuum(P.dar.rect_wave, -P.clam, skip=skipv)
     P.get_standard_spectrum_from_file()
-    xl = np.searchsorted(P.standard_wave, P.dar.rect_wave.min())-2
-    xh = np.searchsorted(P.standard_wave, P.dar.rect_wave.max())+2
+    xl = np.searchsorted(P.standard_wave, P.dar.rect_wave.min())-3
+    xh = np.searchsorted(P.standard_wave, P.dar.rect_wave.max())+3
     x1 = P.standard_wave[xl:xh]
     y1 = P.standard_flam[xl:xh]
     y2 = P.dar.robust_poly_fit(x1, y1, 3)
     y3 = np.interp(P.dar.rect_wave, x1, y2)
-    exp = y3 * P.area * P.exptime / 6.26e-27 / (3e18 / P.dar.rect_wave)
-    through = P.dar.flux / exp
+    area = P.area / 55e4 * (np.pi * 500**2)
+    exp = y1 * area * P.exptime / 6.63e-27 / (3e18 / x1)
+    x0 = P.dar.rect_wave
+    P.flux_binned_wave = x1[1:-1]
+    P.flux_bin = np.zeros(x1[1:-1].shape)
+    for i in np.arange(1, len(x1)-1):
+        low = x1[i-1] / 2. + x1[i] / 2.
+        high = x1[i] / 2. + x1[i+1] / 2.
+        sel = np.where((x0 > low) * (x0 <= high))[0]
+        P.flux_bin[i-1] = P.dar.flux[sel].mean()
+    X = P.flux_bin / exp[1:-1]
+    sel = np.isfinite(X)
+    x = P.flux_binned_wave[sel]
+    y = X[sel]
+    model = Pipeline([('poly', PolynomialFeatures(degree=3)),
+                      ('linear', RANSACRegressor())])
+    model.fit(x[:, np.newaxis], y)
+    through = model.predict(P.dar.rect_wave[:, np.newaxis])
     P.R = np.interp(P.dar.rect_wave, x1, y2) / P.clam
     hdu = fits.PrimaryHDU(np.array([P.dar.rect_wave, P.R, P.clam_old,
                                     P.clam, through], dtype='float32'))
