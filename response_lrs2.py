@@ -121,7 +121,8 @@ for side in sides:
     y2 = P.dar.robust_poly_fit(x1, y1, 3)
     y3 = np.interp(P.dar.rect_wave, x1, y2)
     area = P.area / 55e4 * (np.pi * 500**2)
-    exp = y1 * area * P.exptime / 6.63e-27 / (3e18 / x1)
+    args.log.info('Exposure time: %02.f' % P.exptime)
+    exp = y1 * area * (P.exptime-7.) / 6.63e-27 / (3e18 / x1)
     x0 = P.dar.rect_wave
     P.flux_binned_wave = x1[1:-1]
     P.flux_bin = np.zeros(x1[1:-1].shape)
