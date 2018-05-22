@@ -231,9 +231,6 @@ class Amplifier:
         self.setup_logging()
 
         # Organization options
-        if not op.exists(filename):
-            self.log.warning("File Does Not Exist: %s" %filename)
-            return None
         try:
             F = fits.open(filename)
         except:
@@ -245,8 +242,8 @@ class Amplifier:
         except:
             self.log.warning('No BZERO to remove')
         self.name = name
-        self.filename = op.abspath(filename)
-        self.basename = op.basename(filename)[:-5]
+        self.filename = op.abspath(F.filename())
+        self.basename = op.basename(F.filename())[:-5]
         self.virusconfig = virusconfig
         self.path = path
         if not op.exists(self.path):
@@ -1365,7 +1362,7 @@ class Amplifier:
             self.model = get_model_image(self.image, self.fibers, 'spectrum', 
                                          debug=False)
             self.residual = self.image - self.model
-        self.plot_fib_sky()
+        #self.plot_fib_sky()
         
     def clean_cosmics(self):
         '''
