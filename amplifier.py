@@ -1250,16 +1250,16 @@ class Amplifier:
                                     (fiber.spectrum/spec)[sel])[0]
                 fiber.fiber_to_fiber = np.dot(c[int(ind):int(ind+self.D),:], 
                                               sol)
-                plt.figure(figsize=(8,6))
-                plt.scatter(fiber.wavelength,fiber.spectrum/spec,alpha=0.2)
-                plt.scatter(fiber.wavelength[sel2],
-                            fiber.spectrum[sel2]/spec[sel2],marker='x',
-                            color='k')
-                plt.plot(fiber.wavelength,m,'r--')
-                plt.plot(fiber.wavelength,fiber.fiber_to_fiber,'k-')
-                plt.axis([self.init_lims[0],self.init_lims[1],0.6,1.4])
-                plt.savefig(op.join(self.path,'test_%s_%i.png'%(self.amp,k)))
-                plt.close()
+#                plt.figure(figsize=(8,6))
+#                plt.scatter(fiber.wavelength,fiber.spectrum/spec,alpha=0.2)
+#                plt.scatter(fiber.wavelength[sel2],
+#                            fiber.spectrum[sel2]/spec[sel2],marker='x',
+#                            color='k')
+#                plt.plot(fiber.wavelength,m,'r--')
+#                plt.plot(fiber.wavelength,fiber.fiber_to_fiber,'k-')
+#                plt.axis([self.init_lims[0],self.init_lims[1],0.6,1.4])
+#                plt.savefig(op.join(self.path,'test_%s_%i.png'%(self.amp,k)))
+#                plt.close()
                 k+=1
             for fib,fiber in enumerate(self.dead_fibers):
                 fiber.fiber_to_fiber = np.zeros(fiber.spectrum.shape)
