@@ -9,6 +9,7 @@ Built for the VIRUS instrument as well as LRS2 on HET
 
 import argparse as ap
 import textwrap
+import tarfile
 import glob
 import os.path as op
 from amplifier import Amplifier
@@ -231,7 +232,13 @@ def read_in_raw(args, parser):
                     getattr(args, obs+labels[2]).replace(" ", "").split(','))
         for date in getattr(args, obs+labels[0]):
             for obsid in getattr(args, obs+labels[1]):
-                if getattr(args, obs+labels[2]) is not None:   
+                if getattr(args, obs+labels[2]) is not None: 
+                    tarfolder = op.join(config.rootdir, date, args.instr, 
+                                         "{:s}{:07d}.tar".format(args.instr,
+                                         int(obsid)))
+                    if op.exists(tarfolder):
+                        T = tarfile.open(tarfolder, 'r')
+                        init_list = [name for name in T.getnames() if name[-5:] == '.fits']
                     for expnum in getattr(args, obs+labels[2]):
                         folder = op.join(date, 
                                          args.instr, 
@@ -239,10 +246,19 @@ def read_in_raw(args, parser):
                                          int(obsid)), 
                                          "exp{:02d}".format(int(expnum)),
                                          args.instr)
-                        files = sorted(glob.glob(op.join(config.rootdir, folder, 
+                        if op.exists(tarfolder):
+                            limited_list = [v for v in init_list
+                                            if v.split('/')[1] ==
+                                            "exp{:02d}".format(int(expnum))]
+                            files = sorted([name for name in limited_list
+                                               if ('_%s' % args.ifuslot) in op.basename(name)])
+                        else:
+                            files = sorted(glob.glob(op.join(config.rootdir, folder, 
                                                          '*_%s*' %args.ifuslot)))
                         path = op.join(config.output, folder)
                         for fn in files:
+                            if op.exists(tarfolder):
+                                fn = T.extractfile(T.getmember(fn))
                             amp_list.append(Amplifier(fn, path, **args.kwargs))
                             amp_list[-1].type = obs
                             for Amp in args.Amps: 
@@ -253,14 +269,28 @@ def read_in_raw(args, parser):
 
 
                 else:
+                    tarfolder = op.join(config.rootdir, date, args.instr, 
+                                         "{:s}{:07d}.tar".format(args.instr,
+                                         int(obsid)))
                     folder = op.join(date, args.instr,
                                      "{:s}{:07d}".format(args.instr, 
                                                          int(obsid)))
-                    files = sorted(glob.glob(op.join(config.rootdir, folder, '*', 
+                    if op.exists(tarfolder):
+                        T = tarfile.open(tarfolder, 'r')
+                        init_list = T.getnames()
+                        files = sorted([name for name in init_list
+                                           if ('_%s' % args.ifuslot) in op.basename(name)])
+                        expns = [op.basename(op.dirname(op.dirname(fn))) for fn in files]
+                    else:
+                        files = sorted(glob.glob(op.join(config.rootdir, folder, '*', 
                                                      args.instr, '*_%s*' %args.ifuslot)))
-                    for fn in files:
+                        expns = [op.basename(op.dirname(op.dirname(fn))) for fn in files]
+
+                    for fn, expn in zip(files, expns):
                         expn = op.basename(op.dirname(op.dirname(fn)))
                         path = op.join(config.output, folder, expn, args.instr)
+                        if op.exists(tarfolder):
+                            fn = T.extractfile(T.getmember(fn))
                         amp_list.append(Amplifier(fn, path, **args.kwargs))
                         amp_list[-1].type = obs
                         for Amp in args.Amps: 
