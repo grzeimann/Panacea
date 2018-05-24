@@ -114,7 +114,7 @@ def make_frame(xloc, yloc, data, wave, args, outname, scale=1.,
     ws = w[sel, :, :].sum(axis=0)
     for k in xrange(b):
         zgrid[k, :, :] = ((data[sel, k][:, np.newaxis, np.newaxis] *
-                           w[sel]).sum(axis=0) / ws)# * scale**2 / area)
+                           w[sel]).sum(axis=0) / ws * 1.9)# * scale**2 / area)
     wi = np.searchsorted(wave, args.wavestart, side='left')
     we = np.searchsorted(wave, args.waveend, side='right')
 
