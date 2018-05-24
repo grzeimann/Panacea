@@ -139,10 +139,10 @@ def main():
                         type=str, default='sky_subtracted')
     parser.add_argument("-ws", "--wavestart",
                         help='''Start wavelength for collapse''',
-                        type=float, default=4500)
+                        type=float, default=4900)
     parser.add_argument("-we", "--waveend",
                         help='''End Wavelength for collapse''',
-                        type=float, default=5300)
+                        type=float, default=5350)
     args = parser.parse_args(args=None)
     args.log = setup_logging(logname='collapsed')
     allwv, allspec, allx, ally = ([], [], [], [])
