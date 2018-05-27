@@ -1,8 +1,8 @@
 # Panacea 
-This package is intended to the base reduction pipeline for VIRUS and LRS2 at the Hobby Eberly Telescope.  Instructions for installation and use at the Texas Advanced Computing Center (TACC) are below
+This package is intended to be the base reduction pipeline for VIRUS and LRS2 at the Hobby Eberly Telescope.  Instructions for installation and use at the Texas Advanced Computing Center (TACC) are below.
 
 ## Getting Started with LRS2
-First point to the common python environment on TACC. In your home ".bashrc" file, add the following line at the bottom:
+To begin on TACC, point to the common python environment. In your home ".bashrc" file, add the following line at the bottom:
 ```
 export PATH=”/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bin:$PATH”
 ```
