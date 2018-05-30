@@ -75,7 +75,11 @@ for datet in args.daterange:
     for filename in filenames:
         obsid = op.basename(op.dirname(op.dirname(op.dirname(filename)))).split(args.instrument)[1]
         keystring = date+'_'+obsid
-        objectname = fits.open(filename)[0].header['OBJECT']
+        try:
+            objectname = fits.open(filename)[0].header['OBJECT']
+        except:
+            objectname = ''
+            args.log.warning('Could not open %s' % filename)                
         if args.target.lower() in objectname.lower():
             science_target_list.append(keystring)
             print('Science File Found: %s, %s' % (keystring, objectname))
