@@ -243,9 +243,11 @@ def read_in_raw(args):
                                                              int(obsid)),
                                          "exp{:02d}".format(int(expnum)),
                                          args.instr)
-                        files = sorted(glob.glob(op.join(args.rootdir, folder,
-                                                         '*_%s*.fits'
-                                                         % args.ifuslot)))
+                        filepath = op.join(args.rootdir, folder,
+                                           '*_%s*.fits' % args.ifuslot)
+                        files = sorted(glob.glob(filepath))
+                        if not len(files):
+                            args.log.warning('Found no files for path: %s' % filepath)
                         for fn in files:
                             amp = op.basename(fn).split('_')[1][-2:]
                             amp_list.append([fn, obs, amp])
@@ -253,10 +255,13 @@ def read_in_raw(args):
                     folder = op.join(date, args.instr,
                                      "{:s}{:07d}".format(args.instr,
                                                          int(obsid)))
-                    files = sorted(glob.glob(op.join(args.rootdir, folder, '*',
+                    filepath = op.join(args.rootdir, folder, '*',
                                                      args.instr,
                                                      '*_%s*.fits'
-                                                     % args.ifuslot)))
+                                                     % args.ifuslot)
+                    files = sorted(glob.glob(filepath))
+                    if not len(files):
+                        args.log.warning('Found no files for path: %s' % filepath)
                     for fn in files:
                         amp = op.basename(fn).split('_')[1][-2:]
                         amp_list.append([fn, obs, amp])
