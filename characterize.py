@@ -247,7 +247,7 @@ def read_in_raw(args):
                                            '*_%s*.fits' % args.ifuslot)
                         files = sorted(glob.glob(filepath))
                         if not len(files):
-                            args.log.warning('Found no files for path: %s' % filepath)
+                            print('Found no files for path: %s' % filepath)
                         for fn in files:
                             amp = op.basename(fn).split('_')[1][-2:]
                             amp_list.append([fn, obs, amp])
@@ -261,7 +261,7 @@ def read_in_raw(args):
                                                      % args.ifuslot)
                     files = sorted(glob.glob(filepath))
                     if not len(files):
-                        args.log.warning('Found no files for path: %s' % filepath)
+                        print('Found no files for path: %s' % filepath)
                     for fn in files:
                         amp = op.basename(fn).split('_')[1][-2:]
                         amp_list.append([fn, obs, amp])
