@@ -708,8 +708,8 @@ class Amplifier:
                                                    'pixelflat_cam%s_%s.fits' 
                                             %(self.specid, self.amp)))[0].data,
                                   dtype=float)
-            #self.image[:] = np.where(pixelflat > 1e-1, self.image / pixelflat, 
-            #                         0.0)
+            self.image[:] = np.where(pixelflat > 1e-1, self.image / pixelflat, 
+                                     0.0)
             self.error[pixelflat<=0.0] = -1.0
             #self.mask = np.where(pixelflat > 1e-1, 0.0, -1.0)
             #sel = np.isfinite(self.image)
