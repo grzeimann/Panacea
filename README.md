@@ -9,15 +9,12 @@ https://portal.tacc.utexas.edu/
   <img src="tacc_create_account.png" width="650"/>
 </p>
 
-After creating an accounting using the link above, please notify Matthew Shetrone <shetrone@astro.as.utexas.edu> of your username and you will be added to the HET group.
+After creating an accounting using the link above, please send Matthew Shetrone <shetrone@astro.as.utexas.edu> your TACC username and he will add you to the HET group.
 
-To begin on TACC, point to the common python environment. In your home ".bashrc" file, add the following line at the bottom:
+To begin on TACC, point to the common python environment. In your home "~/.bashrc" file, add the following line at the bottom:
 ```
 export PATH=”/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bin:$PATH”
 ```
-
-
-
 
 Then move to your work directory and clone Panacea: 
 ```
@@ -37,6 +34,12 @@ sbatch rsci_blue_1.slurm
 sbatch rstd_blue_1.slurm
 sbatch rresponse_blue_1.slurm
 ```
+
+First run all of the "rtwi_*.slurm" by simply copying and pasting the printed commands like "sbatch rtwi_blue_1.slurm" and hit enter.  All of the "rtwi*" scripts can be run simultaneously and take roughly 30 minutes.  You can check on the progress by using the command
+```
+squeue | grep USERNAME
+```
+Where you put your username for USERNAME.  
 
 ### Authors
 
