@@ -35,17 +35,32 @@ sbatch rstd_blue_1.slurm
 sbatch rresponse_blue_1.slurm
 ```
 
-First run all of the "rtwi_*.slurm" by simply copying and pasting the printed commands like "sbatch rtwi_blue_1.slurm" and hit enter.  All of the "rtwi*" scripts can be run simultaneously and take roughly 30 minutes.  You can check on the progress by using the command
+First run all of the "rtwi_*.slurm" by simply copying and pasting the printed commands like "sbatch rtwi_blue_1.slurm" and hit enter.  All of the "rtwi*" scripts can be run simultaneously and take roughly 30 minutes.  You can check on the progress by using the command:
 ```
 squeue | grep USERNAME
 ```
-Where you put your username for USERNAME.  
+Where you put your username for USERNAME.  The log of what is running or did run is in the file "reduction.oXXXXXX" where XXXXXX is the 6 job number (hint, the job number is printed out at the end of the command "sbatch rtwi_*.slurm").  
+
+After the job has finished, in other words is no longer in the squeue, you can run both the science and standard star reductions via:
+```
+sbatch rsci_blue_1.slurm
+sbatch rstd_blue_1.slurm
+```
+
+Note, if you may have more than one rsci*.slurm or rstd*.slurm file generated you may run all of them in quick succession.  For example:
+```
+sbatch rsci_blue_1.slurm
+sbatch rsci_blue_2.slurm
+sbatch rsci_blue_3.slurm
+sbatch rstd_blue_1.slurm
+sbatch rstd_blue_2.slurm
+sbatch rstd_blue_3.slurm
+```
 
 ### Authors
 
 * Greg Zeimann, UT Austin
 * Karl Gebhardt, UT Austin
-* Alex Hagen, Penn State
 
 #### NOTE
 * COPYRIGHTS from astropy, free software foundation were used
