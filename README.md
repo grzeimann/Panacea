@@ -24,7 +24,7 @@ git clone https://github.com/grzeimann/Panacea.git
 
 The next step is to generate the necessary set of scripts for your target:
 ```
-python Panacea/build_panacea_call.py --start_date 20180515 --date_length 1 --rootdir /work/03946/hetdex/maverick --instrument lrs2 --side blue --target sdss
+python Panacea/build_panacea_call.py --start_date 20180515 --date_length 1 --rootdir /work/03946/hetdex/maverick --instrument lrs2 --side blue --target bd
 ```
 
 The following scripts are generated from that call and printed to screen:
