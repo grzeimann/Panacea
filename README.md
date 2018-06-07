@@ -3,9 +3,13 @@ This package is intended to be the base reduction pipeline for VIRUS and LRS2 at
 
 ## Getting Started with LRS2
 ### TACC 
+#### Signing up for an account
+https://portal.tacc.utexas.edu/
 <p align="center">
   <img src="tacc_create_account.png" width="650"/>
 </p>
+
+After creating an accounting using the link above, please notify Matthew Shetrone <shetrone@astro.as.utexas.edu> of your username and you will be added to the HET group.
 
 To begin on TACC, point to the common python environment. In your home ".bashrc" file, add the following line at the bottom:
 ```
