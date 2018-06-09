@@ -80,7 +80,7 @@ for datet in args.daterange:
         except:
             objectname = ''
             args.log.warning('Could not open %s' % filename)                
-        if *args.target.lower() in objectname.lower()) and (filename[-8:-5] == 'sci'):
+        if (args.target.lower() in objectname.lower()) and (filename[-8:-5] == 'sci'):
             science_target_list.append(keystring)
             print('Science File Found: %s, %s' % (keystring, objectname))
         if filename[-8:-5] == 'twi':
