@@ -94,7 +94,8 @@ if args.side[0] == 'R':
     R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
     R.dar.wave = correct_wave(R)
     R.wave = R.dar.wave * 1.
-rect_wave, rect_spec = rectify(R.wave, R.oldspec, lims)
+rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
+                               np.array(R.oldspec, dtype='float64'), lims)
 y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
 R.ftf = fits.open('ftf_%s.fits' % args.side)
 back = sky_calc(y, R.goodfibers, R.ftf)
