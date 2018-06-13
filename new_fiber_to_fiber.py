@@ -64,7 +64,7 @@ for fn in filenames:
         cond2 = F[0].header['EXPTIME'] <= args.exptimes[1]
         if cond1 and cond2:
             filelist.append(fn[:-8])
-print(searchname)
+print(filenames)
 print(filelist)
 
 def smooth(rect_wave, spec_array, n=15):
