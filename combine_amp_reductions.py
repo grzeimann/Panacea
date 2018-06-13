@@ -112,7 +112,7 @@ back = sky_calc(y, R.goodfibers, nbins=(R.wave.shape[0] / args.fibergroup))
 G = Gaussian1DKernel(1.5)
 fibconv = rect_spec * 0.
 for i in np.arange(R.wave.shape[0]):
-    fibconv[i] = convolve(rect_spec - back, G)
+    fibconv[i] = convolve(rect_spec[i] - back[i], G)
 noise = biweight_midvariance(fibconv, axis=(0,))
 R.signoise = fibconv / noise
 skysub = R.wave * 0.
