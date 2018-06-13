@@ -132,7 +132,6 @@ for filebase in filelist:
     rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                    np.array(R.oldspec, dtype='float64'),
                                    side_dict[args.side][2])
-    rect_spec[R.goodfibers] = 0.
     y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
     norm = (y / biweight_location(y, axis=(1,))[:, np.newaxis] *
             biweight_location(y))
