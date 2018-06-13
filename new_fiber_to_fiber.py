@@ -45,9 +45,8 @@ for attr in attrs:
         args.log.error('Need a "--%s" argument.' % attr)
         sys.exit(1)
 
-args.dates = args.daterange.split(',').replace(' ', '')
-args.exptimes = args.exposuretimerange.split(',').replace(' ', '')
-args.exptimes = [float(x) for x in args.exptimes]
+args.dates = [x.replace(' ', '') for x in args.daterange.split(',')]
+args.exptimes = [x.replace(' ', '') for x in args.exposuretimerange.split(',')]
 side_dict = {'BL': ['056', '{LL, LU}', [3625, 4670]],
              'BR': ['056', '{RL, RU}', [4520, 7010]],
              'RL': ['066', '{LL, LU}', [6425, 8460]],
