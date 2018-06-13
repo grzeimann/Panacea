@@ -106,9 +106,9 @@ def correct_wave(P):
     return newwave
 
 
-def rectify(wave, spec, lims, fac=10):
+def rectify(wave, spec, lims, fac=2.5):
     N, D = wave.shape
-    rect_wave = np.linspace(lims[0], lims[1], D*fac)
+    rect_wave = np.linspace(lims[0], lims[1], int(D*fac))
     rect_spec = np.zeros((N, len(rect_wave)))
     for i in np.arange(N):
         dw = np.diff(wave[i])
@@ -143,4 +143,4 @@ for filebase in filelist:
 ftf = build_ftf(rect_wave, np.array(spec_list))
 FtF = np.vstack([rect_wave, ftf])
 F = fits.PrimaryHDU(np.array(FtF, dtype='float32')).writeto(args.outname,
-                                                            clobber=True)
+                                                            overwrite=True)
