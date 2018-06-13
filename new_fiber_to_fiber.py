@@ -129,7 +129,9 @@ for filebase in filelist:
         R.dar.rectified_dlam = np.abs(np.diff(R.wave_lims)) / (2064.*1.5)
         R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
         R.dar.wave = correct_wave(R)
-    rect_wave, rect_spec = rectify(R.wave, R.oldspec, side_dict[args.side][2])
+    rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
+                                   np.array(R.oldspec, dtype='float64'),
+                                   side_dict[args.side][2])
     rect_spec[R.goodfibers] = 0.
     y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
     norm = (y / biweight_location(y, axis=(1,))[:, np.newaxis] *
