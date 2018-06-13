@@ -57,16 +57,20 @@ filenames = glob.glob(searchname)
 filelist = []
 for fn in filenames:
     date = fn.split('/')[-6]
+    print(fn, date)
     if (date >= args.dates[0]) and (date <= args.dates[1]):
         cond1 = side_dict[args.side][1][0] in fn
         cond2 = side_dict[args.side][1][1] in fn
+        print(cond1, cond2)
         if cond1 or cond2:
             F = fits.open(fn)
             cond1 = F[0].header['EXPTIME'] >= args.exptimes[0]
             cond2 = F[0].header['EXPTIME'] <= args.exptimes[1]
+            print(F[0].header['EXPTIME'], cond1, cond2)
             if cond1 and cond2:
                 filelist.append(fn[:-8])
 print(filelist)
+
 
 def smooth(rect_wave, spec_array, n=15):
     chunks = np.array_split(spec_array, n, axis=1)
