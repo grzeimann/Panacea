@@ -118,7 +118,7 @@ for i in np.arange(2):
     R.signoise = fibconv / noise
     S = np.nanmedian(R.signoise, axis=1)
     N = biweight_midvariance(S)
-    R.goodfibers = np.where((S/N) > 3.)[0]
+    R.goodfibers = np.where((S/N) < 3.)[0]
     print(len(R.goodfibers))
 skysub = R.wave * 0.
 sky = R.wave * 0.
