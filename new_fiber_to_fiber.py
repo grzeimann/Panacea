@@ -51,10 +51,10 @@ side_dict = {'BL': ['056', '{LL,LU}', [3625, 4670]],
              'BR': ['056', '{RL,RU}', [4520, 7010]],
              'RL': ['066', '{LL,LU}', [6425, 8460]],
              'RR': ['066', '{RL,RU}', [8225, 10565]]}
-filenames = glob.glob(op.join(args.reductiondir,
-                              '*/lrs2/*/*/lrs2/m*%s*%s.fits' %
-                              (side_dict[args.side][0],
-                               side_dict[args.side][1])))
+searchname = op.join(args.reductiondir, '*/lrs2/*/*/lrs2/m*%s*%s.fits' %
+                                        (side_dict[args.side][0],
+                                         side_dict[args.side][1]))
+filenames = glob.glob(searchname)
 filelist = []
 for fn in filenames:
     date = fn.split('/')[-6]
@@ -64,7 +64,7 @@ for fn in filenames:
         cond2 = F[0].header['EXPTIME'] <= args.exptimes[1]
         if cond1 and cond2:
             filelist.append(fn[:-8])
-print(filenames)
+print(searchname)
 print(filelist)
 
 def smooth(rect_wave, spec_array, n=15):
