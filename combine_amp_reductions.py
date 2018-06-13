@@ -13,7 +13,8 @@ from scipy.interpolate import interp1d
 from input_utils import setup_logging
 import argparse as ap
 from skysubtraction import Sky
-from utils import biweight_location
+from utils import biweight_location, biweight_midvariance
+from astropy.convolution import convolve, Gaussian1DKernel
 
 
 parser = ap.ArgumentParser(add_help=True)
@@ -24,6 +25,9 @@ parser.add_argument("-f", "--filename",
 parser.add_argument("-s", "--side",
                     help='''BL=UV, BR=Orange, RL=Red, RR=Farred''',
                     type=str, default=None)
+parser.add_argument("-g", "--fibergroup",
+                    help=''' Size of the fiber group for sky subtraction''',
+                    type=int, default=20)
 
 args = parser.parse_args(args=None)
 
@@ -55,9 +59,9 @@ def correct_wave(P):
     return newwave
 
 
-def rectify(wave, spec, lims, fac=10):
+def rectify(wave, spec, lims, fac=2.5):
     N, D = wave.shape
-    rect_wave = np.linspace(lims[0], lims[1], D*fac)
+    rect_wave = np.linspace(lims[0], lims[1], int(D*fac))
     rect_spec = np.zeros((N, len(rect_wave)))
     for i in np.arange(N):
         dw = np.diff(wave[i])
@@ -68,8 +72,8 @@ def rectify(wave, spec, lims, fac=10):
     return rect_wave, rect_spec
 
 
-def sky_calc(y, goodfibers):
-    inds = np.array_split(goodfibers, 14)
+def sky_calc(y, goodfibers, nbins=14):
+    inds = np.array_split(goodfibers, nbins)
     back = y * 0.
     for ind in inds:
         avg = biweight_location(y[ind], axis=(0,))
@@ -104,7 +108,13 @@ rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                np.array(R.oldspec, dtype='float64') / R.ftf,
                                lims)
 y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
-back = sky_calc(y, R.goodfibers)
+back = sky_calc(y, R.goodfibers, nbins=(R.wave.shape[0] / args.fibergroup))
+G = Gaussian1DKernel(1.5)
+fibconv = rect_spec * 0.
+for i in np.arange(R.wave.shape[0]):
+    fibconv[i] = convolve(rect_spec - back, G)
+noise = biweight_midvariance(fibconv, axis=(0,))
+R.signoise = fibconv / noise
 skysub = R.wave * 0.
 sky = R.wave * 0.
 for i in np.arange(R.wave.shape[0]):
@@ -119,6 +129,6 @@ R.skysub = skysub * 1.
 R.ifupos = np.array([R.ifux, R.ifuy])
 R.skypos = np.array([R.ra, R.dec])
 R.save(image_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
-                   'ftf', 'sky', 'skysub'],
+                   'ftf', 'sky', 'skysub', 'signoise'],
        name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
-                  'ftf', 'sky', 'skysub'])
+                  'ftf', 'sky', 'skysub', 'signoise'])
