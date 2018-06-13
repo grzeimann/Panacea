@@ -116,7 +116,7 @@ for i in np.arange(2):
         fibconv[i] = convolve(rect_spec[i] - back[i], G)
     noise = biweight_midvariance(fibconv, axis=(0,))
     R.signoise = fibconv / noise
-    R.goodfibers = np.where(((R.signoise > 5.).sum(axis=1) /
+    R.goodfibers = np.where(((R.signoise > 2.).sum(axis=1) /
                             (1. * R.signoise.shape[1])) < 0.95)[0]
     print(len(R.goodfibers))
 skysub = R.wave * 0.
