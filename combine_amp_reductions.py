@@ -105,8 +105,8 @@ rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                lims)
 y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
 back = sky_calc(y, R.goodfibers)
-skysub = y * 0.
-sky = y * 0.
+skysub = R.wave * 0.
+sky = R.wave * 0.
 for i in np.arange(R.wave.shape[0]):
     dw = np.diff(R.wave[i])
     dw = np.hstack([dw[0], dw])
