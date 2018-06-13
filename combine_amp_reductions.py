@@ -108,13 +108,17 @@ rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                np.array(R.oldspec, dtype='float64') / R.ftf,
                                lims)
 y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
-back = sky_calc(y, R.goodfibers, nbins=(R.wave.shape[0] / args.fibergroup))
-G = Gaussian1DKernel(1.5)
-fibconv = rect_spec * 0.
-for i in np.arange(R.wave.shape[0]):
-    fibconv[i] = convolve(rect_spec[i] - back[i], G)
-noise = biweight_midvariance(fibconv, axis=(0,))
-R.signoise = fibconv / noise
+for i in np.arange(2):
+    back = sky_calc(y, R.goodfibers, nbins=(R.wave.shape[0] / args.fibergroup))
+    G = Gaussian1DKernel(1.5)
+    fibconv = rect_spec * 0.
+    for i in np.arange(R.wave.shape[0]):
+        fibconv[i] = convolve(rect_spec[i] - back[i], G)
+    noise = biweight_midvariance(fibconv, axis=(0,))
+    R.signoise = fibconv / noise
+    R.goodfibers = np.where(((R.signoise > 5.).sum(axis=1) /
+                            (1. * R.signoise.shape[1])) < 0.95)[0]
+    print(len(R.goodfibers))
 skysub = R.wave * 0.
 sky = R.wave * 0.
 for i in np.arange(R.wave.shape[0]):
