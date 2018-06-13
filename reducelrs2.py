@@ -197,27 +197,27 @@ class ReduceLRS2:
         self.image = np.vstack(im)
         self.error = np.vstack(er)
         self.twi = np.vstack(twi)
-        if self.ftf_file is not None:
-            if op.exists(self.ftf_file):
-                self.ftf = fits.open(self.ftf_file)[0].data
-            else:
-                self.log.warning('Fiber to Fiber file %s does not exist.' %
-                                 self.ftf_file)
-                self.log.info('Using spectra or twilight to build fiber '
-                              'to fiber.')
-                if self.use_twi:
-                    spec = self.twi * 1.
-                else:
-                    spec = self.spec * 1.
-                self.ftf = self.get_fiber_to_fiber(self.wave, spec)
-        else:
-            if self.use_twi:
-                spec = self.twi * 1.
-            else:
-                spec = self.spec * 1.
-            self.ftf = self.get_fiber_to_fiber(self.wave, spec)
-        for i in np.arange(self.spec.shape[0]):
-            self.spec[i, :] /= self.ftf[i, :]
+#        if self.ftf_file is not None:
+#            if op.exists(self.ftf_file):
+#                self.ftf = fits.open(self.ftf_file)[0].data
+#            else:
+#                self.log.warning('Fiber to Fiber file %s does not exist.' %
+#                                 self.ftf_file)
+#                self.log.info('Using spectra or twilight to build fiber '
+#                              'to fiber.')
+#                if self.use_twi:
+#                    spec = self.twi * 1.
+#                else:
+#                    spec = self.spec * 1.
+#                self.ftf = self.get_fiber_to_fiber(self.wave, spec)
+#        else:
+#            if self.use_twi:
+#                spec = self.twi * 1.
+#            else:
+#                spec = self.spec * 1.
+#            self.ftf = self.get_fiber_to_fiber(self.wave, spec)
+#        for i in np.arange(self.spec.shape[0]):
+#            self.spec[i, :] /= self.ftf[i, :]
         self.define_good_fibers()
 
     def get_standard_spectrum_from_file(self):
@@ -315,6 +315,8 @@ class ReduceLRS2:
         if hasattr(self, 'ftf'):
             y = np.nanmedian(self.ftf, axis=1)
             self.goodfibers = np.where(y > thresh)[0]
+        else:
+            self.goodfibers = np.arange(self.spec.shape[0], dtype=int)
 
     def get_fiber_to_fiber(self, wavelength, spec, fac=10, knots=15):
         '''
