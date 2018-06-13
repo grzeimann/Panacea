@@ -39,7 +39,7 @@ parser.add_argument("-r", "--reductiondir",
 args = parser.parse_args(args=None)
 
 args.log = setup_logging('new_fiber_to_fiber')
-attrs = [side']
+attrs = ['side']
 for attr in attrs:
     if getattr(args, attr) is None:
         args.log.error('Need a "--%s" argument.' % attr)
