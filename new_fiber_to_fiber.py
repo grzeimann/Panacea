@@ -47,13 +47,14 @@ for attr in attrs:
 
 args.dates = [x.replace(' ', '') for x in args.daterange.split(',')]
 args.exptimes = [x.replace(' ', '') for x in args.exposuretimerange.split(',')]
+args.exptimes = [float(x) for x in args.exptimes]
 side_dict = {'BL': ['056', ['LL', 'LU'], [3625, 4670]],
              'BR': ['056', ['RL', 'RU'], [4520, 7010]],
              'RL': ['066', ['LL', 'LU'], [6425, 8460]],
              'RR': ['066', ['RL', 'RU'], [8225, 10565]]}
 searchname = op.join(args.reductiondir, '*/lrs2/*/*/lrs2/m*%s*.fits' %
                                         (side_dict[args.side][0]))
-filenames = glob.glob(searchname)
+filenames = sorted(glob.glob(searchname))
 filelist = []
 for fn in filenames:
     date = fn.split('/')[-6]
