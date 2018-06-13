@@ -28,10 +28,10 @@ parser.add_argument("-o", "--outname",
                     type=str, default='ftf.fits')
 parser.add_argument("-d", "--daterange",
                     help='''Inclusive date range for building fib to fib''',
-                    type=str, default='[20180101, 20180501]')
+                    type=str, default='20180101, 20180501')
 parser.add_argument("-e", "--exposuretimerange",
                     help='''Exposure range for building fib to fib''',
-                    type=str, default='[120, 7200]')
+                    type=str, default='120, 7200')
 parser.add_argument("-r", "--reductiondir",
                     help='''Name of the reduction directory''',
                     type=str, default='reductions')
