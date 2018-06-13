@@ -37,8 +37,8 @@ except ImportError:
 class ReduceLRS2:
     ''' Wrapper for reduction routines with processed data, multi*.fits '''
     def __init__(self, base_filename, side, use_twi=True,
-                 config_folder='/work/03946/hetdex/maverick/virus_config/',
-                 fplane_file=None):
+                 config_folder='/Users/gregz/cure/virus_early/virus_config/',
+                 fplane_file=None, ftf_file=None):
         '''
         This serves as a wrapper for astrometry, DAR, extraction, and
         throughput.
@@ -55,29 +55,36 @@ class ReduceLRS2:
             This will choose either uv, orange, red or farred depending.
         '''
         self.base_filename = base_filename
+        self.path = op.dirname(base_filename)
+        self.multi_name = op.basename(base_filename)
         self.side = side
         self.config_folder = config_folder
         self.standard_folder = op.join(config_folder, 'standards')
         self.ftfcor_folder = op.join(config_folder, 'FtFcor')
         self.use_twi = use_twi
         self.fplane_file = fplane_file
+        self.ftf_file = ftf_file
         self.goodfibers = None
         self.ifuslot = op.basename(self.base_filename).split('_')[2]
         self.log = setup_logging('throughput')
         if self.side.lower() == 'bl':
             self.instr_name = 'lrs2_uv'
+            self.side_name = 'uv'
             self.amps = ['LL', 'LU']
             self.wave_lims = [3640., 4640.]
         elif self.side.lower() == 'br':
             self.instr_name = 'lrs2_orange'
+            self.side_name = 'orange'
             self.amps = ['RU', 'RL']
             self.wave_lims = [4655., 6960.]
         if self.side.lower() == 'rl':
             self.instr_name = 'lrs2_red'
+            self.side_name = 'red'
             self.amps = ['LL', 'LU']
             self.wave_lims = [6450., 8400.]
         elif self.side.lower() == 'rr':
             self.instr_name = 'lrs2_farred'
+            self.side_name = 'farred'
             self.amps = ['RU', 'RL']
             self.wave_lims = [8275., 10500.]
         self.read_in_files()
@@ -113,9 +120,9 @@ class ReduceLRS2:
     def get_astrometry(self):
         ''' Set the RA, dec for each Fiber '''
         try:
-            self.astrom = Astrometry(self.header['TRAJCRA']*15.,
-                                     self.header['TRAJCDEC'],
-                                     self.header['PARANGLE'], 0., 0.,
+            self.astrom = Astrometry(self.header_dict['TRAJCRA']*15.,
+                                     self.header_dict['TRAJCDEC'],
+                                     self.header_dict['PARANGLE'], 0., 0.,
                                      fplane_file=self.fplane_file)
             self.ra, self.dec = self.astrom.get_ifuspos_ra_dec(self.ifuslot,
                                                                self.ifux,
@@ -157,12 +164,14 @@ class ReduceLRS2:
         '''
         self.log.info('Reading in initial reductions from %s' %
                       self.base_filename)
-        x, y, spec, wave, twi, tr = ([], [], [], [], [], [])
+        x, y, spec, wave, twi, tr, im, er = ([], [], [], [], [], [], [], [])
         for amp in self.amps:
             fn = self.base_filename + ('_%s.fits' % amp)
             F = fits.open(fn)
             x.append(F['ifupos'].data[:, 0])
             y.append(F['ifupos'].data[:, 1])
+            im.append(F[0].data)
+            er.append(F['error'].data)
             spec.append(F['spectrum'].data)
             twi.append(F['twi_spectrum'].data)
             wave.append(F['wavelength'].data)
@@ -171,7 +180,8 @@ class ReduceLRS2:
             else:
                 addtr = 0.
             tr.append(F['trace'].data + addtr)
-        self.header = dict(F[0].header)
+        self.header_dict = dict(F[0].header)
+        self.header = F[0].header
         self.object = F[0].header['OBJECT'][:-6]
         self.exptime = F[0].header['EXPTIME']
         self.RH = F[0].header['HUMIDITY']
@@ -181,15 +191,31 @@ class ReduceLRS2:
         self.ifux = np.hstack(x)
         self.ifuy = np.hstack(y)
         self.spec = np.vstack(spec)
+        self.oldspec = self.spec * 1.
         self.wave = np.vstack(wave)
         self.trace = np.vstack(tr)
+        self.image = np.vstack(im)
+        self.error = np.vstack(er)
         self.twi = np.vstack(twi)
-        if self.use_twi:
-            spec = self.twi * 1.
+        if self.ftf_file is not None:
+            if op.exists(self.ftf_file):
+                self.ftf = fits.open(self.ftf_file)[0].data
+            else:
+                self.log.warning('Fiber to Fiber file %s does not exist.' %
+                                 self.ftf_file)
+                self.log.info('Using spectra or twilight to build fiber '
+                              'to fiber.')
+                if self.use_twi:
+                    spec = self.twi * 1.
+                else:
+                    spec = self.spec * 1.
+                self.ftf = self.get_fiber_to_fiber(self.wave, spec)
         else:
-            spec = self.spec * 1.
-        self.ftf = self.get_fiber_to_fiber(self.wave, spec)
-        #self.adjust_ftf_from_twi_to_sky()
+            if self.use_twi:
+                spec = self.twi * 1.
+            else:
+                spec = self.spec * 1.
+            self.ftf = self.get_fiber_to_fiber(self.wave, spec)
         for i in np.arange(self.spec.shape[0]):
             self.spec[i, :] /= self.ftf[i, :]
         self.define_good_fibers()
@@ -222,8 +248,12 @@ class ReduceLRS2:
             self.log.info('Using HetpupilModel from pyhetdex')
             if fn is None:
                 fn = self.base_filename + ('_%s.fits' % self.amps[0])
-            mirror_illum = HetpupilModel([fn], normalize=False)
-            self.area = mirror_illum.fill_factor[0] * 55. * 1e4
+            try:
+                mirror_illum = HetpupilModel([fn], normalize=False)
+                self.area = mirror_illum.fill_factor[0] * 55. * 1e4
+            except:
+                self.log.info('Using default mirror illumination value')
+                self.area = 50. * 1e4
         else:
             self.log.info('Using default mirror illumination value')
             self.area = 50. * 1e4
@@ -261,7 +291,7 @@ class ReduceLRS2:
                                 kind='cubic', fill_value='extrapolate')
         self.R = interpolator(self.dar.rect_wave)
         self.R = (np.interp(self.dar.rect_wave, self.standard_wave,
-                           self.standard_flam) / self.clam)
+                            self.standard_flam) / self.clam)
         self.R_wave = self.dar.rect_wave
         size = int(250. / np.diff(self.R_wave).mean())
         if size % 2 == 0:
@@ -283,7 +313,8 @@ class ReduceLRS2:
 
     def define_good_fibers(self, thresh=0.5):
         if hasattr(self, 'ftf'):
-            self.goodfibers = np.where(np.median(self.ftf, axis=1) > thresh)[0]
+            y = np.nanmedian(self.ftf, axis=1)
+            self.goodfibers = np.where(y > thresh)[0]
 
     def get_fiber_to_fiber(self, wavelength, spec, fac=10, knots=15):
         '''
@@ -334,3 +365,38 @@ class ReduceLRS2:
         for i in np.arange(smooth.shape[1]):
             ftf[i, :] = np.interp(wavelength[i, :], wv, smooth[:, i])
         return ftf
+
+    def write_to_fits(self, hdu, outname):
+        '''
+        Writing fits file to outname
+        '''
+        try:
+            hdu.writeto(outname, overwrite=True)
+        except TypeError:
+            hdu.writeto(outname, clobber=True)
+
+    def write_header(self, hdu):
+        hdu.header = self.header
+        # ADD Comments below
+        return hdu
+
+    def save(self, image_list=[], name_list=[]):
+        ''' Save the multi*.fits file '''
+        fn = op.join(self.path, '%s_%s.fits' % (self.multi_name,
+                                                self.side_name))
+        fits_list = []
+        if len(image_list) != len(name_list):
+            return None
+        for i, image in enumerate(image_list):
+            if i == 0:
+                fits_list.append(fits.PrimaryHDU(np.array(getattr(self, image),
+                                                          dtype='float32')))
+            else:
+                fits_list.append(fits.ImageHDU(np.array(getattr(self, image),
+                                                        dtype='float32')))
+
+            fits_list[-1].header['EXTNAME'] = name_list[i]
+        if fits_list:
+            fits_list[0] = self.write_header(fits_list[0])
+            hdu = fits.HDUList(fits_list)
+            self.write_to_fits(hdu, fn)
