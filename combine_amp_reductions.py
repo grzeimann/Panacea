@@ -97,7 +97,12 @@ if args.side[0] == 'R':
 rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                np.array(R.oldspec, dtype='float64'), lims)
 y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
-R.ftf = fits.open('ftf_%s.fits' % args.side)
+F = fits.open('ftf_%s.fits' % args.side)
+R.ftf = R.wave * 0.
+for i in np.arange(R.wave.shape[0]):
+    I = interp1d(F[0].data[0], F[0].data[i+1], kind='quadratic',
+                 bounds_error=False, fill_value=-999.)
+    R.ftf[i] = I(R.wave[i])
 back = sky_calc(y, R.goodfibers, R.ftf)
 skysub = y * 0.
 sky = y * 0.
