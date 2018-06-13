@@ -37,9 +37,10 @@ parser.add_argument("-e", "--exposuretimerange",
                     type=str, default='[120, 7200]')
 parser.add_argument("-r", "--reductiondir",
                     help='''Name of the reduction directory''',
-                    type=str, default='[120, 7200]')
-args = parser.parse_args(args=['-f', '/Users/gregz/cure/filelist_red_all.dat',
-                               '-s', 'RL', '-o', 'ftf_RL.fits'])
+                    type=str, default='reductions')
+
+args = parser.parse_args(args=None)
+
 args.log = setup_logging('new_fiber_to_fiber')
 attrs = ['filename', 'side']
 for attr in attrs:
