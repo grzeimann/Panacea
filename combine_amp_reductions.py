@@ -68,15 +68,14 @@ def rectify(wave, spec, lims, fac=10):
     return rect_wave, rect_spec
 
 
-def sky_calc(y, goodfibers, ftf):
-    norm = y / ftf
+def sky_calc(y, goodfibers):
     inds = np.array_split(goodfibers, 14)
     back = y * 0.
     for ind in inds:
-        avg = biweight_location(norm[ind], axis=(0,))
+        avg = biweight_location(y[ind], axis=(0,))
         xl = ind.min()
         xh = ind.max()+1
-        back[xl:xh] = ftf[xl:xh] * avg
+        back[xl:xh] = avg
     return back
 
 if args.side == 'RR':
@@ -94,9 +93,6 @@ if args.side[0] == 'R':
     R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
     R.dar.wave = correct_wave(R)
     R.wave = R.dar.wave * 1.
-rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
-                               np.array(R.oldspec, dtype='float64'), lims)
-y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
 F = fits.open('ftf_%s.fits' % args.side)
 F[0].data = np.array(F[0].data, dtype='float64')
 R.ftf = R.wave * 0.
@@ -104,7 +100,11 @@ for i in np.arange(R.wave.shape[0]):
     I = interp1d(F[0].data[0], F[0].data[i+1], kind='quadratic',
                  bounds_error=False, fill_value=-999.)
     R.ftf[i] = I(R.wave[i])
-back = sky_calc(y, R.goodfibers, R.ftf)
+rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
+                               np.array(R.oldspec, dtype='float64') / R.ftf,
+                               lims)
+y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
+back = sky_calc(y, R.goodfibers)
 skysub = y * 0.
 sky = y * 0.
 for i in np.arange(R.wave.shape[0]):
@@ -112,8 +112,8 @@ for i in np.arange(R.wave.shape[0]):
     dw = np.hstack([dw[0], dw])
     I = interp1d(rect_wave, back[i], kind='quadratic',
                  bounds_error=False, fill_value=-999.)
-    skysub[i] = R.oldspec[i] - I(R.wave[i]) * dw
-    sky[i] = I(R.wave[i]) * dw
+    skysub[i] = R.oldspec[i] - I(R.wave[i]) * dw * R.ftf[i]
+    sky[i] = I(R.wave[i]) * dw * R.ftf[i]
 R.sky = sky * 1.
 R.skysub = skysub * 1.
 R.ifupos = np.array([R.ifux, R.ifuy])
