@@ -20,9 +20,6 @@ import os.path as op
 
 parser = ap.ArgumentParser(add_help=True)
 
-parser.add_argument("-f", "--filename",
-                    help='''Filename that contains list of files''',
-                    type=str, default=None)
 parser.add_argument("-s", "--side",
                     help='''UV=BL, Orange=BR, Red=RL, Farred=RR''',
                     type=str, default=None)
@@ -42,7 +39,7 @@ parser.add_argument("-r", "--reductiondir",
 args = parser.parse_args(args=None)
 
 args.log = setup_logging('new_fiber_to_fiber')
-attrs = ['filename', 'side']
+attrs = [side']
 for attr in attrs:
     if getattr(args, attr) is None:
         args.log.error('Need a "--%s" argument.' % attr)
