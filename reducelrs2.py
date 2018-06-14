@@ -194,7 +194,7 @@ class ReduceLRS2:
         self.oldspec = self.spec * 1.
         self.wave = np.vstack(wave)
         self.trace = np.vstack(tr)
-        self.image = np.vstack(im)
+        self.image_name = np.vstack(im)
         self.error = np.vstack(er)
         self.twi = np.vstack(twi)
 #        if self.ftf_file is not None:
