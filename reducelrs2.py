@@ -381,6 +381,8 @@ class ReduceLRS2:
         for key in self.header_dict.keys():
             if key in hdu.header:
                 continue
+            if ('CCDSEC' in key) or ('DATASEC' in key):
+                continue
             hdu.header[key] = self.header_dict[key]
         return hdu
 
