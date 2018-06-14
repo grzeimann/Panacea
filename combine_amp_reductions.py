@@ -131,8 +131,8 @@ for i in np.arange(R.wave.shape[0]):
     sky[i] = I(R.wave[i]) * dw * R.ftf[i]
 R.sky = sky * 1.
 R.skysub = skysub * 1.
-R.ifupos = np.array([R.ifux, R.ifuy])
-R.skypos = np.array([R.ra, R.dec])
+R.ifupos = np.array([R.ifux, R.ifuy]).swapaxes(0, 1)
+R.skypos = np.array([R.ra, R.dec]).swapaxes(0, 1)
 R.save(image_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
                    'ftf', 'sky', 'skysub', 'signoise'],
        name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
