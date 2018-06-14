@@ -378,8 +378,10 @@ class ReduceLRS2:
             hdu.writeto(outname, clobber=True)
 
     def write_header(self, hdu):
-        hdu.header = self.header
-        # ADD Comments below
+        for key in self.header_dict.keys():
+            if key in hdu.header:
+                continue
+            hdu.header[key] = self.header_dict[key]
         return hdu
 
     def save(self, image_list=[], name_list=[]):
