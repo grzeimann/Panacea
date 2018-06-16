@@ -9,12 +9,15 @@ import numpy as np
 import sys
 from reducelrs2 import ReduceLRS2
 from astropy.io import fits
+from astropy.table import Table
 from scipy.interpolate import interp1d
 from input_utils import setup_logging
 import argparse as ap
 from skysubtraction import Sky
 from utils import biweight_location, biweight_midvariance
 from astropy.convolution import convolve, Gaussian1DKernel
+from astropy.modeling.models import Moffat2D, Gaussian2D
+from astropy.modeling.fitting import LevMarLSQFitter
 
 
 parser = ap.ArgumentParser(add_help=True)
@@ -59,6 +62,14 @@ def correct_wave(P):
     return newwave
 
 
+def safe_division(num, denom, eps=1e-8, fillval=0.0):
+    good = np.isfinite(denom) * (np.abs(denom) > eps)
+    div = num * 0.
+    div[good] = num[good] / denom[good]
+    div[~good] = fillval
+    return div
+
+
 def rectify(wave, spec, lims, fac=2.5):
     N, D = wave.shape
     rect_wave = np.linspace(lims[0], lims[1], int(D*fac))
@@ -82,6 +93,54 @@ def sky_calc(y, goodfibers, nbins=14):
         back[xl:xh] = avg
     return back
 
+
+def gather_sn_fibers(fibconv, noise, cols):
+    hightolow = np.argsort(np.median(fibconv[:, cols], axis=1))[::-1]
+    s = 0.
+    ss = np.zeros((len(cols),))
+    nn = noise[cols]
+    inds = []
+    for ind in hightolow:
+        news = fibconv[ind, cols] + ss
+        newn = np.sqrt(nn**2 + noise[cols]**2)
+        rat = np.median(news / newn)
+        if rat > s:
+            nn = newn
+            ss = news
+            s = rat
+            inds.append(ind)
+        else:
+            continue
+    return inds, s
+
+
+def find_centroid(image, x, y):
+    G = Gaussian2D()
+    fit = LevMarLSQFitter()(G, x, y, image)
+    return fit.x_mean.value, fit.y_mean.value
+
+
+def flux_correction(wave, loc, P, inds, dar_table, alpha=1.5,
+                    gamma=3.5):
+    X = interp1d(dar_table['wave'], dar_table['x_0'], kind='linear',
+                 bounds_error=False, fill_value='extrapolate')
+    Y = interp1d(dar_table['wave'], dar_table['y_0'], kind='linear',
+                 bounds_error=False, fill_value='extrapolate')
+    frac = wave * 0.
+    offx = loc[1] - X(loc[0])
+    offy = loc[2] - Y(loc[0])
+    PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=alpha, gamma=gamma)
+    for i in np.arange(len(wave)):
+        x = X(wave[i]) + offx
+        y = Y(wave[i]) + offy
+        PSF.x_0.value = x
+        PSF.y_0.value = y
+        total = PSF(R.ifux, R.ifuy).sum()
+        num = PSF(R.ifux[inds], R.ifuy[inds]).sum()
+        frac[i] = num / total
+    return frac
+
+
 if args.side == 'RR':
     lims = [8225, 10565]
 if args.side == 'RL':
@@ -91,6 +150,7 @@ if args.side == 'BR':
 if args.side == 'BL':
     lims = [3625, 4670]
 R = ReduceLRS2(args.filename, args.side)
+R.get_mirror_illumination()
 if args.side[0] == 'R':
     R.dar.spec = 1. * R.oldspec
     R.dar.rectified_dlam = np.abs(np.diff(R.wave_lims)) / (2064.*1.5)
@@ -104,10 +164,13 @@ for i in np.arange(R.wave.shape[0]):
     I = interp1d(F[0].data[0], F[0].data[i+1], kind='quadratic',
                  bounds_error=False, fill_value=-999.)
     R.ftf[i] = I(R.wave[i])
+
 rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                np.array(R.oldspec, dtype='float64') / R.ftf,
-                               lims)
+                               lims, fac=2.5)
+
 y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
+
 for i in np.arange(2):
     back = sky_calc(y, R.goodfibers, nbins=(R.wave.shape[0] / args.fibergroup))
     G = Gaussian1DKernel(1.5)
@@ -119,7 +182,7 @@ for i in np.arange(2):
     S = np.nanmedian(R.signoise, axis=1)
     N = biweight_midvariance(S)
     R.goodfibers = np.where((S/N) < 3.)[0]
-    print(len(R.goodfibers))
+
 skysub = R.wave * 0.
 sky = R.wave * 0.
 for i in np.arange(R.wave.shape[0]):
@@ -129,11 +192,57 @@ for i in np.arange(R.wave.shape[0]):
                  bounds_error=False, fill_value=-999.)
     skysub[i] = R.oldspec[i] - I(R.wave[i]) * dw * R.ftf[i]
     sky[i] = I(R.wave[i]) * dw * R.ftf[i]
+
 R.sky = sky * 1.
-R.skysub = skysub * 1.
+R.skysub = safe_division(skysub, R.ftf)
 R.ifupos = np.array([R.ifux, R.ifuy]).swapaxes(0, 1)
 R.skypos = np.array([R.ra, R.dec]).swapaxes(0, 1)
-R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
-                   'ftf', 'sky', 'skysub', 'signoise'],
+R.skynorm = safe_division(R.sky, R.ftf)
+
+T = Table.read('response_%s.dat' % args.side,
+               format='ascii.fixed_width_two_line')
+I = interp1d(T['wave'], T['response'], kind='linear',
+             bounds_error=False, fill_value='extrapolate')
+R.flam = R.wave * 0.
+R.slam = R.wave * 0.
+for i in np.arange(R.wave.shape[0]):
+    dw = np.diff(R.wave[i])
+    dw = np.hstack([dw[0], dw])
+    response = I(R.wave[i])
+    R.flam[i] = R.skysub[i] / dw / R.exptime / R.area * response
+    R.slam[i] = R.skynorm[i] / dw / R.exptime / R.area * response
+
+rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
+                               np.array(R.flam, dtype='float64'),
+                               lims, fac=1.0)
+rect_wave, rect_sky = rectify(np.array(R.wave, dtype='float64'),
+                              np.array(R.slam, dtype='float64'),
+                              lims, fac=1.0)
+
+R.define_good_fibers()
+G = Gaussian1DKernel(1.5)
+fibconv = rect_spec * 0.
+for i in np.arange(R.wave.shape[0]):
+    fibconv[i] = convolve(rect_spec[i] - rect_sky[i], G)
+noise = biweight_midvariance(fibconv, axis=(0,))
+inds = np.array_split(np.arange(len(rect_wave)), 20)
+v = np.argmax([np.sum(np.nanmedian(chunk, axis=1))
+               for chunk in np.array_split(fibconv / noise, axis=1, 20)])
+sn_image = np.nanmedian(np.array_split(fibconv / noise, axis=1, 20)[v], axis=1)
+wv = np.median(np.array_split(rect_wave, axis=1, 20)[v])
+xc, yc = find_centroid(sn_image, R.ifux, R.ifuy)
+fibinds, s = gather_sn_fibers(fibconv, noise, inds[v])
+dar_table = Table.read('dar_%s.dat' % args.side,
+                       format='ascii.fixed_width_two_line')
+
+frac = flux_correction(rect_wave, [wv, xc, yc], R, fibinds, dar_table)
+print(len(fibinds), s)
+
+R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
+R.sky = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
+R.skyerror = noise * np.sqrt(len(fibinds)) / frac
+R.spectrum = np.array([R.flux, R.sky, R.skyerror, frac]).swapaxes(0, 1)
+R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave',
+                   'oldspec', 'ftf', 'sky', 'skysub', 'spectrum'],
        name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
-                  'ftf', 'sky', 'skysub', 'signoise'])
+                  'ftf', 'sky', 'skysub', 'spectra'])
