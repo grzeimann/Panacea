@@ -125,8 +125,8 @@ class ReduceLRS2:
                                      self.header_dict['PARANGLE'], 0., 0.,
                                      fplane_file=self.fplane_file)
             self.ra, self.dec = self.astrom.get_ifuspos_ra_dec(self.ifuslot,
-                                                               self.ifux,
-                                                               self.ifuy)
+                                                               self.ifuy,
+                                                               self.ifux)
         except:
             self.log.warning('Astrometry did not work because of -999999.')
             self.ra, self.dec = (self.ifux, self.ifuy)
