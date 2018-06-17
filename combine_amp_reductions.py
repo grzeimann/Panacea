@@ -229,7 +229,7 @@ inds = np.array_split(np.arange(len(rect_wave)), 20)
 v = np.argmax([np.sum(np.nanmedian(chunk, axis=1))
                for chunk in np.array_split(fibconv / noise, 20, axis=1)])
 sn_image = np.nanmedian(np.array_split(fibconv / noise, 20, axis=1)[v], axis=1)
-wv = np.median(np.array_split(rect_wave, 20, axis=1)[v])
+wv = np.median(np.array_split(rect_wave, 20)[v])
 xc, yc = find_centroid(sn_image, R.ifux, R.ifuy)
 fibinds, s = gather_sn_fibers(fibconv, noise, inds[v])
 dar_table = Table.read('dar_%s.dat' % args.side,
