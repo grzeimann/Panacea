@@ -241,7 +241,7 @@ print(len(fibinds), s)
 R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
 R.sky = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
 R.skyerror = noise * np.sqrt(len(fibinds)) / frac
-R.spectrum = np.array([R.flux, R.sky, R.skyerror, frac]).swapaxes(0, 1)
+R.spectrum = np.array([R.flux, R.sky, R.skyerror, frac])
 R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave',
                    'oldspec', 'ftf', 'sky', 'skysub', 'spectrum'],
        name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
