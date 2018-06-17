@@ -227,9 +227,9 @@ for i in np.arange(R.wave.shape[0]):
 noise = biweight_midvariance(fibconv, axis=(0,))
 inds = np.array_split(np.arange(len(rect_wave)), 20)
 v = np.argmax([np.sum(np.nanmedian(chunk, axis=1))
-               for chunk in np.array_split(fibconv / noise, axis=1, 20)])
-sn_image = np.nanmedian(np.array_split(fibconv / noise, axis=1, 20)[v], axis=1)
-wv = np.median(np.array_split(rect_wave, axis=1, 20)[v])
+               for chunk in np.array_split(fibconv / noise, 20, axis=1)])
+sn_image = np.nanmedian(np.array_split(fibconv / noise, 20, axis=1)[v], axis=1)
+wv = np.median(np.array_split(rect_wave, 20, axis=1)[v])
 xc, yc = find_centroid(sn_image, R.ifux, R.ifuy)
 fibinds, s = gather_sn_fibers(fibconv, noise, inds[v])
 dar_table = Table.read('dar_%s.dat' % args.side,
