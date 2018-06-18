@@ -121,6 +121,27 @@ def find_centroid(image, x, y):
     return fit.x_mean.value, fit.y_mean.value
 
 
+def build_big_fiber_array(P):
+    u = np.unique(P.ifuy)
+    NX = []
+    NY = []
+    for ui in u:
+        X = np.sort(P.ifux[P.ifuy == ui])
+        lx = X[-1] - X[0]
+        dx = X[1] - X[0]
+        NX.append(np.hstack([X - lx - dx, X, X + lx + dx]))
+        NY.append(ui * np.ones(NX[-1].shape))
+    NX.append(NX[-2])
+    NY.append(NY[-2]+0.59*2.)
+    NX = np.hstack(NX)
+    NY = np.hstack(NY)
+    ly = NY[-1] - NY[0]
+    dy = u[1] - u[0]
+    NX = np.hstack([NX, NX, NX])
+    NY = np.hstack([NY - ly - dy, NY, NY + ly + dy])
+    return NX, NY
+
+
 def flux_correction(wave, loc, P, inds, dar_table, alpha=1.5,
                     gamma=3.5):
     X = interp1d(dar_table['wave'], dar_table['x_0'], kind='linear',
@@ -130,13 +151,14 @@ def flux_correction(wave, loc, P, inds, dar_table, alpha=1.5,
     frac = wave * 0.
     offx = loc[1] - X(loc[0])
     offy = loc[2] - Y(loc[0])
+    NX, NY = build_big_fiber_array(P)
     PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=alpha, gamma=gamma)
     for i in np.arange(len(wave)):
         x = X(wave[i]) + offx
         y = Y(wave[i]) + offy
         PSF.x_0.value = x
         PSF.y_0.value = y
-        total = PSF(P.ifux, P.ifuy).sum()
+        total = PSF(NX, NY).sum()
         num = PSF(P.ifux[inds], P.ifuy[inds]).sum()
         frac[i] = num / total
     return frac
@@ -242,7 +264,7 @@ def main():
                            format='ascii.fixed_width_two_line')
 
     frac = flux_correction(rect_wave, [wv, xc, yc], R, fibinds, dar_table)
-    print(len(fibinds), s)
+    print(len(fibinds), s, np.median(frac))
 
     R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
     R.skyflux = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
