@@ -232,12 +232,14 @@ sn_image = np.nanmedian(np.array_split(fibconv / noise, 20, axis=1)[v], axis=1)
 wv = np.median(np.array_split(rect_wave, 20)[v])
 xc, yc = find_centroid(sn_image, R.ifux, R.ifuy)
 print(v, xc, yc)
+
+fibinds, s = gather_sn_fibers(fibconv, noise, inds[v])
 import matplotlib.pyplot as plt
 plt.figure(figsize=(6,6))
-plt.scatter(R.ifux, R.ifuy, c=sn_image, s=150, marker='h')
+plt.scatter(R.ifux, R.ifuy, c=sn_image, s=220, marker='h')
+plt.scatter(R.ifux[fibinds], R.ifuy[fibinds], marker='x', color='r')
 plt.axis('equal')
 plt.savefig('test.png')
-fibinds, s = gather_sn_fibers(fibconv, noise, inds[v])
 dar_table = Table.read('dar_%s.dat' % args.side,
                        format='ascii.fixed_width_two_line')
 
