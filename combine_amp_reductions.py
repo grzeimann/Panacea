@@ -135,8 +135,8 @@ def flux_correction(wave, loc, P, inds, dar_table, alpha=1.5,
         y = Y(wave[i]) + offy
         PSF.x_0.value = x
         PSF.y_0.value = y
-        total = PSF(R.ifux, R.ifuy).sum()
-        num = PSF(R.ifux[inds], R.ifuy[inds]).sum()
+        total = PSF(P.ifux, P.ifuy).sum()
+        num = PSF(P.ifux[inds], P.ifuy[inds]).sum()
         frac[i] = num / total
     return frac
 
@@ -149,106 +149,121 @@ if args.side == 'BR':
     lims = [4520, 7010]
 if args.side == 'BL':
     lims = [3625, 4670]
-R = ReduceLRS2(args.filename, args.side)
-R.get_mirror_illumination()
-if args.side[0] == 'R':
-    R.dar.spec = 1. * R.oldspec
-    R.dar.rectified_dlam = np.abs(np.diff(R.wave_lims)) / (2064.*1.5)
-    R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
-    R.dar.wave = correct_wave(R)
-    R.wave = R.dar.wave * 1.
-F = fits.open('ftf_%s.fits' % args.side)
-F[0].data = np.array(F[0].data, dtype='float64')
-R.ftf = R.wave * 0.
-for i in np.arange(R.wave.shape[0]):
-    I = interp1d(F[0].data[0], F[0].data[i+1], kind='quadratic',
-                 bounds_error=False, fill_value=-999.)
-    R.ftf[i] = I(R.wave[i])
 
-rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
-                               np.array(R.oldspec, dtype='float64') / R.ftf,
-                               lims, fac=2.5)
 
-y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
+def main():
+    R = ReduceLRS2(args.filename, args.side)
+    R.get_mirror_illumination()
+    if args.side[0] == 'R':
+        R.dar.spec = 1. * R.oldspec
+        R.dar.rectified_dlam = np.abs(np.diff(R.wave_lims)) / (2064.*1.5)
+        R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
+        R.dar.wave = correct_wave(R)
+        R.wave = R.dar.wave * 1.
+    F = fits.open('ftf_%s.fits' % args.side)
+    F[0].data = np.array(F[0].data, dtype='float64')
+    R.ftf = R.wave * 0.
+    for i in np.arange(R.wave.shape[0]):
+        I = interp1d(F[0].data[0], F[0].data[i+1], kind='quadratic',
+                     bounds_error=False, fill_value=-999.)
+        R.ftf[i] = I(R.wave[i])
 
-for i in np.arange(2):
-    back = sky_calc(y, R.goodfibers, nbins=(R.wave.shape[0] / args.fibergroup))
+    rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
+                                   np.array(R.oldspec, dtype='float64') /
+                                   R.ftf, lims, fac=2.5)
+
+    y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
+
+    for i in np.arange(2):
+        back = sky_calc(y, R.goodfibers, nbins=(R.wave.shape[0] /
+                                                args.fibergroup))
+        G = Gaussian1DKernel(1.5)
+        fibconv = rect_spec * 0.
+        for i in np.arange(R.wave.shape[0]):
+            fibconv[i] = convolve(rect_spec[i] - back[i], G)
+        noise = biweight_midvariance(fibconv, axis=(0,))
+        R.signoise = fibconv / noise
+        S = np.nanmedian(R.signoise, axis=1)
+        N = biweight_midvariance(S)
+        R.goodfibers = np.where((S/N) < 3.)[0]
+
+    skysub = R.wave * 0.
+    sky = R.wave * 0.
+    for i in np.arange(R.wave.shape[0]):
+        dw = np.diff(R.wave[i])
+        dw = np.hstack([dw[0], dw])
+        I = interp1d(rect_wave, back[i], kind='quadratic',
+                     bounds_error=False, fill_value=-999.)
+        skysub[i] = R.oldspec[i] - I(R.wave[i]) * dw * R.ftf[i]
+        sky[i] = I(R.wave[i]) * dw * R.ftf[i]
+
+    R.sky = sky * 1.
+    R.skysub = safe_division(skysub, R.ftf)
+    R.ifupos = np.array([R.ifux, R.ifuy]).swapaxes(0, 1)
+    R.skypos = np.array([R.ra, R.dec]).swapaxes(0, 1)
+    R.skynorm = safe_division(R.sky, R.ftf)
+
+    T = Table.read('response_%s.dat' % args.side,
+                   format='ascii.fixed_width_two_line')
+    I = interp1d(T['wave'], T['response'], kind='linear',
+                 bounds_error=False, fill_value='extrapolate')
+    R.flam = R.wave * 0.
+    R.slam = R.wave * 0.
+    for i in np.arange(R.wave.shape[0]):
+        response = I(R.wave[i])
+        R.flam[i] = R.skysub[i] / R.exptime / R.area * response
+        R.slam[i] = R.skynorm[i] / R.exptime / R.area * response
+
+    rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
+                                   np.array(R.flam, dtype='float64'),
+                                   lims, fac=1.0)
+    rect_wave, rect_sky = rectify(np.array(R.wave, dtype='float64'),
+                                  np.array(R.slam, dtype='float64'),
+                                  lims, fac=1.0)
+    
+    R.define_good_fibers()
     G = Gaussian1DKernel(1.5)
     fibconv = rect_spec * 0.
     for i in np.arange(R.wave.shape[0]):
-        fibconv[i] = convolve(rect_spec[i] - back[i], G)
+        fibconv[i] = convolve(rect_spec[i], G)
     noise = biweight_midvariance(fibconv, axis=(0,))
-    R.signoise = fibconv / noise
-    S = np.nanmedian(R.signoise, axis=1)
-    N = biweight_midvariance(S)
-    R.goodfibers = np.where((S/N) < 3.)[0]
+    inds = np.array_split(np.arange(len(rect_wave)), 20)
+    v = np.argmax([np.sum(np.nanmedian(chunk, axis=1))
+                   for chunk in np.array_split(fibconv / noise, 20, axis=1)])
+    sn_image = np.nanmedian(np.array_split(fibconv / noise, 20, axis=1)[v],
+                            axis=1)
+    wv = np.median(np.array_split(rect_wave, 20)[v])
+    xc, yc = find_centroid(sn_image, R.ifux, R.ifuy)
+    print(v, xc, yc)
 
-skysub = R.wave * 0.
-sky = R.wave * 0.
-for i in np.arange(R.wave.shape[0]):
-    dw = np.diff(R.wave[i])
-    dw = np.hstack([dw[0], dw])
-    I = interp1d(rect_wave, back[i], kind='quadratic',
-                 bounds_error=False, fill_value=-999.)
-    skysub[i] = R.oldspec[i] - I(R.wave[i]) * dw * R.ftf[i]
-    sky[i] = I(R.wave[i]) * dw * R.ftf[i]
+    fibinds, s = gather_sn_fibers(fibconv, noise, inds[v])
+    dar_table = Table.read('dar_%s.dat' % args.side,
+                           format='ascii.fixed_width_two_line')
 
-R.sky = sky * 1. 
-R.skysub = safe_division(skysub, R.ftf)
-R.ifupos = np.array([R.ifux, R.ifuy]).swapaxes(0, 1)
-R.skypos = np.array([R.ra, R.dec]).swapaxes(0, 1)
-R.skynorm = safe_division(R.sky, R.ftf)
+    frac = flux_correction(rect_wave, [wv, xc, yc], R, fibinds, dar_table)
+    print(len(fibinds), s)
 
-T = Table.read('response_%s.dat' % args.side,
-               format='ascii.fixed_width_two_line')
-I = interp1d(T['wave'], T['response'], kind='linear',
-             bounds_error=False, fill_value='extrapolate')
-R.flam = R.wave * 0.
-R.slam = R.wave * 0.
-for i in np.arange(R.wave.shape[0]):
-    response = I(R.wave[i])
-    R.flam[i] = R.skysub[i] / R.exptime / R.area * response
-    R.slam[i] = R.skynorm[i] / R.exptime / R.area * response
+    R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
+    R.skyflux = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
+    R.fluxerror = noise * np.sqrt(len(fibinds)) / frac
+    R.spectrum = np.array([rect_wave, R.flux, R.skyflux, R.skyerror, frac])
+    R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave',
+                       'oldspec', 'ftf', 'sky', 'skysub'],
+           name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
+                      'ftf', 'sky', 'skysub'])
+    names = ['wavelength', 'F_lambda', 'e_F_lambda', 'Sky_lambda',
+             'e_Sky_lambda']
+    hdu = fits.PrimaryHDU(np.array([rect_wave, R.flux, R.fluxerror, R.skyflux],
+                                   dtype='float32'))
+    hdu.header['waveunit'] = 'A'
+    hdu.header['fluxunit'] = 'ergs/s/cm2/A'
+    for i, name in enumerate(names):
+        hdu.header['ROW%i' % (i+1)] = name
+    for key in R.header.keys():
+        if key in hdu.header:
+            continue
+        hdu.header[key] = R.header[key]
+    hdu.writeto('spectrum_%s.fits' % args.side, overwrite=True)
 
-rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
-                               np.array(R.flam, dtype='float64'),
-                               lims, fac=1.0)
-rect_wave, rect_sky = rectify(np.array(R.wave, dtype='float64'),
-                              np.array(R.slam, dtype='float64'),
-                              lims, fac=1.0)
-
-R.define_good_fibers()
-G = Gaussian1DKernel(1.5)
-fibconv = rect_spec * 0.
-for i in np.arange(R.wave.shape[0]):
-    fibconv[i] = convolve(rect_spec[i], G)
-noise = biweight_midvariance(fibconv, axis=(0,))
-inds = np.array_split(np.arange(len(rect_wave)), 20)
-v = np.argmax([np.sum(np.nanmedian(chunk, axis=1))
-               for chunk in np.array_split(fibconv / noise, 20, axis=1)])
-sn_image = np.nanmedian(np.array_split(fibconv / noise, 20, axis=1)[v], axis=1)
-wv = np.median(np.array_split(rect_wave, 20)[v])
-xc, yc = find_centroid(sn_image, R.ifux, R.ifuy)
-print(v, xc, yc)
-
-fibinds, s = gather_sn_fibers(fibconv, noise, inds[v])
-import matplotlib.pyplot as plt
-plt.figure(figsize=(6,6))
-plt.scatter(R.ifux, R.ifuy, c=sn_image, s=220, marker='h')
-plt.scatter(R.ifux[fibinds], R.ifuy[fibinds], marker='x', color='r')
-plt.axis('equal')
-plt.savefig('test.png')
-dar_table = Table.read('dar_%s.dat' % args.side,
-                       format='ascii.fixed_width_two_line')
-
-frac = flux_correction(rect_wave, [wv, xc, yc], R, fibinds, dar_table)
-print(len(fibinds), s)
-
-R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
-R.skyflux = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
-R.skyerror = noise * np.sqrt(len(fibinds)) / frac
-R.spectrum = np.array([rect_wave, R.flux, R.skyflux, R.skyerror, frac])
-R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave',
-                   'oldspec', 'ftf', 'sky', 'skysub', 'spectrum'],
-       name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
-                  'ftf', 'sky', 'skysub', 'spectra'])
+if __name__ == '__main__':
+    main()
