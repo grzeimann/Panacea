@@ -116,9 +116,10 @@ def gather_sn_fibers(fibconv, noise, cols):
 
 
 def find_centroid(image, x, y):
-    G = Gaussian2D()
+    G = Moffat2D()
     fit = LevMarLSQFitter()(G, x, y, image)
-    return fit.x_mean.value, fit.y_mean.value
+    return (fit.x_0.value, fit.y_0.value, fit.alpha.value, fit.gamma.value,
+            fit.fwhm)
 
 
 def build_big_fiber_array(P):
@@ -253,14 +254,15 @@ def main():
     sn_image = np.nanmedian(np.array_split(fibconv / noise, 20, axis=1)[v],
                             axis=1)
     wv = np.median(np.array_split(rect_wave, 20)[v])
-    xc, yc = find_centroid(sn_image, R.ifux, R.ifuy)
-    print(v, xc, yc)
+    xc, yc, alpha, gamma, fwhm = find_centroid(sn_image, R.ifux, R.ifuy)
+    print(v, xc, yc, alpha, gamma, fwhm)
 
     fibinds, s = gather_sn_fibers(fibconv, noise, inds[v])
     dar_table = Table.read('dar_%s.dat' % args.side,
                            format='ascii.fixed_width_two_line')
 
-    frac = flux_correction(rect_wave, [wv, xc, yc], R, fibinds, dar_table)
+    frac = flux_correction(rect_wave, [wv, xc, yc], R, fibinds, dar_table,
+                           alpha=alpha, gamma=gamma)
     print(len(fibinds), s, np.median(frac))
 
     R.rect_spec = rect_spec * 1.
