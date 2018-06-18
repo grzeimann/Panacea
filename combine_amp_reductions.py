@@ -117,6 +117,8 @@ def gather_sn_fibers(fibconv, noise, cols):
 
 def find_centroid(image, x, y):
     G = Moffat2D()
+    G.alpha.value = 3.5
+    G.alpha.fixed = True
     fit = LevMarLSQFitter()(G, x, y, image)
     return (fit.x_0.value, fit.y_0.value, fit.alpha.value, fit.gamma.value,
             fit.fwhm)
