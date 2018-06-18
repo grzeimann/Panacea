@@ -206,11 +206,9 @@ I = interp1d(T['wave'], T['response'], kind='linear',
 R.flam = R.wave * 0.
 R.slam = R.wave * 0.
 for i in np.arange(R.wave.shape[0]):
-    dw = np.diff(R.wave[i])
-    dw = np.hstack([dw[0], dw])
     response = I(R.wave[i])
-    R.flam[i] = R.skysub[i] / dw / R.exptime / R.area * response
-    R.slam[i] = R.skynorm[i] / dw / R.exptime / R.area * response
+    R.flam[i] = R.skysub[i] / R.exptime / R.area * response
+    R.slam[i] = R.skynorm[i] / R.exptime / R.area * response
 
 rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                np.array(R.flam, dtype='float64'),
