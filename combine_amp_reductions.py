@@ -7,6 +7,7 @@ Created on Thu May 31 16:02:02 2018
 
 import numpy as np
 import sys
+import os.path as op
 from reducelrs2 import ReduceLRS2
 from astropy.io import fits
 from astropy.table import Table
@@ -220,7 +221,7 @@ def main():
     rect_wave, rect_sky = rectify(np.array(R.wave, dtype='float64'),
                                   np.array(R.slam, dtype='float64'),
                                   lims, fac=1.0)
-    
+
     R.define_good_fibers()
     G = Gaussian1DKernel(1.5)
     fibconv = rect_spec * 0.
@@ -262,7 +263,8 @@ def main():
         if key in hdu.header:
             continue
         hdu.header[key] = R.header[key]
-    hdu.writeto('spectrum_%s.fits' % args.side, overwrite=True)
+    hdu.writeto(op.join(R.path, 'spectrum_%s.fits' % args.side),
+                overwrite=True)
 
 if __name__ == '__main__':
     main()
