@@ -292,7 +292,7 @@ def main():
            name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
                       'ftf', 'sky', 'skysub'])
     names = ['wavelength', 'F_lambda', 'e_F_lambda', 'Sky_lambda']
-    hdu = fits.PrimaryHDU(np.array([rect_wave, R.flux, R.fluxerror, R.skyflux],
+    hdu = fits.PrimaryHDU(np.array([rect_wave, R.flux, R.fluxerr, R.skyflux],
                                    dtype='float32'))
     hdu.header['waveunit'] = 'A'
     hdu.header['fluxunit'] = 'ergs/s/cm2/A'
