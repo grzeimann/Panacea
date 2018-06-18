@@ -272,6 +272,7 @@ def main():
                                                    rect_spec, rect_sky)
     print(len(fibinds), s, np.median(frac))
 
+    R.rect_spec = rect_spec * 1.
     # R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
     # R.skyflux = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
     R.fluxerror = noise * np.sqrt(len(fibinds)) / frac
