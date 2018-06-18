@@ -275,6 +275,7 @@ def main():
     dar_table = Table.read('dar_%s.dat' % args.side,
                            format='ascii.fixed_width_two_line')
 
+    noise = biweight_midvariance(rect_spec, axis=(0,))
     frac, R.flux, R.skyflux, R.fluxerr = flux_correction(rect_wave,
                                                          [wv, xc, yc], R,
                                                          fibinds, dar_table,
