@@ -142,20 +142,18 @@ def build_big_fiber_array(P):
     return NX, NY
 
 
-def flux_correction(wave, loc, P, inds, dar_table, alpha=1.5,
-                    gamma=3.5):
+def flux_correction(wave, loc, P, inds, dar_table, alpha=3.5,
+                    gamma=1.5):
     X = interp1d(dar_table['wave'], dar_table['x_0'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
     Y = interp1d(dar_table['wave'], dar_table['y_0'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
     frac = wave * 0.
-    offx = loc[1] - X(loc[0])
-    offy = loc[2] - Y(loc[0])
     NX, NY = build_big_fiber_array(P)
     PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=alpha, gamma=gamma)
     for i in np.arange(len(wave)):
-        x = X(wave[i]) + offx
-        y = Y(wave[i]) + offy
+        x = loc[1] + X(wave[i]) - X(loc[0])
+        y = loc[2] + Y(wave[i]) - Y(loc[0])
         PSF.x_0.value = x
         PSF.y_0.value = y
         total = PSF(NX, NY).sum()
