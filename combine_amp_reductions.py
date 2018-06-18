@@ -151,6 +151,7 @@ def flux_correction(wave, loc, P, inds, dar_table, rect_spec,
     frac = wave * 0.
     SF = wave * 0.
     SS = wave * 0.
+    W = rect_spec * 0.
     NX, NY = build_big_fiber_array(P)
     PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=alpha, gamma=gamma)
     for i in np.arange(len(wave)):
@@ -163,7 +164,8 @@ def flux_correction(wave, loc, P, inds, dar_table, rect_spec,
         SF[i] = np.sum(rect_spec[inds, i] * wei) * total / wei.sum()
         SS[i] = np.sum(rect_sky[inds, i] * wei) * total / wei.sum()
         frac[i] = wei.sum() / total
-    return frac, SF, SS
+        W[:, i] = PSF(P.ifux, P.ifuy)
+    return frac, SF, SS, W
 
 
 if args.side == 'RR':
@@ -265,18 +267,18 @@ def main():
     dar_table = Table.read('dar_%s.dat' % args.side,
                            format='ascii.fixed_width_two_line')
 
-    frac, R.flux, R.skyflux = flux_correction(rect_wave, [wv, xc, yc], R,
-                                              fibinds, dar_table,
-                                              rect_spec, rect_sky)
+    frac, R.flux, R.skyflux, R.W = flux_correction(rect_wave, [wv, xc, yc], R,
+                                                   fibinds, dar_table,
+                                                   rect_spec, rect_sky)
     print(len(fibinds), s, np.median(frac))
 
     # R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
     # R.skyflux = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
     R.fluxerror = noise * np.sqrt(len(fibinds)) / frac
     R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave',
-                       'oldspec', 'ftf', 'sky', 'skysub'],
+                       'oldspec', 'ftf', 'sky', 'skysub', 'rect_spec', 'W'],
            name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
-                      'ftf', 'sky', 'skysub'])
+                      'ftf', 'sky', 'skysub', 'rect_spec', 'weights'])
     names = ['wavelength', 'F_lambda', 'e_F_lambda', 'Sky_lambda',
              'e_Sky_lambda']
     hdu = fits.PrimaryHDU(np.array([rect_wave, R.flux, R.fluxerror, R.skyflux],
