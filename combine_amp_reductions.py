@@ -19,6 +19,9 @@ from utils import biweight_location, biweight_midvariance
 from astropy.convolution import convolve, Gaussian1DKernel
 from astropy.modeling.models import Moffat2D, Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
+from pysynphot import observation
+from pysynphot import spectrum
+ 
 
 
 parser = ap.ArgumentParser(add_help=True)
@@ -82,6 +85,21 @@ def rectify(wave, spec, lims, fac=2.5):
                      bounds_error=False, fill_value=-999.)
         rect_spec[i, :] = I(rect_wave)
     return rect_wave, rect_spec
+
+
+def rebin_spec(Wave, Spec, lims, fac=2.5):
+    N, D = Wave.shape
+    wavnew = np.linspace(lims[0], lims[1], int(D*fac))
+    rect_spec = np.zeros((N, len(wavnew)))
+    for i in np.arange(N):
+        wave = Wave[i]
+        specin = Spec[i]
+        spec = spectrum.ArraySourceSpectrum(wave=wave, flux=specin)
+        f = np.ones(len(wave))
+        filt = spectrum.ArraySpectralElement(wave, f, waveunits='angstrom')
+        obs = observation.Observation(spec, filt, binset=wavnew, force='taper')
+        rect_spec[i] = obs.binflux * 1.
+    return wavnew, rect_spec
 
 
 def sky_calc(y, goodfibers, nbins=14):
@@ -235,12 +253,12 @@ def main():
         R.flam[i] = R.skysub[i] / R.exptime / R.area * response
         R.slam[i] = R.skynorm[i] / R.exptime / R.area * response
 
-    rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
-                                   np.array(R.flam, dtype='float64'),
-                                   lims, fac=1.7)
-    rect_wave, rect_sky = rectify(np.array(R.wave, dtype='float64'),
-                                  np.array(R.slam, dtype='float64'),
-                                  lims, fac=1.7)
+    rect_wave, rect_spec = rebin_spec(np.array(R.wave, dtype='float64'),
+                                      np.array(R.flam, dtype='float64'),
+                                      lims, fac=1.0)
+    rect_wave, rect_sky = rebin_spec(np.array(R.wave, dtype='float64'),
+                                     np.array(R.slam, dtype='float64'),
+                                     lims, fac=1.0)
 
     R.define_good_fibers()
     G = Gaussian1DKernel(1.5)
