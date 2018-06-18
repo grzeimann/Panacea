@@ -166,12 +166,16 @@ def flux_correction(wave, loc, P, inds, dar_table, alpha=3.5, gamma=1.5):
 
 if args.side == 'RR':
     lims = [8225, 10565]
+    lims2 = [8275., 10500.]
 if args.side == 'RL':
     lims = [6425, 8460]
+    lims2 = [6450., 8400.]
 if args.side == 'BR':
     lims = [4520, 7010]
+    lims2 = [4655., 6960.]
 if args.side == 'BL':
     lims = [3625, 4670]
+    lims2 = [3640., 4640.]
 
 
 def main():
@@ -239,10 +243,10 @@ def main():
 
     rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                    np.array(R.flam, dtype='float64'),
-                                   lims, fac=1.0)
+                                   lims2, fac=1.0)
     rect_wave, rect_sky = rectify(np.array(R.wave, dtype='float64'),
                                   np.array(R.slam, dtype='float64'),
-                                  lims, fac=1.0)
+                                  lims2, fac=1.0)
 
     R.define_good_fibers()
     G = Gaussian1DKernel(1.5)
@@ -275,8 +279,7 @@ def main():
                        'oldspec', 'ftf', 'sky', 'skysub'],
            name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
                       'ftf', 'sky', 'skysub'])
-    names = ['wavelength', 'F_lambda', 'e_F_lambda', 'Sky_lambda',
-             'e_Sky_lambda']
+    names = ['wavelength', 'F_lambda', 'e_F_lambda', 'Sky_lambda']
     hdu = fits.PrimaryHDU(np.array([rect_wave, R.flux, R.fluxerror, R.skyflux],
                                    dtype='float32'))
     hdu.header['waveunit'] = 'A'
@@ -287,7 +290,7 @@ def main():
         if key in hdu.header:
             continue
         hdu.header[key] = R.header[key]
-    hdu.writeto(op.join(R.path, 'spectrum_%s.fits' % args.side),
+    hdu.writeto(op.join(R.path, 'spectrum_%s.fits' % R.side_name),
                 overwrite=True)
 
 if __name__ == '__main__':
