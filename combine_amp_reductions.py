@@ -145,12 +145,16 @@ def build_big_fiber_array(P):
     return NX, NY
 
 
-def flux_correction(wave, loc, P, inds, dar_table, alpha=3.5, gamma=1.5):
+def flux_correction(wave, loc, P, inds, dar_table, 
+                    rect_spec, rect_sky, noise, alpha=3.5, gamma=1.5):
     X = interp1d(dar_table['wave'], dar_table['x_0'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
     Y = interp1d(dar_table['wave'], dar_table['y_0'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
     frac = wave * 0.
+    SF = wave * 0.
+    SS = wave * 0.
+    N = wave * 0.
     NX, NY = build_big_fiber_array(P)
     PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=alpha, gamma=gamma)
     for i in np.arange(len(wave)):
@@ -160,8 +164,13 @@ def flux_correction(wave, loc, P, inds, dar_table, alpha=3.5, gamma=1.5):
         PSF.y_0.value = y
         total = PSF(NX, NY).sum()
         wei = PSF(P.ifux[inds], P.ifuy[inds])
+        frac = wei.sum() / total
+        nwei = wei / wei.sum()
+        SF[i] = (rect_spec[inds] * nwei).sum() / (nwei**2).sum() / frac
+        SS[i] = (rect_spec[inds] * nwei).sum() / (nwei**2).sum() / frac
+        N[i] = np.sqrt((noise[i]**2 * (nwei / (nwei**2).sum())**2).sum())/frac
         frac[i] = wei.sum() / total
-    return frac
+    return frac, SF, SS, N
 
 
 if args.side == 'RR':
@@ -267,14 +276,18 @@ def main():
     dar_table = Table.read('dar_%s.dat' % args.side,
                            format='ascii.fixed_width_two_line')
 
-    frac = flux_correction(rect_wave, [wv, xc, yc], R, fibinds, dar_table,
-                           alpha=alpha, gamma=gamma)
+    frac, R.flux, R.skyflux, R.fluxerr = flux_correction(rect_wave,
+                                                         [wv, xc, yc], R,
+                                                         fibinds, dar_table,
+                                                         rect_spec, rect_sky,
+                                                         noise, alpha=alpha,
+                                                         gamma=gamma)
     print(len(fibinds), s, np.median(frac))
 
     R.rect_spec = rect_spec * 1.
-    R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
-    R.skyflux = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
-    R.fluxerror = noise * np.sqrt(len(fibinds)) / frac
+    # R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
+    # R.skyflux = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
+    # R.fluxerror = noise * np.sqrt(len(fibinds)) / frac
     R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave',
                        'oldspec', 'ftf', 'sky', 'skysub'],
            name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
