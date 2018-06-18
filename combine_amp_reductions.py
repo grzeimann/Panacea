@@ -237,10 +237,10 @@ def main():
 
     rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                    np.array(R.flam, dtype='float64'),
-                                   lims, fac=1.0)
+                                   lims, fac=1.7)
     rect_wave, rect_sky = rectify(np.array(R.wave, dtype='float64'),
                                   np.array(R.slam, dtype='float64'),
-                                  lims, fac=1.0)
+                                  lims, fac=1.7)
 
     R.define_good_fibers()
     G = Gaussian1DKernel(1.5)
