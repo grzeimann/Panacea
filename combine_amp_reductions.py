@@ -193,7 +193,7 @@ for i in np.arange(R.wave.shape[0]):
     skysub[i] = R.oldspec[i] - I(R.wave[i]) * dw * R.ftf[i]
     sky[i] = I(R.wave[i]) * dw * R.ftf[i]
 
-R.sky = sky * 1.
+R.sky = sky * 1. 
 R.skysub = safe_division(skysub, R.ftf)
 R.ifupos = np.array([R.ifux, R.ifuy]).swapaxes(0, 1)
 R.skypos = np.array([R.ra, R.dec]).swapaxes(0, 1)
@@ -239,9 +239,9 @@ frac = flux_correction(rect_wave, [wv, xc, yc], R, fibinds, dar_table)
 print(len(fibinds), s)
 
 R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
-R.sky = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
+R.skyflux = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
 R.skyerror = noise * np.sqrt(len(fibinds)) / frac
-R.spectrum = np.array([R.flux, R.sky, R.skyerror, frac])
+R.spectrum = np.array([R.flux, R.skyflux, R.skyerror, frac])
 R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave',
                    'oldspec', 'ftf', 'sky', 'skysub', 'spectrum'],
        name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
