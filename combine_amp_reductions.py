@@ -223,7 +223,7 @@ R.define_good_fibers()
 G = Gaussian1DKernel(1.5)
 fibconv = rect_spec * 0.
 for i in np.arange(R.wave.shape[0]):
-    fibconv[i] = convolve(rect_spec[i] - rect_sky[i], G)
+    fibconv[i] = convolve(rect_spec[i], G)
 noise = biweight_midvariance(fibconv, axis=(0,))
 inds = np.array_split(np.arange(len(rect_wave)), 20)
 v = np.argmax([np.sum(np.nanmedian(chunk, axis=1))
