@@ -166,8 +166,8 @@ def flux_correction(wave, loc, P, inds, dar_table,
         wei = PSF(P.ifux[inds], P.ifuy[inds])
         frac = wei.sum() / total
         nwei = wei / wei.sum()
-        SF[i] = (rect_spec[inds] * nwei).sum() / (nwei**2).sum() / frac
-        SS[i] = (rect_spec[inds] * nwei).sum() / (nwei**2).sum() / frac
+        SF[i] = (rect_spec[inds, i] * nwei).sum() / (nwei**2).sum() / frac
+        SS[i] = (rect_spec[inds, i] * nwei).sum() / (nwei**2).sum() / frac
         N[i] = np.sqrt((noise[i]**2 * (nwei / (nwei**2).sum())**2).sum())/frac
         frac[i] = wei.sum() / total
     return frac, SF, SS, N
