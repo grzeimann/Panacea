@@ -3,7 +3,11 @@ This package is intended to be the base reduction pipeline for VIRUS and LRS2 at
 Instructions for installation and use at the Texas Advanced Computing Center (TACC) are below.
 
 ## Getting Started with LRS2
-### TACC 
+
+### Working on TACC 
+The reductions are designed to be run on TACC where a copy of the raw data lives.  We will describe how to get started on TACC, 
+acquire the reduction code, run the code, and the products that are produced.
+
 #### Signing up for an account
 https://portal.tacc.utexas.edu/
 <p align="center">
@@ -11,22 +15,28 @@ https://portal.tacc.utexas.edu/
 </p>
 
 After creating an accounting using the link above, please send Matthew Shetrone <shetrone@astro.as.utexas.edu> your 
-TACC username and he will add you to the HET group.
+TACC username and he will add you to the HET group.  When that step is complete, you can ssh into TACC using:
+```
+ssh -Y USERNAME@tacc.maverick.utexas.edu
+```
 
+#### Setting up your Python environment
 To begin on TACC, point to the common python environment. In your home "~/.bashrc" file, add the following line at the bottom:
 ```
 export PATH=”/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bin:$PATH”
 ```
 
+#### Getting Panacea
 Then move to your work directory and clone Panacea: 
 ```
 cdw
 git clone https://github.com/grzeimann/Panacea.git
 ```
 
+#### Preparing the reductions
 The next step is to generate the necessary set of scripts for your target:
 ```
-"python Panacea/build_panacea_call.py --start_date 20180515 --date_length 1 --rootdir /work/03946/hetdex/maverick --instrument lrs2 --side blue --target bd
+python Panacea/build_panacea_call.py --start_date 20180515 --date_length 1 --rootdir /work/03946/hetdex/maverick --instrument lrs2 --side blue --target bd
 ```
 
 The following scripts are generated from that call and printed to screen:
@@ -38,7 +48,20 @@ sbatch rresponse_blue_1.slurm
 sbatch rcom_blue_1.slurm
 ```
 
-First run all of the "rtwi_*.slurm" by simply copying and pasting the printed commands like "sbatch rtwi_blue_1.slurm" and hit enter.
+At this step, it is easiest to create a new terminal on TACC to preserve these commands in your current window, and in the new 
+terminal window you can run these scripts as described in detail below.
+
+#### Running calibrations
+We must first reduce the twilight frames from which the trace, fiber profile, wavelength solution, and fiber normalization are derived.
+To begin, run all of the "rtwi_*.slurm" by simply copying and pasting the printed commands like "sbatch rtwi_blue_1.slurm" and hit enter.
+If many "rtwi_*.slurm" commands are printed to the screen from the "python Panacea/build_panacea_commands.py" then copy them all
+and hit enter. For example:
+```
+sbatch rtwi_blue_1.slurm
+sbatch rtwi_blue_2.slurm
+sbatch rtwi_blue_3.slurm
+```
+
 All of the "rtwi*" scripts can be run simultaneously and take roughly 30 minutes.  You can check on the progress by using the command:
 ```
 squeue | grep USERNAME
@@ -46,7 +69,10 @@ squeue | grep USERNAME
 Where you put your username for USERNAME.  The log of what is running or did run is in the file "reduction.oXXXXXX" 
 where XXXXXX is the 6 job number (hint, the job number is printed out at the end of the command "sbatch rtwi_*.slurm").  
 
-After the job has finished, in other words is no longer in the squeue, you can run both the science and standard star reductions via:
+After the job has finished, in other words is no longer in the squeue, you can run both the science and standard star reductions.
+
+#### Running basic reductions for science and standard star frames
+Next, simply copy the "rsci*.slurm" and "rstd*.slurm" commands to the terminal window and hit enter:
 ```
 sbatch rsci_blue_1.slurm
 sbatch rstd_blue_1.slurm
@@ -62,7 +88,10 @@ sbatch rstd_blue_2.slurm
 sbatch rstd_blue_3.slurm
 ```
 
-Finally, to combine the amplifier reductions and make the first product ready for science, run:
+#### Combine amplifier reductions
+We have reduced each amplifier individually, but each channel in LRS2 has two amplifiers, so we now must combine them.
+
+To do so, run:
 ```
 sbatch rcom_blue_1.slurm 
 ```
