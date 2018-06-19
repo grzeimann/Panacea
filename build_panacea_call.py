@@ -34,6 +34,12 @@ def build_filenames(date, args):
     return [filenames[i] for i in ind]
 
 
+def get_exposures(date, obs, args):
+    exposures = sorted(glob.glob(op.join(args.rootdir, date, args.instrument,
+                                         args.instrument + obs, 'exp*')))
+    return [int(fn[-2:]) for fn in exposures]
+
+
 def find_match(datet, list_name):
     timediff = []
     for twi in list_name:
@@ -58,8 +64,12 @@ args = parser.parse_args(args=None)
 
 if args.side.lower() == 'blue':
     ifuslot = '056'
+    multi_name = 'multi_503_056_7001'
+    sides = ['BL', 'BR']
 else:
     ifuslot = '066'
+    multi_name = 'multi_502_066_7002'
+    sides = ['RL', 'RR']
 args.log = setup_logging(logname='build_panacea_command')
 if args.target is None:
     args.log.error('Please provide "--target" argument on call')
@@ -95,6 +105,7 @@ for datet in args.daterange:
 
 twi_file = []
 sci_file = []
+com_file = []
 std_file = []
 std_post = []
 no_repeats = []
@@ -141,10 +152,20 @@ for science_targ in target_list:
                       twi_list[closest_date].split('_')[1],
                       args.instrument, args.side, ifuslot, date, obsid))
     sci_file.append(panacea_str)
+    exps = get_exposures(date, obsid, args)
+    for exp in exps:
+        for side in sides:
+            panacea_str = ('python Panacea/combine_amp_reductions.py -f'
+                           'reductions/%s/%s/%s%s/exp%02d/lrs2/%s -s %s'
+                           % (date, args.instrument, args.instrument, obsid,
+                              exp, side))
+            com_file.append(panacea_str)
+
 std_file = np.unique(std_file)
 std_post = np.unique(std_post)
-for f, basename in zip([twi_file, sci_file, std_file, std_post],
-                       ['rtwi', 'rsci', 'rstd', 'rresponse']):
+for f, basename in zip([twi_file, sci_file, std_file, std_post,
+                        com_file],
+                       ['rtwi', 'rsci', 'rstd', 'rresponse', 'rcom']):
     chunks = np.array_split(f, len(f) / 20 + 1)
     for j, chunk in enumerate(chunks):
         n = len(chunk)
