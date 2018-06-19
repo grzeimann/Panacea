@@ -28,10 +28,10 @@ def build_filenames(date, args):
     a single file for each observation to examine the header.
     '''
     basedir = op.join(args.rootdir, date, args.instrument,
-                      args.instrument + '*', 'exp*', args.instrument)
+                      args.instrument + '0000*', 'exp*', args.instrument)
     filenames = sorted(glob.glob(op.join(basedir, '2*_zro.fits')))
-    args.log.info(filenames)
     dirnames = [op.dirname(fn) for fn in filenames]
+    args.log.info(dirnames)
     unique_dirnames, ind = np.unique(dirnames, return_index=True)
     return [filenames[i][:-14] for i in ind]
 
