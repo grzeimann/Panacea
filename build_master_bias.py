@@ -31,8 +31,8 @@ def build_filenames(date, args):
                       args.instrument + '0000*', 'exp*', args.instrument)
     filenames = sorted(glob.glob(op.join(basedir, '2*_zro.fits')))
     dirnames = [op.dirname(fn) for fn in filenames]
-    args.log.info(dirnames)
     unique_dirnames, ind = np.unique(dirnames, return_index=True)
+    args.log.info(unique_dirnames)
     return [filenames[i][:-14] for i in ind]
 
 
