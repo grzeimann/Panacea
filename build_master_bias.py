@@ -32,7 +32,6 @@ def build_filenames(date, args):
     filenames = sorted(glob.glob(op.join(basedir, '2*_zro.fits')))
     dirnames = [op.dirname(fn) for fn in filenames]
     unique_dirnames, ind = np.unique(dirnames, return_index=True)
-    args.log.info([filenames[i][:-14] for i in ind])
     return [filenames[i][:-14] for i in ind]
 
 
@@ -74,8 +73,8 @@ args = set_daterange(args)
 filenames = []
 for date in args.daterange:
     date = '%04d%02d%02d' % (date.year, date.month, date.day)
-    args.log.info(date)
-    filenames + build_filenames(date, args)
+    filenames = filenames + build_filenames(date, args)
+    args.log.info(filenames)
 for ifuslot in ['056', '066']:
     for amp in ['LL', 'LU', 'RL', 'RU']:
         build_master_frame(filenames, ifuslot, amp, args)
