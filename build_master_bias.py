@@ -27,9 +27,10 @@ def build_filenames(date, args):
     Build directory structure and search for unique observations, and return
     a single file for each observation to examine the header.
     '''
-    filenames = glob.glob(op.join(args.rootdir, date, args.instrument,
-                                  args.instrument + '*', 'exp01',
-                                  args.instrument, '2*_zro.fits'))
+    basedir = op.join(args.rootdir, date, args.instrument,
+                      args.instrument + '*', 'exp*', args.instrument)
+    args.log.info(basedir)
+    filenames = glob.glob(op.join(basedir, '2*_zro.fits'))
     dirnames = [op.dirname(fn) for fn in filenames]
     unique_dirnames, ind = np.unique(dirnames, return_index=True)
     return [filenames[i][:-14] for i in ind]
@@ -73,6 +74,7 @@ args = set_daterange(args)
 filenames = []
 for date in args.daterange:
     date = '%04d%02d%02d' % (date.year, date.month, date.day)
+    args.log.info(date)
     filenames + build_filenames(date, args)
 for ifuslot in ['056', '066']:
     for amp in ['LL', 'LU', 'RL', 'RU']:
