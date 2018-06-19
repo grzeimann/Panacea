@@ -35,7 +35,7 @@ def build_filenames(date, args):
     return [filenames[i][:-14] for i in ind]
 
 
-def build_master_frame(file_list, ifuslot, amp, args):
+def build_master_frame(file_list, ifuslot, amp, args, date):
     # Create empty lists for the left edge jump, right edge jump, and structure
 
     bia_list = []
@@ -59,7 +59,7 @@ def build_master_frame(file_list, ifuslot, amp, args):
     hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'))
 
     args.log.info('Writing masterbias_%s_%s.fits' % (bia_list[-1].specid, amp))
-    write_fits(hdu, op.join(args.folder, 'masterbias_%s_%s.fits' %
+    write_fits(hdu, op.join(args.folder, date, 'masterbias_%s_%s.fits' %
                (bia_list[-1].specid, amp)))
 
 parser = setup_parser()
@@ -74,7 +74,9 @@ filenames = []
 for date in args.daterange:
     date = '%04d%02d%02d' % (date.year, date.month, date.day)
     filenames = filenames + build_filenames(date, args)
-    args.log.info(filenames)
 for ifuslot in ['056', '066']:
     for amp in ['LL', 'LU', 'RL', 'RU']:
-        build_master_frame(filenames, ifuslot, amp, args)
+        build_master_frame(filenames, ifuslot, amp, args,
+                           '%04d%02d%02d' % (args.daterange[0].year,
+                                             args.daterange[0].month,
+                                             args.daterange[0].day))
