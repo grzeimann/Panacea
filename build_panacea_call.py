@@ -158,7 +158,7 @@ for science_targ in target_list:
             panacea_str = ('python Panacea/combine_amp_reductions.py -f'
                            'reductions/%s/%s/%s%s/exp%02d/lrs2/%s -s %s'
                            % (date, args.instrument, args.instrument, obsid,
-                              exp, side))
+                              exp, multi_name, side))
             com_file.append(panacea_str)
 
 std_file = np.unique(std_file)
