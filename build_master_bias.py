@@ -11,6 +11,7 @@ import numpy as np
 
 from amplifier import Amplifier
 from astropy.io import fits
+from distutils.dir_util import mkpath
 from input_utils import setup_parser, set_daterange, setup_logging
 from utils import biweight_location
 
@@ -57,7 +58,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
 
     a, b = masterbias.shape
     hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'))
-
+    mkpath(op.join(args.folder, date))
     args.log.info('Writing masterbias_%s_%s.fits' % (bia_list[-1].specid, amp))
     write_fits(hdu, op.join(args.folder, date, 'masterbias_%s_%s.fits' %
                (bia_list[-1].specid, amp)))
