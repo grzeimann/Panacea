@@ -99,8 +99,8 @@ for datet in args.daterange:
             if standard.lower() in objectname.lower():
                 if ifuslot in objectname.lower():
                     standard_list.append(keystring)
-                    print('Standard Star File Found: %s, %s'
-                          % (keystring, objectname))
+                    # print('Standard Star File Found: %s, %s'
+                    #       % (keystring, objectname))
         del objectname
 
 twi_file = []
