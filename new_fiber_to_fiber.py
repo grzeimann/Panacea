@@ -35,6 +35,9 @@ parser.add_argument("-e", "--exposuretimerange",
 parser.add_argument("-r", "--reductiondir",
                     help='''Name of the reduction directory''',
                     type=str, default='reductions')
+parser.add_argument("-n", "--nbins",
+                    help='''Number of bins for smoothing''',
+                    type=int, default=15)
 
 args = parser.parse_args(args=None)
 
@@ -140,7 +143,7 @@ for filebase in filelist:
     spec_list.append(y / avg)
     wave_list.append(R.wave * 1.)
 
-ftf = build_ftf(rect_wave, np.array(spec_list))
+ftf = build_ftf(rect_wave, np.array(spec_list), n=args.nbins)
 FtF = np.vstack([rect_wave, ftf])
 F = fits.PrimaryHDU(np.array(FtF, dtype='float32')).writeto(args.outname,
                                                             overwrite=True)
