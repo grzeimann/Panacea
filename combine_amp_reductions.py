@@ -17,8 +17,9 @@ import argparse as ap
 from skysubtraction import Sky
 from utils import biweight_location, biweight_midvariance
 from astropy.convolution import convolve, Gaussian1DKernel
-from astropy.modeling.models import Moffat2D, Gaussian2D
+from astropy.modeling.models import Moffat2D
 from astropy.modeling.fitting import LevMarLSQFitter
+from fiber_utils import bspline_x0
 
 
 parser = ap.ArgumentParser(add_help=True)
@@ -84,14 +85,21 @@ def rectify(wave, spec, lims, fac=2.5):
     return rect_wave, rect_spec
 
 
-def sky_calc(y, goodfibers, nbins=14):
+def sky_calc(y, goodfibers, c, nbins=14):
     inds = np.array_split(goodfibers, nbins)
     back = y * 0.
+    x = np.arange(len(y))
     for ind in inds:
         avg = biweight_location(y[ind], axis=(0,))
-        xl = ind.min()
-        xh = ind.max()+1
-        back[xl:xh] = avg
+        # Find "bad" values
+        sel = np.isnan(avg) + (avg <= 0.0)
+        # Interpolate over "bad" values
+        avg[sel] = np.interp(x[sel], x[~sel], avg[~sel])
+        # bspline fit
+        sol = np.linalg.lstsq(c, avg)[0]
+        # Fill in solution for sky background
+        xl, xh = (ind.min(), ind.max()+1)
+        back[xl:xh] = np.dot(c, sol)
     return back
 
 
@@ -145,7 +153,7 @@ def build_big_fiber_array(P):
     return NX, NY
 
 
-def flux_correction(wave, loc, P, inds, dar_table, 
+def flux_correction(wave, loc, P, inds, dar_table,
                     rect_spec, rect_sky, noise, alpha=3.5, gamma=1.5):
     X = interp1d(dar_table['wave'], dar_table['x_0'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
@@ -187,14 +195,21 @@ if args.side == 'BL':
 
 
 def main():
+    # Load the data
     R = ReduceLRS2(args.filename, args.side)
+
+    # Get Mirror Illumination for the given track
     R.get_mirror_illumination()
+
+    # Correct the wavelength solution from sky lines
     if args.side[0] == 'R':
         R.dar.spec = 1. * R.oldspec
         R.dar.rectified_dlam = np.abs(np.diff(R.wave_lims)) / (2064.*1.5)
         R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
         R.dar.wave = correct_wave(R)
         R.wave = R.dar.wave * 1.
+
+    # Load the default fiber to fiber and map to each fiber's wavelength
     F = fits.open('ftf_%s.fits' % args.side)
     F[0].data = np.array(F[0].data, dtype='float64')
     R.ftf = R.wave * 0.
@@ -203,15 +218,20 @@ def main():
                      bounds_error=False, fill_value=-999.)
         R.ftf[i] = I(R.wave[i])
 
+    # Rectify spectra for sky calculation
     rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                    np.array(R.oldspec, dtype='float64') /
                                    R.ftf, lims, fac=2.5)
-
     y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
 
+    # Calculate sky iteratively, adjusting fiber to fiber
+    B, c = bspline_x0(rect_wave, nknots=2064)
     for i in np.arange(2):
-        back = sky_calc(y, R.goodfibers, nbins=(R.wave.shape[0] /
-                                                args.fibergroup))
+        # Calculate sky background in groups of fibers
+        # We group fibers because of the changing spectral resolution
+        back = sky_calc(y, R.goodfibers, c, nbins=(R.wave.shape[0] /
+                                                   args.fibergroup))
+        # Get Signal to noise for a convolved sky subtracted spectrum
         G = Gaussian1DKernel(1.5)
         fibconv = rect_spec * 0.
         for i in np.arange(R.wave.shape[0]):
@@ -288,10 +308,10 @@ def main():
     # R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
     # R.skyflux = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
     # R.fluxerror = noise * np.sqrt(len(fibinds)) / frac
-    R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave',
-                       'oldspec', 'ftf', 'sky', 'skysub'],
-           name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'oldspec',
-                      'ftf', 'sky', 'skysub'])
+    R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave','ftf',
+                       'oldspec', 'sky', 'skysub'],
+           name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'ftf',
+                      'spectrum', 'sky', 'skysub'])
     names = ['wavelength', 'F_lambda', 'e_F_lambda', 'Sky_lambda']
     hdu = fits.PrimaryHDU(np.array([rect_wave, R.flux, R.fluxerr, R.skyflux],
                                    dtype='float32'))
