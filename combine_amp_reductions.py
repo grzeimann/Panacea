@@ -17,7 +17,7 @@ import argparse as ap
 from skysubtraction import Sky
 from utils import biweight_location, biweight_midvariance
 from astropy.convolution import convolve, Gaussian1DKernel
-from astropy.modeling.models import Moffat2D
+from astropy.modeling.models import Moffat2D, Polynomial2D
 from astropy.modeling.fitting import LevMarLSQFitter
 from fiber_utils import bspline_x0
 
@@ -218,15 +218,21 @@ def main():
                      bounds_error=False, fill_value=-999.)
         R.ftf[i] = I(R.wave[i])
 
-    # Rectify spectra for sky calculation
-    rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
-                                   np.array(R.oldspec, dtype='float64') /
-                                   R.ftf, lims, fac=2.5)
-    y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
-
-    # Calculate sky iteratively, adjusting fiber to fiber
-    B, c = bspline_x0(rect_wave, nknots=2064)
     for i in np.arange(2):
+        # Rectify spectra for sky calculation
+        # LOOK HERE IF AN ISSUE HAPPENS
+        args.log.info('Sky subtraction iteration: %i' % (i + 1))
+        rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
+                                       np.array(safe_division(R.oldspec,
+                                                              R.ftf),
+                                                dtype='float64'), lims,
+                                       fac=2.5)
+        y = np.ma.array(rect_spec, mask=((rect_spec == 0.) +
+                                         (rect_spec == -999.)))
+
+        # Calculate sky iteratively, adjusting fiber to fiber
+        if i == 0:
+            B, c = bspline_x0(rect_wave, nknots=2064)
         # Calculate sky background in groups of fibers
         # We group fibers because of the changing spectral resolution
         back = sky_calc(y, R.goodfibers, c, nbins=(R.wave.shape[0] /
@@ -236,11 +242,22 @@ def main():
         fibconv = rect_spec * 0.
         for i in np.arange(R.wave.shape[0]):
             fibconv[i] = convolve(rect_spec[i] - back[i], G)
-        noise = biweight_midvariance(fibconv, axis=(0,))
-        R.signoise = fibconv / noise
+        noise = biweight_midvariance(fibconv[R.goodfibers, :], axis=(0,))
+        R.signoise = safe_division(fibconv, noise)
         S = np.nanmedian(R.signoise, axis=1)
         N = biweight_midvariance(S)
-        R.goodfibers = np.where((S/N) < 3.)[0]
+        sel_low_sn = (S/N) < 3.
+        R.goodfibers = np.where(sel_low_sn)[0]
+        pattern = biweight_location(safe_division(rect_spec - back, back),
+                                    axis=(1,))
+        P = Polynomial2D(1)
+        fit = LevMarLSQFitter()(P, R.ifux[R.goodfibers], R.ifuy[R.goodfibers],
+                                pattern[R.goodfibers])
+        args.log.info('Fiber to Fiber offsets')
+        T = Table([R.ifux, R.ifuy, fit(R.ifux, R.ifuy)],
+                  names=['x', 'y', 'offset'])
+        args.log.info(T)
+        R.ftf = R.ftf + fit(R.ifux, R.ifuy)[:, np.newaxis]
 
     skysub = R.wave * 0.
     sky = R.wave * 0.
@@ -308,8 +325,8 @@ def main():
     # R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
     # R.skyflux = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
     # R.fluxerror = noise * np.sqrt(len(fibinds)) / frac
-    R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave','ftf',
-                       'oldspec', 'sky', 'skysub'],
+    R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave',
+                       'ftf', 'oldspec', 'sky', 'skysub'],
            name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'ftf',
                       'spectrum', 'sky', 'skysub'])
     names = ['wavelength', 'F_lambda', 'e_F_lambda', 'Sky_lambda']
