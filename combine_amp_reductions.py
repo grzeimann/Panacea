@@ -250,6 +250,7 @@ def main():
         R.signoise = safe_division(fibconv, noise)
         S = np.nanmedian(R.signoise, axis=1)
         N = biweight_midvariance(S)
+        args.log.info(S, N)
         sel_low_sn = (S/N) < 3.
         R.goodfibers = np.where(sel_low_sn)[0]
         pattern = biweight_location(safe_division(rect_spec - back, back),
