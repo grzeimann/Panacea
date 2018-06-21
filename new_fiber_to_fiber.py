@@ -125,11 +125,11 @@ wave_list = []
 
 for filebase in filelist:
     R = ReduceLRS2(filebase, args.side)
-    if args.side[0] == 'R':
-        R.dar.spec = 1. * R.oldspec
-        R.dar.rectified_dlam = np.abs(np.diff(R.wave_lims)) / (2064.*1.5)
-        R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
-        R.dar.wave = correct_wave(R)
+#    if args.side[0] == 'R':
+#        R.dar.spec = 1. * R.oldspec
+#        R.dar.rectified_dlam = np.abs(np.diff(R.wave_lims)) / (2064.*1.5)
+#        R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
+#        R.dar.wave = correct_wave(R)
     rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                    np.array(R.oldspec, dtype='float64'),
                                    side_dict[args.side][2])
