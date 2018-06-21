@@ -134,7 +134,7 @@ for filebase in filelist:
 #        R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
 #        R.dar.wave = correct_wave(R)
     rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
-                                   np.array(R.oldspec, dtype='float64'),
+                                   np.array(R.twi, dtype='float64'),
                                    side_dict[args.side][2])
     y = np.ma.array(rect_spec, mask=((rect_spec == 0.) + (rect_spec == -999.)))
     norm = (y / biweight_location(y, axis=(1,))[:, np.newaxis] *
