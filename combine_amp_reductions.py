@@ -67,8 +67,12 @@ def correct_wave(P):
 def safe_division(num, denom, eps=1e-8, fillval=0.0):
     good = np.isfinite(denom) * (np.abs(denom) > eps)
     div = num * 0.
-    div[good] = num[good] / denom[good]
-    div[~good] = fillval
+    if num.ndim == denom.ndim:
+        div[good] = num[good] / denom[good]
+        div[~good] = fillval
+    else:
+        div[:, good] = num[:, good] / denom[good]
+        div[:, ~good] = fillval
     return div
 
 
