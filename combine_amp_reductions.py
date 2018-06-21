@@ -206,12 +206,12 @@ def main():
     R.get_mirror_illumination()
 
     # Correct the wavelength solution from sky lines
-    if args.side[0] == 'R':
-        R.dar.spec = 1. * R.oldspec
-        R.dar.rectified_dlam = np.abs(np.diff(R.wave_lims)) / (2064.*1.5)
-        R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
-        R.dar.wave = correct_wave(R)
-        R.wave = R.dar.wave * 1.
+    # if args.side[0] == 'R':
+    #     R.dar.spec = 1. * R.oldspec
+    #     R.dar.rectified_dlam = np.abs(np.diff(R.wave_lims)) / (2064.*1.5)
+    #     R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
+    #     R.dar.wave = correct_wave(R)
+    #     R.wave = R.dar.wave * 1.
 
     # Load the default fiber to fiber and map to each fiber's wavelength
     F = fits.open('ftf_%s.fits' % args.side)
