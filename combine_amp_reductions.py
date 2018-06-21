@@ -88,7 +88,7 @@ def rectify(wave, spec, lims, fac=2.5):
 def sky_calc(y, goodfibers, c, nbins=14):
     inds = np.array_split(goodfibers, nbins)
     back = y * 0.
-    x = np.arange(len(y))
+    x = np.arange(y.shape[1])
     for ind in inds:
         avg = biweight_location(y[ind], axis=(0,))
         # Find "bad" values
