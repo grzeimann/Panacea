@@ -143,7 +143,9 @@ for filebase in filelist:
     spec_list.append(y / avg)
     wave_list.append(R.wave * 1.)
 
-ftf = build_ftf(rect_wave, np.array(spec_list), n=args.nbins)
+y = np.array(spec_list)
+y = np.ma.array(y, mask=(np.isnan(y) + (y <= 0)))
+ftf = build_ftf(rect_wave, y, n=args.nbins)
 FtF = np.vstack([rect_wave, ftf])
 F = fits.PrimaryHDU(np.array(FtF, dtype='float32')).writeto(args.outname,
                                                             overwrite=True)
