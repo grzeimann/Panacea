@@ -110,6 +110,8 @@ Change the "-side" argument to blue or red for LRS2-B and LRS2-R, respectively.
 This will list the absolute path for a given date and observation for a target, including all exposures for the date and observation.
 
 ## Code Description
+Panacea is a general integral field unit (IFU) spectroscopic reduction tool tailored specifically for the Hobby Eberly Telescope (HET).
+The code is primarily used for reducing science data from the LRS2, VIRUS, and VIRUS-W instruments.  
 
 <p align="center">
   <img src="images/lrs2_mapping.png" width="650"/>
@@ -118,11 +120,12 @@ This will list the absolute path for a given date and observation for a target, 
 <p align="center">
   <img src="images/trace_fibmodel.png" width="650"/>
 </p>
-### Authors
+
+## Authors
 
 * Greg Zeimann, UT Austin
 * Karl Gebhardt, UT Austin
 
-#### NOTE
+## NOTE
 * COPYRIGHTS from astropy, free software foundation were used
 * cosmics.py is a copy from Malte Tewes and Pieter van Dokkum's code available online: http://obswww.unige.ch/~tewes/cosmics_dot_py/
