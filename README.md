@@ -118,6 +118,10 @@ The code is primarily used for reducing science data from the LRS2, VIRUS, and V
 </p>
 
 <p align="center">
+  <img src="images/spectroscopic_layout_useful_visual.pdf" width="850"/>
+</p>
+
+<p align="center">
   <img src="images/trace_fibmodel.png" width="850"/>
 </p>
 
