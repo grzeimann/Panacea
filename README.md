@@ -115,18 +115,18 @@ The code is primarily used for reducing science data from the LRS2 and VIRUS spe
 Before we dive into the details of the reduction code it is useful to visualize the mapping between 
 raw data and on sky fiber layout for both instruments. 
 
+### LRS2 Layout
 The LRS2 instrument has two spectrographs each with two arms (LRS2-B: UV and Orange, LRS2-R: Red and FarRed).  
 <p align="center">
   <img src="images/lrs2_mapping.png" width="850"/>
 </p>
 
+### VIRUS Layout
 <p align="center">
-  <img src="images/spectrograph_layout_useful_visual_1.png" width="850"/>
-</p>
-
-<p align="center">
+  <img src="images/spectrograph_layout_useful_visual_1.png" width="850"/> 
   <img src="images/spectrograph_layout_useful_visual_2.png" width="850"/>
 </p>
+
 
 <p align="center">
   <img src="images/trace_fibmodel.png" width="850"/>
