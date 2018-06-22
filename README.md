@@ -11,7 +11,7 @@ acquire the reduction code, run the code, and the products that are produced.
 #### Signing up for an account
 https://portal.tacc.utexas.edu/
 <p align="center">
-  <img src="tacc_create_account.png" width="650"/>
+  <img src="images/tacc_create_account.png" width="650"/>
 </p>
 
 After creating an accounting using the link above, please send Matthew Shetrone <shetrone@astro.as.utexas.edu> your 
@@ -109,7 +109,15 @@ python Panacea/find_my_reductions -f "reductions" -t TARGET_NAME -side blue
 Change the "-side" argument to blue or red for LRS2-B and LRS2-R, respectively.
 This will list the absolute path for a given date and observation for a target, including all exposures for the date and observation.
 
+## Code Description
 
+<p align="center">
+  <img src="images/lrs2_mapping.png" width="650"/>
+</p>
+
+<p align="center">
+  <img src="images/trace_fibmodel.png" width="650"/>
+</p>
 ### Authors
 
 * Greg Zeimann, UT Austin
