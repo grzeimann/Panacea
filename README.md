@@ -111,8 +111,11 @@ This will list the absolute path for a given date and observation for a target, 
 
 ## Code Description
 Panacea is a general integral field unit (IFU) spectroscopic reduction tool tailored specifically for the Hobby Eberly Telescope (HET).
-The code is primarily used for reducing science data from the LRS2, VIRUS, and VIRUS-W instruments.  
+The code is primarily used for reducing science data from the LRS2 and VIRUS spectrographs.  
+Before we dive into the details of the reduction code it is useful to visualize the mapping between 
+raw data and on sky fiber layout for both instruments. 
 
+The LRS2 instrument has two spectrographs each with two arms (LRS2-B: UV and Orange, LRS2-R: Red and FarRed).  
 <p align="center">
   <img src="images/lrs2_mapping.png" width="850"/>
 </p>
