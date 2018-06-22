@@ -118,7 +118,7 @@ raw data and on sky fiber layout for both instruments.
 ### LRS2 Layout
 The LRS2 instrument has two spectrographs each with two arms (LRS2-B: UV and Orange, LRS2-R: Red and FarRed).  
 <p align="center">
-  <img src="images/lrs2_mapping.png" width="850"/>
+  <img src="images/lrs2_mapping_visual.png" width="850"/>
 </p>
 
 ### VIRUS Layout
