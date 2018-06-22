@@ -118,11 +118,11 @@ The code is primarily used for reducing science data from the LRS2, VIRUS, and V
 </p>
 
 <p align="center">
-  <img src="images/spectroscopic_layout_useful_visual_1.png" width="850"/>
+  <img src="images/spectrograph_layout_useful_visual_1.png" width="850"/>
 </p>
 
 <p align="center">
-  <img src="images/spectroscopic_layout_useful_visual_2.png" width="850"/>
+  <img src="images/spectrograph_layout_useful_visual_2.png" width="850"/>
 </p>
 
 <p align="center">
