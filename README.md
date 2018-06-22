@@ -114,11 +114,11 @@ Panacea is a general integral field unit (IFU) spectroscopic reduction tool tail
 The code is primarily used for reducing science data from the LRS2, VIRUS, and VIRUS-W instruments.  
 
 <p align="center">
-  <img src="images/lrs2_mapping.png" width="650"/>
+  <img src="images/lrs2_mapping.png" width="850"/>
 </p>
 
 <p align="center">
-  <img src="images/trace_fibmodel.png" width="650"/>
+  <img src="images/trace_fibmodel.png" width="850"/>
 </p>
 
 ## Authors
