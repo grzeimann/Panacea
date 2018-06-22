@@ -121,12 +121,10 @@ The LRS2 instrument has two spectrographs each with two arms (LRS2-B: UV and Ora
 </p>
 
 <p align="center">
-  <img src="images/spectrograph_layout_useful_visual_1.png" width="850"/>
+  <img src="images/spectrograph_layout_useful_visual_1.png" width="450"/>
+  <img src="images/spectrograph_layout_useful_visual_2.png" width="450"/>
 </p>
 
-<p align="center">
-  <img src="images/spectrograph_layout_useful_visual_2.png" width="850"/>
-</p>
 
 <p align="center">
   <img src="images/trace_fibmodel.png" width="850"/>
