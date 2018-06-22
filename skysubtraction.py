@@ -140,9 +140,9 @@ class Sky:
             wp.append(np.ones((len(sel),))*self.skyline_loc[i])
         x, y, w = [np.hstack(i) for i in [xp, yp, wp]]
         self.xp, self.yp, self.wp = (x, y, w)
-        print(x, y, w)
         V = matrixCheby2D_7(x / n, y / n)
-        w_sol = np.linalg.lstsq(V, w, rcond=None)[0]
+        w_sol = np.linalg.lstsq(np.array(V, dtype='float64'),
+                                np.array(w, dtype='float64'), rcond=None)[0]
         find, xind = np.indices(self.trace.shape)
         bigV = matrixCheby2D_7(xind.ravel() / n,
                                self.trace.ravel() / n)
