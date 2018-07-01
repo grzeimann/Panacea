@@ -366,12 +366,13 @@ for multi in args.multiname:
     rect_wave, rect_twi, y_twi, norm_twi, avg_twi, smooth_twi, fac = returned_list
     if args.recalculate_wavelength:
         newwave = wave * 0.
-        args.log.info('Working on the wavelength for side L')
-        newwave[:224] = get_new_wave(wave[:224], trace[:224], twi[:224],
-                                     rect_wave, avg, smooth)
-        args.log.info('Working on the wavelength for side R')
-        newwave[224:] = get_new_wave(wave[224:], trace[224:], twi[224:],
-                                     rect_wave, avg, smooth)
+        for i in np.arange(4):
+            xl = i * args.nfibs
+            xh = (i+1) * args.nfibs
+            args.log.info('Working on the wavelength for fibers: %02d - %02d' %
+                          (xl, xh))
+            newwave[xl:xh] = get_new_wave(wave[xl:xh], trace[xl:xh],
+                                          twi[xl:xh], rect_wave, avg, smooth)
         wave0 = wave * 1.
         wave = newwave * 1.
         returned_list = get_avg_spec(wave, spec, twi, args.lims)
