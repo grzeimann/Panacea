@@ -296,7 +296,7 @@ def get_sex_background(image, filt_size=21, cols=25):
     bkg_estimator = SExtractorBackground()
     bkg = Background2D(image, (filt_size, cols), filter_size=(1, 1),
                        bkg_estimator=bkg_estimator, sigma_clip=sigma_clip,
-                       mask=image.mask)
+                       mask=image.mask, exclude_percentile=100)
     return bkg.background
 
 
