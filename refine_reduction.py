@@ -334,9 +334,8 @@ def smooth_fiber(X, mask, nfibs):
 def mask_sources(xgrid, ygrid, xpos, ypos, zimage, sncut=2.0):
     sigma_clip = SigmaClip(sigma=3., iters=10)
     bkg_estimator = SExtractorBackground()
-    print(zimage)
     bkg = Background2D(zimage, (25, 25), filter_size=(1, 1),
-                       sigma_clip=sigma_clip, bkg_estimator=bkg_estimator)
+                       bkg_estimator=bkg_estimator)
     threshold = bkg.background + (sncut * bkg.background_rms)
     kernel = Gaussian2DKernel(2, x_size=5, y_size=5)
     kernel.normalize()
