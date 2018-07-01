@@ -13,6 +13,7 @@ from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
 from astropy.convolution import Gaussian1DKernel
 from astropy.io import fits
 from astropy.stats import SigmaClip, biweight_midvariance
+from distutils.dir_util import mkpath
 from fiber_utils import bspline_x0
 from input_utils import setup_logging
 from photutils import Background2D, SExtractorBackground, detect_sources
@@ -428,6 +429,7 @@ for multi in args.multiname:
     outpath = build_filename(args.outpath, args.date, args.instrument,
                              args.observation, args.exposure_number, multi)
     outpath = op.dirname(outpath)
+    mkpath(outpath)
     set_multi_extensions(outpath, multipath, args.amps, args.nfibs,
                          images=[ftf_new, sky_new, skysub_new],
                          names=['fiber_to_fiber', 'sky_spectrum',
