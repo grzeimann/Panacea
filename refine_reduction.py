@@ -345,8 +345,7 @@ def mask_sources(xgrid, ygrid, xpos, ypos, zimage, sncut=2.0):
     fiberloc = np.argmin(dist, axis=0)
     return np.unique(fiberloc[segm.array > 0])
 
-args = setup_my_parser(args=['-d', '20180624', '-o', '8', '-e', '1', '-m',
-                             'multi_311_036_053'])
+args = setup_my_parser(args=None)
 
 if args.instrument == 'virus':
     args.nfibs = 112
