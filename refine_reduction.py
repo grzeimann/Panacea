@@ -46,12 +46,12 @@ def setup_my_parser(args=None):
     parser.add_argument("-r", "--rootdir",
                         help='''Root Directory for Reductions''',
                         type=str,
-                        default='work/03946/hetdex/maverick/red1/reductions')
+                        default='/work/03946/hetdex/maverick/red1/reductions')
 
     parser.add_argument("-op", "--outpath",
                         help='''Outpath for adjusted reductions''',
                         type=str,
-                        default='work/03946/hetdex/maverick/red1/reductions')
+                        default='/work/03946/hetdex/maverick/red1/reductions')
 
     parser.add_argument("-in", "--instrument",
                         help='''Instrument, e.g., virus''',
