@@ -135,9 +135,9 @@ def get_multi_extensions(multiname, amps):
         else:
             addtr = 0.
         tr.append(F['trace'].data + addtr)
-    spec, wave, twi, trace, ftf = [np.vstack(j)
+    spec, wave, twi, trace, ftf = [np.array(np.vstack(j), dtype='float64')
                                    for j in [spec, wave, twi, tr, ftf]]
-    x, y = [np.hstack(j) for j in [x, y]]
+    x, y = [np.array(np.hstack(j), dtype='float64') for j in [x, y]]
     return x, y, spec, wave, twi, trace, ftf
 
 
