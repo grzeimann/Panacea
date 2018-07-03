@@ -330,7 +330,9 @@ def low_cont(x, nfibs):
     return z - model, model
 
 
-def smooth_fiber(X, mask, nfibs):
+def smooth_fiber(X, mask, nfibs, wave_sel=None):
+    if wave_sel is not None:
+        X.mask[:, wave_sel] = True
     z = np.ma.median(X, axis=1)
     z.data[mask] = np.nan
     z = np.array(z)
@@ -412,6 +414,11 @@ for multi in args.multiname:
         rect_wave, rect_spec, y, norm, avg, smooth, fac = returned_list
         returned_list = get_avg_spec(wave, twi, twi, args.lims)
         rect_wave, rect_twi, y_twi, norm_twi, avg_twi, smooth_twi, fac = returned_list
+    wave_sel = []
+    for wl in wave_list:
+        wave_sel.append(np.where(np.abs(rect_wave - wl[0]) < wl[1])[0])
+    wave_sel = np.array(np.setdiff1d(np.arange(len(rect_wave)),
+                                     np.hstack(wave_sel)), dtype=int)
     X = rect_spec / rect_twi * smooth_twi / smooth
     flat_field, cont = simple_flat_field(X)
     xgrid, ygrid, zimage = make_frame(xpos, ypos, flat_field)
@@ -431,7 +438,7 @@ for multi in args.multiname:
     rect_wave, rs, y, norm, avg, smooth, fac = returned_list
     Y = (rs - smooth * fac) / smooth
     SM = smooth
-    model = smooth_fiber(Y, mask, args.nfibs)[:, np.newaxis]
+    model = smooth_fiber(Y, mask, args.nfibs, wave_sel)[:, np.newaxis]
     Z = (rect_spec - SM * (fac + model)) / SM
     Z.mask[mask] = True
     Z.mask[np.ma.abs(Z) > 0.25] = True
@@ -463,7 +470,6 @@ for multi in args.multiname:
         skysub_new[i] = spec[i] - J(wave[i]) * dw
         sky_new[i] = J(wave[i]) * dw
 
-    
     set_multi_extensions(outpath, multipath, args.amps, args.nfibs,
                          images=[ftf_new, sky_new, skysub_new, wave],
                          names=['fiber_to_fiber', 'sky_spectrum',
