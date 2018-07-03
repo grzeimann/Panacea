@@ -401,9 +401,9 @@ for multi in args.multiname:
     rect_wave, rect_twi, y_twi, norm_twi, avg_twi, smooth_twi, fac = returned_list
     if args.recalculate_wavelength:
         newwave = wave * 0.
-        for i in np.arange(4):
-            xl = i * args.nfibs
-            xh = (i+1) * args.nfibs
+        for i in np.arange(2):
+            xl = i * args.nfibs * 2
+            xh = (i+1) * args.nfibs * 2
             args.log.info('Working on the wavelength for fibers: %03d - %03d' %
                           (xl, xh))
             newwave[xl:xh] = get_new_wave(wave[xl:xh], trace[xl:xh],
@@ -463,10 +463,21 @@ for multi in args.multiname:
         I = interp1d(rect_wave, ftf[i], kind='quadratic',
                      bounds_error=False, fill_value=-999.)
         ftf_new[i] = I(wave[i]) * 1.
-        J = interp1d(rect_wave, ftf[i]*smooth, kind='quadratic',
-                     bounds_error=False, fill_value=-999.)
-        skysub_new[i] = spec[i] - J(wave[i]) * dw
-        sky_new[i] = J(wave[i]) * dw
+    ind = np.argsort(wave.ravel())
+    wchunks = np.array_split(wave.ravel()[ind],
+                             wave.shape[1] * wave.shape[0] / 35)
+    schunks = np.array_split((spec / ftf_new).ravel()[ind],
+                             wave.shape[1] * wave.shape[0] / 35)
+    nwave = np.array([np.mean(chunk) for chunk in wchunks])
+    B, c = bspline_x0(nwave, nknots=1032)
+    nspec = np.array([biweight_location(chunk) for chunk in schunks])
+    sol = np.linalg.lstsq(c, nspec)[0]
+    smooth = np.dot(c, sol)
+    I = interp1d(nwave, smooth, kind='quadratic', bounds_error=False,
+                 fill_value='extrapolate')
+    for i in np.arange(wave.shape[0]):
+        sky_new[i] = I(wave[i])
+        skysub_new[i] = spec[i] - sky_new[i]
 
     set_multi_extensions(outpath, multipath, args.amps, args.nfibs,
                          images=[ftf_new, sky_new, skysub_new, wave],
