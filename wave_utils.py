@@ -74,7 +74,7 @@ def get_new_wave(wave, trace, spec, rect_wave, avg, smooth, maxmove=4.,
               for v in [oarray, shifts]]
     newwave = wave * 1.
     for i, ind in enumerate(inds):
-        x = np.interp(wi[ind], wave[ind], np.arange(wave.shape[1]))
+        x = np.interp(wi[i], wave[ind], np.arange(wave.shape[1]))
         p0 = np.polyfit(x / (wave.shape[1] * 1.), wi[i]+sh[i], 3)
         newwave[ind] = np.polyval(p0, np.arange(wave.shape[1]) /
                                   (wave.shape[1] * 1.))
