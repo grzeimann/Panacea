@@ -456,6 +456,8 @@ for multi in args.multiname:
     good_mask[good] = 1.
     good_mask = np.array(good_mask, dtype=bool)
     make_plot(zimage, xgrid, ygrid, xpos, ypos, good_mask, outpath)
+    avg = biweight_location((rect_spec / ftf)[good_mask], axis=(0,))
+    smooth = fit_bspline(rect_wave, avg, knots=wave.shape[1])
     ftf_new = wave * 0.
     skysub_new = wave * 0.
     sky_new = wave * 0.
@@ -465,7 +467,7 @@ for multi in args.multiname:
         I = interp1d(rect_wave, ftf[i], kind='quadratic',
                      bounds_error=False, fill_value=-999.)
         ftf_new[i] = I(wave[i]) * 1.
-        J = interp1d(rect_wave, ftf[i]*SM[i], kind='quadratic',
+        J = interp1d(rect_wave, ftf[i]*smooth, kind='quadratic',
                      bounds_error=False, fill_value=-999.)
         skysub_new[i] = spec[i] - J(wave[i]) * dw
         sky_new[i] = J(wave[i]) * dw
