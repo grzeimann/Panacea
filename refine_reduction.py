@@ -456,7 +456,8 @@ for multi in args.multiname:
     good_mask[good] = 1.
     good_mask = np.array(good_mask, dtype=bool)
     make_plot(zimage, xgrid, ygrid, xpos, ypos, good_mask, outpath)
-    avg = biweight_location((rect_spec / ftf)[good_mask], axis=(0,))
+    Y = np.ma.array(rect_spec / ftf, mask=(np.abs(ftf - 1.) > 0.9))
+    avg = biweight_location(Y[good_mask], axis=(0,))
     smooth = fit_bspline(rect_wave, avg, knots=wave.shape[1])
     ftf_new = wave * 0.
     skysub_new = wave * 0.
