@@ -438,7 +438,7 @@ for multi in args.multiname:
     rect_wave, rs, y, norm, avg, smooth, fac = returned_list
     Y = (rs - smooth * fac) / smooth
     SM = smooth
-    model = smooth_fiber(Y, mask, args.nfibs, wave_sel)[:, np.newaxis]
+    model = smooth_fiber(Y, mask, args.nfibs)[:, np.newaxis]
     Z = (rect_spec - SM * (fac + model)) / SM
     Z.mask[mask] = True
     Z.mask[np.ma.abs(Z) > 0.25] = True
