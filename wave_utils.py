@@ -70,11 +70,12 @@ def get_new_wave(wave, trace, spec, rect_wave, avg, smooth, maxmove=4.,
             warray.append(wave[ind, x0] + totshift)
             oarray.append(wave[ind, x0])
     x, y, w = [np.hstack(i) for i in [xarray, yarray, warray]]
-    wi, sh = [np.array(v).reshape(NFIBS, nchunks) for v in [oarray, shifts]]
+    wi, sh = [np.array(v).reshape(len(inds), nchunks)
+              for v in [oarray, shifts]]
     newwave = wave * 1.
-    for ind in inds:
+    for i, ind in enumerate(inds):
         x = np.interp(wi[ind], wave[ind], np.arange(wave.shape[1]))
-        p0 = np.polyfit(x / (wave.shape[1] * 1.), wi[ind]+sh[ind], 3)
+        p0 = np.polyfit(x / (wave.shape[1] * 1.), wi[i]+sh[i], 3)
         newwave[ind] = np.polyval(p0, np.arange(wave.shape[1]) /
                                   (wave.shape[1] * 1.))
     for i in np.arange(newwave.shape[1]):
