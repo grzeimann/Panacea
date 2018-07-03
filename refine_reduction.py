@@ -344,6 +344,8 @@ def smooth_fiber(X, mask, nfibs):
 
 
 def make_plot(zimage, xgrid, ygrid, xpos, ypos, good_mask, opath):
+    import matplotlib
+    matplotlib.use('agg')
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(6, 6))
     plt.imshow(zimage, origin='lower', interpolation='none', vmin=-15,
