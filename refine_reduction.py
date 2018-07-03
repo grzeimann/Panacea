@@ -427,12 +427,7 @@ for multi in args.multiname:
     good_mask = np.zeros((X.shape[0],))
     good_mask[good] = 1.
     good_mask = np.array(good_mask, dtype=bool)
-    make_plot(zimage * np.ma.median(smooth), xgrid, ygrid, xpos, ypos,
-              good_mask, outpath)
     args.log.info('Building fiber to fiber for %s' % multi)
-    Y = X * 1.
-    faci = []
-    SM = X * 1.
     returned_list = get_avg_spec(wave, spec, twi,
                                  args.lims, mask=good_mask)
     rect_wave, rs, y, norm, avg, smooth, fac = returned_list
