@@ -9,8 +9,7 @@ import argparse as ap
 import numpy as np
 import os.path as op
 
-from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
-from astropy.convolution import Gaussian1DKernel
+from astropy.convolution import Gaussian2DKernel
 from astropy.io import fits
 from astropy.stats import SigmaClip, biweight_midvariance
 from distutils.dir_util import mkpath
@@ -21,7 +20,8 @@ from scipy.interpolate import interp1d
 from scipy.signal import savgol_filter
 from utils import biweight_location
 from wave_utils import get_new_wave
-from sklearn.gaussian_process.kernels import Matern, WhiteKernel, ConstantKernel
+from sklearn.gaussian_process.kernels import Matern, WhiteKernel
+from sklearn.gaussian_process.kernels import ConstantKernel
 from sklearn.gaussian_process import GaussianProcessRegressor
 
 
@@ -316,6 +316,17 @@ def fit_GP(wave, spec, mask):
     return G.predict(wave[:, np.newaxis]), G
 
 
+def low_cont(x, nfibs):
+    z = np.ma.median(X, axis=1)
+    z = np.array(z)
+    model = z * 0.
+    for i in np.arange(4):
+        xl = i * nfibs
+        xh = (i + 1) * nfibs
+        model[xl:xh] = np.percentile(z[xl:xh], 15)
+    return z - model, model
+
+
 def smooth_fiber(X, mask, nfibs):
     z = np.ma.median(X, axis=1)
     z.data[mask] = np.nan
@@ -332,10 +343,21 @@ def smooth_fiber(X, mask, nfibs):
     return model
 
 
+def make_plot(zimage, xgrid, ygrid, xpos, ypos, good_mask, opath):
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(6, 6))
+    plt.imshow(zimage, origin='lower', interpolation='none', vmin=-15,
+               vmax=25, cmap=plt.get_cmap('gray_r'),
+               extent=[xgrid.min(), xgrid.max(), ygrid.min(), ygrid.max()])
+    plt.scatter(xpos[good_mask], ypos[good_mask], marker='x', color='g', s=90)
+    plt.scatter(xpos[~good_mask], ypos[~good_mask], marker='x', color='r', s=90)
+    fig.savefig(op.join(opath, 'image.png'))
+
+
 def mask_sources(xgrid, ygrid, xpos, ypos, zimage, sncut=2.0):
     sigma_clip = SigmaClip(sigma=3., iters=10)
     bkg_estimator = SExtractorBackground()
-    bkg = Background2D(zimage, (25, 25), filter_size=(1, 1),
+    bkg = Background2D(zimage, (51, 51), filter_size=(1, 1),
                        sigma_clip=sigma_clip, bkg_estimator=bkg_estimator,
                        exclude_percentile=100)
     threshold = bkg.background + (sncut * bkg.background_rms)
@@ -347,6 +369,7 @@ def mask_sources(xgrid, ygrid, xpos, ypos, zimage, sncut=2.0):
     fiberloc = np.argmin(dist, axis=0)
     return np.unique(fiberloc[segm.array > 0])
 
+# ['-m', 'multi_317_022_039', '-d', '20180624', '-o', '8', '-e', '1']
 args = setup_my_parser(args=None)
 
 if args.instrument == 'virus':
@@ -354,12 +377,19 @@ if args.instrument == 'virus':
 if args.instrument == 'lrs2':
     args.nfibs = 140
 
+wave_list = [[3550., 10.], [3735., 10.], [3831., 5.], [3911., 8.],
+             [4358, 5.], [4862., 5.], [5085., 5.], [5199., 5.], [5460., 5.]]
+
 for multi in args.multiname:
     args.log.info('Grabbing info for %s' % multi)
     multipath = build_filename(args.rootdir, args.date, args.instrument,
                                args.observation, args.exposure_number, multi)
     xpos, ypos, spec, wave, twi, trace, ftf = get_multi_extensions(multipath,
                                                                    args.amps)
+    outpath = build_filename(args.outpath, args.date, args.instrument,
+                             args.observation, args.exposure_number, multi)
+    outpath = op.dirname(outpath)
+    mkpath(outpath)
     args.log.info('Getting average specrum for %s' % multi)
     returned_list = get_avg_spec(wave, spec, twi, args.lims)
     rect_wave, rect_spec, y, norm, avg, smooth, fac = returned_list
@@ -370,7 +400,7 @@ for multi in args.multiname:
         for i in np.arange(4):
             xl = i * args.nfibs
             xh = (i+1) * args.nfibs
-            args.log.info('Working on the wavelength for fibers: %02d - %02d' %
+            args.log.info('Working on the wavelength for fibers: %03d - %03d' %
                           (xl, xh))
             newwave[xl:xh] = get_new_wave(wave[xl:xh], trace[xl:xh],
                                           twi[xl:xh], rect_wave, avg, smooth)
@@ -388,20 +418,17 @@ for multi in args.multiname:
     good_mask = np.zeros((X.shape[0],))
     good_mask[good] = 1.
     good_mask = np.array(good_mask, dtype=bool)
+    make_plot(zimage * np.ma.median(smooth), xgrid, ygrid, xpos, ypos,
+              good_mask, outpath)
     args.log.info('Building fiber to fiber for %s' % multi)
     Y = X * 1.
     faci = []
     SM = X * 1.
-    for i in np.arange(4):
-        xl = i * args.nfibs
-        xh = (i + 1) * args.nfibs
-        returned_list = get_avg_spec(wave[xl:xh], spec[xl:xh], twi[xl:xh],
-                                     args.lims, mask=good_mask[xl:xh])
-        rect_wave, rs, y, norm, avg, smooth, fac = returned_list
-        faci.append(fac*1.)
-        Y[xl:xh] = (rs  -  smooth * faci[-1]) / smooth
-        SM[xl:xh] = smooth
-    fac = np.vstack(faci)
+    returned_list = get_avg_spec(wave, spec, twi,
+                                 args.lims, mask=good_mask)
+    rect_wave, rs, y, norm, avg, smooth, fac = returned_list
+    Y = (rs - smooth * fac) / smooth
+    SM = smooth
     model = smooth_fiber(Y, mask, args.nfibs)[:, np.newaxis]
     Z = (rect_spec - SM * (fac + model)) / SM
     Z.mask[mask] = True
@@ -412,6 +439,14 @@ for multi in args.multiname:
         xh = (i + 1) * args.nfibs
         back = get_sex_background(Z[xl:xh], 11, 121)
         ftf[xl:xh] = fac[xl:xh] + model[xl:xh] + back
+    ZZ = np.ma.median((rect_spec - SM * ftf), axis=1)
+    xgrid, ygrid, zimage = make_frame(xpos, ypos, ZZ)
+    mask = mask_sources(xgrid, ygrid, xpos, ypos, zimage)
+    good = np.setdiff1d(np.arange(X.shape[0], dtype=int), mask)
+    good_mask = np.zeros((X.shape[0],))
+    good_mask[good] = 1.
+    good_mask = np.array(good_mask, dtype=bool)
+    make_plot(zimage, xgrid, ygrid, xpos, ypos, good_mask, outpath)
     ftf_new = wave * 0.
     skysub_new = wave * 0.
     sky_new = wave * 0.
@@ -426,14 +461,11 @@ for multi in args.multiname:
         skysub_new[i] = spec[i] - J(wave[i]) * dw
         sky_new[i] = J(wave[i]) * dw
 
-    outpath = build_filename(args.outpath, args.date, args.instrument,
-                             args.observation, args.exposure_number, multi)
-    outpath = op.dirname(outpath)
-    mkpath(outpath)
+    
     set_multi_extensions(outpath, multipath, args.amps, args.nfibs,
-                         images=[ftf_new, sky_new, skysub_new],
+                         images=[ftf_new, sky_new, skysub_new, wave],
                          names=['fiber_to_fiber', 'sky_spectrum',
-                                'sky_subtracted'])
+                                'sky_subtracted', 'wavelength'])
 
 
 def main():
