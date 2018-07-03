@@ -5,6 +5,8 @@ Created on Tue Jun 26 12:51:14 2018
 @author: gregz
 """
 
+import matplotlib
+matplotlib.use('agg')
 import argparse as ap
 import numpy as np
 import os.path as op
@@ -23,8 +25,7 @@ from wave_utils import get_new_wave
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
 from sklearn.gaussian_process.kernels import ConstantKernel
 from sklearn.gaussian_process import GaussianProcessRegressor
-import matplotlib
-matplotlib.use('agg')
+
 import matplotlib.pyplot as plt
 
 def setup_my_parser(args=None):
