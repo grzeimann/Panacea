@@ -23,7 +23,9 @@ from wave_utils import get_new_wave
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
 from sklearn.gaussian_process.kernels import ConstantKernel
 from sklearn.gaussian_process import GaussianProcessRegressor
-
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
 
 def setup_my_parser(args=None):
     parser = ap.ArgumentParser(add_help=True)
@@ -344,9 +346,6 @@ def smooth_fiber(X, mask, nfibs):
 
 
 def make_plot(zimage, xgrid, ygrid, xpos, ypos, good_mask, opath):
-    import matplotlib
-    matplotlib.use('agg')
-    import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(6, 6))
     plt.imshow(zimage, origin='lower', interpolation='none', vmin=-15,
                vmax=25, cmap=plt.get_cmap('gray_r'),
