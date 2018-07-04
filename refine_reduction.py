@@ -5,8 +5,8 @@ Created on Tue Jun 26 12:51:14 2018
 @author: gregz
 """
 
-# import matplotlib
-# matplotlib.use('agg')
+import matplotlib
+matplotlib.use('agg')
 import argparse as ap
 import numpy as np
 import os.path as op
@@ -429,10 +429,10 @@ def get_twi_ftf(wave, twi):
 
 
 args = setup_my_parser(args=None)
-args = setup_my_parser(args=['-m', 'multi_317_022_039', '-d', '20180624',
-                             '-o', '8', '-e', '1', '-rc', '-r',
-                             '/Users/gregz/cure/panacea/work/03946/hetdex/maverick/red1/reductions',
-                             '-op', '/Users/gregz/cure/reductions'])
+#args = setup_my_parser(args=['-m', 'multi_317_022_039', '-d', '20180624',
+#                             '-o', '8', '-e', '1', '-rc', '-r',
+#                             '/Users/gregz/cure/panacea/work/03946/hetdex/maverick/red1/reductions',
+#                             '-op', '/Users/gregz/cure/reductions'])
 
 
 if args.instrument == 'virus':
