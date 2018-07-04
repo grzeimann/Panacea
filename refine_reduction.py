@@ -5,8 +5,8 @@ Created on Tue Jun 26 12:51:14 2018
 @author: gregz
 """
 
-import matplotlib
-matplotlib.use('agg')
+# import matplotlib
+# matplotlib.use('agg')
 import argparse as ap
 import numpy as np
 import os.path as op
@@ -145,7 +145,7 @@ def get_multi_extensions(multiname, amps):
     return x, y, spec, wave, twi, trace, ftf
 
 
-def rectify(wave, spec, lims, fac=2.5):
+def rectify(wave, spec, lims, fac=2.5, usesel=True):
     if wave.ndim == 2:
         N, D = wave.shape
         rect_wave = np.linspace(lims[0], lims[1], int(D*fac))
@@ -153,7 +153,10 @@ def rectify(wave, spec, lims, fac=2.5):
         for i in np.arange(N):
             dw = np.diff(wave[i])
             dw = np.hstack([dw[0], dw])
-            sel = spec[i] > 1e-3
+            if usesel:
+                sel = spec[i] > 1e-3
+            else:
+                sel = np.ones((len(spec[i]),), dtype=bool)
             if sel.sum() > 10:
                 I = interp1d(wave[i][sel], (spec[i] / dw)[sel], kind='quadratic',
                              bounds_error=False, fill_value=-999.)
@@ -373,8 +376,64 @@ def mask_sources(xgrid, ygrid, xpos, ypos, zimage, sncut=2.0):
     fiberloc = np.argmin(dist, axis=0)
     return np.unique(fiberloc[segm.array > 0])
 
-# ['-m', 'multi_317_022_039', '-d', '20180624', '-o', '8', '-e', '1']
+
+def make_avg_spec(wave, spec, binsize=35, knots=None):
+    if knots is None:
+        knots = wave.shape[1]
+    ind = np.argsort(wave.ravel())
+    N, D = wave.shape
+    wchunks = np.array_split(wave.ravel()[ind],
+                             N * D / binsize)
+    schunks = np.array_split(spec.ravel()[ind],
+                             N * D / binsize)
+    nwave = np.array([np.mean(chunk) for chunk in wchunks])
+    B, c = bspline_x0(nwave, nknots=knots)
+    nspec = np.array([biweight_location(chunk) for chunk in schunks])
+    sol = np.linalg.lstsq(c, nspec)[0]
+    smooth = np.dot(c, sol)
+    return nwave, smooth
+
+
+def get_sky_residuals(wave, spec, ftf, good_mask):
+    skysub_new = wave * 0.
+    sky_new = wave * 0.
+    model_new = wave * 0.
+    nwave, smooth = make_avg_spec(wave[good_mask], spec[good_mask] /
+                                  ftf[good_mask])
+    I = interp1d(nwave, smooth, kind='quadratic', bounds_error=False,
+                 fill_value='extrapolate')
+    for i in np.arange(wave.shape[0]):
+        sky_new[i] = I(wave[i]) * ftf[i]
+        skysub_new[i] = spec[i] - sky_new[i]
+        model_new[i] = I(wave[i])
+    return skysub_new, sky_new, model_new
+
+
+def get_twi_ftf(wave, twi):
+    ftf_twi = wave * 0.
+    T = np.ma.array(twi, mask=((twi < 1) + np.isnan(twi)))
+    fac = biweight_location(T, axis=(1,))[:, np.newaxis] / biweight_location(T)
+    ftf_twi = fac * np.ones((twi.shape[1],))
+    for i in np.arange(2):
+        nwave, smooth = make_avg_spec(wave, twi / ftf_twi)
+        I = interp1d(nwave, smooth, kind='quadratic', bounds_error=False,
+                     fill_value='extrapolate')
+        for i in np.arange(wave.shape[0]):
+            ftf_twi[i] = twi[i] / I(wave[i])
+            nw, sm = make_avg_spec(wave[i, np.newaxis], ftf_twi[i, np.newaxis],
+                                   binsize=25, knots=17)
+            J = interp1d(nw, sm, kind='quadratic', bounds_error=False,
+                         fill_value='extrapolate')
+            ftf_twi[i] = J(wave[i])
+    return ftf_twi
+
+
 args = setup_my_parser(args=None)
+args = setup_my_parser(args=['-m', 'multi_317_022_039', '-d', '20180624',
+                             '-o', '8', '-e', '1', '-rc', '-r',
+                             '/Users/gregz/cure/panacea/work/03946/hetdex/maverick/red1/reductions',
+                             '-op', '/Users/gregz/cure/reductions'])
+
 
 if args.instrument == 'virus':
     args.nfibs = 112
@@ -406,8 +465,9 @@ for multi in args.multiname:
             xh = (i+1) * args.nfibs * 2
             args.log.info('Working on the wavelength for fibers: %03d - %03d' %
                           (xl, xh))
-            newwave[xl:xh] = get_new_wave(wave[xl:xh], trace[xl:xh],
-                                          twi[xl:xh], rect_wave, avg, smooth)
+            newwave[xl:xh], wi, sh = get_new_wave(wave[xl:xh], trace[xl:xh],
+                                          twi[xl:xh], rect_wave, avg_twi,
+                                          smooth_twi)
         wave0 = wave * 1.
         wave = newwave * 1.
         returned_list = get_avg_spec(wave, spec, twi, args.lims)
@@ -428,59 +488,40 @@ for multi in args.multiname:
     good_mask[good] = 1.
     good_mask = np.array(good_mask, dtype=bool)
     args.log.info('Building fiber to fiber for %s' % multi)
-    returned_list = get_avg_spec(wave, spec, twi,
-                                 args.lims, mask=good_mask)
-    rect_wave, rs, y, norm, avg, smooth, fac = returned_list
-    Y = (rs - smooth * fac) / smooth
-    SM = smooth
-    model = smooth_fiber(Y, mask, args.nfibs)[:, np.newaxis]
-    Z = (rect_spec - SM * (fac + model)) / SM
-    Z.mask[mask] = True
-    Z.mask[np.ma.abs(Z) > 0.25] = True
-    ftf = rect_spec * 0.
-    for i in np.arange(4):
-        xl = i * args.nfibs
-        xh = (i + 1) * args.nfibs
-        back = get_sex_background(Z[xl:xh], 11, 121)
-        ftf[xl:xh] = fac[xl:xh] + model[xl:xh] + back
-    ZZ = np.ma.median((rect_spec - SM * ftf), axis=1)
+    ftf = wave * 0.
+    Y = wave * 0.
+    for i in np.arange(2):
+        xl = i * args.nfibs * 2
+        xh = (i + 1) * args.nfibs * 2
+        ftf[xl:xh] = get_twi_ftf(wave[xl:xh], twi[xl:xh])
+    skysub, sky, model = get_sky_residuals(wave, spec, ftf, good_mask)
+    Y = skysub / model
+    cont = smooth_fiber(Y, mask, args.nfibs)[:, np.newaxis]
+    args.log.info('Building fiber to fiber for %s again' % multi)
+    ftf = ftf + cont
+    skysub = wave * 0.
+    sky = wave * 0.
+    skysub, sky, model = get_sky_residuals(wave, spec, ftf, good_mask)
+    Y = skysub / model
+    rect_wave, rect_skysub = rectify(wave, skysub, args.lims, usesel=False)
+    Z = np.ma.array(rect_skysub, mask=(rect_skysub == -999.))
+    ZZ = biweight_location(Z, axis=(1,))
     xgrid, ygrid, zimage = make_frame(xpos, ypos, ZZ)
     mask = mask_sources(xgrid, ygrid, xpos, ypos, zimage)
     good = np.setdiff1d(np.arange(X.shape[0], dtype=int), mask)
     good_mask = np.zeros((X.shape[0],))
     good_mask[good] = 1.
     good_mask = np.array(good_mask, dtype=bool)
+    Y = np.ma.array(Y, mask=np.zeros(Y.shape, dtype=bool))
+    Y.mask[mask] = True
+    Y.mask[np.ma.abs(Y) > 0.25] = True
+    S = np.ma.array(skysub, mask=Y.mask)
+    back = get_sex_background(S, 11, 121)
+    skysub = skysub - back
     make_plot(zimage, xgrid, ygrid, xpos, ypos, good_mask, outpath)
-    Y = np.ma.array(rect_spec / ftf, mask=(np.abs(ftf - 1.) > 0.9))
-    avg = biweight_location(Y[good_mask], axis=(0,))
-    smooth = fit_bspline(rect_wave, avg, knots=wave.shape[1])
-    ftf_new = wave * 0.
-    skysub_new = wave * 0.
-    sky_new = wave * 0.
-    for i in np.arange(wave.shape[0]):
-        dw = np.diff(wave[i])
-        dw = np.hstack([dw[0], dw])
-        I = interp1d(rect_wave, ftf[i], kind='quadratic',
-                     bounds_error=False, fill_value=-999.)
-        ftf_new[i] = I(wave[i]) * 1.
-    ind = np.argsort(wave.ravel())
-    wchunks = np.array_split(wave.ravel()[ind],
-                             wave.shape[1] * wave.shape[0] / 35)
-    schunks = np.array_split((spec / ftf_new).ravel()[ind],
-                             wave.shape[1] * wave.shape[0] / 35)
-    nwave = np.array([np.mean(chunk) for chunk in wchunks])
-    B, c = bspline_x0(nwave, nknots=1032)
-    nspec = np.array([biweight_location(chunk) for chunk in schunks])
-    sol = np.linalg.lstsq(c, nspec)[0]
-    smooth = np.dot(c, sol)
-    I = interp1d(nwave, smooth, kind='quadratic', bounds_error=False,
-                 fill_value='extrapolate')
-    for i in np.arange(wave.shape[0]):
-        sky_new[i] = I(wave[i])
-        skysub_new[i] = spec[i] - sky_new[i]
 
     set_multi_extensions(outpath, multipath, args.amps, args.nfibs,
-                         images=[ftf_new, sky_new, skysub_new, wave],
+                         images=[ftf, sky, skysub, wave],
                          names=['fiber_to_fiber', 'sky_spectrum',
                                 'sky_subtracted', 'wavelength'])
 
