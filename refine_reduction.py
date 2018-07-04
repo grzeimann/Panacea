@@ -494,15 +494,22 @@ for multi in args.multiname:
         xl = i * args.nfibs * 2
         xh = (i + 1) * args.nfibs * 2
         ftf[xl:xh] = get_twi_ftf(wave[xl:xh], twi[xl:xh])
-    skysub, sky, model = get_sky_residuals(wave, spec, ftf, good_mask)
-    Y = skysub / model
+        skysub, sky, model = get_sky_residuals(wave[xl:xh], spec[xl:xh],
+                                               ftf[xl:xh], good_mask[xl:xh])
+        Y[xl:xh] = skysub / model
     cont = smooth_fiber(Y, mask, args.nfibs)[:, np.newaxis]
     args.log.info('Building fiber to fiber for %s again' % multi)
     ftf = ftf + cont
     skysub = wave * 0.
     sky = wave * 0.
-    skysub, sky, model = get_sky_residuals(wave, spec, ftf, good_mask)
-    Y = skysub / model
+    for i in np.arange(2):
+        xl = i * args.nfibs * 2
+        xh = (i + 1) * args.nfibs * 2
+        skysub[xl:xh], sky[xl:xh], model = get_sky_residuals(wave[xl:xh],
+                                                             spec[xl:xh],
+                                                             ftf[xl:xh],
+                                                             good_mask[xl:xh])
+        Y[xl:xh] = skysub[xl:xh] / model
     rect_wave, rect_skysub = rectify(wave, skysub, args.lims, usesel=False)
     Z = np.ma.array(rect_skysub, mask=(rect_skysub == -999.))
     ZZ = biweight_location(Z, axis=(1,))
