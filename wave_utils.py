@@ -53,7 +53,7 @@ def get_new_wave(wave, trace, spec, rect_wave, avg, smooth, maxmove=4.,
     NFIBS = wave.shape[0]
     shifts = []
     warray, xarray, yarray, oarray = ([], [], [], [])
-    inds = np.array(np.hstack([np.arange(1, NFIBS, 8), NFIBS-1]), dtype=int)
+    inds = np.array(np.hstack([np.arange(1, NFIBS, 15), NFIBS-1]), dtype=int)
     for ind in inds:
         for j, cols in enumerate(col_chunk):
             newwave[ind] = wave[ind] * 1.
@@ -83,4 +83,4 @@ def get_new_wave(wave, trace, spec, rect_wave, avg, smooth, maxmove=4.,
         xfit = trace[:, i] / (newwave.shape[1] * 1.)
         y = newwave[inds, i] * 1.
         newwave[:, i] = np.polyval(np.polyfit(x, y, 3), xfit)
-    return newwave
+    return newwave, wi, sh
