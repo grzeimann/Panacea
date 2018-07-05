@@ -5,8 +5,8 @@ Created on Tue Jun 26 12:51:14 2018
 @author: gregz
 """
 
-import matplotlib
-matplotlib.use('agg')
+#import matplotlib
+#matplotlib.use('agg')
 import argparse as ap
 import numpy as np
 import os.path as op
@@ -154,7 +154,7 @@ def rectify(wave, spec, lims, fac=2.5, usesel=True):
             dw = np.diff(wave[i])
             dw = np.hstack([dw[0], dw])
             if usesel:
-                sel = spec[i] > 1e-3
+                sel = (spec[i] > 1e-3) * (spec[i] < np.median(spec[i])*1e4)
             else:
                 sel = np.ones((len(spec[i]),), dtype=bool)
             if sel.sum() > 10:
@@ -333,6 +333,18 @@ def low_cont(x, nfibs):
     return z - model, model
 
 
+def safe_division(num, denom, eps=1e-8, fillval=0.0):
+    good = np.isfinite(denom) * (np.abs(denom) > eps)
+    div = num * 0.
+    if num.ndim == denom.ndim:
+        div[good] = num[good] / denom[good]
+        div[~good] = fillval
+    else:
+        div[:, good] = num[:, good] / denom[good]
+        div[:, ~good] = fillval
+    return div
+
+
 def smooth_fiber(X, mask, nfibs, wave_sel=None):
     if wave_sel is not None:
         X.mask[:, wave_sel] = True
@@ -362,12 +374,8 @@ def make_plot(zimage, xgrid, ygrid, xpos, ypos, good_mask, opath):
 
 
 def mask_sources(xgrid, ygrid, xpos, ypos, zimage, sncut=2.0):
-    sigma_clip = SigmaClip(sigma=3., iters=10)
-    bkg_estimator = SExtractorBackground()
-    bkg = Background2D(zimage, (51, 51), filter_size=(1, 1),
-                       sigma_clip=sigma_clip, bkg_estimator=bkg_estimator,
-                       exclude_percentile=100)
-    threshold = bkg.background + (sncut * bkg.background_rms)
+    threshold = (biweight_location(zimage) +
+                 sncut * np.sqrt(biweight_midvariance(zimage)))
     kernel = Gaussian2DKernel(2, x_size=5, y_size=5)
     kernel.normalize()
     segm = detect_sources(zimage, threshold, npixels=8, filter_kernel=kernel)
@@ -398,8 +406,9 @@ def get_sky_residuals(wave, spec, ftf, good_mask):
     skysub_new = wave * 0.
     sky_new = wave * 0.
     model_new = wave * 0.
-    nwave, smooth = make_avg_spec(wave[good_mask], spec[good_mask] /
-                                  ftf[good_mask])
+    nwave, smooth = make_avg_spec(wave[good_mask],
+                                  safe_division(spec[good_mask],
+                                                ftf[good_mask]))
     I = interp1d(nwave, smooth, kind='quadratic', bounds_error=False,
                  fill_value='extrapolate')
     for i in np.arange(wave.shape[0]):
@@ -428,11 +437,11 @@ def get_twi_ftf(wave, twi):
     return ftf_twi
 
 
-args = setup_my_parser(args=None)
-#args = setup_my_parser(args=['-m', 'multi_317_022_039', '-d', '20180624',
-#                             '-o', '8', '-e', '1', '-rc', '-r',
-#                             '/Users/gregz/cure/panacea/work/03946/hetdex/maverick/red1/reductions',
-#                             '-op', '/Users/gregz/cure/reductions'])
+#args = setup_my_parser(args=None)
+args = setup_my_parser(args=['-m', 'multi_307_074_076', '-d', '20180624',
+                             '-o', '8', '-e', '1', '-rc', '-r',
+                             '/Users/gregz/cure/panacea/work/03946/hetdex/maverick/red1/reductions',
+                             '-op', '/Users/gregz/cure/reductions'])
 
 
 if args.instrument == 'virus':
@@ -458,27 +467,6 @@ for multi in args.multiname:
     rect_wave, rect_spec, y, norm, avg, smooth, fac = returned_list
     returned_list = get_avg_spec(wave, twi, twi, args.lims)
     rect_wave, rect_twi, y_twi, norm_twi, avg_twi, smooth_twi, fac = returned_list
-    if args.recalculate_wavelength:
-        newwave = wave * 0.
-        for i in np.arange(2):
-            xl = i * args.nfibs * 2
-            xh = (i+1) * args.nfibs * 2
-            args.log.info('Working on the wavelength for fibers: %03d - %03d' %
-                          (xl, xh))
-            newwave[xl:xh], wi, sh = get_new_wave(wave[xl:xh], trace[xl:xh],
-                                          twi[xl:xh], rect_wave, avg_twi,
-                                          smooth_twi)
-        wave0 = wave * 1.
-        wave = newwave * 1.
-        returned_list = get_avg_spec(wave, spec, twi, args.lims)
-        rect_wave, rect_spec, y, norm, avg, smooth, fac = returned_list
-        returned_list = get_avg_spec(wave, twi, twi, args.lims)
-        rect_wave, rect_twi, y_twi, norm_twi, avg_twi, smooth_twi, fac = returned_list
-    wave_sel = []
-    for wl in wave_list:
-        wave_sel.append(np.where(np.abs(rect_wave - wl[0]) < wl[1])[0])
-    wave_sel = np.array(np.setdiff1d(np.arange(len(rect_wave)),
-                                     np.hstack(wave_sel)), dtype=int)
     X = rect_spec / rect_twi * smooth_twi / smooth
     flat_field, cont = simple_flat_field(X)
     xgrid, ygrid, zimage = make_frame(xpos, ypos, flat_field)
@@ -487,18 +475,50 @@ for multi in args.multiname:
     good_mask = np.zeros((X.shape[0],))
     good_mask[good] = 1.
     good_mask = np.array(good_mask, dtype=bool)
-    args.log.info('Building fiber to fiber for %s' % multi)
+    ftf = wave * 0.
+    for i in np.arange(2):
+        xl = i * args.nfibs * 2
+        xh = (i+1) * args.nfibs * 2
+        args.log.info('Building fiber to fiber for fibers: %03d - %03d' %
+                      (xl, xh))
+        ftf[xl:xh] = get_twi_ftf(wave[xl:xh], twi[xl:xh])
+    ftf[ftf < 0.] = 0.
+    if args.recalculate_wavelength:
+        newwave = wave * 0.
+        for i in np.arange(2):
+            xl = i * args.nfibs * 2
+            xh = (i+1) * args.nfibs * 2
+            nwave, ntwi = make_avg_spec(wave[xl:xh],
+                                        safe_division(twi, ftf)[xl:xh])
+            args.log.info('Working on the wavelength for fibers: %03d - %03d' %
+                          (xl, xh))
+            newwave[xl:xh] = get_new_wave(wave[xl:xh], trace[xl:xh],
+                                          twi[xl:xh], ftf[xl:xh],
+                                          good_mask[xl:xh], nwave, ntwi)
+        wave0 = wave * 1.
+        wave = newwave * 1.
+        args.log.info('Max Wave Correction: %0.2f A' % np.max(newwave-wave0))
+        args.log.info('Min Wave Correction: %0.2f A' % np.min(newwave-wave0))
+    wave_sel = []
+    for wl in wave_list:
+        wave_sel.append(np.where(np.abs(rect_wave - wl[0]) < wl[1])[0])
+    wave_sel = np.array(np.setdiff1d(np.arange(len(rect_wave)),
+                                     np.hstack(wave_sel)), dtype=int)
+
+    args.log.info('Building fiber to fiber again')
     ftf = wave * 0.
     Y = wave * 0.
     for i in np.arange(2):
         xl = i * args.nfibs * 2
         xh = (i + 1) * args.nfibs * 2
         ftf[xl:xh] = get_twi_ftf(wave[xl:xh], twi[xl:xh])
+        ftf[ftf < 0.] = 0.
         skysub, sky, model = get_sky_residuals(wave[xl:xh], spec[xl:xh],
                                                ftf[xl:xh], good_mask[xl:xh])
         Y[xl:xh] = skysub / model
+
+    args.log.info('Building fiber to fiber for the last time')
     cont = smooth_fiber(Y, mask, args.nfibs)[:, np.newaxis]
-    args.log.info('Building fiber to fiber for %s again' % multi)
     ftf = ftf + cont
     skysub = wave * 0.
     sky = wave * 0.
@@ -523,7 +543,11 @@ for multi in args.multiname:
     Y.mask[mask] = True
     Y.mask[np.ma.abs(Y) > 0.25] = True
     S = np.ma.array(skysub, mask=Y.mask)
+    args.log.info('Fitting background to sky subtracted image.')
     back = get_sex_background(S, 11, 121)
+    args.log.info('Avg Back Model: %0.2f counts' % biweight_location(back))
+    args.log.info('Max Back Model: %0.2f counts' % np.max(back))
+    args.log.info('Min Back Model: %0.2f counts' % np.min(back))
     skysub = skysub - back
     make_plot(zimage, xgrid, ygrid, xpos, ypos, good_mask, outpath)
 
