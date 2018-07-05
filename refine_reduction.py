@@ -175,18 +175,6 @@ def rectify(wave, spec, lims, fac=2.5, usesel=True):
     return rect_wave, rect_spec
 
 
-def define_outliers(y, model, neigh=2):
-    thresh = 5. * np.sqrt(biweight_midvariance(y - model))
-    sel = np.where(np.abs(y - model) > thresh)[0]
-    for j in np.arange(1, neigh+1):
-        sel = np.union1d(sel, sel + 1)
-        sel = np.union1d(sel, sel - 1)
-    sel = sel[np.where((sel >= 0) + (sel < len(y)))[0]]
-    outlier = np.zeros(y.shape)
-    outlier[sel] = True
-    return np.array(outlier, dtype=bool)
-
-
 def fit_bspline(rect_wave, avg, knots=1032):
     B, c = bspline_x0(rect_wave, nknots=knots)
     smooth = np.dot(c, np.linalg.lstsq(c[~avg.mask, :], avg[~avg.mask])[0])
@@ -229,34 +217,6 @@ def fit_continuum(wv, sky, sncut=3., skip=1, fil_len=95, func=np.array):
         sky_sm = savgol_filter(skym_s, fil_len, 1)
     mask[sel] = True
     return sky_sm, mask
-
-
-def longest_consecutive_mask(outliers):
-    tot = 0
-    cnt = 0
-    for i in np.arange(1, len(outliers)):
-        if outliers[i] == (outliers[i-1] + 1):
-            cnt += 1
-        else:
-            tot = np.max([tot, cnt])
-            cnt = 0
-    return tot
-
-
-def build_ftf(y, rect_wave, fac, bad, good, nfibs, knots=100):
-    mask = np.zeros((y.shape[0],))
-    mask[bad] = 1.
-    mask = np.array(mask, dtype=bool)
-    ftf = []
-    for i in np.arange(4):
-        xl = i * nfibs
-        xh = (i + 1) * nfibs
-        X = y[xl:xh] * 1.
-        X.mask[mask[xl:xh]] = True
-        avg_offset_spec = np.ma.median(X, axis=0)
-        smoothed = fit_bspline(rect_wave, avg_offset_spec, knots=knots)
-        ftf.append(smoothed + fac[xl:xh])
-    return np.vstack(ftf)
 
 
 def simple_flat_field(X, func=np.abs, fil_len=21, sncut=1.5, skip=2):
@@ -322,17 +282,6 @@ def fit_GP(wave, spec, mask):
     return G.predict(wave[:, np.newaxis]), G
 
 
-def low_cont(x, nfibs):
-    z = np.ma.median(X, axis=1)
-    z = np.array(z)
-    model = z * 0.
-    for i in np.arange(4):
-        xl = i * nfibs
-        xh = (i + 1) * nfibs
-        model[xl:xh] = np.percentile(z[xl:xh], 15)
-    return z - model, model
-
-
 def safe_division(num, denom, eps=1e-8, fillval=0.0):
     good = np.isfinite(denom) * (np.abs(denom) > eps)
     div = num * 0.
@@ -369,7 +318,8 @@ def make_plot(zimage, xgrid, ygrid, xpos, ypos, good_mask, opath):
                vmax=25, cmap=plt.get_cmap('gray_r'),
                extent=[xgrid.min(), xgrid.max(), ygrid.min(), ygrid.max()])
     plt.scatter(xpos[good_mask], ypos[good_mask], marker='x', color='g', s=90)
-    plt.scatter(xpos[~good_mask], ypos[~good_mask], marker='x', color='r', s=90)
+    plt.scatter(xpos[~good_mask], ypos[~good_mask], marker='x', color='r',
+                s=90)
     fig.savefig(op.join(opath, 'image.png'))
 
 
