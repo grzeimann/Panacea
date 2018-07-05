@@ -10,29 +10,33 @@ from scipy.interpolate import interp1d
 from astropy.stats import biweight_midvariance
 
 
+def safe_division(num, denom, eps=1e-8, fillval=0.0):
+    good = np.isfinite(denom) * (np.abs(denom) > eps)
+    div = num * 0.
+    if num.ndim == denom.ndim:
+        div[good] = num[good] / denom[good]
+        div[~good] = fillval
+    else:
+        div[:, good] = num[:, good] / denom[good]
+        div[:, ~good] = fillval
+    return div
+
+
 def eval_fit(x1, x2):
     return np.sqrt(biweight_midvariance(x1-x2))
 
 
-def get_translation(wave, spec, cols, avg, xp, smooth, rect_wave,
+def get_translation(wave, spec, cols, rect_wave, smooth,
                     maxmove=4.):
-    dw = np.diff(wave)
-    dw = np.hstack([dw[0], dw])
-    I = interp1d(wave, spec / dw, kind='quadratic',
+    I = interp1d(rect_wave, smooth, kind='quadratic',
                  bounds_error=False, fill_value=-999.)
     def f(shifts):
         s = []
         for shift in shifts:
-            rect_spec = I(rect_wave-shift)
+            rect_spec = I(wave[cols] + shift)
             ys = np.ma.array(rect_spec, mask=((rect_spec == 0.) +
                                               (rect_spec == -999.)))
-            py1 = ys[~avg.mask][cols, np.newaxis]
-            py2 = smooth[~avg.mask][cols, np.newaxis]
-            ratio = py1 / py2
-            sel = np.squeeze(~ratio.mask)
-            norm1 = np.polyval(np.polyfit(xp[sel], ratio[sel], 2), xp)[:,
-                                                                    np.newaxis]
-            s.append(eval_fit(py1 / norm1, py2))
+            s.append(eval_fit(spec[cols], ys))
         return shifts[np.argmin(s)], s
     niter = 8
     wid = 2
@@ -45,33 +49,32 @@ def get_translation(wave, spec, cols, avg, xp, smooth, rect_wave,
     return center
 
 
-def get_new_wave(wave, trace, spec, rect_wave, avg, smooth, maxmove=4.,
-                 nchunks=15):
-    col_chunk = np.array_split(np.arange(20, (~avg.mask).sum()-20), nchunks)
-    x = np.arange((~avg.mask).sum())
-    newwave = wave * 1.
-    NFIBS = wave.shape[0]
-    shifts = []
-    warray, xarray, yarray, oarray = ([], [], [], [])
-    inds = np.array(np.hstack([np.arange(1, NFIBS, 15), NFIBS-1]), dtype=int)
-    for ind in inds:
-        for j, cols in enumerate(col_chunk):
-            newwave[ind] = wave[ind] * 1.
-            xp = x[cols]
-            x0 = np.searchsorted(wave[ind],
-                                 np.median(rect_wave[cols]))
-            yarray.append(trace[ind, x0])
-            xarray.append(x0)
-            totshift = 0.
-            totshift = get_translation(wave[ind], spec[ind], cols, avg, xp,
-                                       smooth, rect_wave,
-                                       maxmove=maxmove)
-            shifts.append(totshift)
-            warray.append(wave[ind, x0] + totshift)
-            oarray.append(wave[ind, x0])
-    x, y, w = [np.hstack(i) for i in [xarray, yarray, warray]]
-    wi, sh = [np.array(v).reshape(len(inds), nchunks)
-              for v in [oarray, shifts]]
+def get_new_wave(wave, trace, spec, ftf, good_mask, nwave, navg,
+                 maxmove=4., nchunks=15, debug=False):
+    good_sel = np.where(good_mask)[0]
+    wchunks = np.array_split(good_sel, 15)
+    wi = np.zeros((len(wchunks), nchunks))
+    sh = wi * 0.
+    tr = wi * 0.
+    xl = wi * 0.
+    inds = wi * 0.
+    X = np.arange(wave.shape[1])
+    for j, wchunk in enumerate(wchunks):
+        x = wave[wchunk]
+        t = trace[wchunk]
+        y = safe_division(spec[wchunk], ftf[wchunk])
+        x1 = x.ravel()
+        y1 = y.ravel()
+        ind = np.argsort(x1)
+        chunks = np.array_split(ind, nchunks)
+        L = len(wchunk) / 2
+        for i, chunk in enumerate(chunks):
+            sh[j, i] = get_translation(x1, y1, chunk, nwave, navg)
+            wi[j, i] = np.mean(x1[chunk])
+            xl[j, i] = np.interp(wi[j, i], x[L], X)
+            tr[j, i] = np.interp(xl[j, i], X, np.mean(t, axis=0))
+            inds[j, i] = wchunk[L]
+    inds = np.array(inds, dtype=int)[:, -1]
     newwave = wave * 1.
     for i, ind in enumerate(inds):
         x = np.interp(wi[i], wave[ind], np.arange(wave.shape[1]))
@@ -83,4 +86,7 @@ def get_new_wave(wave, trace, spec, rect_wave, avg, smooth, maxmove=4.,
         xfit = trace[:, i] / (newwave.shape[1] * 1.)
         y = newwave[inds, i] * 1.
         newwave[:, i] = np.polyval(np.polyfit(x, y, 3), xfit)
-    return newwave, wi, sh
+    if debug:
+        return newwave, wi, sh, tr, inds, xl
+    else:
+        return newwave
