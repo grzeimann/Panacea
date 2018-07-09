@@ -440,6 +440,7 @@ class Amplifier:
         hdu.header['RHO'] = self.rho
         hdu.header['EXPTIME'] = self.exptime
         hdu.header['OSCANMN'] = self.overscan_value
+        hdu.header['BACKLVL'] = self.back
         hdu.header['OSCANSTD'] = self.overscan_noise * self.gain
         hdu.header['RAWPATH'] = self.path
         hdu.header['RAWFN'] = self.filename
