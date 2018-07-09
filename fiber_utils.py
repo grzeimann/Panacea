@@ -12,6 +12,7 @@ from utils import biweight_filter
 from scipy.optimize import nnls
 import scipy
 from scipy.signal import medfilt, savgol_filter
+
 from scipy.interpolate import interp1d, NearestNDInterpolator, LinearNDInterpolator
 from scipy.linalg import lstsq
 from numpy.polynomial.polynomial import polyvander2d
@@ -954,6 +955,8 @@ def measure_background(image, Fibers, width=30, niter=3, order=3):
     t = np.hstack(t)
     t = np.array(t, dtype=int)
     ind = np.setdiff1d(s,t)
+    back = biweight_location(image[ind])
+    return back
     mask = np.zeros((a*b))
     mask[ind] = 1.
     mask[ind] = 1.-is_outlier(image[ind])
