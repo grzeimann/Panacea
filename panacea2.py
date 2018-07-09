@@ -153,7 +153,6 @@ def main():
                                  'twi_spectrum']                                           
                     if args.sci_operations['subtract_background']:                                            
                         execute_function(amp, 'subtract_background')
-                        image_list.append('back')
                     if amp.adjust_trace or args.trace_from_sci:
                         amp.refit=True
                         execute_function(amp, 'get_trace')
