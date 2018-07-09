@@ -122,7 +122,7 @@ for science_targ in target_list:
     if len(standard_list):
         closest_date_st, diff_st = find_match(datet, standard_list)
         if diff_st < 1:
-            standard_str = ('python Panacea/panacea2.py -td %s -to %s -te 1 '
+            standard_str = ('python /work/03730/gregz/maverick/Panacea/panacea2.py -td %s -to %s -te 1 '
                             '--instr %s --instr_side %s --ifuslot %s -sd %s '
                             '-so %s -rs'
                             % (twi_list[closest_date].split('_')[0],
@@ -140,13 +140,13 @@ for science_targ in target_list:
             std_post.append(standard_str)
     if closest_date not in no_repeats:
         no_repeats.append(closest_date)
-        twi_panacea_str = ('python Panacea/panacea2.py -td %s -to %s -te 1 '
+        twi_panacea_str = ('python /work/03730/gregz/maverick/Panacea/panacea2.py -td %s -to %s -te 1 '
                            '--instr %s --instr_side %s --ifuslot %s -rt'
                            % (twi_list[closest_date].split('_')[0],
                               twi_list[closest_date].split('_')[1],
                               args.instrument, args.side, ifuslot))
         twi_file.append(twi_panacea_str)
-    panacea_str = ('python Panacea/panacea2.py -td %s -to %s -te 1 --instr %s '
+    panacea_str = ('python /work/03730/gregz/maverick/Panacea/panacea2.py -td %s -to %s -te 1 --instr %s '
                    '--instr_side %s --ifuslot %s -sd %s -so %s -rs'
                    % (twi_list[closest_date].split('_')[0],
                       twi_list[closest_date].split('_')[1],
@@ -155,7 +155,7 @@ for science_targ in target_list:
     exps = get_exposures(date, obsid, args)
     for exp in exps:
         for side in sides:
-            panacea_str = ('python Panacea/combine_amp_reductions.py -f '
+            panacea_str = ('python /work/03730/gregz/maverick/Panacea/combine_amp_reductions.py -f '
                            'reductions/%s/%s/%s%s/exp%02d/lrs2/%s -s %s'
                            % (date, args.instrument, args.instrument, obsid,
                               exp, multi_name, side))
