@@ -20,7 +20,7 @@ from astropy.convolution import convolve, Gaussian1DKernel
 from astropy.modeling.models import Moffat2D, Polynomial2D
 from astropy.modeling.fitting import LevMarLSQFitter
 from fiber_utils import bspline_x0
-
+from wave_utils import get_new_wave
 
 parser = ap.ArgumentParser(add_help=True)
 
@@ -33,6 +33,9 @@ parser.add_argument("-s", "--side",
 parser.add_argument("-g", "--fibergroup",
                     help=''' Size of the fiber group for sky subtraction''',
                     type=int, default=20)
+parser.add_argument("-rc", "--recalculate_wavelength",
+                    help='''recalculate_wavelength''',
+                    action="count", default=0)
 
 args = parser.parse_args(args=None)
 
@@ -62,6 +65,23 @@ def correct_wave(P):
             P.trace, P.goodfibers)
     newwave = S.wavelength_from_sky()
     return newwave
+
+
+def make_avg_spec(wave, spec, binsize=35, knots=None):
+    if knots is None:
+        knots = wave.shape[1]
+    ind = np.argsort(wave.ravel())
+    N, D = wave.shape
+    wchunks = np.array_split(wave.ravel()[ind],
+                             N * D / binsize)
+    schunks = np.array_split(spec.ravel()[ind],
+                             N * D / binsize)
+    nwave = np.array([np.mean(chunk) for chunk in wchunks])
+    B, c = bspline_x0(nwave, nknots=knots)
+    nspec = np.array([biweight_location(chunk) for chunk in schunks])
+    sol = np.linalg.lstsq(c, nspec)[0]
+    smooth = np.dot(c, sol)
+    return nwave, smooth
 
 
 def safe_division(num, denom, eps=1e-8, fillval=0.0):
@@ -206,12 +226,6 @@ def main():
     R.get_mirror_illumination()
 
     # Correct the wavelength solution from sky lines
-    if args.side[0] == 'R':
-        R.dar.spec = 1. * R.oldspec
-        R.dar.rectified_dlam = np.abs(np.diff(R.wave_lims)) / (2064.*1.5)
-        R.dar.rectify(minwave=R.wave_lims[0], maxwave=R.wave_lims[1])
-        R.dar.wave = correct_wave(R)
-        R.wave = R.dar.wave * 1.
 
     # Load the default fiber to fiber and map to each fiber's wavelength
     F = fits.open('ftf_%s.fits' % args.side)
@@ -222,6 +236,20 @@ def main():
                      bounds_error=False, fill_value=-999.)
         R.ftf[i] = I(R.wave[i])
 
+    if args.recalculate_wavelength:
+        newwave = R.wave * 0.
+        args.log.info('Working on the wavelength')
+        if args.side[0] == 'R':
+            spec = R.oldspec * 1.
+        else:
+            spec = R.twi * 1.
+        nwave, nspec = make_avg_spec(R.wave, safe_division(spec, R.ftf))
+        newwave = get_new_wave(R.wave, R.trace, spec, R.ftf, R.good_mask,
+                               nwave, nspec)
+        wave0 = R.wave * 1.
+        R.wave = newwave * 1.
+        args.log.info('Max Wave Correction: %0.2f A' % np.max(newwave-wave0))
+        args.log.info('Min Wave Correction: %0.2f A' % np.min(newwave-wave0))
     for i in np.arange(2):
         # Rectify spectra for sky calculation
         # LOOK HERE IF AN ISSUE HAPPENS
