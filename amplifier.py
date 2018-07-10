@@ -323,6 +323,7 @@ class Amplifier:
         self.sky_iterations = sky_iterations
         self.sky_sigthresh = sky_sigthresh
         self.adjust_ftf = adjust_ftf
+        self.back = 0.0
         
         # Image Options
         self.make_residual = make_residual
