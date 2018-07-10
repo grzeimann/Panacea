@@ -729,6 +729,8 @@ class Amplifier:
         if self.fibers[0].xind is None:
             get_indices(self.image, self.fibers, self.fsize)
         self.back = measure_background(self.image, self.fibers)
+        self.log.info('Background level is: %0.2f e-' % self.back) 
+
         self.image[:] = self.image - self.back
         
     def prepare_image(self):
