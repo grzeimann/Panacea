@@ -57,9 +57,10 @@ def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
 
     names = ['y', 'x']
     for ampn in amp_list:
+        expn = op.dirname(op.dirname(ampn.filename))[-2:]
         datetemp = re.split('[-,T]', ampn.header['DATE-OBS'])
         datev = datetemp[0] + datetemp[1] + datetemp[2]
-        names.append('%s_%07d' % (datev, int(ampn.header['OBSID'])))
+        names.append('%s_%07d_%s' % (datev, int(ampn.header['OBSID']), expn))
     T = Table(big_array, names=names)
     mkpath(op.join(args.folder, date))
     args.log.info('Writing pixels for %s, %s' % (amp_list[-1].specid, amp))
