@@ -52,8 +52,8 @@ def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
         return None
 
     yind, xind = np.indices(amp_list[-1].image.shape)
-    big_array[:, 0] = yind[yran[0]:(yran[1]+1), xran[0]:(xran[1]+1)].ravel()
-    big_array[:, 1] = xind[yran[0]:(yran[1]+1), xran[0]:(xran[1]+1)].ravel()
+    big_array[:, 0] = yind[yran[0]:yran[1], xran[0]:xran[1]].ravel()
+    big_array[:, 1] = xind[yran[0]:yran[1], xran[0]:xran[1]].ravel()
 
     names = ['y', 'x']
     for ampn in amp_list:
