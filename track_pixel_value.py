@@ -34,8 +34,8 @@ def build_filenames(date, args):
 def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
                       xran=[900, 1200]):
     # Create empty lists for the left edge jump, right edge jump, and structure
-    big_array = np.zeros(((xran[1] - xran[0]) * (yran[1] - yran[0]) + 2,
-                          len(file_list)))
+    big_array = np.zeros(((xran[1] - xran[0]) * (yran[1] - yran[0]),
+                          len(file_list) + 2))
     amp_list = []
     for i, itm in enumerate(file_list):
         base, typ = itm
@@ -43,8 +43,8 @@ def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
         amp_list.append(Amplifier(fn, ''))
         amp_list[-1].subtract_overscan()
         amp_list[-1].trim_image()
-        big_array[:, i+2] = amp_list[-1].image[yran[0]:(yran[1]+1),
-                                               xran[0]:(xran[1]+1)].ravel()
+        big_array[:, i+2] = amp_list[-1].image[yran[0]:yran[1],
+                                               xran[0]:xran[1]].ravel()
 
     # Select only the bias frames that match the input amp, e.g., "RU"
     if not len(amp_list):
