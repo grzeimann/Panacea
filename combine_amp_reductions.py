@@ -5,22 +5,33 @@ Created on Thu May 31 16:02:02 2018
 @author: gregz
 """
 
-import numpy as np
-import sys
-import os.path as op
-from reducelrs2 import ReduceLRS2
-from astropy.io import fits
-from astropy.table import Table
-from scipy.interpolate import interp1d
-from input_utils import setup_logging
+import matplotlib
+matplotlib.use('TkAgg')
+
 import argparse as ap
-from skysubtraction import Sky
-from utils import biweight_location, biweight_midvariance
-from astropy.convolution import convolve, Gaussian1DKernel
-from astropy.modeling.models import Moffat2D, Polynomial2D
+import matplotlib.pyplot as plt
+import numpy as np
+import os.path as op
+import sys
+
+from astropy.convolution import Gaussian2DKernel
+from astropy.io import fits
 from astropy.modeling.fitting import LevMarLSQFitter
+from astropy.modeling.models import Moffat2D
+from astropy.table import Table
+from astropy.visualization import AsinhStretch
+from astropy.visualization.mpl_normalize import ImageNormalize
+from copy import copy
 from fiber_utils import bspline_x0
-from wave_utils import get_new_wave
+from input_utils import setup_logging
+from photutils import detect_sources
+from reducelrs2 import ReduceLRS2
+from scipy.interpolate import interp1d
+from sklearn.gaussian_process.kernels import Matern, WhiteKernel
+from sklearn.gaussian_process.kernels import ConstantKernel
+from sklearn.gaussian_process import GaussianProcessRegressor
+from utils import biweight_location, biweight_midvariance
+from wave_utils import get_new_wave, get_red_wave
 
 parser = ap.ArgumentParser(add_help=True)
 
@@ -28,11 +39,8 @@ parser.add_argument("-f", "--filename",
                     help='''Filename that contains list of files''',
                     type=str, default=None)
 parser.add_argument("-s", "--side",
-                    help='''BL=UV, BR=Orange, RL=Red, RR=Farred''',
-                    type=str, default=None)
-parser.add_argument("-g", "--fibergroup",
-                    help=''' Size of the fiber group for sky subtraction''',
-                    type=int, default=20)
+                    help='''blue for LRS2-B and red for LRS2-R''',
+                    type=str, default='blue')
 parser.add_argument("-rc", "--recalculate_wavelength",
                     help='''recalculate_wavelength''',
                     action="count", default=0)
@@ -45,26 +53,7 @@ for attr in attrs:
     if getattr(args, attr) is None:
         args.log.error('Need a "--%s" argument.' % attr)
         sys.exit(1)
-
-
-def smooth(rect_wave, spec_array, n=15):
-    chunks = np.array_split(spec_array, n, axis=1)
-    mvals = [np.ma.median(chunk, axis=1) for chunk in chunks]
-    waves = np.array_split(rect_wave, n)
-    mwave = [np.median(wave) for wave in waves]
-    ftf = spec_array * 0.
-    for i in np.arange(spec_array.shape[0]):
-        I = interp1d(mwave, [mval[i] for mval in mvals], kind='quadratic',
-                     bounds_error=False, fill_value="extrapolate")
-        ftf[i, :] = I(rect_wave)
-    return ftf
-
-
-def correct_wave(P):
-    S = Sky(P.wave, P.spec, P.dar.rect_wave, P.dar.rect_spec,
-            P.trace, P.goodfibers)
-    newwave = S.wavelength_from_sky()
-    return newwave
+args.side = args.side.lower()
 
 
 def make_avg_spec(wave, spec, binsize=35, knots=None):
@@ -81,7 +70,8 @@ def make_avg_spec(wave, spec, binsize=35, knots=None):
     nspec = np.array([biweight_location(chunk) for chunk in schunks])
     sol = np.linalg.lstsq(c, nspec)[0]
     smooth = np.dot(c, sol)
-    return nwave, smooth
+    nwave, nind = np.unique(nwave, return_index=True)
+    return nwave, smooth[nind]
 
 
 def safe_division(num, denom, eps=1e-8, fillval=0.0):
@@ -109,24 +99,6 @@ def rectify(wave, spec, lims, fac=2.5):
     return rect_wave, rect_spec
 
 
-def sky_calc(y, goodfibers, c, nbins=14):
-    inds = np.array_split(goodfibers, nbins)
-    back = y * 0.
-    x = np.arange(y.shape[1])
-    for ind in inds:
-        avg = biweight_location(y[ind], axis=(0,))
-        # Find "bad" values
-        sel = np.isnan(avg) + (avg <= 0.0)
-        # Interpolate over "bad" values
-        avg[sel] = np.interp(x[sel], x[~sel], avg[~sel])
-        # bspline fit
-        sol = np.linalg.lstsq(c, avg)[0]
-        # Fill in solution for sky background
-        xl, xh = (ind.min(), ind.max()+1)
-        back[xl:xh] = np.dot(c, sol)
-    return back
-
-
 def gather_sn_fibers(fibconv, noise, cols):
     hightolow = np.argsort(np.median(fibconv[:, cols], axis=1))[::-1]
     s = 0.
@@ -147,13 +119,18 @@ def gather_sn_fibers(fibconv, noise, cols):
     return inds, s
 
 
-def find_centroid(image, x, y):
+def find_centroid(image, x, y, B):
     G = Moffat2D()
     G.alpha.value = 3.5
     G.alpha.fixed = True
     fit = LevMarLSQFitter()(G, x, y, image)
+    signal_to_noise = fit.amplitude.value / biweight_midvariance(image)
+    d = np.sqrt((x - fit.x_0.value)**2 + (y - fit.y_0.value)**2)
+    ratio = fit(x, y) / B
+    ind = np.argsort(ratio)
+    dthresh = np.interp(.01, ratio[ind], d[ind])
     return (fit.x_0.value, fit.y_0.value, fit.alpha.value, fit.gamma.value,
-            fit.fwhm)
+            fit.fwhm, signal_to_noise, dthresh)
 
 
 def build_big_fiber_array(P):
@@ -177,137 +154,133 @@ def build_big_fiber_array(P):
     return NX, NY
 
 
-def flux_correction(wave, loc, P, inds, dar_table,
-                    rect_spec, rect_sky, noise, alpha=3.5, gamma=1.5):
+def get_x_y_lambda(det_ind, other_ind, detwv, otherwv,
+                   det_xc, det_yc, sides):
+    side = sides[det_ind]
+    dar_table = Table.read('dar_%s.dat' % side,
+                           format='ascii.fixed_width_two_line')
     X = interp1d(dar_table['wave'], dar_table['x_0'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
     Y = interp1d(dar_table['wave'], dar_table['y_0'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
-    frac = wave * 0.
-    SF = wave * 0.
-    SS = wave * 0.
-    N = wave * 0.
-    NX, NY = build_big_fiber_array(P)
-    PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=alpha, gamma=gamma)
-    for i in np.arange(len(wave)):
-        x = loc[1] + X(wave[i]) - X(loc[0])
-        y = loc[2] + Y(wave[i]) - Y(loc[0])
-        PSF.x_0.value = x
-        PSF.y_0.value = y
-        total = PSF(NX, NY).sum()
-        wei = PSF(P.ifux[inds], P.ifuy[inds])
-        frac[i] = wei.sum() / total
-        nwei = wei / wei.sum()
-        SF[i] = (rect_spec[inds, i] * nwei).sum() / (nwei**2).sum() / frac[i]
-        SS[i] = (rect_sky[inds, i] * nwei).sum() / (nwei**2).sum() / frac[i]
-        N[i] = np.sqrt((noise[i]**2 * (nwei / (nwei**2).sum())**2).sum()) / frac[i]
-    return frac, SF, SS, N
+    xoff, yoff = (det_xc - X(detwv), det_yc - Y(detwv))
+    side = sides[other_ind]
+    dar_table = Table.read('dar_%s.dat' % side,
+                           format='ascii.fixed_width_two_line')
+    X = interp1d(dar_table['wave'], dar_table['x_0'], kind='linear',
+                 bounds_error=False, fill_value='extrapolate')
+    Y = interp1d(dar_table['wave'], dar_table['y_0'], kind='linear',
+                 bounds_error=False, fill_value='extrapolate')
+    return xoff + X(otherwv), yoff + Y(otherwv)
 
 
-if args.side == 'RR':
-    lims = [8225, 10565]
-    lims2 = [8275., 10500.]
-if args.side == 'RL':
-    lims = [6425, 8460]
-    lims2 = [6450., 8400.]
-if args.side == 'BR':
-    lims = [4520, 7010]
-    lims2 = [4655., 6960.]
-if args.side == 'BL':
-    lims = [3625, 4670]
-    lims2 = [3640., 4640.]
+def make_plot(zimage, xgrid, ygrid, xpos, ypos, good_mask, opath, side):
+    fig = plt.figure(figsize=(6, 6))
+    plt.imshow(zimage, origin='lower', interpolation='none',
+               norm=ImageNormalize(stretch=AsinhStretch()),
+               cmap=plt.get_cmap('gray_r'),
+               extent=[xgrid.min(), xgrid.max(), ygrid.min(), ygrid.max()])
+    plt.scatter(xpos[good_mask], ypos[good_mask], marker='x', color='g', s=90)
+    plt.scatter(xpos[~good_mask], ypos[~good_mask], marker='x', color='r',
+                s=90)
+    plt.axis([xgrid.min(), xgrid.max(), ygrid.min(), ygrid.max()])
+    fig.savefig(op.join(opath, 'image_%s.png' % side))
 
 
-def main():
-    # Load the data
-    R = ReduceLRS2(args.filename, args.side)
+def mask_sources(xgrid, ygrid, xpos, ypos, zimage, sncut=2.0):
+    threshold = (biweight_location(zimage) +
+                 sncut * biweight_midvariance(zimage))
+    kernel = Gaussian2DKernel(2, x_size=5, y_size=5)
+    kernel.normalize()
+    segm = detect_sources(zimage, threshold, npixels=8, filter_kernel=kernel)
+    dist = np.sqrt((xgrid - xpos[:, np.newaxis, np.newaxis])**2 +
+                   (ygrid - ypos[:, np.newaxis, np.newaxis])**2)
+    fiberloc = np.argmin(dist, axis=0)
+    return np.unique(fiberloc[segm.array > 0])
 
-    # Get Mirror Illumination for the given track
-    R.get_mirror_illumination()
 
-    # Correct the wavelength solution from sky lines
+def make_frame(xloc, yloc, data, scale=0.25,
+               seeing_fac=2.5):
+    seeing = seeing_fac * scale
+    a = len(data)
+    x = np.arange(xloc.min()-scale,
+                  xloc.max()+1*scale, scale)
+    y = np.arange(yloc.min()-scale,
+                  yloc.max()+1*scale, scale)
+    xgrid, ygrid = np.meshgrid(x, y)
+    zimage = xgrid * 0.
+    d = np.zeros((a,)+xgrid.shape)
+    w = np.zeros((a,)+xgrid.shape)
+    for i in np.arange(len(x)):
+        for j in np.arange(len(y)):
+            d[:, j, i] = np.sqrt((xloc - xgrid[j, i])**2 +
+                                 (yloc - ygrid[j, i])**2)
+            w[:, j, i] = np.exp(-1./2.*(d[:, j, i]/seeing)**2)
 
-    # Load the default fiber to fiber and map to each fiber's wavelength
-    F = fits.open('ftf_%s.fits' % args.side)
-    F[0].data = np.array(F[0].data, dtype='float64')
-    R.ftf = R.wave * 0.
-    for i in np.arange(R.wave.shape[0]):
-        I = interp1d(F[0].data[0], F[0].data[i+1], kind='quadratic',
-                     bounds_error=False, fill_value=-999.)
-        R.ftf[i] = I(R.wave[i])
+    sel = np.where((np.abs(data) > 1e-5) * np.isfinite(data))[0]
+    ws = w[sel, :, :].sum(axis=0)
+    zimage = ((data[sel, np.newaxis, np.newaxis] * w[sel]).sum(axis=0) /
+              ws * 1.9)
+    return xgrid, ygrid, zimage
 
-    if args.recalculate_wavelength:
-        newwave = R.wave * 0.
-        args.log.info('Working on the wavelength')
-        if args.side[0] == 'R':
-            spec = R.oldspec * 1.
-        else:
-            spec = R.twi * 1.
-        nwave, nspec = make_avg_spec(R.wave, safe_division(spec, R.ftf))
-        newwave = get_new_wave(R.wave, R.trace, spec, R.ftf, R.good_mask,
-                               nwave, nspec)
-        wave0 = R.wave * 1.
-        R.wave = newwave * 1.
-        args.log.info('Max Wave Correction: %0.2f A' % np.max(newwave-wave0))
-        args.log.info('Min Wave Correction: %0.2f A' % np.min(newwave-wave0))
+
+def setup_GP():
+    kernel = (ConstantKernel() + Matern(length_scale=2, nu=3/2) +
+              WhiteKernel(noise_level=1.))
+    G = GaussianProcessRegressor(alpha=1e-10, copy_X_train=True, kernel=kernel,
+                                 n_restarts_optimizer=0, normalize_y=False,
+                                 optimizer='fmin_l_bfgs_b', random_state=None)
+    return G
+
+
+def fit_GP(wave, spec, mask):
+    G = setup_GP()
+    G.fit(wave[mask, np.newaxis], spec[mask])
+    return G.predict(wave[:, np.newaxis]), G
+
+
+def smooth_fiber(X, mask, nfibs, wave_sel=None):
+    z = biweight_location(X, axis=(1,))
+    x = np.arange(len(z))
+    z[mask] = np.nan
+    model = z * 0.
     for i in np.arange(2):
-        # Rectify spectra for sky calculation
-        # LOOK HERE IF AN ISSUE HAPPENS
-        args.log.info('Sky subtraction iteration: %i' % (i + 1))
-        rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
-                                       np.array(safe_division(R.oldspec,
-                                                              R.ftf),
-                                                dtype='float64'), lims,
-                                       fac=2.5)
-        y = np.ma.array(rect_spec, mask=((rect_spec == 0.) +
-                                         (rect_spec == -999.)))
+        xl = i * nfibs
+        xh = (i + 1) * nfibs
+        sel = np.isfinite(z[xl:xh])
+        G = setup_GP()
+        G.fit(x[xl:xh][sel, np.newaxis], z[xl:xh][sel])
+        model[xl:xh] = G.predict(x[xl:xh, np.newaxis])
+    return model
 
-        # Calculate sky iteratively, adjusting fiber to fiber
-        if i == 0:
-            B, c = bspline_x0(rect_wave, nknots=2064)
-        # Calculate sky background in groups of fibers
-        # We group fibers because of the changing spectral resolution
-        back = sky_calc(y, R.goodfibers, c, nbins=(R.wave.shape[0] /
-                                                   args.fibergroup))
-        # Get Signal to noise for a convolved sky subtracted spectrum
-        G = Gaussian1DKernel(1.5)
-        fibconv = rect_spec * 0.
+
+def subtract_sky(R, sky_sel, args, niter=2):
+    for j in np.arange(niter):
+        nwave, nspec = make_avg_spec(R.wave[sky_sel],
+                                     safe_division(R.spec[sky_sel],
+                                     R.ftf[sky_sel]), binsize=35, knots=None)
+        I = interp1d(nwave, nspec, bounds_error=False, kind='quadratic',
+                     fill_value='extrapolate')
+        R.skysub = R.wave * 0.
+        R.sky = R.wave * 0.
+        model = R.wave * 0.
         for i in np.arange(R.wave.shape[0]):
-            fibconv[i] = convolve(rect_spec[i] - back[i], G)
-        noise = biweight_midvariance(fibconv[R.goodfibers, :], axis=(0,))
-        R.signoise = safe_division(fibconv, noise)
-        S = np.nanmedian(R.signoise, axis=1)
-        N = biweight_midvariance(S)
-        sel_low_sn = (S/N) < 3.
-        R.goodfibers = np.where(sel_low_sn)[0]
-        pattern = biweight_location(safe_division(rect_spec - back, back),
-                                    axis=(1,))
-        P = Polynomial2D(1)
-        fit = LevMarLSQFitter()(P, R.ifux[R.goodfibers], R.ifuy[R.goodfibers],
-                                pattern[R.goodfibers])
+            model[i] = I(R.wave[i])
+            R.sky[i] = model[i] * R.ftf[i]
+            R.skysub[i] = R.spec[i] - R.sky[i]
+        residual = safe_division(R.skysub, model)
+        cont = smooth_fiber(residual, ~sky_sel, R.wave.shape[0] / 2)
+        R.ftf = R.ftf + cont[:, np.newaxis]
         args.log.info('Fiber to Fiber offsets')
-        T = Table([R.ifux, R.ifuy, fit(R.ifux, R.ifuy)],
-                  names=['x', 'y', 'offset'])
+        T = Table([R.ifux, R.ifuy, cont], names=['x', 'y', 'offset'])
         args.log.info(T)
-        R.ftf = R.ftf + fit(R.ifux, R.ifuy)[:, np.newaxis]
+    R.skysub = safe_division(R.skysub, R.ftf)
+    return R
 
-    skysub = R.wave * 0.
-    sky = R.wave * 0.
-    for i in np.arange(R.wave.shape[0]):
-        dw = np.diff(R.wave[i])
-        dw = np.hstack([dw[0], dw])
-        I = interp1d(rect_wave, back[i], kind='quadratic',
-                     bounds_error=False, fill_value=-999.)
-        skysub[i] = R.oldspec[i] - I(R.wave[i]) * dw * R.ftf[i]
-        sky[i] = I(R.wave[i]) * dw * R.ftf[i]
 
-    R.sky = sky * 1.
-    R.skysub = safe_division(skysub, R.ftf)
-    R.ifupos = np.array([R.ifux, R.ifuy]).swapaxes(0, 1)
-    R.skypos = np.array([R.ra, R.dec]).swapaxes(0, 1)
+def extract_source(R, side, lims2, loc, fibinds, args):
     R.skynorm = safe_division(R.sky, R.ftf)
-
-    T = Table.read('response_%s.dat' % args.side,
+    T = Table.read('response_%s.dat' % side,
                    format='ascii.fixed_width_two_line')
     I = interp1d(T['wave'], T['response'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
@@ -324,48 +297,88 @@ def main():
     rect_wave, rect_sky = rectify(np.array(R.wave, dtype='float64'),
                                   np.array(R.slam, dtype='float64'),
                                   lims2, fac=1.0)
-
-    R.define_good_fibers()
-    G = Gaussian1DKernel(1.5)
-    fibconv = rect_spec * 0.
-    for i in np.arange(R.wave.shape[0]):
-        fibconv[i] = convolve(rect_spec[i], G)
-    noise = biweight_midvariance(fibconv, axis=(0,))
-    inds = np.array_split(np.arange(len(rect_wave)), 20)
-    v = np.argmax([np.sum(np.nanmedian(chunk, axis=1))
-                   for chunk in np.array_split(fibconv / noise, 20, axis=1)])
-    sn_image = np.nanmedian(np.array_split(fibconv / noise, 20, axis=1)[v],
-                            axis=1)
-    wv = np.median(np.array_split(rect_wave, 20)[v])
-    xc, yc, alpha, gamma, fwhm = find_centroid(sn_image, R.ifux, R.ifuy)
-    print(v, xc, yc, alpha, gamma, fwhm)
-
-    fibinds, s = gather_sn_fibers(fibconv, noise, inds[v])
-    dar_table = Table.read('dar_%s.dat' % args.side,
-                           format='ascii.fixed_width_two_line')
-
+    R.rect_wave = rect_wave * 1.
     noise = biweight_midvariance(rect_spec, axis=(0,))
-    frac, R.flux, R.skyflux, R.fluxerr = flux_correction(rect_wave,
-                                                         [wv, xc, yc], R,
-                                                         fibinds, dar_table,
+    frac, R.flux, R.skyflux, R.fluxerr, R.wei = flux_correction(rect_wave,
+                                                         loc, R, fibinds, side,
                                                          rect_spec, rect_sky,
-                                                         noise, alpha=alpha,
-                                                         gamma=gamma)
-    print(len(fibinds), s, np.median(frac))
+                                                         noise)
+    args.log.info('Number of fibers used in extraction: %i' % np.sum(fibinds))
+    args.log.info('Fraction of source flux covered in extracted fibers: %0.2f' %
+                  np.median(frac))
+    return R
 
-    R.rect_spec = rect_spec * 1.
-    # R.flux = rect_spec[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
-    # R.skyflux = rect_sky[np.array(fibinds, dtype=int), :].sum(axis=0) / frac
-    # R.fluxerror = noise * np.sqrt(len(fibinds)) / frac
-    R.save(image_list=['image_name', 'error', 'ifupos', 'skypos', 'wave',
-                       'ftf', 'oldspec', 'sky', 'skysub'],
-           name_list=['image', 'error', 'ifupos', 'skypos', 'wave', 'ftf',
-                      'spectrum', 'sky', 'skysub'])
+
+def flux_correction(wave, loc, P, inds, side, rect_spec, rect_sky, noise):
+    dar_table = Table.read('dar_%s.dat' % side,
+                           format='ascii.fixed_width_two_line')
+    X = interp1d(dar_table['wave'], dar_table['x_0'], kind='linear',
+                 bounds_error=False, fill_value='extrapolate')
+    Y = interp1d(dar_table['wave'], dar_table['y_0'], kind='linear',
+                 bounds_error=False, fill_value='extrapolate')
+    frac = wave * 0.
+    SF = wave * 0.
+    SS = wave * 0.
+    N = wave * 0.
+    F = rect_spec * 0.
+    NX, NY = build_big_fiber_array(P)
+    PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=loc[3], gamma=loc[4])
+    for i in np.arange(len(wave)):
+        inds1 = np.array(inds*1., dtype=bool)
+        x = loc[1] + X(wave[i]) - X(loc[0])
+        y = loc[2] + Y(wave[i]) - Y(loc[0])
+        PSF.x_0.value = x
+        PSF.y_0.value = y
+        sind = np.argsort(rect_spec[:, i])
+        outlier = ((np.diff(np.sort(rect_spec[:, i])) /
+                    np.percentile(rect_spec[:, i], 98)) > 1.)
+        for cnt in np.arange(len(outlier)):
+            if outlier[cnt]:
+                inds1[sind[cnt]] = False
+            else:
+                break
+        for cnt in np.arange(len(outlier))[::-1]:
+            if outlier[cnt]:
+                inds1[sind[cnt+1]] = False
+            else:
+                break
+        total = PSF(NX, NY).sum()
+        wei = PSF(P.ifux[inds1], P.ifuy[inds1])
+        frac[i] = wei.sum() / total
+        nwei = wei / wei.sum()
+        SF[i] = (rect_spec[inds1, i] * nwei).sum() / (nwei**2).sum() / frac[i]
+        SS[i] = (rect_sky[inds1, i] * nwei).sum() / (nwei**2).sum() / frac[i]
+        N[i] = (np.sqrt((noise[i]**2 * (nwei / (nwei**2).sum())**2).sum()) /
+                frac[i])
+        F[inds1, i] = nwei
+    return frac, SF, SS, N, F
+
+
+def get_lims(side):
+    if side == 'RR':
+        lims = [8225, 10565]
+        lims2 = [8275., 10500.]
+    if side == 'RL':
+        lims = [6425, 8460]
+        lims2 = [6450., 8400.]
+    if side == 'BR':
+        lims = [4520, 7010]
+        lims2 = [4655., 6960.]
+    if side == 'BL':
+        lims = [3625, 4670]
+        lims2 = [3640., 4640.]
+    return lims, lims2
+
+
+def write_spectrum_out(R):
     names = ['wavelength', 'F_lambda', 'e_F_lambda', 'Sky_lambda']
-    hdu = fits.PrimaryHDU(np.array([rect_wave, R.flux, R.fluxerr, R.skyflux],
+    hdu = fits.PrimaryHDU(np.array([R.rect_wave, R.flux, R.fluxerr, R.skyflux],
                                    dtype='float32'))
-    hdu.header['waveunit'] = 'A'
-    hdu.header['fluxunit'] = 'ergs/s/cm2/A'
+    hdu.header['DWAVE'] = R.rect_wave[1] - R.rect_wave[0]
+    hdu.header['WAVE0'] = R.rect_wave[0]
+    hdu.header['WAVESOL'] = 'WAVE0 + DWAVE * linspace(0, NAXIS1)'
+    hdu.header['WAVEUNIT'] = 'A'
+    hdu.header['FLUXUNIT'] = 'ergs/s/cm2/A'
     for i, name in enumerate(names):
         hdu.header['ROW%i' % (i+1)] = name
     for key in R.header.keys():
@@ -374,6 +387,191 @@ def main():
         hdu.header[key] = R.header[key]
     hdu.writeto(op.join(R.path, 'spectrum_%s.fits' % R.side_name),
                 overwrite=True)
+
+
+def quick_exam(R, nwavebins, lims, side, args):
+    rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
+                                   np.array(safe_division(R.oldspec,
+                                                          R.ftf),
+                                            dtype='float64'), lims,
+                                   fac=2.5)
+
+    Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
+
+    S = [biweight_location(chunk, axis=(1,)) - biweight_location(chunk)
+         for chunk in np.array_split(Z, nwavebins, axis=1)]
+    B = [biweight_location(chunk)
+         for chunk in np.array_split(Z, nwavebins, axis=1)]
+    N = [biweight_midvariance(s) for s in S]
+    S, B, N = [np.array(v) for v in [S, B, N]]
+    SN = [np.percentile(s / n, 99) for s, n in zip(S, N)]
+    v = np.argmax(SN)
+    sn_image = S[v]
+    wv = np.median(np.array_split(rect_wave, nwavebins)[v])
+    xc, yc, a, g, f, sign, dthresh = find_centroid(sn_image, R.ifux, R.ifuy,
+                                                   B[v])
+    xgrid, ygrid, zimage = make_frame(R.ifux, R.ifuy, S[v])
+    mask = mask_sources(xgrid, ygrid, R.ifux, R.ifuy, zimage)
+    good = np.setdiff1d(np.arange(Z.shape[0], dtype=int), mask)
+    good_mask = np.zeros((Z.shape[0],))
+    good_mask[good] = 1.
+    good_mask = np.array(good_mask, dtype=bool)
+    make_plot(zimage, xgrid, ygrid, R.ifux, R.ifuy, good_mask, R.path,
+              side)
+    return wv, good_mask, xc, yc, a, g, sign, dthresh
+
+
+def get_twi_ftf(wave, twi):
+    ftf_twi = wave * 0.
+    T = np.ma.array(twi, mask=((twi < 1) + np.isnan(twi)))
+    fac = biweight_location(T, axis=(1,))[:, np.newaxis] / biweight_location(T)
+    ftf_twi = fac * np.ones((twi.shape[1],))
+    for i in np.arange(2):
+        nwave, smooth = make_avg_spec(wave, twi / ftf_twi)
+        I = interp1d(nwave, smooth, kind='quadratic', bounds_error=False,
+                     fill_value='extrapolate')
+        for i in np.arange(wave.shape[0]):
+            ftf_twi[i] = twi[i] / I(wave[i])
+            nw, sm = make_avg_spec(wave[i, np.newaxis], ftf_twi[i, np.newaxis],
+                                   binsize=7, knots=75)
+            J = interp1d(nw, sm, kind='quadratic', bounds_error=False,
+                         fill_value='extrapolate')
+            ftf_twi[i] = J(wave[i])
+    return ftf_twi
+
+
+def generate_sky_residual(P, sky_sel, side, lims):
+    rect_wave, rect_spec = rectify(np.array(P.wave, dtype='float64'),
+                                   np.array(safe_division(P.skysub,
+                                                          P.ftf),
+                                            dtype='float64'), lims,
+                                   fac=2.5)
+    nwave, nspec = make_avg_spec(P.wave[sky_sel],
+                             safe_division(P.spec[sky_sel],
+                             P.ftf[sky_sel]), binsize=35, knots=None)
+    btrace = np.zeros((sky_sel.sum(), len(rect_wave)))
+    J = interp1d(nwave, nspec, kind='quadratic',
+                 fill_value='extrapolate', bounds_error=False)
+    S = rect_spec[sky_sel] * 0.
+    for kj, ij in enumerate(np.where(sky_sel)[0]):
+        I = interp1d(P.wave[ij], P.trace[ij], kind='quadratic',
+                     fill_value='extrapolate', bounds_error=False)
+        btrace[kj] = I(rect_wave)
+        S[kj] = rect_spec[ij] / J(rect_wave)
+    s = fits.PrimaryHDU(S)
+    t = fits.ImageHDU(btrace)
+    v = fits.ImageHDU(rect_wave[:, np.newaxis])
+    vv = fits.ImageHDU(np.vstack([nwave, nspec]))
+    fits.HDUList([s, t, v, vv]).writeto(op.join(P.path, 'test_%s.fits' % side),
+                                        overwrite=True)
+
+def main():
+    nwavebins = 20
+    min_det_thresh = 5.
+    seeing = 1.8
+    # Load the data
+    if args.side == "blue":
+        sides = ['BL', 'BR']
+        names = ['uv', 'orange']
+    else:
+        sides = ['RL', 'RR']
+        names = ['red', 'farred']
+    L = []
+    for side, name in zip(sides, names):
+        lims, lims2 = get_lims(side)
+        R = ReduceLRS2(args.filename, side)
+
+        # Get Mirror Illumination for the given track
+        R.get_mirror_illumination()
+
+        # Correct the wavelength solution from sky lines
+
+        # Load the default fiber to fiber and map to each fiber's wavelength
+        F = fits.open('ftf_%s.fits' % side)
+        F[0].data = np.array(F[0].data, dtype='float64')
+        R.ftf = R.wave * 0.
+        for i in np.arange(R.wave.shape[0]):
+            I = interp1d(F[0].data[0], F[0].data[i+1], kind='quadratic',
+                         bounds_error=False, fill_value=-999.)
+            R.ftf[i] = I(R.wave[i])
+        # R.log.info('Getting fiber to fiber from twilight')
+        # R.ftf = get_twi_ftf(R.wave, R.twi)
+        wv, R.good_mask, xc, yc, a, g, sign, dthresh = quick_exam(R, nwavebins,
+                                                                  lims, side,
+                                                                  args)
+        if args.recalculate_wavelength:
+            newwave = R.wave * 0.
+            args.log.info('Working on the wavelength for side: %s' % side)
+            if side[0] == 'R':
+                spec = R.oldspec * 1.
+                newwave = get_red_wave(R.wave, R.trace, R.oldspec, R.ftf, R.good_mask,
+                         '%s_skylines.dat' % name, debug=False)
+            else:
+                spec = R.twi * 1.
+                nwave, nspec = make_avg_spec(R.wave, safe_division(spec, R.ftf))
+                newwave = get_new_wave(R.wave, R.trace, spec, R.ftf, R.good_mask,
+                                       nwave, nspec)
+            wave0 = R.wave * 1.
+            R.wave = newwave * 1.
+            args.log.info('Max Wave Correction: %0.2f A' %
+                          np.max(newwave-wave0))
+            args.log.info('Min Wave Correction: %0.2f A' %
+                          np.min(newwave-wave0))
+            wv, R.good_mask, xc, yc, a, g, sign, dthresh = quick_exam(R, nwavebins, lims, side, args)
+        L.append([copy(R), sign, xc, yc, wv, dthresh, a, g])
+    ind = np.argmax([l[1] for l in L])
+    args.log.info('Point source detected strongest in side: %s' % sides[ind])
+    args.log.info('FWHM: %0.2f' % (L[ind][7] * 0.935))
+    if L[ind][1] > min_det_thresh:
+        otherind = np.argmin([l[1] for l in L])
+        xother, yother = get_x_y_lambda(ind, otherind, L[ind][4],
+                                        L[otherind][4], L[ind][2], L[ind][3],
+                                        sides)
+        L[otherind][2], L[otherind][3] = (xother * 1., yother * 1.)
+        for i in np.arange(5, 8):
+            L[otherind][i] = L[ind][i] * 1.
+        for l, side in zip(L, sides):
+            P = l[0]
+            d = np.sqrt((l[2] - P.ifux)**2 + (l[3] - P.ifuy)**2)
+            sky_sel = d > l[5]
+            ext_sel = d < (seeing * 1.3)
+            if sky_sel.sum() < 25:
+                args.log.warning('Point source found is too bright.')
+                args.log.warning('Not enough blank fibers for sky.')
+                args.log.warning('Cowardly using 0 for sky.')
+                P.sky = P.wave * 0.0
+                P.skysub = safe_division(P.spec, P.ftf)
+            else:
+                P = subtract_sky(P, sky_sel, args)
+            P.ifupos = np.array([P.ifux, P.ifuy]).swapaxes(0, 1)
+            P.skypos = np.array([P.ra, P.dec]).swapaxes(0, 1)
+
+            lims, lims2 = get_lims(side)
+            P = extract_source(P, side, lims2, [l[4], l[2], l[3], l[6], l[7]],
+                               ext_sel, args)
+            P.save(image_list=['image_name', 'error', 'ifupos', 'skypos',
+                               'wave', 'twi', 'ftf', 'oldspec', 'sky', 'skysub',
+                               'wei'],
+                   name_list=['image', 'error', 'ifupos', 'skypos', 'wave',
+                              'twi', 'ftf', 'spectrum', 'sky', 'skysub', 'weights'])
+            write_spectrum_out(P)
+            generate_sky_residual(P, sky_sel, side, lims)
+    else:
+        args.log.info('No signficant continuum point source found.')
+        args.log.info('No spectrum*.fits file will be created.')
+        args.log.info('We will assume the field is all sky.')
+        args.log.info('A multi*.fits file will still be created.')
+        for l in L:
+            P = l[0]
+            sky_sel = np.ones(P.ifux.shape, dtype=bool)
+            P = subtract_sky(P, sky_sel, args)
+            P.ifupos = np.array([P.ifux, P.ifuy]).swapaxes(0, 1)
+            P.skypos = np.array([P.ra, P.dec]).swapaxes(0, 1)
+            P.save(image_list=['image_name', 'error', 'ifupos', 'skypos',
+                               'wave', 'twi', 'ftf', 'oldspec', 'sky', 'skysub'],
+                   name_list=['image', 'error', 'ifupos', 'skypos', 'wave',
+                              'twi', 'ftf', 'spectrum', 'sky', 'skysub'])
+            generate_sky_residual(P, sky_sel, side, lims)
 
 if __name__ == '__main__':
     main()
