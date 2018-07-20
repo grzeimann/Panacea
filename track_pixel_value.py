@@ -31,36 +31,36 @@ def build_filenames(date, args):
     return [(filenames[i][:-14], filenames[i][-8:-5]) for i in ind]
 
 
+def grab_info(itm, xran, yran):
+    base, typ = itm
+    fn = base + '%s%s_%s.fits' % (ifuslot, amp, typ)
+    amp_obj = Amplifier(fn, '')
+    amp_obj.subtract_overscan()
+    amp_obj.trim_image()
+    expn = op.dirname(op.dirname(amp_obj.filename))[-2:]
+    datetemp = re.split('[-,T]', amp_obj.header['DATE-OBS'])
+    datev = datetemp[0] + datetemp[1] + datetemp[2]
+    y = 1. * amp_obj.image[yran[0]:yran[1], xran[0]:xran[1]].ravel()
+    st = '%s_%07d_%s' % (datev, int(amp_obj.header['OBSID']), expn)
+    return y, st
+
+
 def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
                       xran=[900, 1200]):
     # Create empty lists for the left edge jump, right edge jump, and structure
     big_array = np.zeros(((xran[1] - xran[0]) * (yran[1] - yran[0]),
-                          len(file_list) + 2))
+                          len(file_list)))
     amp_list = []
+    names = []
     for i, itm in enumerate(file_list):
-        base, typ = itm
-        fn = base + '%s%s_%s.fits' % (ifuslot, amp, typ)
-        amp_list.append(Amplifier(fn, ''))
-        amp_list[-1].subtract_overscan()
-        amp_list[-1].trim_image()
-        big_array[:, i+2] = amp_list[-1].image[yran[0]:yran[1],
-                                               xran[0]:xran[1]].ravel()
+        big_array[:, i], st = grab_info(itm, xran, yran)
+        names.append(st)
 
     # Select only the bias frames that match the input amp, e.g., "RU"
-    if not len(amp_list):
+    if not len(names):
         args.log.warning('No zro or sci frames found for date range given')
         return None
 
-    yind, xind = np.indices(amp_list[-1].image.shape)
-    big_array[:, 0] = yind[yran[0]:yran[1], xran[0]:xran[1]].ravel()
-    big_array[:, 1] = xind[yran[0]:yran[1], xran[0]:xran[1]].ravel()
-
-    names = ['y', 'x']
-    for ampn in amp_list:
-        expn = op.dirname(op.dirname(ampn.filename))[-2:]
-        datetemp = re.split('[-,T]', ampn.header['DATE-OBS'])
-        datev = datetemp[0] + datetemp[1] + datetemp[2]
-        names.append('%s_%07d_%s' % (datev, int(ampn.header['OBSID']), expn))
     T = Table(big_array, names=names)
     mkpath(op.join(args.folder, date))
     args.log.info('Writing pixels for %s, %s' % (amp_list[-1].specid, amp))
