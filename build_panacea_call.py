@@ -154,12 +154,11 @@ for science_targ in target_list:
     sci_file.append(panacea_str)
     exps = get_exposures(date, obsid, args)
     for exp in exps:
-        for side in sides:
-            panacea_str = ('python /work/03730/gregz/maverick/Panacea/combine_amp_reductions.py -f '
-                           'reductions/%s/%s/%s%s/exp%02d/lrs2/%s -s %s'
-                           % (date, args.instrument, args.instrument, obsid,
-                              exp, multi_name, side))
-            com_file.append(panacea_str)
+        panacea_str = ('python /work/03730/gregz/maverick/Panacea/combine_amp_reductions.py -f '
+                       'reductions/%s/%s/%s%s/exp%02d/lrs2/%s -s %s'
+                       % (date, args.instrument, args.instrument, obsid,
+                          exp, multi_name, args.side))
+        com_file.append(panacea_str)
 
 std_file = np.unique(std_file)
 std_post = np.unique(std_post)
