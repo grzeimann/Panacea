@@ -57,6 +57,9 @@ parser.add_argument("-t", "--target",
 parser.add_argument("-s", "--side",
                     help='''red or blue''',
                     type=str, default='red')
+parser.add_argument("-mt", "--exposure_time",
+                    help='''Mininum Exposure Time''',
+                    type=float, default=None)          
 parser.add_argument("-st", "--standards",
                     help='''set to true if just looking at standards''',
                     type=bool, default=False)
@@ -87,12 +90,18 @@ for datet in args.daterange:
         keystring = date+'_'+obsid
         try:
             objectname = fits.open(filename)[0].header['OBJECT']
+            exptime = fits.open(filename)[0].header['EXPTIME']
         except:
             objectname = ''
             args.log.warning('Could not open %s' % filename)                
         if (args.target.lower() in objectname.lower()) and (filename[-8:-5] == 'sci'):
-            science_target_list.append(keystring)
-            print('Science File Found: %s, %s' % (keystring, objectname))
+            if args.exposure_time is not None:
+                if exptime > args.exposure_time:    
+                    science_target_list.append(keystring)
+                    print('Science File Found: %s, %s, %0.1f' % (keystring, objectname, exptime))
+            else:
+                science_target_list.append(keystring)
+                print('Science File Found: %s, %s, %0.1f' % (keystring, objectname, exptime))
         if filename[-8:-5] == 'twi':
             twi_list.append(keystring)
         for standard in standard_names:
