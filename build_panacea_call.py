@@ -164,7 +164,7 @@ for science_targ in target_list:
     exps = get_exposures(date, obsid, args)
     for exp in exps:
         panacea_str = ('python /work/03730/gregz/maverick/Panacea/combine_amp_reductions.py -f '
-                       'reductions/%s/%s/%s%s/exp%02d/lrs2/%s -s %s'
+                       'reductions/%s/%s/%s%s/exp%02d/lrs2/%s -s %s -rc'
                        % (date, args.instrument, args.instrument, obsid,
                           exp, multi_name, args.side))
         com_file.append(panacea_str)
