@@ -188,36 +188,15 @@ class ReduceLRS2:
         self.T = F[0].header['AMBTEMP']
         self.P = F[0].header['BAROMPRE']
         self.ZD = F[0].header['ZD']
-        self.ifux = np.hstack(x)
-        self.ifuy = np.hstack(y)
-        self.spec = np.vstack(spec)
+        self.ifux = np.array(np.hstack(x), dtype='float64')
+        self.ifuy = np.array(np.hstack(y), dtype='float64')
+        self.spec = np.array(np.vstack(spec), dtype='float64')
         self.oldspec = self.spec * 1.
-        self.wave = np.vstack(wave)
-        self.trace = np.vstack(tr)
-        self.image_name = np.vstack(im)
-        self.error = np.vstack(er)
-        self.twi = np.vstack(twi)
-#        if self.ftf_file is not None:
-#            if op.exists(self.ftf_file):
-#                self.ftf = fits.open(self.ftf_file)[0].data
-#            else:
-#                self.log.warning('Fiber to Fiber file %s does not exist.' %
-#                                 self.ftf_file)
-#                self.log.info('Using spectra or twilight to build fiber '
-#                              'to fiber.')
-#                if self.use_twi:
-#                    spec = self.twi * 1.
-#                else:
-#                    spec = self.spec * 1.
-#                self.ftf = self.get_fiber_to_fiber(self.wave, spec)
-#        else:
-#            if self.use_twi:
-#                spec = self.twi * 1.
-#            else:
-#                spec = self.spec * 1.
-#            self.ftf = self.get_fiber_to_fiber(self.wave, spec)
-#        for i in np.arange(self.spec.shape[0]):
-#            self.spec[i, :] /= self.ftf[i, :]
+        self.wave = np.array(np.vstack(wave), dtype='float64')
+        self.trace = np.array(np.vstack(tr), dtype='float64')
+        self.image_name = np.array(np.vstack(im), dtype='float64')
+        self.error = np.array(np.vstack(er), dtype='float64')
+        self.twi = np.array(np.vstack(twi), dtype='float64')
         self.define_good_fibers()
 
     def get_standard_spectrum_from_file(self):
