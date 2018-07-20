@@ -6,7 +6,7 @@ Created on Thu May 31 16:02:02 2018
 """
 
 import matplotlib
-matplotlib.use('TkAgg')
+matplotlib.use('agg')
 
 import argparse as ap
 import matplotlib.pyplot as plt
