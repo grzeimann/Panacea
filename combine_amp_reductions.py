@@ -467,7 +467,7 @@ def generate_sky_residual(P, sky_sel, side, lims):
 
 def main():
     nwavebins = 20
-    min_det_thresh = 5.
+    min_det_thresh = 50.
     seeing = 1.8
     # Load the data
     if args.side == "blue":
@@ -561,7 +561,7 @@ def main():
         args.log.info('No spectrum*.fits file will be created.')
         args.log.info('We will assume the field is all sky.')
         args.log.info('A multi*.fits file will still be created.')
-        for l in L:
+        for l, side in zip(L, sides):
             P = l[0]
             sky_sel = np.ones(P.ifux.shape, dtype=bool)
             P = subtract_sky(P, sky_sel, args)
