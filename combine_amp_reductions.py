@@ -467,7 +467,7 @@ def generate_sky_residual(P, sky_sel, side, lims):
 
 def main():
     nwavebins = 20
-    min_det_thresh = 5
+    min_det_thresh = np.inf
     seeing = 1.8
     # Load the data
     if args.side == "blue":
@@ -507,10 +507,11 @@ def main():
                 newwave = get_red_wave(R.wave, R.trace, R.oldspec, R.ftf, R.good_mask,
                          '%s_skylines.dat' % name, debug=False)
             else:
-                spec = R.twi * 1.
-                nwave, nspec = make_avg_spec(R.wave, safe_division(spec, R.ftf))
-                newwave = get_new_wave(R.wave, R.trace, spec, R.ftf, R.good_mask,
-                                       nwave, nspec)
+                #spec = R.twi * 1.
+                #nwave, nspec = make_avg_spec(R.wave, safe_division(spec, R.ftf))
+                #newwave = get_new_wave(R.wave, R.trace, spec, R.ftf, R.good_mask,
+                #                       nwave, nspec)
+                newwave = fits.open('%s_wavelength.fits')[0].data
             wave0 = R.wave * 1.
             R.wave = newwave * 1.
             args.log.info('Max Wave Correction: %0.2f A' %
@@ -563,6 +564,7 @@ def main():
         args.log.info('A multi*.fits file will still be created.')
         for l, side in zip(L, sides):
             P = l[0]
+            lims, lims2 = get_lims(side)
             sky_sel = np.ones(P.ifux.shape, dtype=bool)
             P = subtract_sky(P, sky_sel, args)
             P.ifupos = np.array([P.ifux, P.ifuy]).swapaxes(0, 1)
