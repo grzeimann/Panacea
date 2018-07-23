@@ -467,7 +467,7 @@ def generate_sky_residual(P, sky_sel, side, lims):
 
 def main():
     nwavebins = 20
-    min_det_thresh = 50.
+    min_det_thresh = np.inf
     seeing = 1.8
     # Load the data
     if args.side == "blue":
