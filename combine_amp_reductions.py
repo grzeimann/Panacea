@@ -503,15 +503,16 @@ def main():
             newwave = R.wave * 0.
             args.log.info('Working on the wavelength for side: %s' % side)
             if side[0] == 'R':
-                spec = R.oldspec * 1.
-                newwave = get_red_wave(R.wave, R.trace, R.oldspec, R.ftf, R.good_mask,
-                         '%s_skylines.dat' % name, debug=False)
-            else:
-                #spec = R.twi * 1.
-                #nwave, nspec = make_avg_spec(R.wave, safe_division(spec, R.ftf))
-                #newwave = get_new_wave(R.wave, R.trace, spec, R.ftf, R.good_mask,
-                #                       nwave, nspec)
+#                spec = R.oldspec * 1.
+#                newwave = get_red_wave(R.wave, R.trace, R.oldspec, R.ftf, R.good_mask,
+#                         '%s_skylines.dat' % name, debug=False)
                 newwave = fits.open('%s_wavelength.fits')[0].data
+
+            else:
+                spec = R.twi * 1.
+                nwave, nspec = make_avg_spec(R.wave, safe_division(spec, R.ftf))
+                newwave = get_new_wave(R.wave, R.trace, spec, R.ftf, R.good_mask,
+                                       nwave, nspec)
             wave0 = R.wave * 1.
             R.wave = newwave * 1.
             args.log.info('Max Wave Correction: %0.2f A' %
