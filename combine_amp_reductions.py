@@ -506,7 +506,7 @@ def main():
 #                spec = R.oldspec * 1.
 #                newwave = get_red_wave(R.wave, R.trace, R.oldspec, R.ftf, R.good_mask,
 #                         '%s_skylines.dat' % name, debug=False)
-                newwave = fits.open('%s_wavelength.fits')[0].data
+                newwave = fits.open('%s_wavelength.fits' % side)[0].data
 
             else:
                 spec = R.twi * 1.
