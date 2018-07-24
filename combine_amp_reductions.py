@@ -31,7 +31,7 @@ from sklearn.gaussian_process.kernels import Matern, WhiteKernel
 from sklearn.gaussian_process.kernels import ConstantKernel
 from sklearn.gaussian_process import GaussianProcessRegressor
 from utils import biweight_location, biweight_midvariance
-from wave_utils import get_new_wave, get_red_wave
+from wave_utils import get_new_wave, get_red_wave, get_single_shift
 
 parser = ap.ArgumentParser(add_help=True)
 
@@ -503,10 +503,16 @@ def main():
             newwave = R.wave * 0.
             args.log.info('Working on the wavelength for side: %s' % side)
             if side[0] == 'R':
-#                spec = R.oldspec * 1.
+                spec = R.oldspec * 1.
 #                newwave = get_red_wave(R.wave, R.trace, R.oldspec, R.ftf, R.good_mask,
 #                         '%s_skylines.dat' % name, debug=False)
                 newwave = fits.open('%s_wavelength.fits' % name)[0].data
+                nwave, nspec = make_avg_spec(newwave[R.good_mask],
+                                             safe_division(spec, R.ftf)[R.good_mask])
+                shift = get_single_shift(nwave, nspec, '%s_skylines.dat' % name)
+                newwave = newwave + shift
+                args.log.info('Shift in wavelength for %s: %0.3f A' % (name, shift))
+
 
             else:
                 spec = R.twi * 1.
@@ -557,6 +563,7 @@ def main():
                    name_list=['image', 'error', 'ifupos', 'skypos', 'wave',
                               'twi', 'ftf', 'spectrum', 'sky', 'skysub', 'weights'])
             write_spectrum_out(P)
+            
             generate_sky_residual(P, sky_sel, side, lims)
     else:
         args.log.info('No signficant continuum point source found.')
