@@ -100,6 +100,36 @@ def get_new_wave(wave, trace, spec, ftf, good_mask, nwave, navg,
         return newwave
 
 
+def get_single_shift(nwave, nspec, skyline_file, debug=False):
+    T = Table.read(skyline_file, format='ascii.fixed_width_two_line')
+    M = Gaussian1D() + Polynomial1D(0)
+    fitter = LevMarLSQFitter()
+    match = np.zeros((len(T['wavelength']), 3))
+    B, c = bspline_x0(T['wavelength'], nknots=7)
+    x = nwave*1.
+    y = nspec*1.
+    locs1 = peak_local_max(y, min_distance=10, indices=True,
+                           threshold_rel=0.001)
+    I = interp1d(x, y, kind='quadratic', bounds_error=False,
+                 fill_value='extrapolate')
+    for j, wi in enumerate(T['wavelength']):
+        d = np.abs(x[locs1] - wi)
+        ind = np.argmin(d)
+        di = d[ind]
+        if di < 5.:
+            match[j, 0] = wi
+            match[j, 2] = locs1[ind]
+            nw = np.linspace(wi-3., wi+3., 31)
+            M.mean_0 = wi
+            M.stddev_0 = 1.8
+            M.amplitude_0 = y[locs1][ind]
+            M.c0_0 = np.min(I(nw))
+            fit = fitter(M, nw, I(nw))
+            match[j, 1] = fit.mean_0.value * 1.
+    sel = match[:, 1] > 0.
+    return biweight_location(match[sel, 0] - match[sel, 1])
+
+
 def get_red_wave(wave, trace, spec, ftf, good_mask, skyline_file,
                  debug=False):
     T = Table.read(skyline_file, format='ascii.fixed_width_two_line')
