@@ -127,6 +127,7 @@ def get_single_shift(nwave, nspec, skyline_file, debug=False):
             fit = fitter(M, nw, I(nw))
             match[j, 1] = fit.mean_0.value * 1.
     sel = match[:, 1] > 0.
+    plt.figure()
     return biweight_location(match[sel, 0] - match[sel, 1])
 
 
