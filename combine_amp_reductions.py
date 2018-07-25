@@ -267,7 +267,7 @@ def subtract_sky(R, sky_sel, args, niter=2, adjustment=None):
         model = R.wave * 0.
         for i in np.arange(R.wave.shape[0]):
             model[i] = I(R.wave[i])
-            if adjustment is not None:
+            if False:#adjustment is not None:
                 try:
                     sel = np.isfinite(adjustment[i+1])
                     J = interp1d(adjustment[0][sel], adjustment[i+1][sel],
