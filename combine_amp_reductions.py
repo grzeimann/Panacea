@@ -273,7 +273,7 @@ def subtract_sky(R, sky_sel, args, niter=2, adjustment=None):
                     J = interp1d(adjustment[0][sel], adjustment[i+1][sel],
                                  bounds_error=False, kind='quadratic',
                                  fill_value='extrapolate')
-                    add = -1. * J(R.wave[i])
+                    add = J(R.wave[i])
                 except:
                     args.log.warning('Adjustment failed for %s on fiber %i' %
                                      (R.side, i))
