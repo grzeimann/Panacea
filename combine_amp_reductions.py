@@ -444,7 +444,7 @@ def generate_sky_residual(P, sky_sel, side, lims):
     rect_wave, rect_spec = rectify(np.array(P.wave, dtype='float64'),
                                    np.array(safe_division(P.skysub,
                                                           P.ftf),
-                                            dtype='float64'), lims2,
+                                            dtype='float64'), lims,
                                    fac=1.0)
     nwave, nspec = make_avg_spec(P.wave[sky_sel],
                              safe_division(P.spec[sky_sel],
