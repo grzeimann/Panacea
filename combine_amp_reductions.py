@@ -285,7 +285,7 @@ def subtract_sky(R, sky_sel, args, niter=2, adjustment=None):
             R.skysub[i] = R.spec[i] - R.sky[i]
         residual = safe_division(R.skysub, model)
         sky_sel1 = sky_sel * (np.nanmedian(R.ftf, axis=1) > .5)
-        cont = smooth_fiber(residual[:,400:-400], ~sky_sel1, R.wave.shape[0] / 2)
+        cont = 0.0 * smooth_fiber(residual[:,400:-400], ~sky_sel1, R.wave.shape[0] / 2)
         R.ftf = R.ftf + cont[:, np.newaxis]
         args.log.info('Fiber to Fiber offsets')
         T = Table([R.ifux, R.ifuy, cont], names=['x', 'y', 'offset'])
