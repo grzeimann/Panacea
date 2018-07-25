@@ -567,7 +567,8 @@ def main():
                 P.skysub = safe_division(P.spec, P.ftf)
             else:
                 if side[0] == 'R':
-                    adjustment = fits.open('test_%s.fits' % name)[0].data
+                    adjustment = np.array(fits.open('test_%s.fits' % name)[0].data,
+                                          dtype='float64')
                 else:
                     adjustment = None
                 P = subtract_sky(P, sky_sel, args, adjustment=adjustment)
