@@ -281,7 +281,7 @@ def subtract_sky(R, sky_sel, args, niter=2, adjustment=None):
                     
             else:
                 add = 0.0
-            R.sky[i] = model[i] * (R.ftf[i] + add[i])
+            R.sky[i] = model[i] * (R.ftf[i] + add)
             R.skysub[i] = R.spec[i] - R.sky[i]
         residual = safe_division(R.skysub, model)
         cont = 0.0 * smooth_fiber(residual, ~sky_sel, R.wave.shape[0] / 2)
