@@ -254,19 +254,27 @@ def smooth_fiber(X, mask, nfibs, wave_sel=None):
     return model
 
 
-def subtract_sky(R, sky_sel, args, niter=2):
+def subtract_sky(R, sky_sel, args, niter=2, adjustment=None):
     for j in np.arange(niter):
         nwave, nspec = make_avg_spec(R.wave[sky_sel],
                                      safe_division(R.spec[sky_sel],
                                      R.ftf[sky_sel]), binsize=35, knots=None)
         I = interp1d(nwave, nspec, bounds_error=False, kind='quadratic',
                      fill_value='extrapolate')
+
         R.skysub = R.wave * 0.
         R.sky = R.wave * 0.
         model = R.wave * 0.
         for i in np.arange(R.wave.shape[0]):
             model[i] = I(R.wave[i])
-            R.sky[i] = model[i] * R.ftf[i]
+            if adjustment is not None:
+                J = interp1d(adjustment[0], adjustment[i+1],
+                             bounds_error=False, kind='quadratic',
+                             fill_value='extrapolate')
+                add = -1. * J(R.wave[i])
+            else:
+                add = 0.0
+            R.sky[i] = model[i] * (R.ftf[i] + add[i])
             R.skysub[i] = R.spec[i] - R.sky[i]
         residual = safe_division(R.skysub, model)
         cont = 0.0 * smooth_fiber(residual, ~sky_sel, R.wave.shape[0] / 2)
@@ -530,7 +538,7 @@ def main():
     ind = np.argmax([l[1] for l in L])
     args.log.info('Point source detected strongest in side: %s' % sides[ind])
     args.log.info('FWHM: %0.2f' % (L[ind][7] * 0.935))
-    if False:#L[ind][1] > min_det_thresh:
+    if L[ind][1] > min_det_thresh:
         otherind = np.argmin([l[1] for l in L])
         xother, yother = get_x_y_lambda(ind, otherind, L[ind][4],
                                         L[otherind][4], L[ind][2], L[ind][3],
@@ -538,7 +546,7 @@ def main():
         L[otherind][2], L[otherind][3] = (xother * 1., yother * 1.)
         for i in np.arange(5, 8):
             L[otherind][i] = L[ind][i] * 1.
-        for l, side in zip(L, sides):
+        for l, side, name in zip(L, sides, names):
             P = l[0]
             d = np.sqrt((l[2] - P.ifux)**2 + (l[3] - P.ifuy)**2)
             sky_sel = d > l[5]
@@ -550,7 +558,11 @@ def main():
                 P.sky = P.wave * 0.0
                 P.skysub = safe_division(P.spec, P.ftf)
             else:
-                P = subtract_sky(P, sky_sel, args)
+                if side[0] == 'R':
+                    adjustment = fits.open('test_%s.fits' % name)[0].data
+                else:
+                    adjustment = None
+                P = subtract_sky(P, sky_sel, args, adjustment=adjustment)
             P.ifupos = np.array([P.ifux, P.ifuy]).swapaxes(0, 1)
             P.skypos = np.array([P.ra, P.dec]).swapaxes(0, 1)
 
