@@ -268,10 +268,17 @@ def subtract_sky(R, sky_sel, args, niter=2, adjustment=None):
         for i in np.arange(R.wave.shape[0]):
             model[i] = I(R.wave[i])
             if adjustment is not None:
-                J = interp1d(adjustment[0], adjustment[i+1],
-                             bounds_error=False, kind='quadratic',
-                             fill_value='extrapolate')
-                add = -1. * J(R.wave[i])
+                try:
+                    sel = np.isfinite(adjustment[i+1])
+                    J = interp1d(adjustment[0][sel], adjustment[i+1][sel],
+                                 bounds_error=False, kind='quadratic',
+                                 fill_value='extrapolate')
+                    add = -1. * J(R.wave[i])
+                except:
+                    args.log.warning('Adjustment failed for %s on fiber %i' %
+                                     (R.side, i))
+                    add = 0.0
+                    
             else:
                 add = 0.0
             R.sky[i] = model[i] * (R.ftf[i] + add[i])
