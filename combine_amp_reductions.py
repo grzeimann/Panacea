@@ -444,8 +444,8 @@ def generate_sky_residual(P, sky_sel, side, lims):
     rect_wave, rect_spec = rectify(np.array(P.wave, dtype='float64'),
                                    np.array(safe_division(P.skysub,
                                                           P.ftf),
-                                            dtype='float64'), lims,
-                                   fac=2.5)
+                                            dtype='float64'), lims2,
+                                   fac=1.0)
     nwave, nspec = make_avg_spec(P.wave[sky_sel],
                              safe_division(P.spec[sky_sel],
                              P.ftf[sky_sel]), binsize=35, knots=None)
@@ -467,7 +467,7 @@ def generate_sky_residual(P, sky_sel, side, lims):
 
 def main():
     nwavebins = 20
-    min_det_thresh = np.inf
+    min_det_thresh = 5
     seeing = 1.8
     # Load the data
     if args.side == "blue":
@@ -530,7 +530,7 @@ def main():
     ind = np.argmax([l[1] for l in L])
     args.log.info('Point source detected strongest in side: %s' % sides[ind])
     args.log.info('FWHM: %0.2f' % (L[ind][7] * 0.935))
-    if L[ind][1] > min_det_thresh:
+    if False:#L[ind][1] > min_det_thresh:
         otherind = np.argmin([l[1] for l in L])
         xother, yother = get_x_y_lambda(ind, otherind, L[ind][4],
                                         L[otherind][4], L[ind][2], L[ind][3],
@@ -564,7 +564,7 @@ def main():
                               'twi', 'ftf', 'spectrum', 'sky', 'skysub', 'weights'])
             write_spectrum_out(P)
             
-            generate_sky_residual(P, sky_sel, side, lims)
+            generate_sky_residual(P, sky_sel, side, lims2)
     else:
         args.log.info('No signficant continuum point source found.')
         args.log.info('No spectrum*.fits file will be created.')
@@ -581,7 +581,7 @@ def main():
                                'wave', 'twi', 'ftf', 'oldspec', 'sky', 'skysub'],
                    name_list=['image', 'error', 'ifupos', 'skypos', 'wave',
                               'twi', 'ftf', 'spectrum', 'sky', 'skysub'])
-            generate_sky_residual(P, sky_sel, side, lims)
+            generate_sky_residual(P, sky_sel, side, lims2)
 
 if __name__ == '__main__':
     main()
