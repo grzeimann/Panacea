@@ -267,7 +267,7 @@ def subtract_sky(R, sky_sel, args, niter=2, adjustment=None):
         model = R.wave * 0.
         for i in np.arange(R.wave.shape[0]):
             model[i] = I(R.wave[i])
-            if False:#adjustment is not None:
+            if adjustment is not None:
                 try:
                     sel = np.isfinite(adjustment[i+1])
                     J = interp1d(adjustment[0][sel], adjustment[i+1][sel],
@@ -284,7 +284,7 @@ def subtract_sky(R, sky_sel, args, niter=2, adjustment=None):
             R.sky[i] = model[i] * (R.ftf[i] + add)
             R.skysub[i] = R.spec[i] - R.sky[i]
         residual = safe_division(R.skysub, model)
-        cont = smooth_fiber(residual, ~sky_sel, R.wave.shape[0] / 2)
+        cont = 0.0 * smooth_fiber(residual, ~sky_sel, R.wave.shape[0] / 2)
         R.ftf = R.ftf + cont[:, np.newaxis]
         args.log.info('Fiber to Fiber offsets')
         T = Table([R.ifux, R.ifuy, cont], names=['x', 'y', 'offset'])
