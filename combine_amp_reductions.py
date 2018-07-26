@@ -581,9 +581,10 @@ def main():
                                ext_sel, args)
             P.save(image_list=['image_name', 'error', 'ifupos', 'skypos',
                                'wave', 'twi', 'ftf', 'oldspec', 'sky', 'skysub',
-                               'wei'],
+                               'wei', 'trace'],
                    name_list=['image', 'error', 'ifupos', 'skypos', 'wave',
-                              'twi', 'ftf', 'spectrum', 'sky', 'skysub', 'weights'])
+                              'twi', 'ftf', 'spectrum', 'sky', 'skysub', 'weights',
+                              'trace'])
             write_spectrum_out(P)
             
             generate_sky_residual(P, sky_sel, side, lims2)
@@ -600,9 +601,11 @@ def main():
             P.ifupos = np.array([P.ifux, P.ifuy]).swapaxes(0, 1)
             P.skypos = np.array([P.ra, P.dec]).swapaxes(0, 1)
             P.save(image_list=['image_name', 'error', 'ifupos', 'skypos',
-                               'wave', 'twi', 'ftf', 'oldspec', 'sky', 'skysub'],
+                               'wave', 'twi', 'ftf', 'oldspec', 'sky', 'skysub',
+                               'trace'],
                    name_list=['image', 'error', 'ifupos', 'skypos', 'wave',
-                              'twi', 'ftf', 'spectrum', 'sky', 'skysub'])
+                              'twi', 'ftf', 'spectrum', 'sky', 'skysub',
+                              'trace'])
             generate_sky_residual(P, sky_sel, side, lims2)
 
 if __name__ == '__main__':
