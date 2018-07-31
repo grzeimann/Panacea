@@ -50,7 +50,6 @@ def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
     # Create empty lists for the left edge jump, right edge jump, and structure
     big_array = np.zeros(((yran[1] - yran[0]), (xran[1] - xran[0]),
                           len(file_list)))
-    amp_list = []
     names = []
     for i, itm in enumerate(file_list):
         big_array[:, :, i], st = grab_info(itm, xran, yran)
@@ -64,7 +63,7 @@ def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
     F = fits.PrimaryHDU(big_array)
     mkpath(op.join(args.folder, date))
     F.writeto(op.join(args.folder, date, 'pixelvalues_%s_%s.fits' %
-              (amp_list[-1].specid, amp)), overwrite=True)
+              (ifuslot, amp)), overwrite=True)
 
 parser = setup_parser()
 parser.add_argument("-f", "--folder",
