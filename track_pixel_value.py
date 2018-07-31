@@ -13,7 +13,7 @@ import re
 from amplifier import Amplifier
 from distutils.dir_util import mkpath
 from input_utils import setup_parser, set_daterange, setup_logging
-from astropy.table import Table
+from astropy.io import fits
 
 
 def build_filenames(date, args):
@@ -40,7 +40,7 @@ def grab_info(itm, xran, yran):
     expn = op.dirname(op.dirname(amp_obj.filename))[-2:]
     datetemp = re.split('[-,T]', amp_obj.header['DATE-OBS'])
     datev = datetemp[0] + datetemp[1] + datetemp[2]
-    y = 1. * amp_obj.image[yran[0]:yran[1], xran[0]:xran[1]].ravel()
+    y = 1. * amp_obj.image[yran[0]:yran[1], xran[0]:xran[1]]
     st = '%s_%07d_%s' % (datev, int(amp_obj.header['OBSID']), expn)
     return y, st
 
@@ -48,12 +48,12 @@ def grab_info(itm, xran, yran):
 def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
                       xran=[900, 1200]):
     # Create empty lists for the left edge jump, right edge jump, and structure
-    big_array = np.zeros(((xran[1] - xran[0]) * (yran[1] - yran[0]),
+    big_array = np.zeros(((yran[1] - yran[0]), (xran[1] - xran[0]),
                           len(file_list)))
     amp_list = []
     names = []
     for i, itm in enumerate(file_list):
-        big_array[:, i], st = grab_info(itm, xran, yran)
+        big_array[:, :, i], st = grab_info(itm, xran, yran)
         names.append(st)
 
     # Select only the bias frames that match the input amp, e.g., "RU"
@@ -61,12 +61,11 @@ def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
         args.log.warning('No zro or sci frames found for date range given')
         return None
 
-    T = Table(big_array, names=names)
+    F = fits.PrimaryHDU(big_array)
     mkpath(op.join(args.folder, date))
     args.log.info('Writing pixels for %s, %s' % (amp_list[-1].specid, amp))
-    T.write(op.join(args.folder, date, 'pixelvalues_%s_%s.dat' %
-                    (amp_list[-1].specid, amp)),
-            format='ascii.fixed_width_two_line')
+    F.writeto(op.join(args.folder, date, 'pixelvalues_%s_%s.fits' %
+              (amp_list[-1].specid, amp)), overwrite=True)
 
 parser = setup_parser()
 parser.add_argument("-f", "--folder",
