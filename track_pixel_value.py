@@ -63,7 +63,6 @@ def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
 
     F = fits.PrimaryHDU(big_array)
     mkpath(op.join(args.folder, date))
-    args.log.info('Writing pixels for %s, %s' % (amp_list[-1].specid, amp))
     F.writeto(op.join(args.folder, date, 'pixelvalues_%s_%s.fits' %
               (amp_list[-1].specid, amp)), overwrite=True)
 
