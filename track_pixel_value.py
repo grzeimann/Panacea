@@ -46,7 +46,7 @@ def grab_info(itm, xran, yran):
 
 
 def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[0, 1032],
-                      xran=[2032, 2128]):
+                      xran=[1032, 1064]):
     # Create empty lists for the left edge jump, right edge jump, and structure
     big_array = np.zeros((len(file_list), (yran[1] - yran[0]),
                           (xran[1] - xran[0])))
@@ -77,8 +77,8 @@ filenames = []
 for date in args.daterange:
     date = '%04d%02d%02d' % (date.year, date.month, date.day)
     filenames = filenames + build_filenames(date, args)
-for ifuslot in ['056']:  # ['056', '066']:
-    for amp in ['RL']:  # ['LL', 'LU', 'RL', 'RU']:
+for ifuslot in ['045']:  # ['056', '066']:
+    for amp in ['LL']:  # ['LL', 'LU', 'RL', 'RU']:
         Track_pixel_value(filenames, ifuslot, amp, args,
                           '%04d%02d%02d' % (args.daterange[0].year,
                                             args.daterange[0].month,
