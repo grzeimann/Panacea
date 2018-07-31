@@ -70,6 +70,14 @@ parser.add_argument("-f", "--folder",
                     help='''Output folder''',
                     type=str, default='pixelvalues')
 
+parser.add_argument("-if", "--ifuslot",
+                    help='''IFUSLOT''',
+                    type=str, default='045')
+
+parser.add_argument("-am", "--amp",
+                    help='''Amplifier''',
+                    type=str, default='LL')
+
 args = parser.parse_args(args=None)
 args.log = setup_logging(logname='track_pixel_values')
 args = set_daterange(args)
@@ -77,8 +85,8 @@ filenames = []
 for date in args.daterange:
     date = '%04d%02d%02d' % (date.year, date.month, date.day)
     filenames = filenames + build_filenames(date, args)
-for ifuslot in ['045']:  # ['056', '066']:
-    for amp in ['LL']:  # ['LL', 'LU', 'RL', 'RU']:
+for ifuslot in [args.ifuslot]:  # ['056', '066']:
+    for amp in [args.amp]:  # ['LL', 'LU', 'RL', 'RU']:
         Track_pixel_value(filenames, ifuslot, amp, args,
                           '%04d%02d%02d' % (args.daterange[0].year,
                                             args.daterange[0].month,
