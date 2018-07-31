@@ -23,7 +23,7 @@ def build_filenames(date, args):
     '''
     basedir = op.join(args.rootdir, date, args.instrument,
                       args.instrument + '0000*', 'exp*', args.instrument)
-    filenames_zro = sorted(glob.glob(op.join(basedir, '2*_zro.fits')))
+    filenames_zro = sorted(glob.glob(op.join(basedir, '2*twi.fits')))
     # filenames_sci = sorted(glob.glob(op.join(basedir, '2*_sci.fits')))
     filenames = filenames_zro  # + filenames_sci
     dirnames = [op.dirname(fn) for fn in filenames]
@@ -36,7 +36,7 @@ def grab_info(itm, xran, yran):
     fn = base + '%s%s_%s.fits' % (ifuslot, amp, typ)
     amp_obj = Amplifier(fn, '')
     amp_obj.subtract_overscan()
-    amp_obj.trim_image()
+    #amp_obj.trim_image()
     expn = op.dirname(op.dirname(amp_obj.filename))[-2:]
     datetemp = re.split('[-,T]', amp_obj.header['DATE-OBS'])
     datev = datetemp[0] + datetemp[1] + datetemp[2]
@@ -45,8 +45,8 @@ def grab_info(itm, xran, yran):
     return y, st
 
 
-def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
-                      xran=[900, 1200]):
+def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[0, 2064],
+                      xran=[2032, 2128]):
     # Create empty lists for the left edge jump, right edge jump, and structure
     big_array = np.zeros((len(file_list), (yran[1] - yran[0]),
                           (xran[1] - xran[0])))
