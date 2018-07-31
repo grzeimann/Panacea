@@ -48,11 +48,11 @@ def grab_info(itm, xran, yran):
 def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[10, 30],
                       xran=[900, 1200]):
     # Create empty lists for the left edge jump, right edge jump, and structure
-    big_array = np.zeros(((yran[1] - yran[0]), (xran[1] - xran[0]),
-                          len(file_list)))
+    big_array = np.zeros((len(file_list), (yran[1] - yran[0]),
+                          (xran[1] - xran[0])))
     names = []
     for i, itm in enumerate(file_list):
-        big_array[:, :, i], st = grab_info(itm, xran, yran)
+        big_array[i, :, :], st = grab_info(itm, xran, yran)
         names.append(st)
 
     # Select only the bias frames that match the input amp, e.g., "RU"
