@@ -46,7 +46,7 @@ def grab_info(itm, xran, yran):
 
 
 def Track_pixel_value(file_list, ifuslot, amp, args, date, yran=[0, 1032],
-                      xran=[1032, 1064]):
+                      xran=[1000, 1064]):
     # Create empty lists for the left edge jump, right edge jump, and structure
     big_array = np.zeros((len(file_list), (yran[1] - yran[0]),
                           (xran[1] - xran[0])))
