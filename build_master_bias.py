@@ -43,7 +43,7 @@ def get_image(fn):
     return A.image * 1., A.specid
 
 
-def build_master_frame(file_list, ifuslot, amp, args, date, maxnum):
+def build_master_frame(file_list, ifuslot, amp, args, date):
     # Create empty lists for the left edge jump, right edge jump, and structure
 
     bia_list = []
