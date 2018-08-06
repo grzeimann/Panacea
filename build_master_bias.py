@@ -78,7 +78,7 @@ parser.add_argument("-f", "--folder",
 
 parser.add_argument("-m", "--maxnum",
                     help='''Maximum number of bias frames in masterbias''',
-                    type=int, default=400)
+                    type=int, default=100)
 
 args = parser.parse_args(args=None)
 args.log = setup_logging(logname='build_master_bias')
@@ -89,6 +89,10 @@ for date in args.daterange:
     filenames = filenames + build_filenames(date, args)
 for ifuslot in ['056', '066']:
     for amp in ['LL', 'LU', 'RL', 'RU']:
+        date = args.daterange[0]
+        date = '%04d%02d%02d' % (date.year, date.month, date.day)
+        args.log.info('Length of filenames for %s: %i' %
+                      (date, len(filenames)))
         chunks = np.array_split(filenames,
                                 len(filenames) / (args.maxnum+1) + 1)
         for chunk in chunks:
