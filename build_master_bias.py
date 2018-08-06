@@ -36,19 +36,24 @@ def build_filenames(date, args):
     return [filenames[i][:-14] for i in ind]
 
 
-def build_master_frame(file_list, ifuslot, amp, args, date):
+def get_image(fn):
+    A = Amplifier(fn, '')
+    A.subtract_overscan()
+    A.trim_image()
+    return A.image * 1., A.specid
+
+
+def build_master_frame(file_list, ifuslot, amp, args, date, maxnum):
     # Create empty lists for the left edge jump, right edge jump, and structure
 
     bia_list = []
     for itm in file_list:
         fn = itm + '%s%s_zro.fits' % (ifuslot, amp)
         try:
-            bia_list.append(Amplifier(fn, ''))
-            bia_list[-1].subtract_overscan()
-            bia_list[-1].trim_image()
+            bia_list.append(get_image(fn))
         except:
             args.log.warning('Could not load %s' % fn)
-    
+
     # Select only the bias frames that match the input amp, e.g., "RU"
     if not len(bia_list):
         args.log.warning('No bias frames found for date range given')
@@ -71,6 +76,10 @@ parser.add_argument("-f", "--folder",
                     help='''Output folder''',
                     type=str, default='masterbias')
 
+parser.add_argument("-m", "--maxnum",
+                    help='''Maximum number of bias frames in masterbias''',
+                    type=int, default=400)
+
 args = parser.parse_args(args=None)
 args.log = setup_logging(logname='build_master_bias')
 args = set_daterange(args)
@@ -80,7 +89,8 @@ for date in args.daterange:
     filenames = filenames + build_filenames(date, args)
 for ifuslot in ['056', '066']:
     for amp in ['LL', 'LU', 'RL', 'RU']:
-        build_master_frame(filenames, ifuslot, amp, args,
-                           '%04d%02d%02d' % (args.daterange[0].year,
-                                             args.daterange[0].month,
-                                             args.daterange[0].day))
+        chunks = np.array_split(filenames,
+                                len(filenames) / (args.maxnum+1) + 1)
+        for chunk in chunks:
+            datestr = op.basename(chunk[0])[:8]
+            build_master_frame(chunk, ifuslot, amp, args, datestr)
