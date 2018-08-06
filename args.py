@@ -111,6 +111,9 @@ def parse_args(argv=None):
     
     parser.add_argument("-C","--config", help='''Config file (drop the .py)''',
                         default='config', type=str)
+    
+    parser.add_argument("-bp", "--biaspath", help='''Path for masterbias frames.''',
+                        default=None, type=str)
                           
     args = parser.parse_args(args=argv)
 
@@ -154,6 +157,8 @@ def read_in_raw(args, parser):
     for con in config.config_dict:
         args.kwargs[con] = getattr(config, config.config_dict[con]) 
     
+    if args.biaspath is not None:
+        args.kwargs['biaspath'] = args.biaspath
     args.limited_output_files = config.limited_output_files
     args.kwargs['sky_scale'] = args.sky_scale
     args.kwargs['make_model_image'] = config.make_model_image
