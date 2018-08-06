@@ -42,10 +42,13 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
     bia_list = []
     for itm in file_list:
         fn = itm + '%s%s_zro.fits' % (ifuslot, amp)
-        bia_list.append(Amplifier(fn, ''))
-        bia_list[-1].subtract_overscan()
-        bia_list[-1].trim_image()
-
+        try:
+            bia_list.append(Amplifier(fn, ''))
+            bia_list[-1].subtract_overscan()
+            bia_list[-1].trim_image()
+        except:
+            args.log.warning('Could not load %s' % fn)
+    
     # Select only the bias frames that match the input amp, e.g., "RU"
     if not len(bia_list):
         args.log.warning('No bias frames found for date range given')
