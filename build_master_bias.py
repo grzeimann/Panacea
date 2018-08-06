@@ -60,16 +60,16 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         return None
 
     # Loop through the bias list and measure the jump/structure
-    big_array = np.array([v.image for v in bia_list])
+    big_array = np.array([v[0] for v in bia_list])
     func = biweight_location
     masterbias = func(big_array, axis=(0,))
 
     a, b = masterbias.shape
     hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'))
     mkpath(op.join(args.folder, date))
-    args.log.info('Writing masterbias_%s_%s.fits' % (bia_list[-1].specid, amp))
+    args.log.info('Writing masterbias_%s_%s.fits' % (bia_list[-1][1], amp))
     write_fits(hdu, op.join(args.folder, date, 'masterbias_%s_%s.fits' %
-               (bia_list[-1].specid, amp)))
+               (bia_list[-1][1], amp)))
 
 parser = setup_parser()
 parser.add_argument("-f", "--folder",
