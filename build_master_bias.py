@@ -93,8 +93,11 @@ for ifuslot in ['056', '066']:
         date = '%04d%02d%02d' % (date.year, date.month, date.day)
         args.log.info('Length of filenames for %s: %i' %
                       (date, len(filenames)))
-        chunks = np.array_split(filenames,
-                                len(filenames) / (args.maxnum+1) + 1)
+        if (len(filenames) % args.maxnum) == 0:
+            nbins = len(filenames) / args.maxnum
+        else:
+            nbins = len(filenames) / args.maxnum + 1
+        chunks = np.array_split(filenames, nbins)
         for chunk in chunks:
             datestr = op.basename(chunk[0])[:8]
             build_master_frame(chunk, ifuslot, amp, args, datestr)
