@@ -681,8 +681,9 @@ class Amplifier:
             
     def subtract_bias(self):
         if self.bias_mult>0.0:
+            self.log.info('Subtracting bias frame from folder: %s' % self.biaspath)
             self.log.info('Subtracting bias with multiplication %0.2f for %s' 
-                      %(self.dark_mult, self.basename))
+                      %(self.bias_mult, self.basename))
             biasimage = np.array(fits.open(op.join(self.biaspath, 
                                                 'masterbias_%s_%s.fits' 
                                             %(self.specid, self.amp)))[0].data, 
