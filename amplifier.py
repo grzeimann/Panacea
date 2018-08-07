@@ -450,6 +450,8 @@ class Amplifier:
         hdu.header['SPECID'] = self.specid
         hdu.header['IFUSID'] = self.ifuid
         hdu.header['AMP'] = self.amp
+        if self.biaspath is not None:
+            hdu.header['BIAPATH'] = self.biaspath
         return hdu
             
     def save(self, image_list=[], spec_list=[]):
