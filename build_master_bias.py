@@ -45,7 +45,7 @@ def get_image(fn):
     A.overscan_value = biweight_location(A.image[ly:hy, lx:hx])
     A.image[:] = A.image - A.overscan_value
     A.trim_image()
-    return A.image * 1., A.specid, '%s%s%s' % (A.date.year, A.date.month, A.date.day)
+    return A.image * 1., A.specid, '%04d%02d%02d' % (A.date.year, A.date.month, A.date.day)
 
 
 def build_master_frame(file_list, ifuslot, amp, args, date):
