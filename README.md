@@ -130,14 +130,7 @@ The LRS2 instrument has two spectrographs each with two arms (LRS2-B: UV and Ora
 [//]: # (Include a more in depth discussion guided by Phillip to justify row by row overscan subtraction)
 
 ### Bias Subtraction
-The first step in Panacea's reduction is to measure the bias pedestal in the overscan region for each amplifier.  
-We subtract a bias level row by row, excluding the first column in the overscan region  
-using the remaining 31 or 63 pixels (2x1 or 1x1 binning, respectively) in a given row.
-After the bias pedestal is removed, there remains a bias structure and excess charge that still needs to be removed. 
-Each night, twenty bias exposures are taken, which are insufficient to accurately measure the low-level structure, so we use 100 
-consecutive frames over 5-6 nights, which is a compromise between sufficient statitics and 
-minimal evolution of the structure from the passage of time.  The evolution of the bias structure depends on temperature control
-and the intricacies of each amplifier's controller.  
+The first step in Panacea's reduction is to measure the bias pedestal in the overscan region for each amplifier.  We subtract a bias level row by row, excluding the first column in the overscan region using the remaining 31 or 63 pixels (2x1 or 1x1 binning, respectively) in a given row.  After the bias pedestal is removed, there remains a bias structure and excess charge that still needs to be removed. Each night, twenty bias exposures are taken, which are insufficient to accurately measure the low-level structure, so we use 100 consecutive frames over 5-6 nights, which is a compromise between sufficient statitics and minimal evolution of the structure from the passage of time.  The evolution of the bias structure depends on temperature control and the intricacies of each amplifier's controller.  
 
 <p align="center">
   <img src="images/trace_fibmodel.png" width="850"/>
