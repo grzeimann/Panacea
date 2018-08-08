@@ -135,7 +135,7 @@ The first step in Panacea's reduction is to measure the bias pedestal in the ove
 The quality of the bias subtraction is demonstrated in two ways: subtracting consecutive master bias frames from one another and looking at "blank" areas of science frames for residual counts and structure.  
 
 <p align="center">
-  <img src="image/bias_subtract.png" width="850"/>
+  <img src="images/bias_subtract.png" width="850"/>
 </p>
 
 <p align="center">
