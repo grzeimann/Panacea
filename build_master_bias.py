@@ -60,6 +60,11 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         return None
 
     # Loop through the bias list and measure the jump/structure
+    uspec = np.unique([v[1] for v in bia_list])
+    if len(uspec) > 0:
+        args.log.warning('More than one spectrograph for given ifuslot, '
+                         'cowardly exiting.')
+        return None
     big_array = np.array([v[0] for v in bia_list])
     func = biweight_location
     masterbias = func(big_array, axis=(0,))
