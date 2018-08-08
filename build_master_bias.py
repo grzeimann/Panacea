@@ -38,7 +38,12 @@ def build_filenames(date, args):
 
 def get_image(fn):
     A = Amplifier(fn, '')
-    A.subtract_overscan()
+    ly = A.biassec[2]
+    hy = A.biassec[3]
+    lx = A.biassec[0]+1
+    hx = A.biassec[1]
+    A.overscan_value = biweight_location(A.image[ly:hy, lx:hx])
+    A.image[:] = A.image - A.overscan_value
     A.trim_image()
     return A.image * 1., A.specid
 
