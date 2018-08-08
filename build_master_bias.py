@@ -64,6 +64,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
     if len(uspec) > 0:
         args.log.warning('More than one spectrograph for given ifuslot, '
                          'cowardly exiting.')
+        args.log.warning(uspec)
         return None
     big_array = np.array([v[0] for v in bia_list])
     func = biweight_location
