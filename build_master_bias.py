@@ -61,7 +61,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
 
     # Loop through the bias list and measure the jump/structure
     uspec = np.unique([v[1] for v in bia_list])
-    if len(uspec) > 0:
+    if len(uspec) > 1:
         args.log.warning('More than one spectrograph for given ifuslot, '
                          'cowardly exiting.')
         args.log.warning(uspec)
