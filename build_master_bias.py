@@ -45,7 +45,7 @@ def get_image(fn):
     A.overscan_value = biweight_location(A.image[ly:hy, lx:hx])
     A.image[:] = A.image - A.overscan_value
     A.trim_image()
-    return A.image * 1., A.specid
+    return A.image * 1., A.specid, '%s%s%s' % (A.date.year, A.date.month, A.date.day)
 
 
 def build_master_frame(file_list, ifuslot, amp, args, date):
@@ -79,6 +79,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
     hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'))
     mkpath(op.join(args.folder, date))
     args.log.info('Writing masterbias_%s_%s.fits' % (bia_list[-1][1], amp))
+    hdu.header['OBJECT'] = '%s-%s' % (bia_list[0][2], bia_list[-1][2])
     write_fits(hdu, op.join(args.folder, date, 'masterbias_%s_%s.fits' %
                (bia_list[-1][1], amp)))
 
