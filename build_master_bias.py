@@ -80,6 +80,11 @@ parser.add_argument("-m", "--maxnum",
                     help='''Maximum number of bias frames in masterbias''',
                     type=int, default=100)
 
+parser.add_argument("-i", "--ifuslot",
+                    help='''IFUSLOT''',
+                    type=str, default='056')
+
+
 args = parser.parse_args(args=None)
 args.log = setup_logging(logname='build_master_bias')
 args = set_daterange(args)
@@ -87,17 +92,20 @@ filenames = []
 for date in args.daterange:
     date = '%04d%02d%02d' % (date.year, date.month, date.day)
     filenames = filenames + build_filenames(date, args)
-for ifuslot in ['056', '066']:
-    for amp in ['LL', 'LU', 'RL', 'RU']:
-        date = args.daterange[0]
-        date = '%04d%02d%02d' % (date.year, date.month, date.day)
-        args.log.info('Length of filenames for %s: %i' %
-                      (date, len(filenames)))
-        if (len(filenames) % args.maxnum) == 0:
-            nbins = len(filenames) / args.maxnum
-        else:
-            nbins = len(filenames) / args.maxnum + 1
-        chunks = np.array_split(filenames, nbins)
-        for chunk in chunks:
-            datestr = op.basename(chunk[0])[:8]
-            build_master_frame(chunk, ifuslot, amp, args, datestr)
+
+for amp in ['LL', 'LU', 'RL', 'RU']:
+    date = args.daterange[0]
+    date = '%04d%02d%02d' % (date.year, date.month, date.day)
+    args.log.info('Length of filenames for %s: %i' %
+                  (date, len(filenames)))
+    if (len(filenames) % args.maxnum) == 0:
+        nbins = len(filenames) / args.maxnum
+    else:
+        nbins = len(filenames) / args.maxnum + 1
+    if nbins == 0:
+        args.log.warning('No files found for %s on %s' % (args.ifuslot, date))
+        break
+    chunks = np.array_split(filenames, nbins)
+    for chunk in chunks:
+        datestr = op.basename(chunk[0])[:8]
+        build_master_frame(chunk, args.ifuslot, amp, args, datestr)
