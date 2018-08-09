@@ -102,12 +102,7 @@ Now you are ready to look at the data products from the reduction.
 The primary data product are multi*{uv,orange,red,farred}.fits files for each channel that was reduced.  
 The reductions reside in your "reductions/" folder at the same directory level that the "sbatch r*" commands were run.  
 Within the "reductions/" directory are dates of the data reduced.  Under each date is each observation 
-(either a twilight, science, or standard star).  To find what reductions you have done and the full path for each simply call:
-```
-python Panacea/find_my_reductions -f "reductions" -t TARGET_NAME -side blue
-```
-Change the "-side" argument to blue or red for LRS2-B and LRS2-R, respectively.
-This will list the absolute path for a given date and observation for a target, including all exposures for the date and observation.
+(either a twilight, science, or standard star).  
 
 ## Code Description
 Panacea is a general integral field unit (IFU) spectroscopic reduction tool tailored specifically for the Hobby Eberly Telescope (HET).
