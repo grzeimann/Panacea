@@ -129,7 +129,10 @@ def main():
                                                         'fiber_to_fiber',
                                                         'dead']})
     if args.reduce_sci:
-        calpath = args.twi_list[0].path
+        if args.twipath is not None:
+            calpath = args.twipath
+        else:
+            calpath = args.twi_list[0].path
         reduce_list = ['sci_list']
         for _list in reduce_list:
             if hasattr(args, _list):
