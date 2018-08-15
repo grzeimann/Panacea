@@ -115,7 +115,7 @@ def parse_args(argv=None):
     parser.add_argument("-bp", "--biaspath", help='''Path for masterbias frames.''',
                         default=None, type=str)
 
-    parser.add_argument("-tp", "--twispath", help='''Path for twi.''',
+    parser.add_argument("-tp", "--twipath", help='''Path for twi.''',
                         default=None, type=str)
                           
     args = parser.parse_args(args=argv)
