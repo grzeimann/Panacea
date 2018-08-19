@@ -45,9 +45,9 @@ def get_image(fn):
     S = F['spectrum'].data * 1.
     xarray = np.arange(S.shape[1])
     chunks = np.array_split(S, 20, axis=1)
-    xchunks = np.array_split(xarray, 20)
-    avg = [biweight_location(chunk, axis=(1,)) for chunk in chunks]
-    I = interp1d(xchunks, np.array(avg).swapaxes(0, 1), kind='quadratic',
+    xchunks = np.array(np.array_split(xarray, 20))
+    avg = np.array([biweight_location(chunk, axis=(1,)) for chunk in chunks])
+    I = interp1d(xchunks, avg.swapaxes(0, 1), kind='quadratic',
                  bounds_error=False, fill_value='extrapolate')
     norm = I(xarray).swapaxes(0, 1)
     t2 = time.time()
