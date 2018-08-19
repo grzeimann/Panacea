@@ -47,13 +47,10 @@ def get_image(fn):
     chunks = np.array_split(S, 20, axis=1)
     xchunks = np.array([np.mean(x) for x in np.array_split(xarray, 20)])
     avg = np.array([biweight_location(chunk, axis=(1,)) for chunk in chunks])
-    print(xchunks.shape, avg.shape, xchunks)
     I = interp1d(xchunks, avg.swapaxes(0, 1), kind='quadratic',
                  bounds_error=False, fill_value='extrapolate')
     norm = I(xarray)
-    print(norm.shape)
     t2 = time.time()
-    print('Time Taken: %0.3f ms' % ((t2-t1) * 1e3))
     return S / norm
 
 
@@ -81,7 +78,7 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     mkpath(op.join(args.folder, date))
     args.log.info('Writing master_residual_%s_%s.fits' % (args.triplet, amp))
     hdu.header['OBJECT'] = '%s-%s' % (dateb, datee)
-    write_fits(hdu, op.join(args.folder, date, 'master_residual_%s_%s.fits' %
+    write_fits(hdu, op.join(args.folder, dateb, 'master_residual_%s_%s.fits' %
                (args.triplet, amp)))
 
 parser = setup_parser()
@@ -139,4 +136,4 @@ for chunk in chunks:
             base0 = op.dirname(base0)
         dates.append(base0)
     for amp in amps:
-        build_residual_frame(chunk, amp, args, date[0], date[1])
+        build_residual_frame(chunk, amp, args, dates[0], dates[1])
