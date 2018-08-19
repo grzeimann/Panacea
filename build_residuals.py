@@ -132,6 +132,6 @@ for chunk in chunks:
         base0 = str(base)
         for i in np.arange(4):
             base0 = op.dirname(base0)
-        date.append(base0)
+        dates.append(base0)
     for amp in amps:
         build_residual_frame(chunk, args.ifuslot, amp, args, date[0], date[1])
