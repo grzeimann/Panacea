@@ -43,7 +43,7 @@ def get_image(fn):
     imagetype = F[0].header['IMAGETYP'].replace(' ', '')
     if imagetype == 'sci':
         S = F['spectrum'].data * 1.
-        W = F['spectrum'].data * 1.
+        W = F['wavelength'].data * 1.
 
         xarray = np.arange(S.shape[1])
         chunks = np.array_split(S, 20, axis=1)
@@ -71,8 +71,8 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     if not len(sci_list):
         args.log.warning('No reduced frames found for date range given')
         return None
-    args.log.info('Number of sci frames from %s-%s for %s: %i' % (date_begin,
-                                                                  date_end,
+    args.log.info('Number of sci frames from %s-%s for %s: %i' % (dateb,
+                                                                  datee,
                                                                   amp,
                                                                   len(sci_list)))
     big_array = np.array(sci_list)
