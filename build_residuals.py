@@ -40,17 +40,22 @@ def build_filenames(date, args):
 
 def get_image(fn):
     F = fits.open(fn)
-    S = F['spectrum'].data * 1.
-    W = F['spectrum'].data * 1.
+    imagetype = F[0].header['IMAGETYP'].replace(' ', '')
+    if imagetype == 'sci':
+        S = F['spectrum'].data * 1.
+        W = F['spectrum'].data * 1.
 
-    xarray = np.arange(S.shape[1])
-    chunks = np.array_split(S, 20, axis=1)
-    xchunks = np.array([np.mean(x) for x in np.array_split(xarray, 20)])
-    avg = np.array([biweight_location(chunk, axis=(1,)) for chunk in chunks])
-    I = interp1d(xchunks, avg.swapaxes(0, 1), kind='quadratic',
-                 bounds_error=False, fill_value='extrapolate')
-    norm = I(xarray)
-    return S / norm, W
+        xarray = np.arange(S.shape[1])
+        chunks = np.array_split(S, 20, axis=1)
+        xchunks = np.array([np.mean(x) for x in np.array_split(xarray, 20)])
+        avg = np.array([biweight_location(chunk, axis=(1,))
+                        for chunk in chunks])
+        I = interp1d(xchunks, avg.swapaxes(0, 1), kind='quadratic',
+                     bounds_error=False, fill_value='extrapolate')
+        norm = I(xarray)
+        return S / norm, W
+    else:
+        return None, None
 
 
 def build_residual_frame(dir_list, amp, args, dateb, datee):
@@ -60,12 +65,16 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     for directory in dir_list:
         fn = op.join(directory, 'multi_%s_%s.fits' % (args.triplet, amp))
         S, W = get_image(fn)
-        sci_list.append(S)
+        if S is not None:
+            sci_list.append(S)
 
     if not len(sci_list):
         args.log.warning('No reduced frames found for date range given')
         return None
-
+    args.log.info('Number of sci frames from %s-%s for %s: %i' % (date_begin,
+                                                                  date_end,
+                                                                  amp,
+                                                                  len(sci_list)))
     big_array = np.array(sci_list)
     func = biweight_location
     mastersci = func(big_array, axis=(0,))
@@ -115,8 +124,9 @@ date_begin = '%04d%02d%02d' % (date_begin.year, date_begin.month,
                                date_begin.day)
 date_end = '%04d%02d%02d' % (date_end.year, date_end.month, date_end.day)
 
-args.log.info('Length of filenames for %s-%s: %i' % (date_begin, date_end,
-                                                     len(filenames)))
+args.log.info('Length of filenames found for %s-%s: %i' % (date_begin, 
+                                                           date_end,
+                                                           len(filenames)))
 if (len(filenames) % args.maxnum) == 0:
     nbins = len(filenames) / args.maxnum
 else:
