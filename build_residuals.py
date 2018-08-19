@@ -134,4 +134,4 @@ for chunk in chunks:
             base0 = op.dirname(base0)
         dates.append(base0)
     for amp in amps:
-        build_residual_frame(chunk, args.ifuslot, amp, args, date[0], date[1])
+        build_residual_frame(chunk, amp, args, date[0], date[1])
