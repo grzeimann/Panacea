@@ -48,9 +48,10 @@ def get_image(fn):
     xchunks = np.array([np.mean(x) for x in np.array_split(xarray, 20)])
     avg = np.array([biweight_location(chunk, axis=(1,)) for chunk in chunks])
     print(xchunks.shape, avg.shape, xchunks)
-    I = interp1d(xchunks, avg, kind='quadratic',
+    I = interp1d(xchunks, avg.swapaxes(0, 1), kind='quadratic',
                  bounds_error=False, fill_value='extrapolate')
-    norm = I(xarray).swapaxes(0, 1)
+    norm = I(xarray)
+    print(norm.shape)
     t2 = time.time()
     print('Time Taken: %0.3f ms' % ((t2-t1) * 1e3))
     return S / norm
