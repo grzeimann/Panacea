@@ -75,7 +75,7 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
 
     a, b = mastersci.shape
     hdu = fits.PrimaryHDU(np.array(mastersci, dtype='float32'))
-    mkpath(op.join(args.folder, date))
+    mkpath(op.join(args.folder, dateb))
     args.log.info('Writing master_residual_%s_%s.fits' % (args.triplet, amp))
     hdu.header['OBJECT'] = '%s-%s' % (dateb, datee)
     write_fits(hdu, op.join(args.folder, dateb, 'master_residual_%s_%s.fits' %
