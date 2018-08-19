@@ -39,6 +39,8 @@ def build_filenames(date, args):
 
 
 def get_image(fn):
+    import time
+    t1 = time.time()
     F = fits.open(fn)
     S = F['spectrum'].data * 1.
     xarray = np.arange(S.shape[1])
@@ -48,6 +50,8 @@ def get_image(fn):
     I = interp1d(xchunks, np.array(avg).swapaxes(0, 1), kind='quadratic',
                  bounds_error=False, fill_value='extrapolate')
     norm = I(xarray).swapaxes(0, 1)
+    t2 = time.time()
+    print('Time Taken: %0.3f ms' % ((t2-t1) * 1e3))
     return S / norm
 
 
