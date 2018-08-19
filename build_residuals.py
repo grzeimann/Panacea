@@ -10,7 +10,6 @@ import os.path as op
 import numpy as np
 import sys
 
-from amplifier import Amplifier
 from astropy.io import fits
 from distutils.dir_util import mkpath
 from input_utils import setup_parser, set_daterange, setup_logging
@@ -36,7 +35,7 @@ def build_filenames(date, args):
                        args.triplet)))
     dirnames = [op.dirname(fn) for fn in filenames]
     unique_dirnames, ind = np.unique(dirnames, return_index=True)
-    return unique_dirnames
+    return list(unique_dirnames)
 
 
 def get_image(fn):
@@ -49,7 +48,7 @@ def get_image(fn):
     I = interp1d(xchunks, avg.swapaxes(0, 1), kind='quadratic',
                  bounds_error=False, fill_value='extrapolate')
     norm = I(xarray).swapaxes(0, 1)
-    return S, biweight_location(S)
+    return S / norm
 
 
 def build_residual_frame(dir_list, amp, args, dateb, datee):
@@ -77,8 +76,8 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     mkpath(op.join(args.folder, date))
     args.log.info('Writing master_residual_%s_%s.fits' % (args.triplet, amp))
     hdu.header['OBJECT'] = '%s-%s' % (dateb, datee)
-    write_fits(hdu, op.join(args.folder, date, 'masterbias_%s_%s.fits' %
-               (sci_list[-1][1], amp)))
+    write_fits(hdu, op.join(args.folder, date, 'master_residual_%s_%s.fits' %
+               (args.triplet, amp)))
 
 parser = setup_parser()
 parser.add_argument("-f", "--folder",
