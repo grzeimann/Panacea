@@ -39,10 +39,10 @@ def build_filenames(date, args):
 
 
 def get_image(fn):
-    import time
-    t1 = time.time()
     F = fits.open(fn)
     S = F['spectrum'].data * 1.
+    W = F['spectrum'].data * 1.
+
     xarray = np.arange(S.shape[1])
     chunks = np.array_split(S, 20, axis=1)
     xchunks = np.array([np.mean(x) for x in np.array_split(xarray, 20)])
@@ -50,8 +50,7 @@ def get_image(fn):
     I = interp1d(xchunks, avg.swapaxes(0, 1), kind='quadratic',
                  bounds_error=False, fill_value='extrapolate')
     norm = I(xarray)
-    t2 = time.time()
-    return S / norm
+    return S / norm, W
 
 
 def build_residual_frame(dir_list, amp, args, dateb, datee):
@@ -60,11 +59,9 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     sci_list = []
     for directory in dir_list:
         fn = op.join(directory, 'multi_%s_%s.fits' % (args.triplet, amp))
-        sci_list.append(get_image(fn))
-#        except:
-#            args.log.warning('Could not load %s' % fn)
+        S, W = get_image(fn)
+        sci_list.append(S)
 
-    # Select only the bias frames that match the input amp, e.g., "RU"
     if not len(sci_list):
         args.log.warning('No reduced frames found for date range given')
         return None
@@ -75,10 +72,14 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
 
     a, b = mastersci.shape
     hdu = fits.PrimaryHDU(np.array(mastersci, dtype='float32'))
+    hdu1 = fits.ImageHDU(np.array(W, dtype='float32'))
     mkpath(op.join(args.folder, dateb))
     args.log.info('Writing master_residual_%s_%s.fits' % (args.triplet, amp))
     hdu.header['OBJECT'] = '%s-%s' % (dateb, datee)
-    write_fits(hdu, op.join(args.folder, dateb, 'master_residual_%s_%s.fits' %
+    hdu.header['EXTNAME'] = 'spectrum'
+    hdu1.header['EXTNAME'] = 'wavelength'
+    hdulist = fits.HDUList([hdu, hdu1])
+    write_fits(hdulist, op.join(args.folder, dateb, 'master_residual_%s_%s.fits' %
                (args.triplet, amp)))
 
 parser = setup_parser()
