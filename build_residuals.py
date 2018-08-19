@@ -57,10 +57,9 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     sci_list = []
     for directory in dir_list:
         fn = op.join(directory, 'multi_%s_%s.fits' % (args.triplet, amp))
-        try:
-            sci_list.append(get_image(fn))
-        except:
-            args.log.warning('Could not load %s' % fn)
+        sci_list.append(get_image(fn))
+#        except:
+#            args.log.warning('Could not load %s' % fn)
 
     # Select only the bias frames that match the input amp, e.g., "RU"
     if not len(sci_list):
