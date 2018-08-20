@@ -101,7 +101,8 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     mastersci = func(big_array, axis=(0,))
 
     # Make sky model from average sky
-    nwave, nspec = make_avg_spec(W, mastersci)
+    nwave, nspec = make_avg_spec(np.array(W, dtype='float64'),
+                                 np.array(mastersci, dtype='float64'))
     I = interp1d(nwave, nspec, fill_value='extrapolate', bounds_error=False,
                  kind='quadratic')
     ftf = W * 0.
