@@ -44,7 +44,7 @@ def make_avg_spec(wave, spec, binsize=35, knots=None):
     wave = wave[sel] * 1.
     spec = spec[sel] * 1.
     ind = np.argsort(wave.ravel())
-    if wave.ndims == 1:
+    if wave.ndim == 1:
         N = len(wave)
     else:
         N = wave.shape[0] * wave.shape[1]
