@@ -38,6 +38,22 @@ def build_filenames(date, args):
     return list(unique_dirnames)
 
 
+def make_avg_spec(wave, spec, binsize=35, knots=None):
+    ''' Make Average spectrum with biweight binning '''
+    sel = spec > 0.0
+    wave = wave[sel] * 1.
+    spec = spec[sel] * 1.
+    ind = np.argsort(wave.ravel())
+    N = len(wave)
+    wchunks = np.array_split(wave.ravel()[ind],
+                             N / binsize)
+    schunks = np.array_split(spec.ravel()[ind],
+                             N / binsize)
+    nwave = np.array([np.mean(chunk) for chunk in wchunks])
+    nspec = np.array([biweight_location(chunk) for chunk in schunks])
+    return nwave, nspec
+
+
 def get_image(fn):
     F = fits.open(fn)
     imagetype = F[0].header['IMAGETYP'].replace(' ', '')
@@ -84,14 +100,31 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     func = biweight_location
     mastersci = func(big_array, axis=(0,))
 
-    a, b = mastersci.shape
-    hdu = fits.PrimaryHDU(np.array(mastersci, dtype='float32'))
+    # Make sky model from average sky
+    nwave, nspec = make_avg_spec(W, mastersci)
+    I = interp1d(nwave, nspec, fill_value='extrapolate', bounds_error=False,
+                 kind='quadratic')
+    ftf = W * 0.
+    for fib in np.arange(W.shape[0]):
+        ftf[fib] = mastersci[fib] / I(W[fib])
+
+    # Get average norm
+    X = biweight_location(small_array, axis=(1,))[:, np.newaxis]
+    norm_of_norms = biweight_location(small_array / X, axis=(0,))
+    norm_of_norms = biweight_location(small_array /
+                                      norm_of_norms[np.newaxis, :], axis=(0,))
+
+    master_fiber_to_fiber = ftf + norm_of_norms[:, np.newaxis]
+
+
+    a, b = master_fiber_to_fiber.shape
+    hdu = fits.PrimaryHDU(np.array(master_fiber_to_fiber, dtype='float32'))
     hdu1 = fits.ImageHDU(np.array(W, dtype='float32'))
     hdu2 = fits.ImageHDU(np.array(small_array, dtype='float32'))
     mkpath(op.join(args.folder, dateb))
     args.log.info('Writing master_residual_%s_%s.fits' % (args.triplet, amp))
     hdu.header['OBJECT'] = '%s-%s' % (dateb, datee)
-    hdu.header['EXTNAME'] = 'spectrum'
+    hdu.header['EXTNAME'] = 'fiber_to_fiber'
     hdu1.header['EXTNAME'] = 'wavelength'
     hdu2.header['EXTNAME'] = 'normalization'
     hdulist = fits.HDUList([hdu, hdu1, hdu2])
