@@ -47,13 +47,16 @@ def get_image(fn):
 
         xarray = np.arange(S.shape[1])
         chunks = np.array_split(S, 20, axis=1)
-        xchunks = np.array([np.mean(x) for x in np.array_split(xarray, 20)])
+#        xchunks = np.array([np.mean(x) for x in np.array_split(xarray, 20)])
         avg = np.array([biweight_location(chunk, axis=(1,))
                         for chunk in chunks])
-        I = interp1d(xchunks, avg.swapaxes(0, 1), kind='quadratic',
-                     bounds_error=False, fill_value='extrapolate')
-        norm = I(xarray)
-        return S / norm, W
+#        I = interp1d(xchunks, avg.swapaxes(0, 1), kind='quadratic',
+#                     bounds_error=False, fill_value='extrapolate')
+#        norm = I(xarray)
+        normavg = biweight_location(avg, axis=(1,))
+        divnorm = avg / normavg[:, np.nnewaxis]
+        norm = biweight_location(divnorm, axis=(0,))
+        return S / norm[:, np.newaxis], W
     else:
         return None, None
 
