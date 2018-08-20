@@ -107,7 +107,7 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
                  kind='quadratic')
     ftf = W * 0.
     for fib in np.arange(W.shape[0]):
-        ftf[fib] = mastersci[fib] / I(W[fib])
+        ftf[fib] = (mastersci[fib] - I(W[fib])) / I(W[fib])
 
     # Get average norm
     X = biweight_location(small_array, axis=(1,))[:, np.newaxis]
