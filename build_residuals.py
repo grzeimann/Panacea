@@ -79,7 +79,7 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
                                                                   amp,
                                                                   len(sci_list)))
     big_array = np.array(sci_list)
-    func = biweight_location
+    func = np.sum
     mastersci = func(big_array, axis=(0,))
 
     a, b = mastersci.shape
