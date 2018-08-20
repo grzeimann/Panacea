@@ -59,7 +59,7 @@ def get_image(fn):
         norm = biweight_location(divnorm, axis=(0,)) * netnorm
         return S / norm[:, np.newaxis], W, norm
     else:
-        return None, None
+        return None, None, None
 
 
 def build_residual_frame(dir_list, amp, args, dateb, datee):
