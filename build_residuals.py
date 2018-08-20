@@ -112,9 +112,9 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     # Get average norm
     X = biweight_location(small_array, axis=(1,))[:, np.newaxis]
     norm_of_norms = biweight_location(small_array / X, axis=(0,))
-    norm_of_norms = biweight_location(small_array /
-                                      norm_of_norms[np.newaxis, :], axis=(0,))
-
+    X = biweight_location(small_array / norm_of_norms[np.newaxis, :],
+                          axis=(0,))
+    norm_of_norms = biweight_location(small_array / X, axis=(0,))
     master_fiber_to_fiber = ftf + norm_of_norms[:, np.newaxis]
 
 
