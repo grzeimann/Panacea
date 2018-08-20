@@ -55,7 +55,8 @@ def get_image(fn):
 #        norm = I(xarray)
         normavg = biweight_location(avg, axis=(1,))
         divnorm = avg / normavg[:, np.newaxis]
-        norm = biweight_location(divnorm, axis=(0,))
+        netnorm = biweight_location(normavg)
+        norm = biweight_location(divnorm, axis=(0,)) * netnorm
         return S / norm[:, np.newaxis], W
     else:
         return None, None
