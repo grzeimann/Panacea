@@ -116,7 +116,7 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
                           axis=(0,))
     norm_of_norms = biweight_location(small_array / X, axis=(0,))
     master_fiber_to_fiber = ftf + norm_of_norms[:, np.newaxis]
-
+    master_fiber_to_fiber[master_fiber_to_fiber < 0.2] = 0.0
 
     a, b = master_fiber_to_fiber.shape
     hdu = fits.PrimaryHDU(np.array(master_fiber_to_fiber, dtype='float32'))
