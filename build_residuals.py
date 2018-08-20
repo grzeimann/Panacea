@@ -44,7 +44,10 @@ def make_avg_spec(wave, spec, binsize=35, knots=None):
     wave = wave[sel] * 1.
     spec = spec[sel] * 1.
     ind = np.argsort(wave.ravel())
-    N = len(wave)
+    if wave.ndims == 1:
+        N = len(wave)
+    else:
+        N = wave.shape[0] * wave.shape[1]
     wchunks = np.array_split(wave.ravel()[ind],
                              N / binsize)
     schunks = np.array_split(spec.ravel()[ind],
@@ -68,7 +71,8 @@ def safe_division(num, denom, eps=1e-8, fillval=0.0):
 
 def sky_subtract(wave, spec, ftf):
     newspec = safe_division(spec, ftf)
-    nwave, nspec = make_avg_spec(wave, newspec)
+    nwave, nspec = make_avg_spec(np.array(wave, dtype='float64'), 
+                                 np.array(newspec, dtype='float64'))
     I = interp1d(nwave, nspec, fill_value='extrapolate', bounds_error=False,
                  kind='quadratic')
     skysub = spec * 0.
