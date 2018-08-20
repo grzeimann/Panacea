@@ -57,7 +57,7 @@ def get_image(fn):
         divnorm = avg / normavg[:, np.newaxis]
         netnorm = biweight_location(normavg)
         norm = biweight_location(divnorm, axis=(0,)) * netnorm
-        return S / norm[:, np.newaxis], W
+        return S / norm[:, np.newaxis], W, norm
     else:
         return None, None
 
@@ -66,19 +66,20 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     # Create empty lists for the left edge jump, right edge jump, and structure
 
     sci_list = []
+    norm_list = []
     for directory in dir_list:
         fn = op.join(directory, 'multi_%s_%s.fits' % (args.triplet, amp))
-        S, W = get_image(fn)
+        S, W, N = get_image(fn)
         if S is not None:
             sci_list.append(S)
+            norm_list.append(N)
 
     if not len(sci_list):
         args.log.warning('No reduced frames found for date range given')
         return None
-    args.log.info('Number of sci frames from %s-%s for %s: %i' % (dateb,
-                                                                  datee,
-                                                                  amp,
-                                                                  len(sci_list)))
+    args.log.info('Number of sci frames from %s-%s for %s: %i' %
+                  (dateb, datee, amp, len(sci_list)))
+    small_array = np.array(norm_list)
     big_array = np.array(sci_list)
     func = biweight_location
     mastersci = func(big_array, axis=(0,))
@@ -86,14 +87,16 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     a, b = mastersci.shape
     hdu = fits.PrimaryHDU(np.array(mastersci, dtype='float32'))
     hdu1 = fits.ImageHDU(np.array(W, dtype='float32'))
+    hdu2 = fits.ImageHDU(np.array(small_array, dtype='float32'))
     mkpath(op.join(args.folder, dateb))
     args.log.info('Writing master_residual_%s_%s.fits' % (args.triplet, amp))
     hdu.header['OBJECT'] = '%s-%s' % (dateb, datee)
     hdu.header['EXTNAME'] = 'spectrum'
     hdu1.header['EXTNAME'] = 'wavelength'
-    hdulist = fits.HDUList([hdu, hdu1])
-    write_fits(hdulist, op.join(args.folder, dateb, 'master_residual_%s_%s.fits' %
-               (args.triplet, amp)))
+    hdu2.header['EXTNAME'] = 'normalization'
+    hdulist = fits.HDUList([hdu, hdu1, hdu2])
+    write_fits(hdulist, op.join(args.folder, dateb,
+               'master_residual_%s_%s.fits' % (args.triplet, amp)))
 
 parser = setup_parser()
 parser.add_argument("-f", "--folder",
