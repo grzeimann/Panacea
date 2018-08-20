@@ -54,6 +54,29 @@ def make_avg_spec(wave, spec, binsize=35, knots=None):
     return nwave, nspec
 
 
+def safe_division(num, denom, eps=1e-8, fillval=0.0):
+    good = np.isfinite(denom) * (np.abs(denom) > eps)
+    div = num * 0.
+    if num.ndim == denom.ndim:
+        div[good] = num[good] / denom[good]
+        div[~good] = fillval
+    else:
+        div[:, good] = num[:, good] / denom[good]
+        div[:, ~good] = fillval
+    return div
+
+
+def sky_subtract(wave, spec, ftf):
+    newspec = safe_division(spec, ftf)
+    nwave, nspec = make_avg_spec(wave, newspec)
+    I = interp1d(nwave, nspec, fill_value='extrapolate', bounds_error=False,
+                 kind='quadratic')
+    skysub = spec * 0.
+    for i in np.arange(wave.shape[0]):
+        skysub[i] = spec[i] - I(wave[i]) * ftf[i]
+    return skysub
+
+
 def get_image(fn):
     F = fits.open(fn)
     imagetype = F[0].header['IMAGETYP'].replace(' ', '')
@@ -73,7 +96,7 @@ def get_image(fn):
         divnorm = avg / normavg[:, np.newaxis]
         netnorm = biweight_location(normavg)
         norm = biweight_location(divnorm, axis=(0,)) * netnorm
-        return S / norm[:, np.newaxis], W, norm
+        return S / norm[:, np.newaxis], W, norm, S
     else:
         return None, None, None
 
@@ -82,13 +105,15 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     # Create empty lists for the left edge jump, right edge jump, and structure
 
     sci_list = []
+    org_list = []
     norm_list = []
     for directory in dir_list:
         fn = op.join(directory, 'multi_%s_%s.fits' % (args.triplet, amp))
-        S, W, N = get_image(fn)
+        S, W, N, O = get_image(fn)
         if S is not None:
             sci_list.append(S)
             norm_list.append(N)
+            org_list.append(O)
 
     if not len(sci_list):
         args.log.warning('No reduced frames found for date range given')
@@ -96,7 +121,10 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     args.log.info('Number of sci frames from %s-%s for %s: %i' %
                   (dateb, datee, amp, len(sci_list)))
     small_array = np.array(norm_list)
+    orig_array = np.array(org_list)
+    del org_list
     big_array = np.array(sci_list)
+    del sci_list
     func = biweight_location
     mastersci = func(big_array, axis=(0,))
 
@@ -118,17 +146,26 @@ def build_residual_frame(dir_list, amp, args, dateb, datee):
     master_fiber_to_fiber = ftf + norm_of_norms[:, np.newaxis]
     master_fiber_to_fiber[master_fiber_to_fiber < 0.2] = 0.0
 
+    skysub_list = []
+    for i, orig in enumerate(orig_array):
+        args.log.info('Making Sky Subtracted frame %i' % (i + 1))
+        skysub_list.append(sky_subtract(W, orig, master_fiber_to_fiber))
+
+    sky_array = np.array(skysub_list)
     a, b = master_fiber_to_fiber.shape
     hdu = fits.PrimaryHDU(np.array(master_fiber_to_fiber, dtype='float32'))
     hdu1 = fits.ImageHDU(np.array(W, dtype='float32'))
     hdu2 = fits.ImageHDU(np.array(small_array, dtype='float32'))
+    hdu3 = fits.ImageHDU(np.array(sky_array, dtype='float32'))
+
     mkpath(op.join(args.folder, dateb))
     args.log.info('Writing master_residual_%s_%s.fits' % (args.triplet, amp))
     hdu.header['OBJECT'] = '%s-%s' % (dateb, datee)
     hdu.header['EXTNAME'] = 'fiber_to_fiber'
     hdu1.header['EXTNAME'] = 'wavelength'
     hdu2.header['EXTNAME'] = 'normalization'
-    hdulist = fits.HDUList([hdu, hdu1, hdu2])
+    hdu3.header['EXTNAME'] = 'skysub'
+    hdulist = fits.HDUList([hdu, hdu1, hdu2, hdu3])
     write_fits(hdulist, op.join(args.folder, dateb,
                'master_residual_%s_%s.fits' % (args.triplet, amp)))
 
