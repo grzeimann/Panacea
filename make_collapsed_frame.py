@@ -44,20 +44,21 @@ def get_spectrum(args, amp):
     folder = get_folder(args)
     filenames = sorted(glob.glob(op.join(folder, 'multi_*_%s_*_%s.fits' %
                                          (args.ifuslot, amp))))
-    if op.exists(filenames[0]):
+    if len(filenames):
         F = fits.open(filenames[0])
     else:
-        args.log.error('File does not exist: %s' % filenames[0])
+        args.log.error('File does not exist: %s' % folder)
         sys.exit(1)
     try:
-        wv, spec, x, y = (F['wavelength'].data, F[args.spectype].data,
-                          F['ifupos'].data[:, 0], F['ifupos'].data[:, 1])
+        wv, spec, ftf, x, y = (F['wavelength'].data, F[args.spectype].data,
+                               F['fiber_to_fiber'].data,
+                               F['ifupos'].data[:, 0], F['ifupos'].data[:, 1])
         basename = op.basename(F[0].header['rawfn']).split('_')[0]
     except:
         args.log.error('Could not get extensions: wavelength and %s' %
                        args.spectype)
         sys.exit(1)
-    return wv, spec, x, y, basename
+    return wv, spec, ftf, x, y, basename
 
 
 def rectify(wave, spec, rectified_dlam=1., minwave=None, maxwave=None):
@@ -90,8 +91,13 @@ def rectify(wave, spec, rectified_dlam=1., minwave=None, maxwave=None):
     return rect_wave, rect_spec
 
 
-def make_frame(xloc, yloc, data, wave, args, outname, scale=1.,
+def make_frame(xloc, yloc, data, wave, args, outname, ftf, scale=1.,
                seeing_fac=1.5):
+    if args.test:
+        data = 0. * data
+        data[args.test_fiber] = 1.
+        args.log.info('X, Y: %0.2f, %0.2f' % (xloc[args.test_fiber],
+                                              yloc[args.test_fiber]))
     seeing = seeing_fac * scale
     a, b = data.shape
     x = np.arange(xloc.min()-scale,
@@ -109,8 +115,8 @@ def make_frame(xloc, yloc, data, wave, args, outname, scale=1.,
                                  (yloc - ygrid[j, i])**2)
             w[:, j, i] = np.exp(-1./2.*(d[:, j, i]/seeing)**2)
 
-    avg = np.median(data, axis=1)
-    sel = np.where((np.abs(avg) > 1e-5) * np.isfinite(avg))[0]
+    avg = np.median(ftf, axis=1)
+    sel = np.where((avg > 0.1) * np.isfinite(avg))[0]
     ws = w[sel, :, :].sum(axis=0)
     for k in xrange(b):
         zgrid[k, :, :] = ((data[sel, k][:, np.newaxis, np.newaxis] *
@@ -143,20 +149,27 @@ def main():
     parser.add_argument("-we", "--waveend",
                         help='''End Wavelength for collapse''',
                         type=float, default=5350)
+    parser.add_argument("-t", "--test",
+                        help='''If test, then set test_fiber as well''',
+                        action="count", default=0)
+    parser.add_argument("-tf", "--test_fiber",
+                        help='''fiber for testing centering''',
+                        type=int, default=0)
     args = parser.parse_args(args=None)
     args.log = setup_logging(logname='collapsed')
-    allwv, allspec, allx, ally = ([], [], [], [])
+    allwv, allspec, allx, ally, allftf = ([], [], [], [], [])
     for amp in ['LL', 'LU', 'RL', 'RU']:
-        wv, spec, x, y, basename = get_spectrum(args, amp)
+        wv, spec, ftf, x, y, basename = get_spectrum(args, amp)
         allwv.append(wv)
         allspec.append(spec)
+        allftf.append(ftf)
         allx.append(x)
         ally.append(y)
-    allwv, allspec,  = [np.vstack(i) for i in [allwv, allspec]]
+    allwv, allspec, allftf  = [np.vstack(i) for i in [allwv, allspec, allftf]]
     allx, ally = [np.hstack(i) for i in [allx, ally]]
     wave, spec = rectify(allwv, allspec, minwave=3500, maxwave=5500)
     outname = build_cubename(args, 'CoFeS', basename)
-    make_frame(allx, ally, spec, wave, args, outname)
+    make_frame(allx, ally, spec, wave, args, outname, allftf)
 
 if __name__ == '__main__':
     main()
