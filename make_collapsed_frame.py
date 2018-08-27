@@ -168,7 +168,11 @@ def main():
     allwv, allspec, allftf  = [np.vstack(i) for i in [allwv, allspec, allftf]]
     allx, ally = [np.hstack(i) for i in [allx, ally]]
     wave, spec = rectify(allwv, allspec, minwave=3500, maxwave=5500)
-    outname = build_cubename(args, 'CoFeS', basename)
+    if args.test:
+        base = 'test_CoFeS'
+    else:
+        base = 'CoFeS'
+    outname = build_cubename(args, base, basename)
     make_frame(allx, ally, spec, wave, args, outname, allftf)
 
 if __name__ == '__main__':
