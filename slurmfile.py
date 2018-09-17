@@ -21,6 +21,7 @@ slurmstring = '''#!/bin/bash
 #------------------Scheduler Options--------------------
 #SBATCH -J HETDEX              # Job name
 #SBATCH -n %i                  # Total number of tasks
+#SBATCH -N 1
 #SBATCH -p gpu                 # Queue name
 #SBATCH -o reduction.o%s       # Name of stdout output file
 #SBATCH -t 01:30:00            # Run time (hh:mm:ss)
