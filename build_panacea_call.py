@@ -108,12 +108,13 @@ for _object in object_table:
         objectname = ''
         for v in np.arange(1, len(_object)-1):
             objectname = objectname + _object[v]
-
     obsid = op.basename(op.dirname(op.dirname(op.dirname(filename)))).split(args.instrument)[1]
     date = op.basename(op.dirname(op.dirname(op.dirname(op.dirname(op.dirname(filename))))))
     keystring = date+'_'+obsid
     date_tup = (int(date[:4]), int(date[4:6]), int(date[6:]))
     if DB < date_tup < DE:
+        if 'hps' in objectname.lower():
+            print('WTF', objectname, keystring)
         if fnmatch.fnmatch(objectname.lower(), args.target.lower()) and filename[-8:-5] == 'sci':
             if args.exposure_time is not None:
                 if exptime > args.exposure_time:    
