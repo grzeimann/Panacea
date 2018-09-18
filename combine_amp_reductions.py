@@ -14,7 +14,7 @@ import numpy as np
 import os.path as op
 import sys
 
-from astropy.convolution import Gaussian2DKernel
+from astropy.convolution import Gaussian2DKernel, Gaussian1DKernel, convolve
 from astropy.io import fits
 from astropy.modeling.fitting import LevMarLSQFitter
 from astropy.modeling.models import Moffat2D
@@ -33,6 +33,10 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from utils import biweight_location, biweight_midvariance
 from wave_utils import get_new_wave, get_red_wave, get_single_shift
 
+def get_script_path():
+    return op.dirname(op.realpath(sys.argv[0]))
+
+DIRNAME = get_script_path()
 parser = ap.ArgumentParser(add_help=True)
 
 parser.add_argument("-f", "--filename",
@@ -43,6 +47,9 @@ parser.add_argument("-s", "--side",
                     type=str, default='blue')
 parser.add_argument("-rc", "--recalculate_wavelength",
                     help='''recalculate_wavelength''',
+                    action="count", default=0)
+parser.add_argument("-em", "--emission",
+                    help='''Find emission line object?''',
                     action="count", default=0)
 
 args = parser.parse_args(args=None)
@@ -157,7 +164,7 @@ def build_big_fiber_array(P):
 def get_x_y_lambda(det_ind, other_ind, detwv, otherwv,
                    det_xc, det_yc, sides):
     side = sides[det_ind]
-    dar_table = Table.read('dar_%s.dat' % side,
+    dar_table = Table.read(op.join(DIRNAME, 'lrs2_config', 'dar_%s.dat' % side),
                            format='ascii.fixed_width_two_line')
     X = interp1d(dar_table['wave'], dar_table['x_0'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
@@ -165,7 +172,7 @@ def get_x_y_lambda(det_ind, other_ind, detwv, otherwv,
                  bounds_error=False, fill_value='extrapolate')
     xoff, yoff = (det_xc - X(detwv), det_yc - Y(detwv))
     side = sides[other_ind]
-    dar_table = Table.read('dar_%s.dat' % side,
+    dar_table = Table.read(op.join(DIRNAME, 'lrs2_config', 'dar_%s.dat' % side),
                            format='ascii.fixed_width_two_line')
     X = interp1d(dar_table['wave'], dar_table['x_0'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
@@ -296,7 +303,7 @@ def subtract_sky(R, sky_sel, args, niter=2, adjustment=None):
 
 def extract_source(R, side, lims2, loc, fibinds, args):
     R.skynorm = safe_division(R.sky, R.ftf)
-    T = Table.read('response_%s.dat' % side,
+    T = Table.read(op.join(DIRNAME, 'lrs2_config', 'response_%s.dat' % side),
                    format='ascii.fixed_width_two_line')
     I = interp1d(T['wave'], T['response'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
@@ -326,7 +333,7 @@ def extract_source(R, side, lims2, loc, fibinds, args):
 
 
 def flux_correction(wave, loc, P, inds, side, rect_spec, rect_sky, noise):
-    dar_table = Table.read('dar_%s.dat' % side,
+    dar_table = Table.read(op.join(DIRNAME, 'lrs2_config', 'dar_%s.dat' % side),
                            format='ascii.fixed_width_two_line')
     X = interp1d(dar_table['wave'], dar_table['x_0'], kind='linear',
                  bounds_error=False, fill_value='extrapolate')
@@ -411,10 +418,16 @@ def quick_exam(R, nwavebins, lims, side, args):
                                                           R.ftf),
                                             dtype='float64'), lims,
                                    fac=2.5)
-
+    if args.emission:
+        G = Gaussian1DKernel(1.3)
+        for i in np.arange(rect_spec.shape[0]):
+            rect_spec[i] = convolve(rect_spec[i], G, mask=(rect_spec[i] == -999.))
+        func = np.max
+    else:
+        func = biweight_location
     Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
 
-    S = [biweight_location(chunk, axis=(1,)) - biweight_location(chunk)
+    S = [func(chunk, axis=(1,)) - biweight_location(chunk)
          for chunk in np.array_split(Z, nwavebins, axis=1)]
     B = [biweight_location(chunk)
          for chunk in np.array_split(Z, nwavebins, axis=1)]
@@ -503,7 +516,7 @@ def main():
         # Correct the wavelength solution from sky lines
 
         # Load the default fiber to fiber and map to each fiber's wavelength
-        F = fits.open('ftf_%s.fits' % side)
+        F = fits.open(op.join(DIRNAME, 'lrs2_config', 'ftf_%s.fits' % side))
         F[0].data = np.array(F[0].data, dtype='float64')
         R.ftf = R.wave * 0.
         for i in np.arange(R.wave.shape[0]):
@@ -518,14 +531,14 @@ def main():
         if args.recalculate_wavelength:
             newwave = R.wave * 0.
             args.log.info('Working on the wavelength for side: %s' % side)
-            if side[0] == 'R':
+            if side in ['BR', 'RL', 'RR']:
                 spec = R.oldspec * 1.
 #                newwave = get_red_wave(R.wave, R.trace, R.oldspec, R.ftf, R.good_mask,
 #                         '%s_skylines.dat' % name, debug=False)
-                newwave = fits.open('%s_wavelength.fits' % name)[0].data
+                newwave = fits.open(op.join(DIRNAME, 'lrs2_config', '%s_wavelength.fits' % name))[0].data
                 nwave, nspec = make_avg_spec(newwave[R.good_mask],
                                              safe_division(spec, R.ftf)[R.good_mask])
-                shift = get_single_shift(nwave, nspec, '%s_skylines.dat' % name)
+                shift = get_single_shift(nwave, nspec, op.join(DIRNAME, 'lrs2_config', '%s_skylines.dat' % name))
                 newwave = newwave + shift
                 args.log.info('Shift in wavelength for %s: %0.3f A' % (name, shift))
 
@@ -568,7 +581,7 @@ def main():
                 P.skysub = safe_division(P.spec, P.ftf)
             else:
                 if side[0] == 'R':
-                    adjustment = np.array(fits.open('test_%s.fits' % name)[0].data,
+                    adjustment = np.array(fits.open(op.join(DIRNAME, 'lrs2_config', 'test_%s.fits' % name))[0].data,
                                           dtype='float64')
                 else:
                     adjustment = None
