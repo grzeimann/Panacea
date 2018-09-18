@@ -107,8 +107,31 @@ Now you are ready to look at the data products from the reduction.
 ### Data Products
 The primary data product are multi*{uv,orange,red,farred}.fits files for each channel that was reduced.  
 The reductions reside in your "reductions/" folder at the same directory level that the "sbatch r*" commands were run.  
-Within the "reductions/" directory are dates of the data reduced.  Under each date is each observation 
-(either a twilight, science, or standard star).  
+Within the "reductions/" directory are dates of the data reduced.  An example folder structure is:
+
+```
+reductions/20180413/lrs2/lrs20000005/exp01/lrs2/multi_503_056_7001_orange.fits
+```
+
+The multi*{uv,orange,red,farred}.fits are multi-extension fits files and contain the following attributes:
+
+```
+image: 2d image (bias-subtracted, dark-subtracted, gain multiplied, trimmed, and oriented)
+error: 2d error frame for the associated image
+ifupos: x, y positions of the fibers with respect to ifu center (")
+skypos: ra, dec positions of the fibers (if the same as x and y then no astrometric solution was applied)
+wave: wavelength for each fiber as a function of CCD column
+twi: extracted twilight spectra for the associated twilight frame used for calibration
+ftf: fiber normalizations as a function of CCD column (these are to be divided to normalize fibers)
+spectrum: extracted 1d spectra for each fiber (e-) as a function of CCD column
+sky: sky model for each fiber as a function of CCD column
+skysub: sky-subtracted spectra for each fiber (e-) with fiber normalizations taken into account
+trace: location (in y) of each fiber as a function of CCD column
+```
+
+If a continuum source was automatically detected by the reduction program another product is created:
+spectrum*{uv,orange,red,farred}.fits.  These fits files include 4 rows, which are (in ascending order):
+wavelength (A), spectrum (ergs/s/cm^2/A), spectrum error (ergs/s/cm^2/A), and sky spectrum (ergs/s/cm^2/A).  
 
 ## Code Description
 Panacea is a general integral field unit (IFU) spectroscopic reduction tool tailored specifically for the Hobby Eberly Telescope (HET).
