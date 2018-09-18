@@ -54,7 +54,9 @@ def find_match(datet, list_name):
 
 parser = setup_parser()
 parser.add_argument("-t", "--target",
-                    help='''Target Name''',
+                    help='''Target name or regular expression.  For example,
+                    NGC9999*.  The asterix is necessary as the object names differ
+                    from the target names as they also include ifuslot and track information.''',
                     type=str, default=None)
 parser.add_argument("-s", "--side",
                     help='''red or blue''',
@@ -127,34 +129,6 @@ for _object in object_table:
                 if ifuslot in objectname.lower():
                     standard_list.append(keystring) 
     
-#for datet in args.daterange:
-#    date = '%04d%02d%02d' % (datet.year, datet.month, datet.day)
-#    filenames = build_filenames(date, args)
-#    for filename in filenames:
-#        obsid = op.basename(op.dirname(op.dirname(op.dirname(filename)))).split(args.instrument)[1]
-#        keystring = date+'_'+obsid
-#        try:
-#            objectname = fits.open(filename)[0].header['OBJECT']
-#            exptime = fits.open(filename)[0].header['EXPTIME']
-#        except:
-#            objectname = ''
-#            args.log.warning('Could not open %s' % filename)                
-#        if (args.target.lower() in objectname.lower()) and (filename[-8:-5] == 'sci'):
-#            if args.exposure_time is not None:
-#                if exptime > args.exposure_time:    
-#                    science_target_list.append(keystring)
-#                    print('Science File Found: %s, %s, %0.1f' % (keystring, objectname, exptime))
-#            else:
-#                science_target_list.append(keystring)
-#                print('Science File Found: %s, %s, %0.1f' % (keystring, objectname, exptime))
-#        if filename[-8:-5] == 'twi':
-#            twi_list.append(keystring)
-#        for standard in standard_names:
-#            if standard.lower() in objectname.lower():
-#                if ifuslot in objectname.lower():
-#                    standard_list.append(keystring)
-#        del objectname
-
 twi_file = []
 sci_file = []
 com_file = []
