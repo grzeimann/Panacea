@@ -15,7 +15,7 @@ from datetime import datetime as dt
 
 def setup_parser():
     ''' BRIEF DESCRIPTION '''
-    parser = ap.ArgumentParser(add_help=False)
+    parser = ap.ArgumentParser(add_help=True)
 
     parser.add_argument("-sd", "--start_date",
                         help='''Start Date, e.g., 20170321, YYYYMMDD''',
