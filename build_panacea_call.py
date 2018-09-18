@@ -85,8 +85,8 @@ science_target_list = []
 twi_list = []
 standard_list = []
 
-object_table = Table.read('/work/03730/gregz/maverick/object_list_all.dat',
-                          format='ascii')
+
+object_table = [line.rstrip('\n').split() for line in open('/work/03730/gregz/maverick/object_list_all.dat')]
 filenames = []
 objects = []
 dates = []
@@ -96,9 +96,17 @@ DB = (datet.year, datet.month, datet.day)
 datet1 = args.daterange[-1]
 DE = (datet1.year, datet1.month, datet1.day)
 for _object in object_table:
-    filename = _object['col1']
-    objectname = _object['col2']
-    exptime = _object['col3']
+    if len(_object) == 3:
+        filename = _object[0]
+        objectname = _object[1]
+        exptime = float(_object[2])
+    else:
+        filename = _object[0]
+        exptime = float(_object[-1])
+        objectname = ''
+        for v in np.arange(1, len(_object)-1):
+            objectname = objectname + _object[v]
+
     obsid = op.basename(op.dirname(op.dirname(op.dirname(filename)))).split(args.instrument)[1]
     date = op.dirname(op.dirname(op.dirname(op.dirname(op.dirname(filename)))))
     keystring = date+'_'+obsid
