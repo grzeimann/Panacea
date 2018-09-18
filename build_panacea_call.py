@@ -108,7 +108,7 @@ for _object in object_table:
             objectname = objectname + _object[v]
 
     obsid = op.basename(op.dirname(op.dirname(op.dirname(filename)))).split(args.instrument)[1]
-    date = op.dirname(op.dirname(op.dirname(op.dirname(op.dirname(filename)))))
+    date = op.basename(op.dirname(op.dirname(op.dirname(op.dirname(op.dirname(filename))))))
     keystring = date+'_'+obsid
     date_tup = (int(date[:4]), int(date[4:6]), int(date[6:]))
     if DB < date_tup < DE:
