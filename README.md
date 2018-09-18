@@ -34,10 +34,16 @@ git clone https://github.com/grzeimann/Panacea.git
 ```
 
 #### Preparing the reductions
-The next step is to generate the necessary set of scripts for your target:
+The next step is to generate the necessary set of scripts for your target. 
+Panacea reduces the blue and red sides of LRS2 separately, and thus the scripts for reductions are generated on a per side basis. 
+For a given target name and side of the LRS2 spectrograph, "build_panacea_call.py" finds all observations for that target over a given date range.  For example:
+
 ```
-python Panacea/build_panacea_call.py --start_date 20180515 --date_length 1 --rootdir /work/03946/hetdex/maverick --instrument lrs2 --side blue --target bd
+python Panacea/build_panacea_call.py --start_date 20180515 --date_length 1 --rootdir /work/03946/hetdex/maverick --instrument lrs2 --side blue --target bd*
 ```
+
+The target name should be a "regular expression" in a unix search.  All searches are done in lower case alphanumerics
+to avoid mismatches in upper and lower case naming.
 
 The following scripts are generated from that call and printed to screen:
 ```
