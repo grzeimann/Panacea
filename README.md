@@ -130,8 +130,7 @@ trace: location (in y) of each fiber as a function of CCD column
 ```
 
 If a continuum source was automatically detected by the reduction program another product is created:
-spectrum*{uv,orange,red,farred}.fits.  
-These fits files include 4 rows, which are (in ascending order):
+spectrum*{uv,orange,red,farred}.fits.  These fits files include 4 rows, which are (in ascending order):
 wavelength (A), spectrum (ergs/s/cm^2/A), spectrum error (ergs/s/cm^2/A), and sky spectrum (ergs/s/cm^2/A).  
 
 ## Code Description
