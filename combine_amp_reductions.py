@@ -145,8 +145,8 @@ def find_centroid(image, x, y, B):
 def build_weight_matrix(x, y, sig=1.5):
     d = np.sqrt((x - x[:, np.newaxis])**2 + (y - y[:, np.newaxis])**2)
     G = np.exp(-0.5 * (d / sig)**2)
-    G = G / G.sum(axis=1)[:, np.newaxis]
-    return G
+    G = G / G.sum(axis=0)[:, np.newaxis]
+    return G.swapaxes(0,1)
 
 
 def clean_cosmics(rect_spec):
@@ -468,7 +468,7 @@ def quick_exam(R, nwavebins, lims, side, args, name):
                                    fac=2.5)
     if args.emission:
         rect_spec = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
-                                       name)
+                                       name, sig_wave=2.5*1.5)
         S = []
         Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
         for chunk in np.array_split(Z, nwavebins, axis=1):
