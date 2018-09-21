@@ -605,7 +605,7 @@ def main():
                           np.max(newwave-wave0))
             args.log.info('Min Wave Correction: %0.2f A' %
                           np.min(newwave-wave0))
-            wv, R.good_mask, xc, yc, a, g, sign, dthresh = quick_exam(R, nwavebins, lims, side, args)
+            wv, R.good_mask, xc, yc, a, g, sign, dthresh = quick_exam(R, nwavebins, lims, side, args, name)
         L.append([copy(R), sign, xc, yc, wv, dthresh, a, g])
     ind = np.argmax([l[1] for l in L])
     args.log.info('Point source detected strongest in side: %s' % sides[ind])
