@@ -610,6 +610,7 @@ def main():
     ind = np.argmax([l[1] for l in L])
     args.log.info('Point source detected strongest in side: %s' % sides[ind])
     args.log.info('Detection significance: %0.2f' % L[ind][1])
+    args.log.info('Detection found at: %0.2f, %0.2f, %0.2f' % (L[ind][2], L[ind][3], L[ind][4]))
     args.log.info('FWHM: %0.2f' % (L[ind][7] * 0.935))
     if L[ind][1] > min_det_thresh:
         otherind = np.argmin([l[1] for l in L])
