@@ -164,6 +164,7 @@ def clean_cosmics(rect_spec):
 
 def mask_skylines_cosmics(wave, rect_spec, name):
     mask1 = rect_spec * 0.
+    mask1[rect_spec == -999.] = -1.
     if op.exists(op.join(DIRNAME, 'lrs2_config', '%s_skylines.dat' % name)):
         T = Table.read(op.join(DIRNAME, 'lrs2_config', '%s_skylines.dat' % name),
                        format='ascii.fixed_width_two_line')
@@ -468,13 +469,17 @@ def quick_exam(R, nwavebins, lims, side, args, name):
     if args.emission:
         rect_spec = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
                                        name)
-        func = np.max
+        S = []
+        Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
+        for chunk in np.array_split(Z, nwavebins, axis=1):
+            ind = np.unravel_index(np.argmax(chunk, axis=None), chunk.shape)
+            B = biweight_location(chunk)
+            S.append(chunk[:, ind[1]] - B)
     else:
         func = biweight_location
-    Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
-
-    S = [func(chunk, axis=(1,)) - biweight_location(chunk)
-         for chunk in np.array_split(Z, nwavebins, axis=1)]
+        Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
+        S = [func(chunk, axis=(1,)) - biweight_location(chunk)
+             for chunk in np.array_split(Z, nwavebins, axis=1)]
     B = [biweight_location(chunk)
          for chunk in np.array_split(Z, nwavebins, axis=1)]
     N = [biweight_midvariance(s) for s in S]
