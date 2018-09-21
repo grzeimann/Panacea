@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os.path as op
 import sys
+import cosmics
 
 from astropy.convolution import Gaussian2DKernel, Gaussian1DKernel, convolve
 from astropy.io import fits
@@ -32,6 +33,7 @@ from sklearn.gaussian_process.kernels import ConstantKernel
 from sklearn.gaussian_process import GaussianProcessRegressor
 from utils import biweight_location, biweight_midvariance
 from wave_utils import get_new_wave, get_red_wave, get_single_shift
+
 
 def get_script_path():
     return op.dirname(op.realpath(sys.argv[0]))
@@ -138,6 +140,51 @@ def find_centroid(image, x, y, B):
     dthresh = np.interp(.01, ratio[ind], d[ind])
     return (fit.x_0.value, fit.y_0.value, fit.alpha.value, fit.gamma.value,
             fit.fwhm, signal_to_noise, dthresh)
+
+
+def build_weight_matrix(x, y, sig=1.5):
+    d = np.sqrt((x - x[:, np.newaxis])**2 + (y - y[:, np.newaxis])**2)
+    G = np.exp(-0.5 * (d / sig)**2)
+    G = G / G.sum(axis=1)[:, np.newaxis]
+    return G
+
+
+def clean_cosmics(rect_spec):
+    noise = biweight_midvariance(rect_spec)
+    cc = cosmics.cosmicsimage(rect_spec, gain=1.0, readnoise=noise,
+                              sigclip=25.0, sigfrac=0.001, objlim=0.001,
+                              satlevel=-1.0)
+    cc.run(maxiter=1)
+    c = np.where(cc.mask)
+    mask = np.zeros(rect_spec.shape)
+    for x, y in zip(c[0], c[1]):
+        mask[x][y] = -1.0
+    return mask
+
+
+def mask_skylines_cosmics(wave, rect_spec, name):
+    mask1 = rect_spec * 0.
+    if op.exists(op.join(DIRNAME, 'lrs2_config', '%s_skylines.dat' % name)):
+        T = Table.read(op.join(DIRNAME, 'lrs2_config', '%s_skylines.dat' % name),
+                       format='ascii.fixed_width_two_line')
+        for w in T['wavelength']:
+            mask1[:, np.abs(wave - w) < 5.] = -1.
+    mask2 = clean_cosmics(rect_spec)
+    mask = (mask1 + mask2) < 0
+    return mask
+
+
+def convolve_spatially(x, y, spec, wave, name, sig_spatial=1.5, sig_wave=1.5):
+    W = build_weight_matrix(x, y, sig=sig_spatial)
+    mask = mask_skylines_cosmics(wave, spec, name)
+    Z = spec * 0.
+    Z[mask] = np.nan
+    G = Gaussian1DKernel(sig_wave)
+    for i in np.arange(spec.shape[0]):
+        Z[i, :] = convolve(Z[i, :], G)
+    for i in np.arange(spec.shape[1]):
+        Z[:, i] = np.dot(spec[:, i], W)
+    return Z
 
 
 def build_big_fiber_array(P):
@@ -412,16 +459,15 @@ def write_spectrum_out(R):
                 overwrite=True)
 
 
-def quick_exam(R, nwavebins, lims, side, args):
+def quick_exam(R, nwavebins, lims, side, args, name):
     rect_wave, rect_spec = rectify(np.array(R.wave, dtype='float64'),
                                    np.array(safe_division(R.oldspec,
                                                           R.ftf),
                                             dtype='float64'), lims,
                                    fac=2.5)
     if args.emission:
-        G = Gaussian1DKernel(1.3)
-        for i in np.arange(rect_spec.shape[0]):
-            rect_spec[i] = convolve(rect_spec[i], G, mask=(rect_spec[i] == -999.))
+        rect_spec = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
+                                       name)
         func = np.max
     else:
         func = biweight_location
@@ -527,7 +573,7 @@ def main():
         # R.ftf = get_twi_ftf(R.wave, R.twi)
         wv, R.good_mask, xc, yc, a, g, sign, dthresh = quick_exam(R, nwavebins,
                                                                   lims, side,
-                                                                  args)
+                                                                  args, name)
         if args.recalculate_wavelength:
             newwave = R.wave * 0.
             args.log.info('Working on the wavelength for side: %s' % side)
