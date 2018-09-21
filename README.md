@@ -73,7 +73,7 @@ All of the "rtwi*" scripts can be run simultaneously and take roughly 30 minutes
 squeue | grep USERNAME
 ```
 Where you put your username for USERNAME.  The log of what is running or did run is in the file "reduction.oXXXXXX" 
-where XXXXXX is the 6 job number (hint, the job number is printed out at the end of the command "sbatch rtwi_*.slurm").  
+where XXXXXX is the 6 job number, which is printed out at the end of the command "sbatch rtwi_*.slurm".  
 
 After the job has finished, in other words is no longer in the squeue, you can run both the science and standard star reductions.
 
