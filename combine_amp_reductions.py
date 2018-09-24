@@ -467,8 +467,8 @@ def quick_exam(R, nwavebins, lims, side, args, name):
     if args.emission:
         rect_spec1 = rect_spec * 1.
         sky = biweight_location(rect_spec, axis=(0, ))
-        rect_spec = rect_spec - sky[np.newaxis, :]
-        rect_spec, mask = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
+        rect_spec1 = rect_spec - sky[np.newaxis, :]
+        rect_spec, mask = convolve_spatially(R.ifux, R.ifuy, rect_spec1, rect_wave,
                                        name, sig_wave=2.5*1.5)
         noise = biweight_midvariance(rect_spec, axis=(0,))
         noise = np.nanmax([0.1 * np.percentile(noise, 95)*np.ones(noise.shape), noise], axis=0)
@@ -476,7 +476,7 @@ def quick_exam(R, nwavebins, lims, side, args, name):
         sn_image = rect_spec[:, ind[1]]
         back = 0.
         wv = rect_wave[ind[1]]
-        fits.PrimaryHDU(np.vstack([rect_wave, rect_spec1])).writeto('test1.fits', overwrite=True)
+        fits.PrimaryHDU(rect_spec1).writeto('test1.fits', overwrite=True)
         fits.PrimaryHDU(rect_spec).writeto('test2.fits', overwrite=True)
         fits.PrimaryHDU(np.array(mask, dtype=int)).writeto('test3.fits', overwrite=True)
 
