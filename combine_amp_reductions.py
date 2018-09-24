@@ -471,7 +471,7 @@ def quick_exam(R, nwavebins, lims, side, args, name):
         rect_spec, mask = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
                                        name, sig_wave=2.5*1.5)
         noise = biweight_midvariance(rect_spec, axis=(0,))
-        noise = np.max([0.1 * np.percentile(noise, 95), noise], axis=0)
+        noise = np.nanmax([0.1 * np.percentile(noise, 95)*np.ones(noise.shape), noise], axis=0)
         ind = np.unravel_index(np.argmax(rect_spec / noise,  axis=None), rect_spec.shape)
         sn_image = rect_spec[:, ind[1]]
         back = 0.
