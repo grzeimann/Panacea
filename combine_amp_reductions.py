@@ -471,8 +471,8 @@ def quick_exam(R, nwavebins, lims, side, args, name):
     if args.emission:
         rect_spec1 = rect_spec * 1.
         sky = biweight_location(rect_spec, axis=(0, ))
-        rect_spec1 = rect_spec - sky[np.newaxis, :]
-        rect_spec, mask = convolve_spatially(R.ifux, R.ifuy, rect_spec1, rect_wave,
+        rect_spec = rect_spec - sky[np.newaxis, :]
+        rect_spec, mask = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
                                        name, sig_wave=2.5*1.5)
         S = []
         Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
@@ -481,7 +481,7 @@ def quick_exam(R, nwavebins, lims, side, args, name):
             ind = np.unravel_index(np.argmax(chunk-B[np.newaxis,:], axis=None), chunk.shape)
             S.append(chunk[:, ind[1]] - B[ind[1]])
         Sp = np.array(S)
-        fits.PrimaryHDU(rect_spec1).writeto('test1.fits', overwrite=True)
+        fits.PrimaryHDU(np.vstack([rect_wave, rect_spec1])).writeto('test1.fits', overwrite=True)
         fits.PrimaryHDU(rect_spec).writeto('test2.fits', overwrite=True)
         fits.PrimaryHDU(np.array(mask, dtype=int)).writeto('test3.fits', overwrite=True)
 
