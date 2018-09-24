@@ -168,7 +168,7 @@ def mask_skylines_cosmics(wave, rect_spec, name):
         T = Table.read(op.join(DIRNAME, 'lrs2_config', '%s_skylines.dat' % name),
                        format='ascii.fixed_width_two_line')
         for w in T['wavelength']:
-            mask1[:, np.abs(wave - w) < 5.] = -1.
+            mask1[:, np.abs(wave - w) < 6.] = -1.
     mask2 = rect_spec * 0. #clean_cosmics(rect_spec)
     mask = (mask1 + mask2) < 0
     return mask
@@ -181,7 +181,7 @@ def convolve_spatially(x, y, spec, wave, name, sig_spatial=0.7, sig_wave=1.5):
     Z[mask] = np.nan
     G = Gaussian1DKernel(sig_wave)
     for i in np.arange(spec.shape[0]):
-        Z[i, :] = convolve(Z[i, :], G)
+        Z[i, :] = convolve(Z[i, :], G, nan_treatment='fill', fill_value=0.0)
     #for i in np.arange(spec.shape[1]):
     #    Z[:, i] = np.dot(spec[:, i], W)
     return Z, mask
