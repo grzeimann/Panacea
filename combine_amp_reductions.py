@@ -155,6 +155,7 @@ def clean_cosmics(rect_spec):
     N = biweight_midvariance(S, axis=(0,))
     mask = 0. * rect_spec
     mask[(S / N) > 5.] = -1.
+    print('[COSMICS] Number of cosmics found: %i' % int(-1.*mask.sum()))
     return mask
 
 
@@ -477,7 +478,7 @@ def quick_exam(R, nwavebins, lims, side, args, name):
         back = 0.
         wv = rect_wave[ind[1]]
         fits.PrimaryHDU(rect_spec1).writeto('test1.fits', overwrite=True)
-        fits.PrimaryHDU(rect_spec).writeto('test2.fits', overwrite=True)
+        fits.PrimaryHDU(rect_spec / noise).writeto('test2.fits', overwrite=True)
         fits.PrimaryHDU(np.array(mask, dtype=int)).writeto('test3.fits', overwrite=True)
 
     else:
