@@ -165,7 +165,7 @@ def mask_skylines_cosmics(wave, rect_spec, name):
                        format='ascii.fixed_width_two_line')
         for w in T['wavelength']:
             mask1[:, np.abs(wave - w) < 6.] = -1.
-    mask2 = rect_spec * 0. #clean_cosmics(rect_spec)
+    mask2 = clean_cosmics(rect_spec)
     mask = (mask1 + mask2) < 0
     return mask
 
