@@ -468,7 +468,7 @@ def quick_exam(R, nwavebins, lims, side, args, name):
                                    fac=2.5)
     sel = (rect_spec == -999.).sum(axis=0) < 1
     rect_wave = rect_wave[sel]
-    rect_spec = rect_spec[sel, :]
+    rect_spec = rect_spec[:, sel]
     if args.emission:
         rect_spec1 = rect_spec * 1.
         sky = biweight_location(rect_spec[sel, :], axis=(0, ))
