@@ -179,7 +179,7 @@ def convolve_spatially(x, y, spec, wave, name, sig_spatial=0.7, sig_wave=1.5):
     for i in np.arange(spec.shape[0]):
         Z[i, :] = convolve(Z[i, :], G, nan_treatment='fill', fill_value=0.0)
     for i in np.arange(spec.shape[1]):
-        Z[:, i] = np.dot(spec[:, i], W)
+        Z[:, i] = np.dot(Z[:, i], W)
     return Z, mask
 
 
