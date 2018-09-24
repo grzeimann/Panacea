@@ -467,8 +467,8 @@ def quick_exam(R, nwavebins, lims, side, args, name):
                                             dtype='float64'), lims,
                                    fac=2.5)
     if args.emission:
-        #rect_spec = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
-        #                               name, sig_wave=2.5*1.5)
+        rect_spec = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
+                                       name, sig_wave=2.5*1.5)
         S = []
         Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
         for chunk in np.array_split(Z, nwavebins, axis=1):
