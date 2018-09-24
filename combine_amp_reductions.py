@@ -467,6 +467,7 @@ def quick_exam(R, nwavebins, lims, side, args, name):
                                             dtype='float64'), lims,
                                    fac=2.5)
     if args.emission:
+        rect_spec1 = rect_spec * 1.
         rect_spec = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
                                        name, sig_wave=2.5*1.5)
         S = []
@@ -476,7 +477,7 @@ def quick_exam(R, nwavebins, lims, side, args, name):
             ind = np.unravel_index(np.argmax(chunk-B[np.newaxis,:], axis=None), chunk.shape)
             S.append(chunk[:, ind[1]] - B[ind[1]])
         Sp = np.array(S)
-        fits.PrimaryHDU(Sp).writeto('test.fits', overwrite=True)
+        fits.PrimaryHDU(rect_spec1).writeto('test1.fits', overwrite=True)
         fits.PrimaryHDU(rect_spec).writeto('test2.fits', overwrite=True)
     else:
         func = biweight_location
