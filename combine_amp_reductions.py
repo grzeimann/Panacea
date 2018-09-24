@@ -164,13 +164,12 @@ def clean_cosmics(rect_spec):
 
 def mask_skylines_cosmics(wave, rect_spec, name):
     mask1 = rect_spec * 0.
-    mask1[rect_spec == -999.] = -1.
     if op.exists(op.join(DIRNAME, 'lrs2_config', '%s_skylines.dat' % name)):
         T = Table.read(op.join(DIRNAME, 'lrs2_config', '%s_skylines.dat' % name),
                        format='ascii.fixed_width_two_line')
         for w in T['wavelength']:
             mask1[:, np.abs(wave - w) < 5.] = -1.
-    mask2 = clean_cosmics(rect_spec)
+    mask2 = rect_spec * 0. #clean_cosmics(rect_spec)
     mask = (mask1 + mask2) < 0
     return mask
 
