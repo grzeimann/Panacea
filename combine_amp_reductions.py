@@ -177,7 +177,7 @@ def mask_skylines_cosmics(wave, rect_spec, name):
 def convolve_spatially(x, y, spec, wave, name, sig_spatial=0.7, sig_wave=1.5):
     W = build_weight_matrix(x, y, sig=sig_spatial)
     mask = mask_skylines_cosmics(wave, spec, name)
-    Z = spec * 0.
+    Z = spec * 1.
     Z[mask] = np.nan
     G = Gaussian1DKernel(sig_wave)
     for i in np.arange(spec.shape[0]):
