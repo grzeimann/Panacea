@@ -498,8 +498,8 @@ def quick_exam(R, nwavebins, lims, side, args, name):
                                                    back)
     xgrid, ygrid, zimage = make_frame(R.ifux, R.ifuy, sn_image)
     mask = mask_sources(xgrid, ygrid, R.ifux, R.ifuy, zimage)
-    good = np.setdiff1d(np.arange(Z.shape[0], dtype=int), mask)
-    good_mask = np.zeros((Z.shape[0],))
+    good = np.setdiff1d(np.arange(rect_spec.shape[0], dtype=int), mask)
+    good_mask = np.zeros((rect_spec.shape[0],))
     good_mask[good] = 1.
     good_mask = np.array(good_mask, dtype=bool)
     make_plot(zimage, xgrid, ygrid, R.ifux, R.ifuy, good_mask, R.path,
