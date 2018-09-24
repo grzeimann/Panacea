@@ -475,14 +475,17 @@ def quick_exam(R, nwavebins, lims, side, args, name):
             B = biweight_location(chunk, axis=(0,))
             ind = np.unravel_index(np.argmax(chunk-B[np.newaxis,:], axis=None), chunk.shape)
             S.append(chunk[:, ind[1]] - B[ind[1]])
+        Sp = np.array(S)
+        fits.PrimaryHDU(Sp).writeto('test.fits', overwrite=True)
+        fits.PrimaryHDU(rect_spec).writeto('test2.fits', overwrite=True)
     else:
         func = biweight_location
         Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
         S = [func(chunk, axis=(1,)) - biweight_location(chunk)
              for chunk in np.array_split(Z, nwavebins, axis=1)]
-    Sp = np.array(S)
-    fits.PrimaryHDU(Sp).writeto('test.fits', overwrite=True)
-    fits.PrimaryHDU(rect_spec).writeto('test2.fits', overwrite=True)
+        Sp = np.array(S)
+
+    
     B = [biweight_location(chunk)
          for chunk in np.array_split(Z, nwavebins, axis=1)]
     N = [biweight_midvariance(s) for s in S]
