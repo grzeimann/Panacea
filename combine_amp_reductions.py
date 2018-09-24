@@ -150,15 +150,11 @@ def build_weight_matrix(x, y, sig=1.5):
 
 
 def clean_cosmics(rect_spec):
-    noise = biweight_midvariance(rect_spec)
-    cc = cosmics.cosmicsimage(rect_spec, gain=1.0, readnoise=noise,
-                              sigclip=25.0, sigfrac=0.001, objlim=0.001,
-                              satlevel=-1.0)
-    cc.run(maxiter=1)
-    c = np.where(cc.mask)
-    mask = np.zeros(rect_spec.shape)
-    for x, y in zip(c[0], c[1]):
-        mask[x][y] = -1.0
+    G = np.array([-.25, -.25, 1., -.25, -.25]).reshape(5,1)
+    S = convolve(rect_spec, G, normalize_kernel=False)
+    N = biweight_midvariance(S, axis=(0,))
+    mask = 0. * rect_spec
+    mask[(S / N) > 5.] = -1.
     return mask
 
 
@@ -182,8 +178,8 @@ def convolve_spatially(x, y, spec, wave, name, sig_spatial=0.7, sig_wave=1.5):
     G = Gaussian1DKernel(sig_wave)
     for i in np.arange(spec.shape[0]):
         Z[i, :] = convolve(Z[i, :], G, nan_treatment='fill', fill_value=0.0)
-    #for i in np.arange(spec.shape[1]):
-    #    Z[:, i] = np.dot(spec[:, i], W)
+    for i in np.arange(spec.shape[1]):
+        Z[:, i] = np.dot(spec[:, i], W)
     return Z, mask
 
 
@@ -474,13 +470,12 @@ def quick_exam(R, nwavebins, lims, side, args, name):
         rect_spec = rect_spec - sky[np.newaxis, :]
         rect_spec, mask = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
                                        name, sig_wave=2.5*1.5)
-        S = []
-        Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
-        for chunk in np.array_split(Z, nwavebins, axis=1):
-            B = biweight_location(chunk, axis=(0,))
-            ind = np.unravel_index(np.argmax(chunk-B[np.newaxis,:], axis=None), chunk.shape)
-            S.append(chunk[:, ind[1]] - B[ind[1]])
-        Sp = np.array(S)
+        noise = biweight_midvariance(rect_spec, axis=(0,))
+        noise = np.max([0.1 * np.percentile(noise, 95), noise], axis=0)
+        ind = np.unravel_index(np.argmax(rect_spec / noise,  axis=None), rect_spec.shape)
+        sn_image = rect_spec[:, ind[1]]
+        back = 0.
+        wv = rect_wave[ind[1]]
         fits.PrimaryHDU(np.vstack([rect_wave, rect_spec1])).writeto('test1.fits', overwrite=True)
         fits.PrimaryHDU(rect_spec).writeto('test2.fits', overwrite=True)
         fits.PrimaryHDU(np.array(mask, dtype=int)).writeto('test3.fits', overwrite=True)
@@ -490,20 +485,18 @@ def quick_exam(R, nwavebins, lims, side, args, name):
         Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
         S = [func(chunk, axis=(1,)) - biweight_location(chunk)
              for chunk in np.array_split(Z, nwavebins, axis=1)]
-        Sp = np.array(S)
-
-    
-    B = [biweight_location(chunk)
-         for chunk in np.array_split(Z, nwavebins, axis=1)]
-    N = [biweight_midvariance(s) for s in S]
-    S, B, N = [np.array(v) for v in [S, B, N]]
-    SN = [np.percentile(s / n, 99) for s, n in zip(S, N)]
-    v = np.argmax(SN)
-    sn_image = S[v]
-    wv = np.median(np.array_split(rect_wave, nwavebins)[v])
+        B = [biweight_location(chunk)
+             for chunk in np.array_split(Z, nwavebins, axis=1)]
+        N = [biweight_midvariance(s) for s in S]
+        S, B, N = [np.array(v) for v in [S, B, N]]
+        SN = [np.percentile(s / n, 99) for s, n in zip(S, N)]
+        v = np.argmax(SN)
+        sn_image = S[v]
+        back = B[v]
+        wv = np.median(np.array_split(rect_wave, nwavebins)[v])
     xc, yc, a, g, f, sign, dthresh = find_centroid(sn_image, R.ifux, R.ifuy,
-                                                   B[v])
-    xgrid, ygrid, zimage = make_frame(R.ifux, R.ifuy, S[v])
+                                                   back)
+    xgrid, ygrid, zimage = make_frame(R.ifux, R.ifuy, sn_image)
     mask = mask_sources(xgrid, ygrid, R.ifux, R.ifuy, zimage)
     good = np.setdiff1d(np.arange(Z.shape[0], dtype=int), mask)
     good_mask = np.zeros((Z.shape[0],))
