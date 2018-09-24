@@ -175,7 +175,7 @@ def mask_skylines_cosmics(wave, rect_spec, name):
     return mask
 
 
-def convolve_spatially(x, y, spec, wave, name, sig_spatial=1.5, sig_wave=1.5):
+def convolve_spatially(x, y, spec, wave, name, sig_spatial=0.7, sig_wave=1.5):
     W = build_weight_matrix(x, y, sig=sig_spatial)
     mask = mask_skylines_cosmics(wave, spec, name)
     Z = spec * 0.
@@ -185,7 +185,7 @@ def convolve_spatially(x, y, spec, wave, name, sig_spatial=1.5, sig_wave=1.5):
         Z[i, :] = convolve(Z[i, :], G)
     for i in np.arange(spec.shape[1]):
         Z[:, i] = np.dot(spec[:, i], W)
-    return Z
+    return Z, mask
 
 
 def build_big_fiber_array(P):
@@ -473,7 +473,7 @@ def quick_exam(R, nwavebins, lims, side, args, name):
         rect_spec1 = rect_spec * 1.
         sky = biweight_location(rect_spec, axis=(0, ))
         rect_spec = rect_spec - sky[np.newaxis, :]
-        rect_spec = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
+        rect_spec, mask = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
                                        name, sig_wave=2.5*1.5)
         S = []
         Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
@@ -484,6 +484,8 @@ def quick_exam(R, nwavebins, lims, side, args, name):
         Sp = np.array(S)
         fits.PrimaryHDU(rect_spec1).writeto('test1.fits', overwrite=True)
         fits.PrimaryHDU(rect_spec).writeto('test2.fits', overwrite=True)
+        fits.PrimaryHDU(np.array(mask, dtype=int)).writeto('test3.fits', overwrite=True)
+
     else:
         func = biweight_location
         Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
