@@ -183,8 +183,8 @@ def convolve_spatially(x, y, spec, wave, name, sig_spatial=0.7, sig_wave=1.5):
     G = Gaussian1DKernel(sig_wave)
     for i in np.arange(spec.shape[0]):
         Z[i, :] = convolve(Z[i, :], G)
-    for i in np.arange(spec.shape[1]):
-        Z[:, i] = np.dot(spec[:, i], W)
+    #for i in np.arange(spec.shape[1]):
+    #    Z[:, i] = np.dot(spec[:, i], W)
     return Z, mask
 
 
@@ -472,8 +472,8 @@ def quick_exam(R, nwavebins, lims, side, args, name):
     if args.emission:
         rect_spec1 = rect_spec * 1.
         sky = biweight_location(rect_spec, axis=(0, ))
-        rect_spec = rect_spec - sky[np.newaxis, :]
-        rect_spec, mask = convolve_spatially(R.ifux, R.ifuy, rect_spec, rect_wave,
+        rect_spec1 = rect_spec - sky[np.newaxis, :]
+        rect_spec, mask = convolve_spatially(R.ifux, R.ifuy, rect_spec1, rect_wave,
                                        name, sig_wave=2.5*1.5)
         S = []
         Z = np.ma.array(rect_spec, mask=(rect_spec == -999.))
