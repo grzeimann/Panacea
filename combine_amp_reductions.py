@@ -466,7 +466,7 @@ def quick_exam(R, nwavebins, lims, side, args, name):
                                                           R.ftf),
                                             dtype='float64'), lims,
                                    fac=2.5)
-    sel = (rect_spec == -999.).sum(axis=1) < 1
+    sel = (rect_spec == -999.).sum(axis=0) < 1
     rect_wave = rect_wave[sel]
     rect_spec = rect_spec[sel, :]
     if args.emission:
