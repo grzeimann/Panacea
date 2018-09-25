@@ -525,20 +525,24 @@ def get_twi_ftf(wave, twi):
     fac = biweight_location(T, axis=(1,))[:, np.newaxis] / biweight_location(T)
     ftf_twi = fac * np.ones((twi.shape[1],))
     for i in np.arange(2):
-        nwave, smooth = make_avg_spec(wave, twi / ftf_twi)
-        I = interp1d(nwave, smooth, kind='quadratic', bounds_error=False,
+        V =  (twi / ftf_twi).ravel()
+        W = wave.ravel()
+        ind = np.argsort(W)
+        nsmooth = savgol_filter(V[ind], 35, 1)
+        #nwave, smooth = make_avg_spec(wave, twi / ftf_twi)
+        I = interp1d(W, nsmooth, kind='quadratic', bounds_error=False,
                      fill_value='extrapolate')
         for i in np.arange(wave.shape[0]):
             ftf_twi[i] = twi[i] / I(wave[i])
             ftf_twi[i] = savgol_filter(ftf_twi[i], 25, 3)
-            N = len(ftf_twi[i])
-            wchunks = np.array_split(wave[i], N / 15)
-            schunks = np.array_split(ftf_twi[i], N / 15)
-            nw = np.array([np.mean(chunk) for chunk in wchunks])
-            sm = np.array([biweight_location(chunk) for chunk in schunks])
-            J = interp1d(nw, sm, kind='quadratic', bounds_error=False,
-                         fill_value='extrapolate')
-            ftf_twi[i] = J(wave[i])
+#            N = len(ftf_twi[i])
+#            wchunks = np.array_split(wave[i], N / 15)
+#            schunks = np.array_split(ftf_twi[i], N / 15)
+#            nw = np.array([np.mean(chunk) for chunk in wchunks])
+#            sm = np.array([biweight_location(chunk) for chunk in schunks])
+#            J = interp1d(nw, sm, kind='quadratic', bounds_error=False,
+#                         fill_value='extrapolate')
+#            ftf_twi[i] = J(wave[i])
     return ftf_twi
 
 
