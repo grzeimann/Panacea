@@ -28,6 +28,7 @@ from input_utils import setup_logging
 from photutils import detect_sources
 from reducelrs2 import ReduceLRS2
 from scipy.interpolate import interp1d
+from scipy.signal import savgol_filter
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
 from sklearn.gaussian_process.kernels import ConstantKernel
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -529,6 +530,7 @@ def get_twi_ftf(wave, twi):
                      fill_value='extrapolate')
         for i in np.arange(wave.shape[0]):
             ftf_twi[i] = twi[i] / I(wave[i])
+            ftf_twi[i] = savgol_filter(ftf_twi[i], 25, 3)
             N = len(ftf_twi[i])
             wchunks = np.array_split(wave[i], N / 15)
             schunks = np.array_split(ftf_twi[i], N / 15)
