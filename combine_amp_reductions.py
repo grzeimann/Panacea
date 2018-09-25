@@ -646,7 +646,7 @@ def main():
         for l, side, name in zip(L, sides, names):
             P = l[0]
             d = np.sqrt((l[2] - P.ifux)**2 + (l[3] - P.ifuy)**2)
-            sky_sel = d > l[5]
+            sky_sel = d > (seeing * 1.5)
             ext_sel = d < (seeing * 1.3)
             if sky_sel.sum() < 25:
                 args.log.warning('Point source found is too bright.')
