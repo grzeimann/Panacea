@@ -527,10 +527,13 @@ def get_twi_ftf(wave, twi):
     for i in np.arange(2):
         V =  (twi / ftf_twi).ravel()
         W = wave.ravel()
+        v, vind = np.unique(W, return_index=True)
+        W = W[vind]
+        V = V[vind]
         ind = np.argsort(W)
         sel = np.isfinite(V[ind])
         nsmooth = savgol_filter(V[ind][sel], 35, 1)
-        print(nsmooth.shape, nsmooth)
+        print(W.shape)
         #nwave, smooth = make_avg_spec(wave, twi / ftf_twi)
         I = interp1d(W[ind][sel], nsmooth, kind='quadratic', bounds_error=False,
                      fill_value='extrapolate')
