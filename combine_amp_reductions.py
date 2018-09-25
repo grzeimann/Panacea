@@ -482,9 +482,6 @@ def quick_exam(R, nwavebins, lims, side, args, name):
         if (args.wave_extract is not None) and (args.extract_side == name):
             cw = np.searchsorted(rect_wave, args.wave_extract)
             sn_image = rect_spec[:, cw]
-        elif (args.wave_extract is not None) and (args.extract_side != name):
-            cw = 300
-            sn_image = np.zeros((rect_spec.shape[0], ))
         else:
             cw = ind[1]
             sn_image = rect_spec[:, cw]
