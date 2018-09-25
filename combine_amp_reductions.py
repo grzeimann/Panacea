@@ -635,14 +635,15 @@ def main():
     args.log.info('Detection significance: %0.2f' % L[ind][1])
     args.log.info('Detection found at: %0.2f, %0.2f, %0.2f' % (L[ind][2], L[ind][3], L[ind][4]))
     args.log.info('FWHM: %0.2f' % (L[ind][7] * 0.935))
+    seeing = np.max([1.3, np.min([L[ind][7] * 0.935, 2.5])])
     if L[ind][1] > min_det_thresh:
-        otherind = np.argmin([l[1] for l in L])
+        otherind = 1 - ind
         xother, yother = get_x_y_lambda(ind, otherind, L[ind][4],
                                         L[otherind][4], L[ind][2], L[ind][3],
                                         sides)
         L[otherind][2], L[otherind][3] = (xother * 1., yother * 1.)
         for i in np.arange(5, 8):
-            L[otherind][i] = L[ind][i] * 1.
+            L[otherind][i] = L[ind][i]
         for l, side, name in zip(L, sides, names):
             P = l[0]
             d = np.sqrt((l[2] - P.ifux)**2 + (l[3] - P.ifuy)**2)
