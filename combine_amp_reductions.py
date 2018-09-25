@@ -533,7 +533,6 @@ def get_twi_ftf(wave, twi):
         ind = np.argsort(W)
         sel = np.isfinite(V[ind])
         nsmooth = savgol_filter(V[ind][sel], 35, 1)
-        print(W.shape)
         #nwave, smooth = make_avg_spec(wave, twi / ftf_twi)
         I = interp1d(W[ind][sel], nsmooth, kind='quadratic', bounds_error=False,
                      fill_value='extrapolate')
@@ -648,8 +647,11 @@ def main():
     args.log.info('Point source detected strongest in side: %s' % sides[ind])
     args.log.info('Detection significance: %0.2f' % L[ind][1])
     args.log.info('Detection found at: %0.2f, %0.2f, %0.2f' % (L[ind][2], L[ind][3], L[ind][4]))
-    args.log.info('FWHM: %0.2f' % (L[ind][7] * 0.935))
     seeing = np.max([1.3, np.min([L[ind][7] * 0.935, 2.5])])
+    args.log.info('FWHM: %0.2f' % (seeing))
+
+    if args.wave_extract is not None:
+        min_det_thresh = 1.
     if L[ind][1] > min_det_thresh:
         otherind = 1 - ind
         xother, yother = get_x_y_lambda(ind, otherind, L[ind][4],
@@ -661,9 +663,9 @@ def main():
         for l, side, name in zip(L, sides, names):
             P = l[0]
             d = np.sqrt((l[2] - P.ifux)**2 + (l[3] - P.ifuy)**2)
-            sky_sel = d > (seeing * 1.5)
+            sky_sel = d > (seeing * 1.3)
             ext_sel = d < (seeing * 1.3)
-            if sky_sel.sum() < 25:
+            if sky_sel.sum() < 1:
                 args.log.warning('Point source found is too bright.')
                 args.log.warning('Not enough blank fibers for sky.')
                 args.log.warning('Cowardly using 0 for sky.')
