@@ -53,7 +53,12 @@ parser.add_argument("-rc", "--recalculate_wavelength",
 parser.add_argument("-em", "--emission",
                     help='''Find emission line object?''',
                     action="count", default=0)
-
+parser.add_argument("-es", "--extract_side",
+                    help='''blue for LRS2-B and red for LRS2-R''',
+                    type=str, default='orange')
+parser.add_argument("-we", "--wave_extract",
+                    help='''blue for LRS2-B and red for LRS2-R''',
+                    type=str, default=None)
 args = parser.parse_args(args=None)
 
 args.log = setup_logging('combine_amp_reductions')
@@ -474,9 +479,13 @@ def quick_exam(R, nwavebins, lims, side, args, name):
         noise = biweight_midvariance(rect_spec, axis=(0,))
         noise = np.nanmax([0.1 * np.percentile(noise, 95)*np.ones(noise.shape), noise], axis=0)
         ind = np.unravel_index(np.argmax(rect_spec / noise,  axis=None), rect_spec.shape)
-        sn_image = rect_spec[:, ind[1]]
+        if (args.wave_extract is not None) and (args.extract_side == name):
+            cw = args.wave_extract
+        else:
+            cw = ind[1]
+        sn_image = rect_spec[:, cw]
         back = 0.
-        wv = rect_wave[ind[1]]
+        wv = rect_wave[cw]
         fits.PrimaryHDU(rect_spec1).writeto('test1.fits', overwrite=True)
         fits.PrimaryHDU(rect_spec / noise).writeto('test2.fits', overwrite=True)
         fits.PrimaryHDU(np.array(mask, dtype=int)).writeto('test3.fits', overwrite=True)
