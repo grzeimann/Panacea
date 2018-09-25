@@ -529,8 +529,11 @@ def get_twi_ftf(wave, twi):
                      fill_value='extrapolate')
         for i in np.arange(wave.shape[0]):
             ftf_twi[i] = twi[i] / I(wave[i])
-            nw, sm = make_avg_spec(wave[i, np.newaxis], ftf_twi[i, np.newaxis],
-                                   binsize=7, knots=75)
+            N = len(ftf_twi[i])
+            wchunks = np.array_split(wave[i], N / 15)
+            schunks = np.array_split(ftf_twi[i], N / 15)
+            nw = np.array([np.mean(chunk) for chunk in wchunks])
+            sm = np.array([biweight_location(chunk) for chunk in schunks])
             J = interp1d(nw, sm, kind='quadratic', bounds_error=False,
                          fill_value='extrapolate')
             ftf_twi[i] = J(wave[i])
