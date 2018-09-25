@@ -58,7 +58,7 @@ parser.add_argument("-es", "--extract_side",
                     type=str, default='orange')
 parser.add_argument("-we", "--wave_extract",
                     help='''blue for LRS2-B and red for LRS2-R''',
-                    type=str, default=None)
+                    type=float, default=None)
 args = parser.parse_args(args=None)
 
 args.log = setup_logging('combine_amp_reductions')
