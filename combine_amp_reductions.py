@@ -480,10 +480,14 @@ def quick_exam(R, nwavebins, lims, side, args, name):
         noise = np.nanmax([0.1 * np.percentile(noise, 95)*np.ones(noise.shape), noise], axis=0)
         ind = np.unravel_index(np.argmax(rect_spec / noise,  axis=None), rect_spec.shape)
         if (args.wave_extract is not None) and (args.extract_side == name):
-            cw = args.wave_extract
+            cw = np.searchsorted(rect_wave, args.wave_extract)
+            sn_image = rect_spec[:, cw]
+        elif (args.wave_extract is not None) and (args.extract_side != name):
+            cw = 300
+            sn_image = np.zeros((rect_spec.shape[0], ))
         else:
             cw = ind[1]
-        sn_image = rect_spec[:, cw]
+            sn_image = rect_spec[:, cw]
         back = 0.
         wv = rect_wave[cw]
         fits.PrimaryHDU(rect_spec1).writeto('test1.fits', overwrite=True)
@@ -623,7 +627,13 @@ def main():
                           np.min(newwave-wave0))
             wv, R.good_mask, xc, yc, a, g, sign, dthresh = quick_exam(R, nwavebins, lims, side, args, name)
         L.append([copy(R), sign, xc, yc, wv, dthresh, a, g])
-    ind = np.argmax([l[1] for l in L])
+    if (args.wave_extract is not None):
+        if (args.extract_side == 'uv') or (args.extract_side == 'red'):
+            ind = 0
+        if (args.extract_side == 'orange') or (args.extract_side == 'farred'):
+            ind = 1
+    else:
+        ind = np.argmax([l[1] for l in L])
     args.log.info('Point source detected strongest in side: %s' % sides[ind])
     args.log.info('Detection significance: %0.2f' % L[ind][1])
     args.log.info('Detection found at: %0.2f, %0.2f, %0.2f' % (L[ind][2], L[ind][3], L[ind][4]))
