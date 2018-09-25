@@ -591,8 +591,8 @@ def main():
             I = interp1d(F[0].data[0], F[0].data[i+1], kind='quadratic',
                          bounds_error=False, fill_value=-999.)
             R.ftf[i] = I(R.wave[i])
-        # R.log.info('Getting fiber to fiber from twilight')
-        # R.ftf = get_twi_ftf(R.wave, R.twi)
+        R.log.info('Getting fiber to fiber from twilight')
+        R.ftf = get_twi_ftf(R.wave, R.twi)
         wv, R.good_mask, xc, yc, a, g, sign, dthresh = quick_exam(R, nwavebins,
                                                                   lims, side,
                                                                   args, name)
