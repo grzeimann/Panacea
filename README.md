@@ -39,7 +39,7 @@ Panacea reduces the blue and red sides of LRS2 separately, and thus the scripts 
 For a given target name and side of the LRS2 spectrograph, "build_panacea_call.py" finds all observations for that target over a given date range.  For example:
 
 ```
-python Panacea/build_panacea_call.py --start_date 20180515 --date_length 1 --rootdir /work/03946/hetdex/maverick --instrument lrs2 --side blue --target bd*
+python Panacea/build_panacea_call.py --start_date 20180515 --date_length 1 --rootdir /work/03946/hetdex/maverick --instrument lrs2 --side blue --target "bd*"
 ```
 
 The target name should be a "regular expression" in a unix search.  All searches are done in lower case alphanumerics
