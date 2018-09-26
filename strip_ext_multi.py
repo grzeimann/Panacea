@@ -14,7 +14,7 @@ ext = 'skysub'
 
 fitslist = []
 for i, filename in enumerate(filenames):
-    F = fits.open(filename, 'rb')
+    F = fits.open(filename, 'readonly')
     if i == 0:
         f = fits.PrimaryHDU(F[ext].data)
     else:
