@@ -8,7 +8,8 @@ Created on Wed Sep 26 09:15:18 2018
 import numpy as np
 from astropy.io import fits
 
-filenames = np.loadtxt('/work/03730/gregz/maverick/multi_orange_list.dat')
+filenames = [line.rstrip('\n').split() for line in open('/work/03730/gregz/maverick/multi_orange_list.dat')]
+
 ext = 'skysub'
 
 fitslist = []
