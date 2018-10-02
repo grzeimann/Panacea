@@ -27,43 +27,6 @@ def get_script_path():
 DIRNAME = get_script_path()
 
 
-def check_if_type(date, obsid, args):
-    ''' Test if header has IMAGETYP '''
-    filenames = glob.glob(op.join(args.rootdir, date, args.instrument,
-                                  args.instrument + obsid, 'exp01',
-                                  args.instrument, 'multi_*_*_*_LL.fits'))
-    try:
-        kind = fits.open(filenames[0])[0].header['IMAGETYP']
-    except:
-        args.log.warn('No IMAGETYP in header for %s and observation %s'
-                      % (date, obsid))
-        return False
-    if kind == args.type:
-        return True
-    else:
-        return False
-
-
-def build_filenames(date, obsid, args):
-    '''
-    Build directory structure and search for all the files in a given
-    observation and exposure.
-    '''
-    if args.type == 'twi':
-        expstr = '01'
-    else:
-        expstr = '*'
-    filenames = glob.glob(op.join(args.rootdir, date, args.instrument,
-                                  args.instrument + obsid, 'exp%s' % expstr,
-                                  args.instrument, 'multi_*_*_*_LL.fits'))
-    ifuslot_list = [op.basename(fn).split('_')[2] for fn in filenames]
-    ifuslots = np.unique(ifuslot_list)
-    exposure_list = [op.basename(op.dirname(op.dirname(fn)))[3:]
-                     for fn in filenames]
-    exposures = np.unique(exposure_list)
-    return filenames, ifuslots, exposures, ifuslot_list, exposure_list
-
-
 def grab_attribute(filename, args, attributes=[], amps=['LL', 'LU', 'RU',
                    'RL']):
     ''' grab specified attributes from multi* file '''
@@ -192,7 +155,7 @@ def main():
         args.log.info('Reading in %s' % filename[0])
         dither = np.array([float(filename[2]), float(filename[3])])
         amps = ['LL', 'LU', 'RU', 'RL']
-        attributes = ['wavelength', 'sky_subtracted', 'fiber_to_fiber',
+        attributes = ['wavelength', 'spectrum', 'fiber_to_fiber',
                       'ifupos', 'error', 'trace']
         w, s, f, i, e, t, n = grab_attribute(filename[0], args,
                                              attributes=attributes, amps=amps)
@@ -214,7 +177,7 @@ def main():
                            sig_wave=(args.spectral_cont_conv_size / (rw[1]-rw[0])))
     noise = biweight_midvariance(Zc, axis=(0, ))
     SNc = Zc / noise
-    F1 = fits.PrimaryHDU(Zc)
+    F1 = fits.PrimaryHDU(rs)
     args.log.info('Convolving sky subtracted spectra for emission')
     Ze = convolve_spatially(allifupos[:, 0], allifupos[:, 1], rs, rw, allmask,
                            sig_spatial=args.spatial_conv_size,
