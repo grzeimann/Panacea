@@ -184,7 +184,7 @@ def main():
                            sig_wave=(args.spectral_conv_size / (rw[1]-rw[0])))
     noise = biweight_midvariance(Ze-Zc, axis=(0, ))
     SNe = (Ze-Zc) / noise
-    F2 = fits.ImageHDU(mask)
+    F2 = fits.ImageHDU(np.array(allmask, dtype=int))
     F3 = fits.ImageHDU(SNe)
     fits.HDUList([F1, F2, F3]).writeto('test.fits', overwrite=True)
     # peaks_fib, peaks_wave = np.where(SN > args.threshold)              
