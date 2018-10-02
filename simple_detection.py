@@ -177,14 +177,14 @@ def main():
                            sig_wave=(args.spectral_cont_conv_size / (rw[1]-rw[0])))
     noise = biweight_midvariance(Zc, axis=(0, ))
     SNc = Zc / noise
-    F1 = fits.PrimaryHDU(rs)
+    F1 = fits.PrimaryHDU(allspec)
     args.log.info('Convolving sky subtracted spectra for emission')
     Ze = convolve_spatially(allifupos[:, 0], allifupos[:, 1], rs, rw, allmask,
                            sig_spatial=args.spatial_conv_size,
                            sig_wave=(args.spectral_conv_size / (rw[1]-rw[0])))
     noise = biweight_midvariance(Ze-Zc, axis=(0, ))
     SNe = (Ze-Zc) / noise
-    F2 = fits.ImageHDU(Ze)
+    F2 = fits.ImageHDU(mask)
     F3 = fits.ImageHDU(SNe)
     fits.HDUList([F1, F2, F3]).writeto('test.fits', overwrite=True)
     # peaks_fib, peaks_wave = np.where(SN > args.threshold)              
