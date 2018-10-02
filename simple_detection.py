@@ -72,28 +72,15 @@ def grab_attribute(filename, args, attributes=[], amps=['LL', 'LU', 'RU',
     norm = []
     for amp in amps:
         name = basename + '_%s.fits' % amp
-        try:
-            data = fitsio.read(name, 'twi_spectrum')
-            xl = data.shape[1] / 3
-            xh = 2 * data.shape[1] / 3
-            norm.append(np.median(data[:, xl:xh], axis=1))
-        except IOError:
-            args.log.warning('%s not found, filling with zeros' % name)
-            norm.append(np.zeros((112,)))
+        data = fitsio.read(name, 'twi_spectrum')
+        xl = data.shape[1] / 3
+        xh = 2 * data.shape[1] / 3
+        norm.append(np.median(data[:, xl:xh], axis=1))
     for amp in amps:
         name = basename + '_%s.fits' % amp
-        try:
-            for i, attribute in enumerate(attributes):
-                s[i].append(fitsio.read(name, attribute))
-                args.log.info('Attribute %s has size %i, %i' % (attribute, s[i][-1].shape[0], s[i][-1].shape[1]))
-        except IOError:
-            args.log.warning('%s not found, filling with zeros' % name)
-            for i, attribute in enumerate(attributes):
-                s[i].append(np.zeros((112, 1032)))
         for i, attribute in enumerate(attributes):
-            if s[i][-1].shape != (112, 1032):
-                if attribute is not 'fiber_to_fiber_1':
-                    s[i][-1] = np.zeros((112, 1032))
+            s[i].append(fitsio.read(name, attribute))
+            args.log.info('Attribute %s has size %i, %i' % (attribute, s[i][-1].shape[0], s[i][-1].shape[1]))
     X = [np.vstack(si) for si in s]
     X.append(np.hstack(norm))
     return X
@@ -204,7 +191,7 @@ def main():
         args.log.info('Reading in %s' % filename[0])
         dither = np.array([float(filename[2]), float(filename[3])])
         amps = ['LL', 'LU', 'RU', 'RL']
-        attributes = ['wavelength', 'sky_subtraction', 'fiber_to_fiber',
+        attributes = ['wavelength', 'sky_subtracted', 'fiber_to_fiber',
                       'ifupos', 'error', 'trace']
         w, s, f, i, e, t, n = grab_attribute(filename[0], args,
                                              attributes=attributes, amps=amps)
