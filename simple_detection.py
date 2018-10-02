@@ -80,7 +80,6 @@ def grab_attribute(filename, args, attributes=[], amps=['LL', 'LU', 'RU',
         name = basename + '_%s.fits' % amp
         for i, attribute in enumerate(attributes):
             s[i].append(fitsio.read(name, attribute))
-            args.log.info('Attribute %s has size %i, %i' % (attribute, s[i][-1].shape[0], s[i][-1].shape[1]))
     X = [np.vstack(si) for si in s]
     X.append(np.hstack(norm))
     return X
@@ -201,7 +200,7 @@ def main():
         allspec.append(safe_division(s, f * norm))
         allifupos.append(i + dither)
         allmask.append(mask)
-    allwave, allspec, allifupos, allmask = [np.vstack(x)
+    allwave, allspec, allifupos, allmask = [np.array(np.vstack(x), dtype='float64')
                                             for x in [allwave, allspec,
                                                       allifupos, allmask]]
     args.log.info('Rectifying sky subtracted spectra')
