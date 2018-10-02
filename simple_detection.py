@@ -13,7 +13,7 @@ import fitsio
 import argparse as ap
 
 from astropy.io import fits
-from astropy.convolution import convolve, Gaussian1DKernel
+from astropy.convolution import convolve, Gaussian1DKernel, interpolate_replace_nans
 from input_utils import setup_logging
 from scipy.interpolate import interp1d
 from astropy.stats import mad_std
@@ -100,6 +100,7 @@ def rectify(wave, spec, lims, mask=None, fac=1.0):
     N, D = wave.shape
     rect_wave = np.linspace(lims[0], lims[1], int(D*fac))
     rect_spec = np.zeros((N, len(rect_wave)))
+    G = Gaussian1DKernel(1.5 * fac)
     for i in np.arange(N):
         dw = np.diff(wave[i])
         dw = np.hstack([dw[0], dw])
@@ -107,8 +108,10 @@ def rectify(wave, spec, lims, mask=None, fac=1.0):
             x = wave[i]
             y = spec[i] / dw
         else:
-            x = wave[i][~mask[i]]
-            y = (spec[i] / dw)[~mask[i]]
+            x = wave[i]
+            y = (spec[i] / dw)
+            y[mask[i]] = np.nan
+            y = interpolate_replace_nans(y, G)
         I = interp1d(x, y, kind='quadratic',
                      bounds_error=False, fill_value=-999.)
         rect_spec[i, :] = I(rect_wave)
@@ -125,7 +128,6 @@ def build_weight_matrix(x, y, sig=1.5):
 def convolve_spatially(x, y, spec, wave, mask, sig_spatial=0.7, sig_wave=1.5):
     W = build_weight_matrix(x, y, sig=sig_spatial)
     Z = spec * 1.
-    Z[mask] = np.nan
     G = Gaussian1DKernel(sig_wave)
     for i in np.arange(spec.shape[0]):
         Z[i, :] = convolve(Z[i, :], G, nan_treatment='fill', fill_value=0.0)
