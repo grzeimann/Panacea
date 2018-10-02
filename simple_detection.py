@@ -212,7 +212,7 @@ def main():
     Zc = convolve_spatially(allifupos[:, 0], allifupos[:, 1], rs, rw, allmask,
                            sig_spatial=args.spatial_conv_size,
                            sig_wave=(args.spectral_cont_conv_size / (rw[1]-rw[0])))
-    noise = biweight_midvariance(Z, axis=(0, ))
+    noise = biweight_midvariance(Zc, axis=(0, ))
     SNc = Zc / noise
     F1 = fits.PrimaryHDU(Zc)
     args.log.info('Convolving sky subtracted spectra for emission')
