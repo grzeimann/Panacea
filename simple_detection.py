@@ -209,20 +209,20 @@ def main():
     allmask = np.array(allmask, dtype=bool)
     rw, rs = rectify(allwave, allspec, [3500., 5500.], mask=allmask, fac=1.5)
     args.log.info('Convolving sky subtracted spectra for continuum')
-    Z = convolve_spatially(allifupos[:, 0], allifupos[:, 1], rs, rw, allmask,
+    Zc = convolve_spatially(allifupos[:, 0], allifupos[:, 1], rs, rw, allmask,
                            sig_spatial=args.spatial_conv_size,
                            sig_wave=(args.spectral_cont_conv_size / (rw[1]-rw[0])))
     noise = biweight_midvariance(Z, axis=(0, ))
-    SNc = Z / noise
-    F1 = fits.PrimaryHDU(SNc)
+    SNc = Zc / noise
+    F1 = fits.PrimaryHDU(Zc)
     args.log.info('Convolving sky subtracted spectra for emission')
-    Z = convolve_spatially(allifupos[:, 0], allifupos[:, 1], rs, rw, allmask,
+    Ze = convolve_spatially(allifupos[:, 0], allifupos[:, 1], rs, rw, allmask,
                            sig_spatial=args.spatial_conv_size,
                            sig_wave=(args.spectral_conv_size / (rw[1]-rw[0])))
-    noise = biweight_midvariance(Z, axis=(0, ))
-    SNe = Z / noise
-    F2 = fits.ImageHDU(SNe)
-    F3 = fits.ImageHDU(SNe - SNc)
+    noise = biweight_midvariance(Ze-Zc, axis=(0, ))
+    SNe = (Ze-Zc) / noise
+    F2 = fits.ImageHDU(Ze)
+    F3 = fits.ImageHDU(Ze - Zc)
     fits.HDUList([F1, F2, F3]).writeto('test.fits', overwrite=True)
     # peaks_fib, peaks_wave = np.where(SN > args.threshold)              
     
