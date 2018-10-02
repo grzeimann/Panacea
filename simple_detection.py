@@ -3,9 +3,10 @@
 Simple Detection Code
 """
 
-# import matplotlib
-# matplotlib.use('agg')
+import matplotlib
+matplotlib.use('agg')
 import glob
+import sys
 import numpy as np
 import os.path as op
 import fitsio
