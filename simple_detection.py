@@ -85,6 +85,7 @@ def grab_attribute(filename, args, attributes=[], amps=['LL', 'LU', 'RU',
         try:
             for i, attribute in enumerate(attributes):
                 s[i].append(fitsio.read(name, attribute))
+                args.log.info('Attribute %s has size %i, %i' % attribute, s[i][-1].shape[0], s[i][-1].shape[1])
         except IOError:
             args.log.warning('%s not found, filling with zeros' % name)
             for i, attribute in enumerate(attributes):
