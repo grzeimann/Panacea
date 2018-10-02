@@ -152,7 +152,7 @@ def main():
                  for line in open(args.filename, 'r')]
     allwave, allspec, allifupos, allmask = ([], [], [], [])
     for filename in filenames:
-        args.log.info('Reading in %s' % filename[0])
+        args.log.info('Reading in %s' % filename[0][:-8])
         dither = np.array([float(filename[2]), float(filename[3])])
         amps = ['LL', 'LU', 'RU', 'RL']
         attributes = ['wavelength', 'spectrum', 'fiber_to_fiber',
