@@ -155,7 +155,7 @@ def main():
         args.log.info('Reading in %s' % filename[0])
         dither = np.array([float(filename[2]), float(filename[3])])
         amps = ['LL', 'LU', 'RU', 'RL']
-        attributes = ['wavelength', 'spectrum', 'fiber_to_fiber',
+        attributes = ['wavelength', 'sky_subtracted', 'fiber_to_fiber',
                       'ifupos', 'error', 'trace']
         w, s, f, i, e, t, n = grab_attribute(filename[0], args,
                                              attributes=attributes, amps=amps)
@@ -185,7 +185,7 @@ def main():
     noise = biweight_midvariance(Ze-Zc, axis=(0, ))
     SNe = (Ze-Zc) / noise
     F2 = fits.ImageHDU(Ze)
-    F3 = fits.ImageHDU(Ze - Zc)
+    F3 = fits.ImageHDU(SNe)
     fits.HDUList([F1, F2, F3]).writeto('test.fits', overwrite=True)
     # peaks_fib, peaks_wave = np.where(SN > args.threshold)              
     
