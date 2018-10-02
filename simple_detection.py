@@ -204,7 +204,7 @@ def main():
                                             for x in [allwave, allspec,
                                                       allifupos, allmask]]
     args.log.info('Rectifying sky subtracted spectra')
-    rw, rs = rectify(allwave, allspec, [3500., 5500.], mask=allmask, fac=1.5)
+    rw, rs = rectify(allwave, allspec, [3500., 5500.], mask=np.array(allmask, dtype=bool), fac=1.5)
     args.log.info('Convolving sky subtracted spectra for continuum')
     Z = convolve_spatially(allifupos[:, 0], allifupos[:, 1], rs, rw, allmask,
                            sig_spatial=args.spatial_conv_size,
