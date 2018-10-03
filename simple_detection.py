@@ -182,7 +182,7 @@ def main():
         amps = ['LL', 'LU', 'RU', 'RL']
         attributes = ['wavelength', 'spectrum', 'fiber_to_fiber',
                       'ifupos', 'error', 'trace', 'twi_spectrum']
-        w, s, f, i, e, t, n, T = grab_attribute(filename[0], args,
+        w, s, f, i, e, t, T, n  = grab_attribute(filename[0], args,
                                              attributes=attributes, amps=amps)
         mask = mask_cosmics(e, t)
         norm = (n / np.median(n))[:, np.newaxis]
