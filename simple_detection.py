@@ -181,7 +181,7 @@ def main():
         dither = np.array([float(filename[2]), float(filename[3])])
         amps = ['LL', 'LU', 'RU', 'RL']
         attributes = ['wavelength', 'spectrum', 'fiber_to_fiber',
-                      'ifupos', 'error', 'trace', 'twi_spectrum']
+                      'ifupos', 'error', 'trace', 'image']
         w, s, f, i, e, t, T, n  = grab_attribute(filename[0], args,
                                              attributes=attributes, amps=amps)
         mask = mask_cosmics(e, t)
@@ -203,7 +203,7 @@ def main():
                            sig_wave=(args.spectral_cont_conv_size / (rw[1]-rw[0])))
     noise = biweight_midvariance(Zc, axis=(0, ))
     SNc = Zc / noise
-    F1 = fits.PrimaryHDU(allspec)
+    F1 = fits.PrimaryHDU(alltwi)
     args.log.info('Convolving sky subtracted spectra for emission')
     Ze = convolve_spatially(allifupos[:, 0], allifupos[:, 1], rs, rw, allmask,
                            sig_spatial=args.spatial_conv_size,
@@ -211,8 +211,8 @@ def main():
     noise = biweight_midvariance(Ze-Zc, axis=(0, ))
     SNe = (Ze-Zc) / noise
     F2 = fits.ImageHDU(np.array(allmask, dtype=int))
-    norm = dummy_test(np.vstack([allspec, alltwi[:448,:]]))
-    F3 = fits.ImageHDU(norm)
+    #norm = dummy_test(np.vstack([allspec, alltwi[:448,:]]))
+    #F3 = fits.ImageHDU(norm)
     fits.HDUList([F1, F2, F3]).writeto('test.fits', overwrite=True)
     # peaks_fib, peaks_wave = np.where(SN > args.threshold)              
     
