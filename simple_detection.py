@@ -213,7 +213,7 @@ def main():
     F2 = fits.ImageHDU(np.array(allmask, dtype=int))
     #norm = dummy_test(np.vstack([allspec, alltwi[:448,:]]))
     #F3 = fits.ImageHDU(norm)
-    fits.HDUList([F1, F2, F3]).writeto('test.fits', overwrite=True)
+    fits.HDUList([F1, F2]).writeto('test.fits', overwrite=True)
     # peaks_fib, peaks_wave = np.where(SN > args.threshold)              
     
 if __name__ == '__main__':
