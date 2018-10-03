@@ -16,7 +16,7 @@ from astropy.io import fits
 from astropy.convolution import convolve, Gaussian1DKernel, interpolate_replace_nans
 from input_utils import setup_logging
 from scipy.interpolate import interp1d
-from astropy.stats import mad_std
+from astropy.stats import mad_std, biweight_location
 from utils import biweight_midvariance
 from astropy.table import Table
 from scipy.signal import savgol_filter, medfilt
@@ -131,7 +131,7 @@ def dummy_test(image):
     for i in np.arange(y.shape[1]):
         chunks = np.array_split(y[:, i], 4)
         avg = chunks[-1]
-        n = [np.median(avg / chunk) for chunk in chunks]
+        n = [biweight_location(avg / chunk) for chunk in chunks]
         s[i, :] = np.array(n)
 
     chunks = np.array_split(y, 4, axis=0)
