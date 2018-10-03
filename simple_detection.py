@@ -145,7 +145,7 @@ def dummy_test(image):
             mask = test > threshold
             xchunk, zchunk, mchunk = [np.array_split(j, 4, axis=0) for j in [x, z, mask]]
             for xc, zc, mc in zip(xchunk, zchunk, mchunk):
-                p = np.polyfit(xc/448.[mc], zc[mc], 2)
+                p = np.polyfit((xc/448.)[mc], zc[mc], 2)
                 norm[xc+448*k, i] = np.polyval(p, xc/448.)
     return norm
 
