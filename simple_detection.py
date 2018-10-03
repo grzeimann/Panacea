@@ -19,6 +19,7 @@ from scipy.interpolate import interp1d
 from astropy.stats import mad_std
 from utils import biweight_midvariance
 from astropy.table import Table
+from scipy.signal import savgol_filter, medfilt
 
 
 def get_script_path():
@@ -124,6 +125,30 @@ def mask_cosmics(error, trace, cosmic_avoidance=4):
     return mask
 
 
+def dummy_test(image):
+    y = savgol_filter(image, 315, 1, axis=1)
+    s = np.zeros((y.shape[1], 4))
+    for i in np.arange(y.shape[1]):
+        chunks = np.array_split(y[:, i], 4)
+        avg = chunks[-1]
+        n = [np.median(avg / chunk) for chunk in chunks]
+        s[i, :] = np.array(n)
+
+    chunks = np.array_split(y, 4, axis=0)
+    norm = np.zeros((3*448, chunks[0].shape[1]))
+    for k in np.arange(3):
+        for i in np.arange(y.shape[1]):
+            x = np.arange(chunks[0].shape[0])
+            z = (chunks[k] * s[:, k] / chunks[-1])[:, i]
+            test = z - medfilt(z, 51)
+            threshold = 3. * np.median(np.abs(test))
+            mask = test > threshold
+            xchunk, zchunk, mchunk = [np.array_split(j, 4, axis=0) for j in [x, z, mask]]
+            for xc, zc, mc in zip(xchunk, zchunk, mchunk):
+                p = np.polyfit(xc/448.[mc], zc[mc], 2)
+                norm[xc+448*k, i] = np.polyval(p, xc/448.)
+    return norm
+
 def main():
     parser = ap.ArgumentParser(add_help=True)
 
@@ -150,14 +175,14 @@ def main():
 
     filenames = [line.rstrip('\n').split()
                  for line in open(args.filename, 'r')]
-    allwave, allspec, allifupos, allmask, allftf = ([], [], [], [], [])
+    allwave, allspec, allifupos, allmask, alltwi = ([], [], [], [], [])
     for filename in filenames:
         args.log.info('Reading in %s' % filename[0][:-8])
         dither = np.array([float(filename[2]), float(filename[3])])
         amps = ['LL', 'LU', 'RU', 'RL']
-        attributes = ['wavelength', 'spectrum', 'twi_spectrum',
-                      'ifupos', 'error', 'trace']
-        w, s, f, i, e, t, n = grab_attribute(filename[0], args,
+        attributes = ['wavelength', 'spectrum', 'fiber_to_fiber',
+                      'ifupos', 'error', 'trace', 'twi_spectrum']
+        w, s, f, i, e, t, n, T = grab_attribute(filename[0], args,
                                              attributes=attributes, amps=amps)
         mask = mask_cosmics(e, t)
         norm = (n / np.median(n))[:, np.newaxis]
@@ -165,10 +190,10 @@ def main():
         allspec.append(s)#safe_division(s, f * norm))
         allifupos.append(i + dither)
         allmask.append(mask)
-        allftf.append(f)
-    allwave, allspec, allifupos, allmask, allftf = [np.array(np.vstack(x), dtype='float64')
+        alltwi.append(T)
+    allwave, allspec, allifupos, allmask, alltwi = [np.array(np.vstack(x), dtype='float64')
                                             for x in [allwave, allspec,
-                                                      allifupos, allmask, allftf]]
+                                                      allifupos, allmask, alltwi]]
     args.log.info('Rectifying sky subtracted spectra')
     allmask = np.array(allmask, dtype=bool)
     rw, rs = rectify(allwave, allspec, [3500., 5500.], mask=allmask, fac=1.5)
@@ -186,7 +211,8 @@ def main():
     noise = biweight_midvariance(Ze-Zc, axis=(0, ))
     SNe = (Ze-Zc) / noise
     F2 = fits.ImageHDU(np.array(allmask, dtype=int))
-    F3 = fits.ImageHDU(allftf)
+    norm = dummy_test(np.vstack([allspec, alltwi[:448,:]]))
+    F3 = fits.ImageHDU(norm)
     fits.HDUList([F1, F2, F3]).writeto('test.fits', overwrite=True)
     # peaks_fib, peaks_wave = np.where(SN > args.threshold)              
     
