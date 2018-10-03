@@ -141,8 +141,8 @@ def dummy_test(image):
             x = np.arange(chunks[0].shape[0])
             z = (chunks[k] * s[:, k] / chunks[-1])[:, i]
             test = z - medfilt(z, 51)
-            threshold = 3. * np.median(np.abs(test))
-            mask = test > threshold
+            threshold = 3. * np.nanmedian(np.nanabs(test))
+            mask = np.abs(test) < threshold
             xchunk, zchunk, mchunk = [np.array_split(j, 4, axis=0) for j in [x, z, mask]]
             for xc, zc, mc in zip(xchunk, zchunk, mchunk):
                 p = np.polyfit((xc/448.)[mc], zc[mc], 2)
