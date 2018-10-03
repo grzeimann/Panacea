@@ -155,7 +155,7 @@ def main():
         args.log.info('Reading in %s' % filename[0][:-8])
         dither = np.array([float(filename[2]), float(filename[3])])
         amps = ['LL', 'LU', 'RU', 'RL']
-        attributes = ['wavelength', 'spectrum', 'fiber_to_fiber',
+        attributes = ['wavelength', 'twi_spectrum', 'fiber_to_fiber',
                       'ifupos', 'error', 'trace']
         w, s, f, i, e, t, n = grab_attribute(filename[0], args,
                                              attributes=attributes, amps=amps)
