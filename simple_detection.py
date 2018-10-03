@@ -150,12 +150,12 @@ def main():
 
     filenames = [line.rstrip('\n').split()
                  for line in open(args.filename, 'r')]
-    allwave, allspec, allifupos, allmask = ([], [], [], [])
+    allwave, allspec, allifupos, allmask, allftf = ([], [], [], [], [])
     for filename in filenames:
         args.log.info('Reading in %s' % filename[0][:-8])
         dither = np.array([float(filename[2]), float(filename[3])])
         amps = ['LL', 'LU', 'RU', 'RL']
-        attributes = ['wavelength', 'twi_spectrum', 'fiber_to_fiber',
+        attributes = ['wavelength', 'spectrum', 'twi_spectrum',
                       'ifupos', 'error', 'trace']
         w, s, f, i, e, t, n = grab_attribute(filename[0], args,
                                              attributes=attributes, amps=amps)
@@ -165,9 +165,10 @@ def main():
         allspec.append(s)#safe_division(s, f * norm))
         allifupos.append(i + dither)
         allmask.append(mask)
-    allwave, allspec, allifupos, allmask = [np.array(np.vstack(x), dtype='float64')
+        allftf.append(f)
+    allwave, allspec, allifupos, allmask, allftf = [np.array(np.vstack(x), dtype='float64')
                                             for x in [allwave, allspec,
-                                                      allifupos, allmask]]
+                                                      allifupos, allmask, allftf]]
     args.log.info('Rectifying sky subtracted spectra')
     allmask = np.array(allmask, dtype=bool)
     rw, rs = rectify(allwave, allspec, [3500., 5500.], mask=allmask, fac=1.5)
@@ -185,7 +186,7 @@ def main():
     noise = biweight_midvariance(Ze-Zc, axis=(0, ))
     SNe = (Ze-Zc) / noise
     F2 = fits.ImageHDU(np.array(allmask, dtype=int))
-    F3 = fits.ImageHDU(SNe)
+    F3 = fits.ImageHDU(allftf)
     fits.HDUList([F1, F2, F3]).writeto('test.fits', overwrite=True)
     # peaks_fib, peaks_wave = np.where(SN > args.threshold)              
     
