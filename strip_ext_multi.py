@@ -10,7 +10,7 @@ from astropy.io import fits
 
 filenames = [line.rstrip('\n').split() for line in open('/work/03730/gregz/maverick/test_2.dat', 'r')]
 
-ext = 'trace'
+ext = 'wavelength'
 
 fitslist = []
 for filename, amp in zip(filenames, ['LL', 'LU', 'RU', 'RL']):
@@ -23,4 +23,4 @@ for filename, amp in zip(filenames, ['LL', 'LU', 'RU', 'RL']):
         f.header['EXTNAME']=amp
     fitslist.append(f)
 
-fits.HDUList(fitslist).writeto('trace_305_045_056.fits', overwrite=True)
+fits.HDUList(fitslist).writeto('wave_305_045_056.fits', overwrite=True)
