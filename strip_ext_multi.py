@@ -8,7 +8,7 @@ Created on Wed Sep 26 09:15:18 2018
 import numpy as np
 from astropy.io import fits
 
-filenames = [line.rstrip('\n').split() for line in open('/work/03730/gregz/maverick/multi_orange_list.dat', 'r')]
+filenames = [line.rstrip('\n').split() for line in open('/work/03730/gregz/maverick/test_2.dat', 'r')]
 
 ext = 'trace'
 
