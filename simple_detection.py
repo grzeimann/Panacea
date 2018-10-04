@@ -213,8 +213,8 @@ def main():
     SNe = (Ze-Zc) / noise
     F2 = fits.ImageHDU(allmodel)
     #norm = dummy_test(np.vstack([allspec, alltwi[:448,:]]))
-    #F3 = fits.ImageHDU(norm)
-    fits.HDUList([F1, F2]).writeto('test.fits', overwrite=True)
+    F3 = fits.ImageHDU(alltwi)
+    fits.HDUList([F1, F2, F3]).writeto('test.fits', overwrite=True)
     # peaks_fib, peaks_wave = np.where(SN > args.threshold)              
     
 if __name__ == '__main__':
