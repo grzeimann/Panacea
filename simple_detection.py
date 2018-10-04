@@ -175,14 +175,14 @@ def main():
 
     filenames = [line.rstrip('\n').split()
                  for line in open(args.filename, 'r')]
-    allwave, allspec, allifupos, allmask, alltwi = ([], [], [], [], [])
+    allwave, allspec, allifupos, allmask, alltwi, allmodel = ([], [], [], [], [], [])
     for filename in filenames:
         args.log.info('Reading in %s' % filename[0][:-8])
         dither = np.array([float(filename[2]), float(filename[3])])
         amps = ['LL', 'LU', 'RU', 'RL']
         attributes = ['wavelength', 'spectrum', 'fiber_to_fiber',
-                      'ifupos', 'error', 'trace', 0]
-        w, s, f, i, e, t, T, n  = grab_attribute(filename[0], args,
+                      'ifupos', 'error', 'trace', 0, 'model']
+        w, s, f, i, e, t, T, m, n  = grab_attribute(filename[0], args,
                                              attributes=attributes, amps=amps)
         mask = mask_cosmics(e, t)
         norm = (n / np.median(n))[:, np.newaxis]
@@ -191,9 +191,10 @@ def main():
         allifupos.append(i + dither)
         allmask.append(mask)
         alltwi.append(T)
-    allwave, allspec, allifupos, allmask, alltwi = [np.array(np.vstack(x), dtype='float64')
+        allmodel.append(m)
+    allwave, allspec, allifupos, allmask, alltwi, allmodel = [np.array(np.vstack(x), dtype='float64')
                                             for x in [allwave, allspec,
-                                                      allifupos, allmask, alltwi]]
+                                                      allifupos, allmask, alltwi, allmodel]]
     args.log.info('Rectifying sky subtracted spectra')
     allmask = np.array(allmask, dtype=bool)
     rw, rs = rectify(allwave, allspec, [3500., 5500.], mask=allmask, fac=1.5)
@@ -210,7 +211,7 @@ def main():
                            sig_wave=(args.spectral_conv_size / (rw[1]-rw[0])))
     noise = biweight_midvariance(Ze-Zc, axis=(0, ))
     SNe = (Ze-Zc) / noise
-    F2 = fits.ImageHDU(np.array(allmask, dtype=int))
+    F2 = fits.ImageHDU(allmodel)
     #norm = dummy_test(np.vstack([allspec, alltwi[:448,:]]))
     #F3 = fits.ImageHDU(norm)
     fits.HDUList([F1, F2]).writeto('test.fits', overwrite=True)
