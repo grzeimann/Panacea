@@ -10,15 +10,17 @@ from astropy.io import fits
 
 filenames = [line.rstrip('\n').split() for line in open('/work/03730/gregz/maverick/multi_orange_list.dat', 'r')]
 
-ext = 'skysub'
+ext = 'trace'
 
 fitslist = []
-for i, filename in enumerate(filenames):
+for filename, amp in zip(filenames, ['LL', 'LU', 'RU', 'RL']):
     F = fits.open(filename[0])
-    if i == 0:
+    if amp == 'LL':
         f = fits.PrimaryHDU(F[ext].data)
+        f.header['EXTNAME']=amp
     else:
         f = fits.ImageHDU(F[ext].data)
+        f.header['EXTNAME']=amp
     fitslist.append(f)
 
-fits.HDUList(fitslist).writeto('all_multi.fits', overwrite=True)
+fits.HDUList(fitslist).writeto('trace_305_045_056.fits', overwrite=True)
