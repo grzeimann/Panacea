@@ -181,7 +181,7 @@ def main():
         dither = np.array([float(filename[2]), float(filename[3])])
         amps = ['LL', 'LU', 'RU', 'RL']
         attributes = ['wavelength', 'spectrum', 'fiber_to_fiber',
-                      'ifupos', 'error', 'trace', 0, 'model']
+                      'ifupos', 'error', 'trace', 0, 'flat_image']
         w, s, f, i, e, t, T, m, n  = grab_attribute(filename[0], args,
                                              attributes=attributes, amps=amps)
         mask = mask_cosmics(e, t)
