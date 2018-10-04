@@ -175,12 +175,12 @@ def main():
 
     filenames = [line.rstrip('\n').split()
                  for line in open(args.filename, 'r')]
-    allwave, allspec, allifupos, allmask, alltwi, allmodel = ([], [], [], [], [], [])
+    allwave, allspec, allifupos, allmask, alltwi, allmodel, allftf = ([], [], [], [], [], [], [])
     for filename in filenames:
         args.log.info('Reading in %s' % filename[0][:-8])
         dither = np.array([float(filename[2]), float(filename[3])])
         amps = ['LL', 'LU', 'RU', 'RL']
-        attributes = ['wavelength', 'spectrum', 'fiber_to_fiber',
+        attributes = ['wavelength', 'spectrum', 'twi_spectrum',
                       'ifupos', 'error', 'trace', 0, 'flat_image']
         w, s, f, i, e, t, T, m, n  = grab_attribute(filename[0], args,
                                              attributes=attributes, amps=amps)
@@ -192,9 +192,10 @@ def main():
         allmask.append(mask)
         alltwi.append(T)
         allmodel.append(m)
-    allwave, allspec, allifupos, allmask, alltwi, allmodel = [np.array(np.vstack(x), dtype='float64')
+        allftf.append(f)
+    allwave, allspec, allifupos, allmask, alltwi, allmodel, allftf = [np.array(np.vstack(x), dtype='float64')
                                             for x in [allwave, allspec,
-                                                      allifupos, allmask, alltwi, allmodel]]
+                                                      allifupos, allmask, alltwi, allmodel, allftf]]
     args.log.info('Rectifying sky subtracted spectra')
     allmask = np.array(allmask, dtype=bool)
     rw, rs = rectify(allwave, allspec, [3500., 5500.], mask=allmask, fac=1.5)
@@ -213,7 +214,7 @@ def main():
     SNe = (Ze-Zc) / noise
     F2 = fits.ImageHDU(allmodel)
     #norm = dummy_test(np.vstack([allspec, alltwi[:448,:]]))
-    F3 = fits.ImageHDU(alltwi)
+    F3 = fits.ImageHDU(allftf)
     fits.HDUList([F1, F2, F3]).writeto('test.fits', overwrite=True)
     # peaks_fib, peaks_wave = np.where(SN > args.threshold)              
     
