@@ -112,7 +112,7 @@ for _object in object_table:
     date = op.basename(op.dirname(op.dirname(op.dirname(op.dirname(op.dirname(filename))))))
     keystring = date+'_'+obsid
     date_tup = (int(date[:4]), int(date[4:6]), int(date[6:]))
-    if DB < date_tup < DE:
+    if DB <= date_tup <= DE:
         if fnmatch.fnmatch(objectname.lower(), args.target.lower()) and filename[-8:-5] == 'sci':
             if args.exposure_time is not None:
                 if exptime > args.exposure_time:    
