@@ -17,7 +17,7 @@ https://portal.tacc.utexas.edu/
 After creating an accounting using the link above, please send Matthew Shetrone <shetrone@astro.as.utexas.edu> your 
 TACC username and he will add you to the HET group.  When that step is complete, you can ssh into TACC using:
 ```
-ssh -Y USERNAME@tacc.maverick.utexas.edu
+ssh -Y USERNAME@maverick.tacc.utexas.edu
 ```
 
 #### Setting up your Python environment
