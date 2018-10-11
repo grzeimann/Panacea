@@ -14,7 +14,7 @@ ext = 'spectrum'
 
 fitslist = []
 cnt = 0
-for filename in zip(filenames):
+for filename in filenames:
     F = fits.open(filename[0])
     if cnt == 0:
         f = fits.PrimaryHDU(F[ext].data)
