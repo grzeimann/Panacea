@@ -13,14 +13,16 @@ filenames = [line.rstrip('\n').split() for line in open('/work/03730/gregz/maver
 ext = 'spectrum'
 
 fitslist = []
-for filename, amp in zip(filenames, ['LL', 'LU', 'RU', 'RL']):
+cnt = 0
+for filename in zip(filenames):
     F = fits.open(filename[0])
-    if amp == 'LL':
+    if cnt == 0:
         f = fits.PrimaryHDU(F[ext].data)
-        f.header['EXTNAME']=amp
+        f.header['EXTNAME']=F[0].header['OBJECT']
     else:
         f = fits.ImageHDU(F[ext].data)
-        f.header['EXTNAME']=amp
+        f.header['EXTNAME']=F[0].header['OBJECT']
     fitslist.append(f)
+    cnt += 1
 
 fits.HDUList(fitslist).writeto('sky_august2018.fits', overwrite=True)
