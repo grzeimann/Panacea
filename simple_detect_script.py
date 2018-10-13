@@ -161,12 +161,15 @@ for ifuslot in ifuslots:
         twibase = twi_path % ('virus', 'virus', twi_obs, 'virus', ifuslot)
         amppos, trace, wave = get_cal_info(twibase, amp)
         fltbase = flt_path % ('virus', 'virus', flt_obs, 'virus', ifuslot)
+        log.info('Getting Flat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
         flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
                                               commonwave)
         allflats.append(flatspec)
         for i in np.arange(nexp):
-            ra, dec = A.ifupos_ra_dec(amppos[:, 0] + dither_pattern[i, 0],
-                                      amppos[:, 1] + dither_pattern[i, 1])
+            log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
+                     ' %s' % (i+1, ifuslot, amp))
+            ra, dec = A.get_ifuspos_ra_dec(amppos[:, 0] + dither_pattern[i, 0],
+                                           amppos[:, 1] + dither_pattern[i, 1])
             allra.append(ra)
             alldec.append(dec)
             scifile = glob.glob(sci_path % ('virus', 'virus', flt_obs,
