@@ -168,7 +168,7 @@ for ifuslot in ifuslots:
         for i in np.arange(nexp):
             log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
                      ' %s' % (i+1, ifuslot, amp))
-            ra, dec = A.get_ifuspos_ra_dec(ifuslot,
+            ra, dec = A.get_ifuspos_ra_dec(int(ifuslot),
                                            amppos[:, 0] + dither_pattern[i, 0],
                                            amppos[:, 1] + dither_pattern[i, 1])
             allra.append(ra)
