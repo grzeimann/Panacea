@@ -161,6 +161,10 @@ for ifuslot in ifuslots:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
         twibase = twi_path % ('virus', 'virus', twi_obs, 'virus', ifuslot)
         amppos, trace, wave = get_cal_info(twibase, amp)
+        if wave is None:
+            log.info('Not sufficient cal data forifuslot, %s, and amp, %s'
+                     % (ifuslot, amp))
+            continue
         fltbase = flt_path % ('virus', 'virus', flt_obs, 'virus', ifuslot)
         log.info('Getting Flat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
         flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
