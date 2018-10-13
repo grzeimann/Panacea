@@ -144,7 +144,7 @@ fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
 nexp = len(glob.glob(sci_path % ('virus', 'virus', flt_obs, '*', 'virus',
                                  ifuslots[0])))
-header = fits.open(glob.glob(sci_path % ('virus', 'virus', flt_obs, '01',
+header = fits.open(glob.glob(sci_path % ('virus', 'virus', sci_obs, '01',
                                          'virus', ifuslots[0]))[0])[0].header
 PA = float(header['PARANGLE'])
 RA = float(header['TRAJRA'])
@@ -174,7 +174,7 @@ for ifuslot in ifuslots:
                                           amppos[:, 1] + dither_pattern[i, 1])
             allra.append(ra)
             alldec.append(dec)
-            scifile = glob.glob(sci_path % ('virus', 'virus', flt_obs,
+            scifile = glob.glob(sci_path % ('virus', 'virus', sci_obs,
                                             '%02d' % (i+1), 'virus',
                                             ifuslots[0]))[0].replace('LL', amp)
             image = base_reduction(scifile)
