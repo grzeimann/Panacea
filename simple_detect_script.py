@@ -178,7 +178,7 @@ for ifuslot in ifuslots:
                                             '%02d' % (i+1), 'virus',
                                             ifuslots[0]))[0].replace('LL', amp)
             image = base_reduction(scifile)
-            spectrum = np.zeros(trace.shape[0], len(commonwave))
+            spectrum = np.zeros((trace.shape[0], len(commonwave)))
             temp = np.zeros((trace.shape[1], 6))
             temp2 = np.zeros((trace.shape[1], 6))
             x = np.arange(trace.shape[1])
