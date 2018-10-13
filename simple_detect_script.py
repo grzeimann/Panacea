@@ -162,7 +162,7 @@ for ifuslot in ifuslots:
         twibase = twi_path % ('virus', 'virus', twi_obs, 'virus', ifuslot)
         amppos, trace, wave = get_cal_info(twibase, amp)
         if wave.ndim == 1:
-            log.info('Not sufficient cal data forifuslot, %s, and amp, %s'
+            log.info('Insufficient cal data for ifuslot, %s, and amp, %s'
                      % (ifuslot, amp))
             continue
         fltbase = flt_path % ('virus', 'virus', flt_obs, 'virus', ifuslot)
