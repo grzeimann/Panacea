@@ -13,7 +13,9 @@ import glob
 from scipy.interpolate import interp1d
 from input_utils import setup_logging
 import warnings
+from astrometry import Astrometry
 
+dither_pattern = np.array([[0., 0.], [1.27, -0.73], [1.27, 0.73]])
 virus_amps = ['LL', 'LU', 'RU', 'RL']
 lrs2_amps = [['LL', 'LU'], ['RL', 'RU']]
 fplane_file = '/work/03730/gregz/maverick/fplane.txt'
@@ -24,14 +26,14 @@ twi_date = '20181008'
 sci_date = twi_date
 flt_date = twi_date
 
-log = setup_logging('check_stuff')
+log = setup_logging('panacea_quicklook')
 
 basered = '/work/03730/gregz/maverick'
 baseraw = '/work/03946/hetdex/maverick'
 
 twi_path = op.join(basered, 'reductions', twi_date, '%s', '%s%s', 'exp01',
                    '%s', 'multi_*_%s_*_LL.fits')
-sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp01',
+sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*.fits')
 flt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL*.fits')
@@ -40,7 +42,6 @@ flt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
 def get_cal_info(twi_path, amp):
     F = fits.open(glob.glob(twi_path.replace('LL', amp))[0])
     return F['ifupos'].data*1., F['trace'].data*1., F['wavelength'].data*1.
-
 
 
 def orient_image(image, amp, ampname):
@@ -91,7 +92,7 @@ def base_reduction(filename):
     return a
 
 
-def get_flat_field(flt_path, amp, array_wave, array_trace):
+def get_flat_field(flt_path, amp, array_wave, array_trace, common_wave):
     files = glob.glob(flt_path.replace('LL', amp))
     listflt = []
     for filename in files:
@@ -133,7 +134,7 @@ def get_flat_field(flt_path, amp, array_wave, array_trace):
     I = interp1d(nw1, ns1, kind='linear', fill_value='extrapolate')
     modelimage = I(bigW)
     flat = array_flt / modelimage
-    return flat, bigW
+    return flat, bigW, I(common_wave)
 
 
 # GET ALL VIRUS IFUSLOTS
@@ -141,10 +142,55 @@ twilist = glob.glob(twi_path % ('virus', 'virus', twi_obs, 'virus', '*'))
 ifuslots = [op.basename(x).split('_')[2] for x in twilist]
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
+nexp = len(glob.glob(sci_path % ('virus', 'virus', flt_obs, '*', 'virus',
+                                 ifuslots[0])))
+header = fits.open(glob.glob(sci_path % ('virus', 'virus', flt_obs, '01',
+                                         'virus', ifuslots[0]))[0])[0].header
+PA = header['PARANGLE']
+RA = header['TRAJRA']
+DEC = header['TRAJDEC']
+A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
+allflats, allspec, allra, alldec = ([], [], [], [])
+
+# Rectified wavelength
+commonwave = np.linspace(3500, 5500, 1000)
+
 for ifuslot in ifuslots:
     for amp in virus_amps:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
         twibase = twi_path % ('virus', 'virus', twi_obs, 'virus', ifuslot)
         amppos, trace, wave = get_cal_info(twibase, amp)
         fltbase = flt_path % ('virus', 'virus', flt_obs, 'virus', ifuslot)
-        flat, bigW = get_flat_field(fltbase, amp, wave, trace)
+        flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
+                                              commonwave)
+        allflats.append(flatspec)
+        for i in np.arange(nexp):
+            ra, dec = A.ifupos_ra_dec(amppos[:, 0] + dither_pattern[i, 0],
+                                      amppos[:, 1] + dither_pattern[i, 1])
+            allra.append(ra)
+            alldec.append(dec)
+            scifile = glob.glob(sci_path % ('virus', 'virus', flt_obs,
+                                            '%02d' % (i+1), 'virus',
+                                            ifuslots[0]))[0].replace('LL', amp)
+            image = base_reduction(scifile)
+            spectrum = np.zeros(trace.shape[0], len(commonwave))
+            temp = np.zeros((trace.shape[1], 6))
+            temp2 = np.zeros((trace.shape[1], 6))
+            x = np.arange(trace.shape[1])
+            for fiber in np.arange(trace.shape[0]):
+                indl = np.floor(trace[fiber]).astype(int)
+                for k, j in enumerate(np.arange(-2, 4)):
+                    temp[:, k] = image[indl, x]
+                    temp2[:, k] = flat[indl, x]
+                tempspec = (np.sum(temp * temp2, axis=1) /
+                            np.sum(temp2, axis=1))
+                I = interp1d(wave[fiber], spectrum[fiber], kind='quadratic',
+                             fill_value='extrapolate')
+                spectrum[fiber] = I(commonwave)
+            allspec.append(spectrum)
+fitslist = [fits.PrimaryHDU(np.array(allflats)),
+            fits.ImageHDU(np.array(allspec)),
+            fits.ImageHDU(commonwave),
+            fits.ImageHDU(np.array(allra)),
+            fits.ImageHDU(np.array(alldec))]
+fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
