@@ -189,7 +189,7 @@ for ifuslot in ifuslots:
                     temp2[:, k] = flat[indl, x]
                 tempspec = (np.sum(temp * temp2, axis=1) /
                             np.sum(temp2, axis=1))
-                I = interp1d(wave[fiber], spectrum[fiber], kind='quadratic',
+                I = interp1d(wave[fiber], tempspec, kind='quadratic',
                              fill_value='extrapolate')
                 spectrum[fiber] = I(commonwave)
             allspec.append(spectrum)
