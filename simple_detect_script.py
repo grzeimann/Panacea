@@ -146,9 +146,10 @@ nexp = len(glob.glob(sci_path % ('virus', 'virus', flt_obs, '*', 'virus',
                                  ifuslots[0])))
 header = fits.open(glob.glob(sci_path % ('virus', 'virus', flt_obs, '01',
                                          'virus', ifuslots[0]))[0])[0].header
-PA = header['PARANGLE']
-RA = header['TRAJRA']
-DEC = header['TRAJDEC']
+PA = float(header['PARANGLE'])
+RA = float(header['TRAJRA'])
+DEC = float(header['TRAJDEC'])
+log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
 A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
 allflats, allspec, allra, alldec = ([], [], [], [])
 
@@ -168,9 +169,9 @@ for ifuslot in ifuslots:
         for i in np.arange(nexp):
             log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
                      ' %s' % (i+1, ifuslot, amp))
-            ra, dec = A.get_ifuspos_ra_dec(ifuslot,
-                                           amppos[:, 0] + dither_pattern[i, 0],
-                                           amppos[:, 1] + dither_pattern[i, 1])
+            ra, dec = A.get_ifupos_ra_dec(ifuslot,
+                                          amppos[:, 0] + dither_pattern[i, 0],
+                                          amppos[:, 1] + dither_pattern[i, 1])
             allra.append(ra)
             alldec.append(dec)
             scifile = glob.glob(sci_path % ('virus', 'virus', flt_obs,
