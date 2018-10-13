@@ -142,6 +142,6 @@ for ifuslot in ifuslots:
     for amp in virus_amps:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
         twibase = twi_path % ('virus', 'virus', twi_obs, 'virus', ifuslot)
-        amppos, trace, wave = get_cal_info(twibase)
+        amppos, trace, wave = get_cal_info(twibase, amp)
         fltbase = flt_path % ('virus', 'virus', flt_obs, 'virus', ifuslot)
         flat, bigW = get_flat_field(fltbase, amp, wave, trace)
