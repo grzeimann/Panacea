@@ -37,7 +37,7 @@ flt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
 
 
 def get_cal_info(twi_path, amp):
-    F = fits.open(twi_path.replace('LL', amp))
+    F = fits.open(glob.glob(twi_path.replace('LL', amp))[0])
     return F['ifupos'].data*1., F['trace'].data*1., F['wavelength'].data*1.
 
 
