@@ -156,7 +156,7 @@ class Astrometry:
         if self.fplane is None or not pyhetdex_flag:
             return None
         ifu = self.fplane.by_ifuslot(ifuslot)
-        print(ifu, ifu.y, ifu.x)
+        print(x, y)
         # remember to flip x,y
         return self.tp.wcs_pix2world(ifu.y + x, ifu.x + y, 1)
 
