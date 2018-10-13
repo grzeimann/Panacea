@@ -95,7 +95,7 @@ def get_flat_field(flt_path, amp, array_wave, array_trace):
     listflt = []
     for filename in files:
         a = base_reduction(filename)
-        listflt[-1].append(a)
+        listflt.append(a)
     array_flt = np.array(listflt)
     norm = np.median(array_flt, axis=(1, 2))
     array_flt = np.median(array_flt / norm[:, np.newaxis, np.newaxis], axis=0)
