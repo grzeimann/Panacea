@@ -12,6 +12,7 @@ import os.path as op
 import glob
 from scipy.interpolate import interp1d
 from input_utils import setup_logging
+import warnings
 
 virus_amps = ['LL', 'LU', 'RU', 'RL']
 lrs2_amps = [['LL', 'LU'], ['RL', 'RU']]
@@ -125,7 +126,9 @@ def get_flat_field(flt_path, amp, array_wave, array_trace):
                                  np.array_split(XX, 2, axis=0),
                                  np.array_split(YY, 2, axis=0)):
         for j in np.arange(at.shape[1]):
-            p0 = np.polyfit(at[:, j], aw[:, j], 7)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                p0 = np.polyfit(at[:, j], aw[:, j], 7)
             bigW[yy[:, j], j] = np.polyval(p0, yy[:, j])
     I = interp1d(nw1, ns1, kind='linear', fill_value='extrapolate')
     modelimage = I(bigW)
