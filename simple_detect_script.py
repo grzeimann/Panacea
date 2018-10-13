@@ -166,6 +166,7 @@ for ifuslot in ifuslots:
         flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
                                               commonwave)
         allflats.append(flatspec)
+        wave = np.array(wave, dtype=float)
         for i in np.arange(nexp):
             log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
                      ' %s' % (i+1, ifuslot, amp))
