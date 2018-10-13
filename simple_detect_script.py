@@ -142,7 +142,7 @@ twilist = glob.glob(twi_path % ('virus', 'virus', twi_obs, 'virus', '*'))
 ifuslots = [op.basename(x).split('_')[2] for x in twilist]
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
-nexp = len(glob.glob(sci_path % ('virus', 'virus', flt_obs, '*', 'virus',
+nexp = len(glob.glob(sci_path % ('virus', 'virus', sci_obs, '*', 'virus',
                                  ifuslots[0])))
 header = fits.open(glob.glob(sci_path % ('virus', 'virus', sci_obs, '01',
                                          'virus', ifuslots[0]))[0])[0].header
