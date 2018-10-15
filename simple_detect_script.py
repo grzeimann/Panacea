@@ -188,45 +188,45 @@ for ifuslot in ifuslots:
             alldec.append(dec)
             scifile = glob.glob(sci_path % ('virus', 'virus', sci_obs,
                                             '%02d' % (i+1), 'virus',
-                                            ifuslots[0]))[0].replace('LL', amp)
+                                            ifuslot))[0].replace('LL', amp)
             image = base_reduction(scifile)
             spectrum = np.zeros((trace.shape[0], len(commonwave)))
             x = np.arange(trace.shape[1])
             speclist = []
             wavelist = []
+            temp = np.zeros((len(x), 6))
+            temp2 = temp * 0.
             for fiber in np.arange(trace.shape[0]):
                 indl = np.floor(trace[fiber]).astype(int)
                 for k, j in enumerate(np.arange(-2, 4)):
                     try:
-                        temp = image[indl+j, x]
-                        temp2 = flat[indl+j, x]
-                        speclist.append(temp / temp2)
+                        temp[:, k] = image[indl+j, x]
+                        temp2[:, k] = flat[indl+j, x]
+                        speclist.append(temp[:, k] / temp2[:, k])
                         wavelist.append(bigW[indl+j, x])
                     except IndexError:
                         dummy = 1.
-                    
-                #tempspec = np.median(temp / temp2, axis=1)
-                #tempspec[~np.isfinite(tempspec)] = 0.0
-                #tempspec = np.sum(temp2, axis=1)
-                #I = interp1d(wave[fiber], tempspec, kind='quadratic',
-                #             fill_value='extrapolate')
-                #spectrum[fiber] = I(commonwave)
-            specarray = np.hstack(speclist)
-            wavearray = np.hstack(wavelist)
-            nw, ns = make_avg_spec(wavearray, specarray, binsize=181)
-            sky = interp1d(nw, ns, kind='linear',
-                           fill_value='extrapolate')(bigW)
-            skysub = image - flat * sky
-            allspec.append(skysub)
+                tempspec = np.median(temp / temp2, axis=1)
+                tempspec[~np.isfinite(tempspec)] = 0.0
+                I = interp1d(wave[fiber], tempspec, kind='quadratic',
+                             fill_value='extrapolate')
+                spectrum[fiber] = I(commonwave)
+            # specarray = np.hstack(speclist)
+            # wavearray = np.hstack(wavelist)
+            # nw, ns = make_avg_spec(wavearray, specarray, binsize=181)
+            # sky = interp1d(nw, ns, kind='linear',
+            #                fill_value='extrapolate')(bigW)
+            # skysub = image - flat * sky
+            allspec.append(tempspec)
         t2 = time.time()
         cnt += 1
         time_per_amp = (t2 - t1) / cnt
         remaining_amps = (N - cnt)
         log.info('Time remaining: %0.2f' % (time_per_amp * remaining_amps))
-fitslist = [fits.PrimaryHDU(image), fits.ImageHDU(flat),
-            fits.ImageHDU(sky*flat), fits.ImageHDU(skysub)]
-fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
-sys.exit(1)
+# fitslist = [fits.PrimaryHDU(image), fits.ImageHDU(flat),
+#            fits.ImageHDU(sky*flat), fits.ImageHDU(skysub)]
+# fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
+# sys.exit(1)
 allflatspec = np.array(allflatspec)
 norm = np.sum(allflatspec, axis=1)[:, np.newaxis]
 norm = norm / np.median(norm)
