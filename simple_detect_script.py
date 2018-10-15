@@ -155,11 +155,7 @@ allflatspec, allspec, allra, alldec = ([], [], [], [])
 
 # Rectified wavelength
 commonwave = np.linspace(3500, 5500, 1000)
-cnt = 0
 for ifuslot in ifuslots:
-    if cnt == 3:
-        break
-    cnt += 1
     for amp in virus_amps:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
         twibase = twi_path % ('virus', 'virus', twi_obs, 'virus', ifuslot)
