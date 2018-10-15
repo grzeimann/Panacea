@@ -19,10 +19,10 @@ dither_pattern = np.array([[0., 0.], [1.27, -0.73], [1.27, 0.73]])
 virus_amps = ['LL', 'LU', 'RU', 'RL']
 lrs2_amps = [['LL', 'LU'], ['RL', 'RU']]
 fplane_file = '/work/03730/gregz/maverick/fplane.txt'
-flt_obs = '%07d' % 16
+flt_obs = '%07d' % 15
 twi_obs = '%07d' % 02
-sci_obs = '%07d' % 18
-twi_date = '20181008'
+sci_obs = '%07d' % 09
+twi_date = '20181003'
 sci_date = twi_date
 flt_date = twi_date
 
@@ -151,12 +151,15 @@ RA = float(header['TRAJRA'])
 DEC = float(header['TRAJDEC'])
 log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
 A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
-allflats, allspec, allra, alldec = ([], [], [], [])
+allflatspec, allspec, allra, alldec = ([], [], [], [])
 
 # Rectified wavelength
 commonwave = np.linspace(3500, 5500, 1000)
-
+cnt = 0
 for ifuslot in ifuslots:
+    if cnt == 3:
+        break
+    cnt += 1
     for amp in virus_amps:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
         twibase = twi_path % ('virus', 'virus', twi_obs, 'virus', ifuslot)
@@ -169,7 +172,7 @@ for ifuslot in ifuslots:
         log.info('Getting Flat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
         flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
                                               commonwave)
-        allflats.append(flatspec)
+        allflatspec.append(flatspec)
         wave = np.array(wave, dtype=float)
         for i in np.arange(nexp):
             log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
@@ -190,17 +193,24 @@ for ifuslot in ifuslots:
             for fiber in np.arange(trace.shape[0]):
                 indl = np.floor(trace[fiber]).astype(int)
                 for k, j in enumerate(np.arange(-2, 4)):
-                    temp[:, k] = image[indl, x]
-                    temp2[:, k] = flat[indl, x]
+                    temp[:, k] = image[indl+j, x]
+                    temp2[:, k] = flat[indl+j, x]
                 tempspec = (np.sum(temp * temp2, axis=1) /
                             np.sum(temp2, axis=1))
                 I = interp1d(wave[fiber], tempspec, kind='quadratic',
                              fill_value='extrapolate')
                 spectrum[fiber] = I(commonwave)
             allspec.append(spectrum)
-fitslist = [fits.PrimaryHDU(np.array(allflats)),
+allflatspec = np.array(allflatspec)
+norm = np.sum(allflatspec, axis=1)[:, np.newaxis]
+avg = np.percentile(allflatspec / norm, 99, axis=0)
+newnorm = allflatspec / norm / avg
+fitslist = [fits.PrimaryHDU(np.array(allflatspec)),
+            fits.ImageHDU(np.array(newnorm)),
             fits.ImageHDU(np.array(allspec)),
             fits.ImageHDU(commonwave),
             fits.ImageHDU(np.array(allra)),
             fits.ImageHDU(np.array(alldec))]
 fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
+fits.PrimaryHDU(flat).writeto('test_flat.fits', overwrite=True)
+
