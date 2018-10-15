@@ -223,7 +223,7 @@ for ifuslot in ifuslots:
         time_per_amp = (t2 - t1) / cnt
         remaining_amps = (N - cnt)
         log.info('Time remaining: %0.2f' % (time_per_amp * remaining_amps))
-fitslist = [fits.PrimaryHDU(image), fits.ImageDataDiff(flat),
+fitslist = [fits.PrimaryHDU(image), fits.ImageHDU(flat),
             fits.ImageHDU(sky), fits.ImageHDU(skysub)]
 fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
 sys.exit(1)
