@@ -27,7 +27,7 @@ for j, chunk in enumerate(chunks):
     s = []
     for ifuslot in chunk:
         cmd = ('python /work/03730/gregz/maverick/Panacea/panacea2.py '
-               ' --ifuslot %03d -rt -td 20181008 -to 2 -te 1' % int(ifuslot))
+               ' --ifuslot %03d -rs -td 20181003 -to 2 -te 1' % int(ifuslot))
         s.append(cmd)
     f.write('\n'.join(s))
     f.close()
