@@ -212,8 +212,9 @@ for ifuslot in ifuslots:
         log.info('Time remaining: %0.2f' % (time_per_amp * remaining_amps))
 allflatspec = np.array(allflatspec)
 norm = np.sum(allflatspec, axis=1)[:, np.newaxis]
+norm = norm / np.median(norm)
 avg = np.percentile(allflatspec / norm, 99, axis=0)
-newnorm = allflatspec / norm / avg
+newnorm = allflatspec / avg
 fitslist = [fits.PrimaryHDU(np.array(allflatspec)),
             fits.ImageHDU(np.array(newnorm)),
             fits.ImageHDU(np.array(allspec)),
@@ -222,4 +223,3 @@ fitslist = [fits.PrimaryHDU(np.array(allflatspec)),
             fits.ImageHDU(np.array(alldec))]
 fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
 fits.PrimaryHDU(flat).writeto('test_flat.fits', overwrite=True)
-
