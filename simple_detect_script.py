@@ -193,10 +193,15 @@ for ifuslot in ifuslots:
             for fiber in np.arange(trace.shape[0]):
                 indl = np.floor(trace[fiber]).astype(int)
                 for k, j in enumerate(np.arange(-2, 4)):
-                    temp[:, k] = image[indl+j, x]
-                    temp2[:, k] = flat[indl+j, x]
+                    try:
+                        temp[:, k] = image[indl+j, x]
+                        temp2[:, k] = flat[indl+j, x]
+                    except IndexError:
+                        temp[:, k] = np.zeros(x.shape)
+                        temp2[:, k] = np.zeros(x.shape)
                 tempspec = (np.sum(temp * temp2, axis=1) /
                             np.sum(temp2, axis=1))
+                tempspec[~np.isfinite(tempspec)] = 0.0
                 I = interp1d(wave[fiber], tempspec, kind='quadratic',
                              fill_value='extrapolate')
                 spectrum[fiber] = I(commonwave)
