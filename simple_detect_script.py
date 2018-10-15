@@ -214,7 +214,7 @@ for ifuslot in ifuslots:
             # sky = interp1d(nw, ns, kind='linear',
             #                fill_value='extrapolate')(bigW)
             # skysub = image - flat * sky
-            allspec.append(tempspec)
+            allspec.append(spectrum)
         t2 = time.time()
         cnt += 1
         time_per_amp = (t2 - t1) / cnt
