@@ -77,7 +77,7 @@ def make_avg_spec(wave, spec, binsize=35):
 
 def base_reduction(filename):
     a = fits.open(filename)
-    image = a[0].data
+    image = np.array(a[0].data, dtype=float)
     # overscan sub
     overscan_length = 32 * (image.shape[1] / 1064)
     if image.shape[1] == 1064:
@@ -224,7 +224,7 @@ for ifuslot in ifuslots:
         remaining_amps = (N - cnt)
         log.info('Time remaining: %0.2f' % (time_per_amp * remaining_amps))
 fitslist = [fits.PrimaryHDU(image), fits.ImageHDU(flat),
-            fits.ImageHDU(sky), fits.ImageHDU(skysub)]
+            fits.ImageHDU(sky*flat), fits.ImageHDU(skysub)]
 fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
 sys.exit(1)
 allflatspec = np.array(allflatspec)
