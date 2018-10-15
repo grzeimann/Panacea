@@ -159,10 +159,11 @@ commonwave = np.linspace(3500, 5500, 1000)
 N = len(ifuslots) * len(virus_amps)
 t1 = time.time()
 cnt = 0
+cnt2 = 0
 for ifuslot in ifuslots:
-    if cnt == 1:
+    if cnt2 == 1:
         break
-    cnt += 1
+    cnt2 += 1
     for amp in virus_amps:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
         twibase = twi_path % ('virus', 'virus', twi_obs, 'virus', ifuslot)
