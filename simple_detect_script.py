@@ -199,8 +199,7 @@ for ifuslot in ifuslots:
                     except IndexError:
                         temp[:, k] = np.zeros(x.shape)
                         temp2[:, k] = np.zeros(x.shape)
-                tempspec = (np.sum(temp * temp2, axis=1) /
-                            np.sum(temp2, axis=1))
+                tempspec = np.median(temp / temp2, axis=1)
                 tempspec[~np.isfinite(tempspec)] = 0.0
                 I = interp1d(wave[fiber], tempspec, kind='quadratic',
                              fill_value='extrapolate')
