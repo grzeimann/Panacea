@@ -14,6 +14,7 @@ from scipy.interpolate import interp1d
 from input_utils import setup_logging
 import warnings
 from astrometry import Astrometry
+import time
 
 dither_pattern = np.array([[0., 0.], [1.27, -0.73], [1.27, 0.73]])
 virus_amps = ['LL', 'LU', 'RU', 'RL']
@@ -155,6 +156,9 @@ allflatspec, allspec, allra, alldec = ([], [], [], [])
 
 # Rectified wavelength
 commonwave = np.linspace(3500, 5500, 1000)
+N = len(ifuslots) * len(virus_amps)
+t1 = time.time()
+cnt = 0
 for ifuslot in ifuslots:
     for amp in virus_amps:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
@@ -202,6 +206,11 @@ for ifuslot in ifuslots:
                              fill_value='extrapolate')
                 spectrum[fiber] = I(commonwave)
             allspec.append(spectrum)
+        t2 = time.time()
+        cnt += 1
+        time_per_amp = (t2 - t1) / cnt
+        remaining_amps = (N - cnt)
+        log.info('Time remaining: %0.2f' % (time_per_amp * remaining_amps))
 allflatspec = np.array(allflatspec)
 norm = np.sum(allflatspec, axis=1)[:, np.newaxis]
 avg = np.percentile(allflatspec / norm, 99, axis=0)
