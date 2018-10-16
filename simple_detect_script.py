@@ -38,7 +38,8 @@ sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*.fits')
 flt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL*.fits')
-
+sciflt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
+                      '%s', '2*_%sLL_sci.fits')
 
 def get_cal_info(twi_path, amp):
     F = fits.open(glob.glob(twi_path.replace('LL', amp))[0])
@@ -91,6 +92,49 @@ def base_reduction(filename):
         ampname = None
     a = orient_image(image, amp, ampname)
     return a
+
+
+def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave):
+    files = glob.glob(flt_path.replace('LL', amp))
+    listflat = []
+    bigW = np.zeros((1032, 1032))
+    Y, X = np.indices(array_wave.shape)
+    YY, XX = np.indices((1032, 1032))
+    for x, at, aw, xx, yy in zip(np.array_split(X, 2, axis=0),
+                                 np.array_split(array_trace, 2, axis=0),
+                                 np.array_split(array_wave, 2, axis=0),
+                                 np.array_split(XX, 2, axis=0),
+                                 np.array_split(YY, 2, axis=0)):
+        for j in np.arange(at.shape[1]):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                p0 = np.polyfit(at[:, j], aw[:, j], 7)
+            bigW[yy[:, j], j] = np.polyval(p0, yy[:, j])
+    for filename in files:
+        array_flt = base_reduction(filename)
+        x = np.arange(array_wave.shape[1])
+        spectrum = array_trace * 0.
+        for fiber in np.arange(array_wave.shape[0]):
+            indl = np.floor(array_trace[fiber]).astype(int)
+            indh = np.ceil(array_trace[fiber]).astype(int)
+            spectrum[fiber] = array_flt[indl, x] / 2. + array_flt[indh, x] / 2.
+        smooth = savgol_filter(spectrum, 315, 1, axis=1)
+        avg = biweight_location(smooth, axis=(0,))
+        norm = biweight_location(smooth / avg, axis=(1,))
+        nw, ns = make_avg_spec(array_wave, spectrum / norm[:, np.newaxis],
+                               binsize=41)
+        I = interp1d(nw, ns, kind='linear', fill_value='extrapolate')
+        ftf = spectrum * 0.
+        for fiber in np.arange(array_wave.shape[0]):
+            model = I(array_wave[fiber])
+            ftf[fiber] = savgol_filter(spectrum[fiber] / model, 151, 1)
+        nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41)
+        I = interp1d(nw1, ns1, kind='linear', fill_value='extrapolate')
+        modelimage = I(bigW)
+        flat = array_flt / modelimage
+        listflat.append(flat)
+    flat = biweight_location(listflat, axis=(0,))
+    return flat
 
 
 def get_flat_field(flt_path, amp, array_wave, array_trace, common_wave):
@@ -173,6 +217,11 @@ for ifuslot in ifuslots:
         log.info('Getting Flat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
         flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
                                               commonwave)
+        scibase = sciflt_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
+
+        sciflat = get_sciflat_field(scibase, amp, wave, trace, commonwave)
+        fits.HDUList([fits.PrimaryHDU(flat), fits.ImageHDU(sciflat)]).writeto('test_flat.fits', overwrite=True)
+        sys.exit(1)
         allflatspec.append(flatspec)
         wave = np.array(wave, dtype=float)
         for i in np.arange(nexp):
