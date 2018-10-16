@@ -183,8 +183,8 @@ for ifuslot in ifuslots:
                                           amppos[:, 1] + dither_pattern[i, 1])
             allra.append(ra)
             alldec.append(dec)
-            allx.append(A.fplane.by_ifuslot(ifuslot).ifuy + amppos[:, 0] + dither_pattern[i, 0])
-            ally.append(A.fplane.by_ifuslot(ifuslot).ifux + amppos[:, 1] + dither_pattern[i, 1])
+            allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] + dither_pattern[i, 0])
+            ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] + dither_pattern[i, 1])
             scifile = glob.glob(sci_path % ('virus', 'virus', sci_obs,
                                             '%02d' % (i+1), 'virus',
                                             ifuslot))[0].replace('LL', amp)
