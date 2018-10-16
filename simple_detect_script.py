@@ -221,6 +221,8 @@ for ifuslot in ifuslots:
         log.info('Getting SciFlat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
         sciflat = get_sciflat_field(scibase, amp, wave, trace, commonwave)
         fits.HDUList([fits.PrimaryHDU(flat), fits.ImageHDU(sciflat)]).writeto('test_flat.fits', overwrite=True)
+        log.info('UGLY EXIT!')
+        import sys
         sys.exit(1)
         allflatspec.append(flatspec)
         wave = np.array(wave, dtype=float)
