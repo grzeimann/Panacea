@@ -208,12 +208,25 @@ for ifuslot in ifuslots:
                 I = interp1d(wave[fiber], tempspec, kind='quadratic',
                              fill_value='extrapolate')
                 spectrum[fiber] = I(commonwave)
-            # specarray = np.hstack(speclist)
-            # wavearray = np.hstack(wavelist)
-            # nw, ns = make_avg_spec(wavearray, specarray, binsize=181)
-            # sky = interp1d(nw, ns, kind='linear',
-            #                fill_value='extrapolate')(bigW)
-            # skysub = image - flat * sky
+            specarray = np.hstack(speclist)
+            wavearray = np.hstack(wavelist)
+            nw, ns = make_avg_spec(wavearray, specarray, binsize=181)
+            sky = interp1d(nw, ns, kind='linear',
+                           fill_value='extrapolate')(bigW)
+            skysub = image - flat * sky
+            for fiber in np.arange(trace.shape[0]):
+                indl = np.floor(trace[fiber]).astype(int)
+                for k, j in enumerate(np.arange(-2, 4)):
+                    try:
+                        temp[:, k] = skysub[indl+j, x]
+                        temp2[:, k] = flat[indl+j, x]
+                    except IndexError:
+                        dummy = 1.
+                tempspec = np.median(temp / temp2, axis=1)
+                tempspec[~np.isfinite(tempspec)] = 0.0
+                I = interp1d(wave[fiber], tempspec, kind='quadratic',
+                             fill_value='extrapolate')
+                spectrum[fiber] = I(commonwave)
             allspec.append(spectrum)
         t2 = time.time()
         cnt += 1
