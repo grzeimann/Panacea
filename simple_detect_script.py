@@ -34,14 +34,15 @@ baseraw = '/work/03946/hetdex/maverick'
 
 twi_path = op.join(basered, 'reductions', twi_date, '%s', '%s%s', 'exp01',
                    '%s', 'multi_*_%s_*_LL.fits')
-bias_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp%s',
-                    '%s', '2*_%sLL_zro.fits')
+
 sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*.fits')
 flt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL*.fits')
 sciflt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
                       '%s', '2*_%sLL_sci.fits')
+bias_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp*',
+                    '%s', '2*_%sLL_zro.fits')
 
 def get_cal_info(twi_path, amp):
     F = fits.open(glob.glob(twi_path.replace('LL', amp))[0])
@@ -216,7 +217,6 @@ N = len(ifuslots) * len(virus_amps)
 t1 = time.time()
 cnt = 0
 cnt2 = 0
-print(ifuslots)
 for ifuslot in ifuslots:
     for amp in virus_amps:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
