@@ -218,7 +218,7 @@ for ifuslot in ifuslots:
         flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
                                               commonwave)
         scibase = sciflt_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
-
+        log.info('Getting SciFlat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
         sciflat = get_sciflat_field(scibase, amp, wave, trace, commonwave)
         fits.HDUList([fits.PrimaryHDU(flat), fits.ImageHDU(sciflat)]).writeto('test_flat.fits', overwrite=True)
         sys.exit(1)
