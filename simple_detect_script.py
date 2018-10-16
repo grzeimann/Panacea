@@ -204,6 +204,7 @@ N = len(ifuslots) * len(virus_amps)
 t1 = time.time()
 cnt = 0
 cnt2 = 0
+print(ifuslots)
 for ifuslot in ifuslots:
     for amp in virus_amps:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
