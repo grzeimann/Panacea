@@ -152,7 +152,7 @@ RA = float(header['TRAJRA'])
 DEC = float(header['TRAJDEC'])
 log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
 A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
-allflatspec, allspec, allra, alldec = ([], [], [], [])
+allflatspec, allspec, allra, alldec, allx, ally = ([], [], [], [], [], [])
 
 # Rectified wavelength
 commonwave = np.linspace(3500, 5500, 1000)
@@ -183,6 +183,8 @@ for ifuslot in ifuslots:
                                           amppos[:, 1] + dither_pattern[i, 1])
             allra.append(ra)
             alldec.append(dec)
+            allx.append(A.fplane.by_ifuslot(ifuslot).ifuy + amppos[:, 0] + dither_pattern[i, 0])
+            ally.append(A.fplane.by_ifuslot(ifuslot).ifux + amppos[:, 1] + dither_pattern[i, 1])
             scifile = glob.glob(sci_path % ('virus', 'virus', sci_obs,
                                             '%02d' % (i+1), 'virus',
                                             ifuslot))[0].replace('LL', amp)
@@ -210,23 +212,24 @@ for ifuslot in ifuslots:
                 spectrum[fiber] = I(commonwave)
             specarray = np.hstack(speclist)
             wavearray = np.hstack(wavelist)
-            nw, ns = make_avg_spec(wavearray, specarray, binsize=181)
-            sky = interp1d(nw, ns, kind='linear',
-                           fill_value='extrapolate')(bigW)
-            skysub = image - flat * sky
-            for fiber in np.arange(trace.shape[0]):
-                indl = np.floor(trace[fiber]).astype(int)
-                for k, j in enumerate(np.arange(-2, 4)):
-                    try:
-                        temp[:, k] = skysub[indl+j, x]
-                        temp2[:, k] = flat[indl+j, x]
-                    except IndexError:
-                        dummy = 1.
-                tempspec = np.median(temp / temp2, axis=1)
-                tempspec[~np.isfinite(tempspec)] = 0.0
-                I = interp1d(wave[fiber], tempspec, kind='quadratic',
-                             fill_value='extrapolate')
-                spectrum[fiber] = I(commonwave)
+#            nw, ns = make_avg_spec(wavearray, specarray, binsize=181)
+#            sky = interp1d(nw, ns, kind='linear',
+#                           fill_value='extrapolate')(bigW)
+#            skysub = image - flat * sky
+#            spectrum2 = np.zeros((trace.shape[0], len(commonwave)))
+#            for fiber in np.arange(trace.shape[0]):
+#                indl = np.floor(trace[fiber]).astype(int)
+#                for k, j in enumerate(np.arange(-2, 4)):
+#                    try:
+#                        temp[:, k] = skysub[indl+j, x]
+#                        temp2[:, k] = flat[indl+j, x]
+#                    except IndexError:
+#                        dummy = 1.
+#                tempspec = np.median(temp / temp2, axis=1)
+#                tempspec[~np.isfinite(tempspec)] = 0.0
+#                I = interp1d(wave[fiber], tempspec, kind='quadratic',
+#                             fill_value='extrapolate')
+#                spectrum[fiber] = I(commonwave)
             allspec.append(spectrum)
         t2 = time.time()
         cnt += 1
@@ -247,6 +250,8 @@ fitslist = [fits.PrimaryHDU(np.array(allflatspec)),
             fits.ImageHDU(np.array(allspec)),
             fits.ImageHDU(commonwave),
             fits.ImageHDU(np.array(allra)),
-            fits.ImageHDU(np.array(alldec))]
+            fits.ImageHDU(np.array(alldec)),
+            fits.ImageHDU(np.array(allx)),
+            fits.ImageHDU(np.array(ally))]
 fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
 fits.PrimaryHDU(flat).writeto('test_flat.fits', overwrite=True)
