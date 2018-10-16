@@ -34,6 +34,8 @@ baseraw = '/work/03946/hetdex/maverick'
 
 twi_path = op.join(basered, 'reductions', twi_date, '%s', '%s%s', 'exp01',
                    '%s', 'multi_*_%s_*_LL.fits')
+bias_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp%s',
+                    '%s', '2*_%sLL_zro.fits')
 sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*.fits')
 flt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
@@ -94,7 +96,8 @@ def base_reduction(filename):
     return a
 
 
-def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave):
+def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
+                      masterbias):
     files = glob.glob(flt_path.replace('LL', amp))
     listflat = []
     bigW = np.zeros((1032, 1032))
@@ -111,7 +114,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave):
                 p0 = np.polyfit(at[:, j], aw[:, j], 7)
             bigW[yy[:, j], j] = np.polyval(p0, yy[:, j])
     for filename in files:
-        array_flt = base_reduction(filename)
+        array_flt = base_reduction(filename) - masterbias
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
         for fiber in np.arange(array_wave.shape[0]):
@@ -135,6 +138,15 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave):
         listflat.append(flat)
     flat = biweight_location(listflat, axis=(0,))
     return flat
+
+
+def get_masterbias(zro_path, amp):
+    files = glob.glob(zro_path.replace('LL', amp))
+    listzro = []
+    for filename in files:
+        a = base_reduction(filename)
+        listzro.append(a)
+    return biweight_location(listzro, axis=(0,))
 
 
 def get_flat_field(flt_path, amp, array_wave, array_trace, common_wave):
@@ -218,9 +230,13 @@ for ifuslot in ifuslots:
         log.info('Getting Flat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
         flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
                                               commonwave)
+        log.info('Getting Masterbias for ifuslot, %s, and amp, %s' % (ifuslot, amp))
+        zro_path = bias_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
+        masterbias = get_masterbias(zro_path, amp)
         scibase = sciflt_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
         log.info('Getting SciFlat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
-        sciflat = get_sciflat_field(scibase, amp, wave, trace, commonwave)
+        sciflat = get_sciflat_field(scibase, amp, wave, trace, commonwave,
+                                    masterbias)
         fits.HDUList([fits.PrimaryHDU(flat), fits.ImageHDU(sciflat)]).writeto('test_flat.fits', overwrite=True)
         log.info('UGLY EXIT!')
         if cnt == 2:
@@ -228,6 +244,7 @@ for ifuslot in ifuslots:
             sys.exit(1)
         allflatspec.append(flatspec)
         wave = np.array(wave, dtype=float)
+        
         for i in np.arange(nexp):
             log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
                      ' %s' % (i+1, ifuslot, amp))
@@ -242,6 +259,7 @@ for ifuslot in ifuslots:
                                             '%02d' % (i+1), 'virus',
                                             ifuslot))[0].replace('LL', amp)
             image = base_reduction(scifile)
+            image = image - masterbias
             spectrum = np.zeros((trace.shape[0], len(commonwave)))
             x = np.arange(trace.shape[1])
             speclist = []
