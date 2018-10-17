@@ -81,7 +81,7 @@ def make_avg_spec(wave, spec, binsize=35):
 
 def base_reduction(filename):
     a = fits.open(filename)
-    image = np.array(a[0].data, dtype=float)
+    image = np.array(a[0].data, dtype='float64')
     # overscan sub
     overscan_length = 32 * (image.shape[1] / 1064)
     if image.shape[1] == 1064:
