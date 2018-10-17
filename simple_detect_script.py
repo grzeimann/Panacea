@@ -15,6 +15,7 @@ from input_utils import setup_logging
 import warnings
 from astrometry import Astrometry
 import time
+from skimage.feature import register_translation
 
 dither_pattern = np.array([[0., 0.], [1.27, -0.73], [1.27, 0.73]])
 virus_amps = ['LL', 'LU', 'RU', 'RL']
@@ -143,6 +144,8 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
     for filename in files:
         log.info('Skysubtracting on sciflat %s' % filename)
         array_flt = base_reduction(filename) - masterbias
+        shift, error, diffphase = register_translation(image, flat, 100)
+        log.info(shift)
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
         for fiber in np.arange(array_wave.shape[0]):
