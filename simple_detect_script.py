@@ -115,9 +115,12 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
                 warnings.simplefilter("ignore")
                 p0 = np.polyfit(at[:, j], aw[:, j], 7)
             bigW[yy[:, j], j] = np.polyval(p0, yy[:, j])
+    default = base_reduction(files[0]) - masterbias
     for filename in files:
         log.info('Working on sciflat %s' % filename)
         array_flt = base_reduction(filename) - masterbias
+        shift, error, diffphase = register_translation(array_flt, default, 100)
+        log.info(shift)
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
         for fiber in np.arange(array_wave.shape[0]):
@@ -144,8 +147,6 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
     for filename in files:
         log.info('Skysubtracting on sciflat %s' % filename)
         array_flt = base_reduction(filename) - masterbias
-        shift, error, diffphase = register_translation(image, flat, 100)
-        log.info(shift)
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
         for fiber in np.arange(array_wave.shape[0]):
