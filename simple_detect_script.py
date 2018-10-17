@@ -39,7 +39,7 @@ sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*.fits')
 flt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL*.fits')
-sciflt_path = op.join(baseraw, '2018100[2,3,4,5]',  '%s', '%s%s', 'exp*',
+sciflt_path = op.join(baseraw, '2018100[1,2,3,4,5,6,7,8,9]',  '%s', '%s%s', 'exp*',
                       '%s', '2*_%sLL_twi.fits')
 bias_path = op.join(baseraw, '2018100[2,3,4,5]', '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
@@ -134,7 +134,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
             model = I(array_wave[fiber])
             ftf[fiber] = savgol_filter(spectrum[fiber] / model, 151, 1)
         nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41)
-        I = interp1d(nw1, ns1, kind='linear', fill_value='extrapolate')
+        I = interp1d(nw1, ns1, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
         flat = array_flt / modelimage
         listflat.append(flat)
@@ -150,7 +150,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
             indh = np.ceil(array_trace[fiber]).astype(int)
             spectrum[fiber] = array_flt[indl, x] / flat[indl, x] / 2. + array_flt[indh, x] / flat[indh, x] / 2.
         nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
-        I = interp1d(nw, ns, kind='linear', fill_value='extrapolate')
+        I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
         residual.append(array_flt - modelimage*flat)
     return flat, np.array(residual)
