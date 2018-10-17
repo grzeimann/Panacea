@@ -153,16 +153,16 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
     residual = []
+    X = np.arange(flat.shape[1])
+    Y = np.arange(flat.shape[0])
+    J = interp2d(X, Y, flat, kind='cubic', bounds_error=False,
+                 fill_value=0.0)
     for filename, shift in zip(files, shifts):
         log.info('Skysubtracting on sciflat %s' % filename)
         array_flt = base_reduction(filename) - masterbias
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
-        X = np.arange(array_flt.shape[1])
-        Y = np.arange(array_flt.shape[0])
-        I = interp2d(X, Y, flat, kind='cubic', bounds_error=False,
-                     fill_value=0.0)
-        nflat = I(X, Y+shift[0])
+        nflat = J(X, Y+shift[0])
         for fiber in np.arange(array_wave.shape[0]):
             indl = np.floor(array_trace[fiber]).astype(int)
             indh = np.ceil(array_trace[fiber]).astype(int)
