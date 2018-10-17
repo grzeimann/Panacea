@@ -125,7 +125,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         Y = np.arange(array_flt.shape[0])
         I = interp2d(X, Y, array_flt, kind='cubic', bounds_error=False,
                      fill_value=0.0)
-        array_flt = I(X+shift[1], Y+shift[0])
+        array_flt = I(X-shift[1], Y-shift[0])
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
         for fiber in np.arange(array_wave.shape[0]):
