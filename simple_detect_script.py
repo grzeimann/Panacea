@@ -98,7 +98,7 @@ def base_reduction(filename):
 
 
 def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
-                      masterbias):
+                      masterbias, log):
     files = glob.glob(flt_path.replace('LL', amp))
     listflat = []
     bigW = np.zeros((1032, 1032))
@@ -115,6 +115,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
                 p0 = np.polyfit(at[:, j], aw[:, j], 7)
             bigW[yy[:, j], j] = np.polyval(p0, yy[:, j])
     for filename in files:
+        log.info('Working on sciflat %s' % filename)
         array_flt = base_reduction(filename) - masterbias
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
@@ -140,6 +141,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
     flat = biweight_location(listflat, axis=(0,))
     residual = []
     for filename in files:
+        log.info('Skysubtracting on sciflat %s' % filename)
         array_flt = base_reduction(filename) - masterbias
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
@@ -249,7 +251,7 @@ for ifuslot in ifuslots:
         scibase = sciflt_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
         log.info('Getting SciFlat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
         sciflat, res = get_sciflat_field(scibase, amp, wave, trace, commonwave,
-                                         masterbias)
+                                         masterbias, log)
         flist = []
         for j, resi in enumerate(res):
             if j == 0:
