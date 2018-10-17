@@ -154,14 +154,21 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         array_flt = base_reduction(filename) - masterbias
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
+        shift, error, diffphase = register_translation(array_flt, flat, 100)
+        log.info(shift)
+        X = np.arange(array_flt.shape[1])
+        Y = np.arange(array_flt.shape[0])
+        I = interp2d(X, Y, flat, kind='cubic', bounds_error=False,
+                     fill_value=0.0)
+        nflat = I(X-shift[1], Y-shift[0])
         for fiber in np.arange(array_wave.shape[0]):
             indl = np.floor(array_trace[fiber]).astype(int)
             indh = np.ceil(array_trace[fiber]).astype(int)
-            spectrum[fiber] = array_flt[indl, x] / flat[indl, x] / 2. + array_flt[indh, x] / flat[indh, x] / 2.
+            spectrum[fiber] = array_flt[indl, x] / nflat[indl, x] / 2. + array_flt[indh, x] / nflat[indh, x] / 2.
         nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
         I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
-        residual.append(array_flt - modelimage*flat)
+        residual.append(array_flt - modelimage*nflat)
     return flat, np.array(residual)
 
 
