@@ -148,7 +148,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         flat = array_flt / modelimage
         listflat.append(flat)
     flat = biweight_location(listflat, axis=(0,))
-    flat[~np.isfinite] = 0.0
+    flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
     residual = []
     for filename in files:
