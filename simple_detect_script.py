@@ -40,7 +40,7 @@ sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
 flt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL*.fits')
 sciflt_path = op.join(baseraw, '2018100[2,3,4,5]',  '%s', '%s%s', 'exp*',
-                      '%s', '2*_%sLL_sci.fits')
+                      '%s', '2*_%sLL_twi.fits')
 bias_path = op.join(baseraw, '2018100[2,3,4,5]', '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
 
