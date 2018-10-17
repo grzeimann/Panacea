@@ -147,7 +147,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         Y = np.arange(array_flt.shape[0])
         I = interp2d(X, Y, flat, kind='cubic', bounds_error=False,
                      fill_value=0.0)
-        array_flt = I(X-shift[1], Y-shift[0])
+        flat = I(X-shift[1], Y-shift[0])
         listflat.append(flat)
     flat = biweight_location(listflat, axis=(0,))
     flat[~np.isfinite(flat)] = 0.0
