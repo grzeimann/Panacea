@@ -163,7 +163,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         array_flt = base_reduction(filename) - masterbias
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
-        nflat = J(X+shift[1], Y+shift[0])
+        nflat = flat * 1. # J(X+shift[1], Y+shift[0])
         for fiber in np.arange(array_wave.shape[0]):
             indl = np.floor(array_trace[fiber]).astype(int)
             indh = np.ceil(array_trace[fiber]).astype(int)
