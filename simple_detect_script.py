@@ -46,7 +46,7 @@ bias_path = op.join(baseraw, '2018100[2,3,4,5]', '%s', '%s%s', 'exp*',
 
 def get_cal_info(twi_path, amp):
     F = fits.open(glob.glob(twi_path.replace('LL', amp))[0])
-    return F['ifupos'].data*1., F['trace'].data*1., F['wavelength'].data*1.
+    return np.array(F['ifupos'].data, dtype=float), np.array(F['trace'].data, dtype=float), np.array(F['wavelength'].data, dtype=float)
 
 
 def orient_image(image, amp, ampname):
@@ -81,7 +81,7 @@ def make_avg_spec(wave, spec, binsize=35):
 
 def base_reduction(filename):
     a = fits.open(filename)
-    image = np.array(a[0].data, dtype='float64')
+    image = np.array(a[0].data, dtype=float)
     # overscan sub
     overscan_length = 32 * (image.shape[1] / 1064)
     if image.shape[1] == 1064:
