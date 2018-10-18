@@ -4,18 +4,21 @@ Created on Thu Oct  4 13:30:06 2018
 
 @author: gregz
 """
-from astropy.io import fits
-from utils import biweight_location
+import time
 import numpy as np
-from scipy.signal import savgol_filter
 import os.path as op
 import glob
+import warnings
+
+from astropy.io import fits
+from utils import biweight_location
+from scipy.signal import savgol_filter
 from scipy.interpolate import interp1d, interp2d
 from input_utils import setup_logging
-import warnings
 from astrometry import Astrometry
-import time
 from skimage.feature import register_translation
+from astropy.modeling.models import Polynomial1D
+from astropy.modeling.fitting import LevMarLSQFitter
 
 dither_pattern = np.array([[0., 0.], [1.27, -0.73], [1.27, 0.73]])
 virus_amps = ['LL', 'LU', 'RU', 'RL']
@@ -115,8 +118,6 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
                 warnings.simplefilter("ignore")
                 p0 = np.polyfit(at[:, j], aw[:, j], 7)
             bigW[yy[:, j], j] = np.polyval(p0, yy[:, j])
-    default = base_reduction(files[0]) - masterbias
-    shifts = []
     for filename in files:
         log.info('Working on sciflat %s' % filename)
         array_flt = base_reduction(filename) - masterbias
@@ -141,15 +142,35 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         modelimage = I(bigW)
         flat = array_flt / modelimage
         listflat.append(flat)
+    nc = 10
+    rowchunk = np.array_split(listflat[0][1:-1,1:-1], nc, axis=1)
+    chunk = [np.array_split(row, nc, axis=0) for row in rowchunk]
+    Y, X = np.indices(listflat[0].shape)
+    rowchunk = np.array_split(X[1:-1,1:-1], nc, axis=1)
+    chunkx = [np.array_split(row, nc, axis=0) for row in rowchunk]
+    rowchunk = np.array_split(Y[1:-1,1:-1], nc, axis=1)
+    chunky = [np.array_split(row, nc, axis=0) for row in rowchunk]
+    fitter = LevMarLSQFitter()
+    P = Polynomial1D(1)
+    shifts = []
     for flat in listflat:
-        shift, error, diffphase = register_translation(listflat[0], flat, 100)
-        log.info(shift)
-        shifts.append(shift)
-        X = np.arange(flat.shape[1])
-        Y = np.arange(flat.shape[0])
-        I = interp2d(X, Y, flat, kind='cubic', bounds_error=False,
+        rowchunk = np.array_split(flat[1:-1,1:-1], nc, axis=1)
+        chunk2 = [np.array_split(row, nc, axis=0) for row in rowchunk]      
+        x, y, z = ([], [], [])
+        for i in np.arange(len(chunk)):
+            for j in np.arange(len(chunk[0])):
+                shift, error, diffphase = register_translation(chunk[i][j], chunk2[i][j], 500)
+                x.append(np.mean(chunkx[i][j]))
+                y.append(np.mean(chunky[i][j]))
+                z.append(shift)
+        x, y, z = [np.array(k) for k in [x, y, z]]
+        f = fitter(P, y, z[:, 0])
+        Xx = np.arange(flat.shape[1])
+        Yx = np.arange(flat.shape[0])
+        I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
                      fill_value=0.0)
-        flat = I(X-shift[1], Y-shift[0])
+        flat = I(Xx, Yx-f(Yx))
+        shifts.append(f(Yx))
     flat = biweight_location(listflat, axis=(0,))
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
@@ -163,7 +184,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         array_flt = base_reduction(filename) - masterbias
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
-        nflat = flat * 1. # J(X+shift[1], Y+shift[0])
+        nflat = J(X, Y+shift)
         for fiber in np.arange(array_wave.shape[0]):
             indl = np.floor(array_trace[fiber]).astype(int)
             indh = np.ceil(array_trace[fiber]).astype(int)
