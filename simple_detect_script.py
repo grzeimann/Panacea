@@ -9,6 +9,7 @@ import numpy as np
 import os.path as op
 import glob
 import warnings
+import sys
 
 from astropy.io import fits
 from utils import biweight_location
@@ -43,7 +44,7 @@ sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*.fits')
 flt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL*.fits')
-sciflt_path = op.join(baseraw, '2018100[1,2,3,4,5,6,7,8,9]',  '%s', '%s%s', 'exp*',
+sciflt_path = op.join(baseraw, '20181003',  '%s', '%s%s', 'exp*',
                       '%s', '2*_%sLL_twi.fits')
 bias_path = op.join(baseraw, '2018100[2,3,4,5]', '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
@@ -199,9 +200,72 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
         residual.append((array_flt - modelimage*nflat))
-    
-    return flat, np.array(residual), np.array(array_list)
+    return flat, bigW
 
+
+def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
+    files = glob.glob(sci_path.replace('LL', amp))
+
+    sciflat = []
+    for filename in files:
+        log.info('Skysubtracting on sciflat %s' % filename)
+        array_flt = base_reduction(filename) - masterbias
+        x = np.arange(array_wave.shape[1])
+        spectrum = array_trace * 0.
+        for fiber in np.arange(array_wave.shape[0]):
+            indl = np.floor(array_trace[fiber]).astype(int)
+            indh = np.ceil(array_trace[fiber]).astype(int)
+            spectrum[fiber] = array_flt[indl, x] / flat[indl, x] / 2. + array_flt[indh, x] / flat[indh, x] / 2.
+        nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
+        I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
+        modelimage = I(bigW)
+        sciflat.append(array_flt / modelimage)
+    sciflat = np.median(sciflat, axis=0)
+    nc = 10
+    rowchunk = np.array_split(flat[1:-1,1:-1], nc, axis=1)
+    chunk = [np.array_split(row, nc, axis=0) for row in rowchunk]
+    Y, X = np.indices(flat.shape)
+    rowchunk = np.array_split(X[1:-1,1:-1], nc, axis=1)
+    chunkx = [np.array_split(row, nc, axis=0) for row in rowchunk]
+    rowchunk = np.array_split(Y[1:-1,1:-1], nc, axis=1)
+    chunky = [np.array_split(row, nc, axis=0) for row in rowchunk]
+    fitter = LevMarLSQFitter()
+    P = Polynomial1D(1)
+    log.info('Getting shift for %s' % files[0])
+    rowchunk = np.array_split(sciflat[1:-1,1:-1], nc, axis=1)
+    chunk2 = [np.array_split(row, nc, axis=0) for row in rowchunk]      
+    x, y, z = ([], [], [])
+    for i in np.arange(len(chunk)):
+        for j in np.arange(len(chunk[0])):
+            shift, error, diffphase = register_translation(chunk[i][j], chunk2[i][j], 500)
+            x.append(np.mean(chunkx[i][j]))
+            y.append(np.mean(chunky[i][j]))
+            z.append(shift)
+    x, y, z = [np.array(k) for k in [x, y, z]]
+    f = fitter(P, y, z[:, 0])
+    Xx = np.arange(flat.shape[1])
+    Yx = np.arange(flat.shape[0])
+    I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
+                 fill_value=0.0)
+    flat = I(Xx, Yx+f(Yx))
+    log.info('Found shift for %s of %0.3f' % (files[0], np.mean(f(Yx))))
+    array_list = []
+    residual = []
+    for filename in files:
+        log.info('Skysubtracting on sciflat %s' % filename)
+        array_flt = base_reduction(filename) - masterbias
+        array_list.append(array_flt)
+        x = np.arange(array_wave.shape[1])
+        spectrum = array_trace * 0.
+        for fiber in np.arange(array_wave.shape[0]):
+            indl = np.floor(array_trace[fiber]).astype(int)
+            indh = np.ceil(array_trace[fiber]).astype(int)
+            spectrum[fiber] = array_flt[indl, x] / flat[indl, x] / 2. + array_flt[indh, x] / flat[indh, x] / 2.
+        nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
+        I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
+        modelimage = I(bigW)
+        residual.append((array_flt - modelimage*flat))    
+    return np.array(array_list), np.array(residual)
 
 def get_masterbias(zro_path, amp):
     files = glob.glob(zro_path.replace('LL', amp))
@@ -274,7 +338,7 @@ A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
 allflatspec, allspec, allra, alldec, allx, ally = ([], [], [], [], [], [])
 
 # Rectified wavelength
-commonwave = np.linspace(3500, 5500, 1000)
+commonwave = np.linspace(3500, 5500, 1500)
 N = len(ifuslots) * len(virus_amps)
 t1 = time.time()
 cnt = 0
@@ -288,36 +352,23 @@ for ifuslot in ifuslots:
             log.info('Insufficient cal data for ifuslot, %s, and amp, %s'
                      % (ifuslot, amp))
             continue
-        fltbase = flt_path % ('virus', 'virus', flt_obs, 'virus', ifuslot)
-        log.info('Getting Flat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
-        flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
-                                              commonwave)
+        # fltbase = flt_path % ('virus', 'virus', flt_obs, 'virus', ifuslot)
+        # log.info('Getting Flat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
+        # flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
+        #                                      commonwave)
         log.info('Getting Masterbias for ifuslot, %s, and amp, %s' % (ifuslot, amp))
         zro_path = bias_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
         masterbias = get_masterbias(zro_path, amp)
         scibase = sciflt_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
         log.info('Getting SciFlat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
-        sciflat, res, ims = get_sciflat_field(scibase, amp, wave, trace, commonwave,
+        sciflat, bigW = get_sciflat_field(scibase, amp, wave, trace, commonwave,
                                               masterbias, log)
-        flist1 = []
-        flist2 = []
-        for j, resi in enumerate(res):
-            if j == 0:
-                func = fits.PrimaryHDU
-            else:
-                func = fits.ImageHDU
-            flist1.append(func(resi))
-            flist2.append(func(ims[j]))
-        fits.HDUList(flist1).writeto('test_res.fits', overwrite=True)
-        fits.HDUList(flist2).writeto('test_im.fits', overwrite=True)
-        fits.HDUList([fits.PrimaryHDU(flat), fits.ImageHDU(sciflat)]).writeto('test_flat.fits', overwrite=True)
-        log.info('UGLY EXIT!')
-        if cnt == 0:
-            import sys
-            sys.exit(1)
-        allflatspec.append(flatspec)
-        wave = np.array(wave, dtype=float)
         
+        wave = np.array(wave, dtype=float)
+        i1 = []
+        scifiles = sci_path % ('virus', 'virus', sci_obs, '*', 'virus',
+                               ifuslot)
+        images, subimages = subtract_sci(scifiles, sciflat, trace, wave, bigW)
         for i in np.arange(nexp):
             log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
                      ' %s' % (i+1, ifuslot, amp))
@@ -328,53 +379,20 @@ for ifuslot in ifuslots:
             alldec.append(dec)
             allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] + dither_pattern[i, 0])
             ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] + dither_pattern[i, 1])
-            scifile = glob.glob(sci_path % ('virus', 'virus', sci_obs,
-                                            '%02d' % (i+1), 'virus',
-                                            ifuslot))[0].replace('LL', amp)
-            image = base_reduction(scifile)
-            image = image - masterbias
-            spectrum = np.zeros((trace.shape[0], len(commonwave)))
-            x = np.arange(trace.shape[1])
-            speclist = []
-            wavelist = []
-            temp = np.zeros((len(x), 6))
-            temp2 = temp * 0.
-            for fiber in np.arange(trace.shape[0]):
-                indl = np.floor(trace[fiber]).astype(int)
-                for k, j in enumerate(np.arange(-2, 4)):
-                    try:
-                        temp[:, k] = image[indl+j, x]
-                        temp2[:, k] = flat[indl+j, x]
-                        speclist.append(temp[:, k] / temp2[:, k])
-                        wavelist.append(bigW[indl+j, x])
-                    except IndexError:
-                        dummy = 1.
-                tempspec = np.median(temp / temp2, axis=1)
-                tempspec[~np.isfinite(tempspec)] = 0.0
-                I = interp1d(wave[fiber], tempspec, kind='quadratic',
-                             fill_value='extrapolate')
-                spectrum[fiber] = I(commonwave)
-            specarray = np.hstack(speclist)
-            wavearray = np.hstack(wavelist)
-#            nw, ns = make_avg_spec(wavearray, specarray, binsize=181)
-#            sky = interp1d(nw, ns, kind='linear',
-#                           fill_value='extrapolate')(bigW)
-#            skysub = image - flat * sky
-#            spectrum2 = np.zeros((trace.shape[0], len(commonwave)))
-#            for fiber in np.arange(trace.shape[0]):
-#                indl = np.floor(trace[fiber]).astype(int)
-#                for k, j in enumerate(np.arange(-2, 4)):
-#                    try:
-#                        temp[:, k] = skysub[indl+j, x]
-#                        temp2[:, k] = flat[indl+j, x]
-#                    except IndexError:
-#                        dummy = 1.
-#                tempspec = np.median(temp / temp2, axis=1)
-#                tempspec[~np.isfinite(tempspec)] = 0.0
-#                I = interp1d(wave[fiber], tempspec, kind='quadratic',
-#                             fill_value='extrapolate')
-#                spectrum[fiber] = I(commonwave)
-            allspec.append(spectrum)
+            
+        flist1, flist2 = ([], [])
+        if cnt == 0:
+            for j, resi in enumerate(images):
+                if j == 0:
+                    func = fits.PrimaryHDU
+                else:
+                    func = fits.ImageHDU
+                flist1.append(func(resi))
+                flist2.append(func(subimages[i]))
+            fits.HDUList(flist1).writeto('test_sci.fits', overwrite=True)
+            fits.HDUList(flist2).writeto('test_sub.fits', overwrite=True)
+
+            sys.exit(1)
         t2 = time.time()
         cnt += 1
         time_per_amp = (t2 - t1) / cnt
