@@ -196,7 +196,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
         I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
-        residual.append((array_flt - modelimage*nflat) / array_flt)
+        residual.append((array_flt - modelimage*nflat))
     return flat, np.array(residual)
 
 
