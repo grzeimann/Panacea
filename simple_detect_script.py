@@ -200,7 +200,9 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
             indl = np.floor(array_trace[fiber]).astype(int)
             indh = np.ceil(array_trace[fiber]).astype(int)
             spectrum[fiber] = array_flt[indl, x] / flat[indl, x] / 2. + array_flt[indh, x] / flat[indh, x] / 2.
+        spectrum[~np.isfinite(spectrum)] = 0.0
         nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
+        ns[~np.isfinite(ns)] = 0.0
         I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
         sciflat.append(array_flt / modelimage)
@@ -245,7 +247,9 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
             indl = np.floor(array_trace[fiber]).astype(int)
             indh = np.ceil(array_trace[fiber]).astype(int)
             spectrum[fiber] = array_flt[indl, x] / flat[indl, x] / 2. + array_flt[indh, x] / flat[indh, x] / 2.
+        spectrum[~np.isfinite(spectrum)] = 0.0        
         nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
+        ns[~np.isfinite(ns)] = 0.0
         I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
         residual.append((array_flt - modelimage*flat))    
@@ -319,7 +323,7 @@ RA = float(header['TRAJRA'])
 DEC = float(header['TRAJDEC'])
 log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
 A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
-allflatspec, allspec, allra, alldec, allx, ally = ([], [], [], [], [], [])
+allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [], [], [])
 
 # Rectified wavelength
 commonwave = np.linspace(3500, 5500, 1500)
@@ -353,6 +357,7 @@ for ifuslot in ifuslots:
         scifiles = sci_path % ('virus', 'virus', sci_obs, '*', 'virus',
                                ifuslot)
         images, subimages = subtract_sci(scifiles, sciflat, trace, wave, bigW)
+        allsub.append(subimages)
         for i in np.arange(nexp):
             log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
                      ' %s' % (i+1, ifuslot, amp))
@@ -364,17 +369,16 @@ for ifuslot in ifuslots:
             allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] + dither_pattern[i, 0])
             ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] + dither_pattern[i, 1])
             
-        flist1, flist2 = ([], [])
-        if cnt == 14:
-            for j, resi in enumerate(images):
+        flist1 = []
+        if cnt == 8:
+            alls = np.vstack(allsub)
+            for j, resi in enumerate(alls):
                 if j == 0:
                     func = fits.PrimaryHDU
                 else:
                     func = fits.ImageHDU
                 flist1.append(func(resi))
-                flist2.append(func(subimages[j]))
-            fits.HDUList(flist1).writeto('test_sci.fits', overwrite=True)
-            fits.HDUList(flist2).writeto('test_sub.fits', overwrite=True)
+            fits.HDUList(flist1).writeto('test_sub.fits', overwrite=True)
 
             sys.exit(1)
         t2 = time.time()
