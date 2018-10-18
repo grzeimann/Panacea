@@ -143,6 +143,16 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         modelimage = I(bigW)
         flat = array_flt / modelimage
         listflat.append(flat)
+
+    flat = biweight_location(listflat, axis=(0,))
+    flat[~np.isfinite(flat)] = 0.0
+    flat[flat < 0.0] = 0.0
+
+    return flat, bigW
+
+
+def dummy_copy():
+    pass
     nc = 10
     rowchunk = np.array_split(listflat[0][1:-1,1:-1], nc, axis=1)
     chunk = [np.array_split(row, nc, axis=0) for row in rowchunk]
@@ -176,32 +186,6 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         nlistflat.append(flat*1.)
         shifts.append(f(Yx))
         log.info('Found shift for %s of %0.3f' % (filename, np.mean(f(Yx))))
-    flat = biweight_location(nlistflat, axis=(0,))
-    flat[~np.isfinite(flat)] = 0.0
-    flat[flat < 0.0] = 0.0
-    residual = []
-    X = np.arange(flat.shape[1])
-    Y = np.arange(flat.shape[0])
-    J = interp2d(X, Y, flat, kind='cubic', bounds_error=False,
-                 fill_value=0.0)
-    array_list = []
-    for filename, shift in zip(files, shifts):
-        log.info('Skysubtracting on sciflat %s' % filename)
-        array_flt = base_reduction(filename) - masterbias
-        array_list.append(array_flt)
-        x = np.arange(array_wave.shape[1])
-        spectrum = array_trace * 0.
-        nflat = J(X, Y+shift)
-        for fiber in np.arange(array_wave.shape[0]):
-            indl = np.floor(array_trace[fiber]).astype(int)
-            indh = np.ceil(array_trace[fiber]).astype(int)
-            spectrum[fiber] = array_flt[indl, x] / nflat[indl, x] / 2. + array_flt[indh, x] / nflat[indh, x] / 2.
-        nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
-        I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
-        modelimage = I(bigW)
-        residual.append((array_flt - modelimage*nflat))
-    return flat, bigW
-
 
 def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
     files = glob.glob(sci_path.replace('LL', amp))
