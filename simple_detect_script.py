@@ -183,9 +183,11 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
     Y = np.arange(flat.shape[0])
     J = interp2d(X, Y, flat, kind='cubic', bounds_error=False,
                  fill_value=0.0)
+    array_list = []
     for filename, shift in zip(files, shifts):
         log.info('Skysubtracting on sciflat %s' % filename)
         array_flt = base_reduction(filename) - masterbias
+        array_list.append(array_flt)
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
         nflat = J(X, Y+shift)
@@ -197,7 +199,8 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
         residual.append((array_flt - modelimage*nflat))
-    return flat, np.array(residual)
+    
+    return flat, np.array(residual), np.array(array_list)
 
 
 def get_masterbias(zro_path, amp):
@@ -294,16 +297,19 @@ for ifuslot in ifuslots:
         masterbias = get_masterbias(zro_path, amp)
         scibase = sciflt_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
         log.info('Getting SciFlat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
-        sciflat, res = get_sciflat_field(scibase, amp, wave, trace, commonwave,
-                                         masterbias, log)
-        flist = []
+        sciflat, res, ims = get_sciflat_field(scibase, amp, wave, trace, commonwave,
+                                              masterbias, log)
+        flist1 = []
+        flist2 = []
         for j, resi in enumerate(res):
             if j == 0:
-                f = fits.PrimaryHDU(resi)
+                func = fits.PrimaryHDU
             else:
-                f = fits.ImageHDU(resi)
-            flist.append(f)
-        fits.HDUList(flist).writeto('test_res.fits', overwrite=True)
+                func = fits.ImageHDU
+            flist1.append(func(resi))
+            flist2.append(func(ims[j]))
+        fits.HDUList(flist1).writeto('test_res.fits', overwrite=True)
+        fits.HDUList(flist2).writeto('test_im.fits', overwrite=True)
         fits.HDUList([fits.PrimaryHDU(flat), fits.ImageHDU(sciflat)]).writeto('test_flat.fits', overwrite=True)
         log.info('UGLY EXIT!')
         if cnt == 0:
