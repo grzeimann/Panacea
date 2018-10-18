@@ -283,7 +283,7 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
             I = interp1d(array_wave[fiber], spectrum[fiber], kind='quadratic', fill_value='extrapolate')
             speclist.append(I(commonwave))
         spec_list.append(np.array(speclist))
-    return np.array(array_list), np.array(residual), np.array(speclist)
+    return np.array(array_list), np.array(residual), np.array(spec_list)
 
 def get_masterbias(zro_path, amp):
     files = glob.glob(zro_path.replace('LL', amp))
@@ -401,9 +401,7 @@ for ifuslot in ifuslots:
             allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] + dither_pattern[i, 0])
             ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] + dither_pattern[i, 1])
 
-        if cnt == 16:
-            breakloop = True
-            break
+
         t2 = time.time()
         cnt += 1
         time_per_amp = (t2 - t1) / cnt
@@ -415,7 +413,7 @@ for ifuslot in ifuslots:
 #            fits.ImageHDU(sky*flat), fits.ImageHDU(skysub)]
 # fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
 # sys.exit(1)
-fitslist = [fits.PrimaryHDU(np.vstack(allspec)),
+fitslist = [fits.PrimaryHDU(np.array(allspec)),
             fits.ImageHDU(commonwave),
             fits.ImageHDU(np.array(allra)),
             fits.ImageHDU(np.array(alldec)),
