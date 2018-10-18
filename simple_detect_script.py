@@ -365,7 +365,7 @@ for ifuslot in ifuslots:
             ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] + dither_pattern[i, 1])
             
         flist1, flist2 = ([], [])
-        if cnt == 0:
+        if cnt == 14:
             for j, resi in enumerate(images):
                 if j == 0:
                     func = fits.PrimaryHDU
