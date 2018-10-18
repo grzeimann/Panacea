@@ -208,7 +208,7 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
 
     sciflat = []
     for filename in files:
-        log.info('Skysubtracting on sciflat %s' % filename)
+        log.info('Getting flat for sci %s' % filename)
         array_flt = base_reduction(filename) - masterbias
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
@@ -252,7 +252,7 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
     array_list = []
     residual = []
     for filename in files:
-        log.info('Skysubtracting on sciflat %s' % filename)
+        log.info('Skysubtracting sci %s' % filename)
         array_flt = base_reduction(filename) - masterbias
         array_list.append(array_flt)
         x = np.arange(array_wave.shape[1])
@@ -388,7 +388,7 @@ for ifuslot in ifuslots:
                 else:
                     func = fits.ImageHDU
                 flist1.append(func(resi))
-                flist2.append(func(subimages[i]))
+                flist2.append(func(subimages[j]))
             fits.HDUList(flist1).writeto('test_sci.fits', overwrite=True)
             fits.HDUList(flist2).writeto('test_sub.fits', overwrite=True)
 
