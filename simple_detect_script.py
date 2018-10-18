@@ -153,7 +153,8 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
     fitter = LevMarLSQFitter()
     P = Polynomial1D(1)
     shifts = []
-    for flat in listflat:
+    for flat, filename in zip(listflat, files):
+        log.info('Getting shift for %s' % filename)
         rowchunk = np.array_split(flat[1:-1,1:-1], nc, axis=1)
         chunk2 = [np.array_split(row, nc, axis=0) for row in rowchunk]      
         x, y, z = ([], [], [])
@@ -171,6 +172,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
                      fill_value=0.0)
         flat = I(Xx, Yx-f(Yx))
         shifts.append(f(Yx))
+        log.info('Found shift for %s of %0.3f' % (filename, np.mean(f(Yx))))
     flat = biweight_location(listflat, axis=(0,))
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
@@ -192,7 +194,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
         I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
-        residual.append(array_flt - modelimage*nflat)
+        residual.append((array_flt - modelimage*nflat) / array_flt)
     return flat, np.array(residual)
 
 
