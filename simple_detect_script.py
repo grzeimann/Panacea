@@ -270,7 +270,7 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
                     k=-2
                 v = indl+k
                 sel = np.where((v>=0) * (v<len(x)))[0]
-                spectrum[fiber][sel] = np.sum(temp*temp2, axis=1) / np.sum(temp2**2, axis=1)
+                spectrum[fiber, sel] = np.sum(temp[sel]*temp2[sel], axis=1) / np.sum(temp2[sel]**2, axis=1)
             else:
                 spectrum[fiber] = np.sum(temp*temp2, axis=1) / np.sum(temp2**2, axis=1)
         spectrum[~np.isfinite(spectrum)] = 0.0        
