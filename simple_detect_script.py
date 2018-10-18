@@ -257,11 +257,11 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
                     temp2[:, ss] = flat[indl+k, x]
                 except:
                     v = indl+k
-                    sel = np.where((v>=0) * (v<len(x)))[0]
+                    sel = np.where((v>=0) * (v<array_flt.shape[0]))[0]
                     temp[:, ss] = 0.0
                     temp2[:, ss] = 1.0
-                    temp[sel, ss] = array_flt[v[sel], x]
-                    temp2[sel, ss] = flat[v[sel], x]
+                    temp[sel, ss] = array_flt[v[sel], x[sel]]
+                    temp2[sel, ss] = flat[v[sel], x[sel]]
                     flag = True
             if flag:
                 if np.mean(indl)>(array_flt.shape[0]/2.):
