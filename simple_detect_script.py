@@ -187,8 +187,9 @@ def dummy_copy():
         shifts.append(f(Yx))
         log.info('Found shift for %s of %0.3f' % (filename, np.mean(f(Yx))))
 
+
 def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
-    files = glob.glob(sci_path.replace('LL', amp))
+    files = sorted(glob.glob(sci_path.replace('LL', amp)))
 
     sciflat = []
     for filename in files:
@@ -237,23 +238,52 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
     log.info('Found shift for %s of %0.3f' % (files[0], np.mean(f(Yx))))
     array_list = []
     residual = []
+    spec_list = []
     for filename in files:
         log.info('Skysubtracting sci %s' % filename)
         array_flt = base_reduction(filename) - masterbias
         array_list.append(array_flt)
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
+        temp = np.zeros((array_flt.shape[1], 6))
+        temp2 = np.zeros((array_flt.shape[1], 6))
+        speclist = []
         for fiber in np.arange(array_wave.shape[0]):
             indl = np.floor(array_trace[fiber]).astype(int)
-            indh = np.ceil(array_trace[fiber]).astype(int)
-            spectrum[fiber] = array_flt[indl, x] / flat[indl, x] / 2. + array_flt[indh, x] / flat[indh, x] / 2.
+            flag = False
+            for ss, k in enumerate(np.arange(-2, 4)):
+                try:
+                    temp[:, ss] = array_flt[indl+k, x]
+                    temp2[:, ss] = flat[indl+k, x]
+                except:
+                    v = indl+k
+                    sel = np.where((v>=0) * (v<len(x)))[0]
+                    temp[:, ss] = 0.0
+                    temp2[:, ss] = 1.0
+                    temp[sel, ss] = array_flt[v[sel], x]
+                    temp2[sel, ss] = flat[v[sel], x]
+                    flag = True
+            if flag:
+                if np.mean(indl)>(array_flt.shape[0]/2.):
+                    k=3
+                else:
+                    k=-2
+                v = indl+k
+                sel = np.where((v>=0) * (v<len(x)))[0]
+                spectrum[fiber][sel] = np.sum(temp*temp2, axis=1) / np.sum(temp2**2, axis=1)
+            else:
+                spectrum[fiber] = np.sum(temp*temp2, axis=1) / np.sum(temp2**2, axis=1)
         spectrum[~np.isfinite(spectrum)] = 0.0        
         nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
         ns[~np.isfinite(ns)] = 0.0
         I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
-        residual.append((array_flt - modelimage*flat))    
-    return np.array(array_list), np.array(residual)
+        residual.append((array_flt - modelimage*flat))
+        for fiber in np.arange(array_wave.shape[0]):
+            I = interp1d(array_wave[fiber], spectrum[fiber], kind='quadratic', fill_value='extrapolate')
+            speclist.append(I(commonwave))
+        spec_list.append(np.array(speclist))
+    return np.array(array_list), np.array(residual), np.array(speclist)
 
 def get_masterbias(zro_path, amp):
     files = glob.glob(zro_path.replace('LL', amp))
@@ -331,6 +361,7 @@ N = len(ifuslots) * len(virus_amps)
 t1 = time.time()
 cnt = 0
 cnt2 = 0
+breakloop = False
 for ifuslot in ifuslots:
     for amp in virus_amps:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
@@ -356,8 +387,9 @@ for ifuslot in ifuslots:
         i1 = []
         scifiles = sci_path % ('virus', 'virus', sci_obs, '*', 'virus',
                                ifuslot)
-        images, subimages = subtract_sci(scifiles, sciflat, trace, wave, bigW)
+        images, subimages, spec = subtract_sci(scifiles, sciflat, trace, wave, bigW)
         allsub.append(subimages)
+        allspec.append(spec)
         for i in np.arange(nexp):
             log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
                      ' %s' % (i+1, ifuslot, amp))
@@ -368,40 +400,34 @@ for ifuslot in ifuslots:
             alldec.append(dec)
             allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] + dither_pattern[i, 0])
             ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] + dither_pattern[i, 1])
-            
-        flist1 = []
-        if cnt == 8:
-            alls = np.vstack(allsub)
-            for j, resi in enumerate(alls):
-                if j == 0:
-                    func = fits.PrimaryHDU
-                else:
-                    func = fits.ImageHDU
-                flist1.append(func(resi))
-            fits.HDUList(flist1).writeto('test_sub.fits', overwrite=True)
 
-            sys.exit(1)
+        if cnt == 16:
+            breakloop = True
+            break
         t2 = time.time()
         cnt += 1
         time_per_amp = (t2 - t1) / cnt
         remaining_amps = (N - cnt)
         log.info('Time remaining: %0.2f' % (time_per_amp * remaining_amps))
+    if breakloop:
+        break
 # fitslist = [fits.PrimaryHDU(image), fits.ImageHDU(flat),
 #            fits.ImageHDU(sky*flat), fits.ImageHDU(skysub)]
 # fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
 # sys.exit(1)
-allflatspec = np.array(allflatspec)
-norm = np.sum(allflatspec, axis=1)[:, np.newaxis]
-norm = norm / np.median(norm)
-avg = np.percentile(allflatspec / norm, 99, axis=0)
-newnorm = allflatspec / avg
-fitslist = [fits.PrimaryHDU(np.array(allflatspec)),
-            fits.ImageHDU(np.array(newnorm)),
-            fits.ImageHDU(np.array(allspec)),
+fitslist = [fits.PrimaryHDU(np.vstack(allspec)),
             fits.ImageHDU(commonwave),
             fits.ImageHDU(np.array(allra)),
             fits.ImageHDU(np.array(alldec)),
             fits.ImageHDU(np.array(allx)),
             fits.ImageHDU(np.array(ally))]
 fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
-fits.PrimaryHDU(flat).writeto('test_flat.fits', overwrite=True)
+flist1 = []
+alls = np.vstack(allsub)
+for j, resi in enumerate(alls):
+    if j == 0:
+        func = fits.PrimaryHDU
+    else:
+        func = fits.ImageHDU
+    flist1.append(func(resi))
+fits.HDUList(flist1).writeto('test_sub.fits', overwrite=True)
