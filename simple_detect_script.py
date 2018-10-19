@@ -79,7 +79,7 @@ def make_avg_spec(wave, spec, binsize=35):
     schunks = np.array_split(spec.ravel()[ind],
                              T / binsize)
     nwave = np.array([np.mean(chunk) for chunk in wchunks])
-    nspec = np.array([biweight_location(chunk) for chunk in schunks])
+    nspec = np.array([np.median(chunk) for chunk in schunks])
     nwave, nind = np.unique(nwave, return_index=True)
     return nwave, nspec[nind]
 
@@ -409,11 +409,8 @@ for ifuslot in ifuslots:
         log.info('Time remaining: %0.2f' % (time_per_amp * remaining_amps))
     if breakloop:
         break
-# fitslist = [fits.PrimaryHDU(image), fits.ImageHDU(flat),
-#            fits.ImageHDU(sky*flat), fits.ImageHDU(skysub)]
-# fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
-# sys.exit(1)
-fitslist = [fits.PrimaryHDU(np.array(allspec)),
+
+fitslist = [fits.PrimaryHDU(np.vstack(allspec)),
             fits.ImageHDU(commonwave),
             fits.ImageHDU(np.array(allra)),
             fits.ImageHDU(np.array(alldec)),
