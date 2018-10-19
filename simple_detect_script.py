@@ -119,6 +119,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
                 warnings.simplefilter("ignore")
                 p0 = np.polyfit(at[:, j], aw[:, j], 7)
             bigW[yy[:, j], j] = np.polyval(p0, yy[:, j])
+    listspec = []
     for filename in files:
         log.info('Working on sciflat %s' % filename)
         array_flt = base_reduction(filename) - masterbias
@@ -143,12 +144,12 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         modelimage = I(bigW)
         flat = array_flt / modelimage
         listflat.append(flat)
-
+        listspec.append(I(common_wave))
     flat = biweight_location(listflat, axis=(0,))
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
 
-    return flat, bigW
+    return flat, bigW, np.nanmedian(listspec, axis=0)
 
 
 def dummy_copy():
@@ -252,33 +253,37 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
                     temp2[:, ss] = flat[indl+k, x]
                 except:
                     v = indl+k
-                    sel = np.where((v>=0) * (v<array_flt.shape[0]))[0]
+                    sel = np.where((v >= 0) * (v < array_flt.shape[0]))[0]
                     temp[:, ss] = 0.0
                     temp2[:, ss] = 1.0
                     temp[sel, ss] = array_flt[v[sel], x[sel]]
                     temp2[sel, ss] = flat[v[sel], x[sel]]
                     flag = True
             if flag:
-                if np.mean(indl)>(array_flt.shape[0]/2.):
-                    k=3
+                if np.mean(indl) > (array_flt.shape[0]/2.):
+                    k = 3
                 else:
-                    k=-2
+                    k = -2
                 v = indl+k
-                sel = np.where((v>=0) * (v<len(x)))[0]
-                spectrum[fiber, sel] = np.sum(temp[sel]*temp2[sel], axis=1) / np.sum(temp2[sel]**2, axis=1)
+                sel = np.where((v >= 0) * (v < len(x)))[0]
+                spectrum[fiber, sel] = (np.sum(temp[sel]*temp2[sel], axis=1) /
+                                        np.sum(temp2[sel]**2, axis=1))
             else:
-                spectrum[fiber] = np.sum(temp*temp2, axis=1) / np.sum(temp2**2, axis=1)
-        spectrum[~np.isfinite(spectrum)] = 0.0        
+                spectrum[fiber] = (np.sum(temp*temp2, axis=1) /
+                                   np.sum(temp2**2, axis=1))
+        spectrum[~np.isfinite(spectrum)] = 0.0
         nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
         ns[~np.isfinite(ns)] = 0.0
         I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
         residual.append((array_flt - modelimage*flat))
         for fiber in np.arange(array_wave.shape[0]):
-            I = interp1d(array_wave[fiber], spectrum[fiber], kind='quadratic', fill_value='extrapolate')
+            I = interp1d(array_wave[fiber], spectrum[fiber], kind='quadratic',
+                         fill_value='extrapolate')
             speclist.append(I(commonwave))
         spec_list.append(np.array(speclist))
     return np.array(array_list), np.array(residual), np.array(spec_list)
+
 
 def get_masterbias(zro_path, amp):
     files = glob.glob(zro_path.replace('LL', amp))
@@ -370,19 +375,22 @@ for ifuslot in ifuslots:
         # log.info('Getting Flat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
         # flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
         #                                      commonwave)
-        log.info('Getting Masterbias for ifuslot, %s, and amp, %s' % (ifuslot, amp))
+        log.info('Getting Masterbias for ifuslot, %s, and amp, %s' %
+                 (ifuslot, amp))
         zro_path = bias_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
         masterbias = get_masterbias(zro_path, amp)
-        scibase = sciflt_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
-        log.info('Getting SciFlat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
-        sciflat, bigW = get_sciflat_field(scibase, amp, wave, trace, commonwave,
-                                              masterbias, log)
-        
+        twibase = sciflt_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
+        log.info('Getting SciFlat for ifuslot, %s, and amp, %s' %
+                 (ifuslot, amp))
+        twiflat, bigW, twispec = get_sciflat_field(twibase, amp, wave, trace,
+                                                   commonwave, masterbias, log)
+        allflatspec.append(twispec)
         wave = np.array(wave, dtype=float)
         i1 = []
         scifiles = sci_path % ('virus', 'virus', sci_obs, '*', 'virus',
                                ifuslot)
-        images, subimages, spec = subtract_sci(scifiles, sciflat, trace, wave, bigW)
+        images, subimages, spec = subtract_sci(scifiles, twiflat, trace, wave,
+                                               bigW)
         allsub.append(subimages)
         allspec.append(spec)
         for i in np.arange(nexp):
@@ -393,9 +401,10 @@ for ifuslot in ifuslots:
                                           amppos[:, 1] + dither_pattern[i, 1])
             allra.append(ra)
             alldec.append(dec)
-            allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] + dither_pattern[i, 0])
-            ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] + dither_pattern[i, 1])
-
+            allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] +
+                        dither_pattern[i, 0])
+            ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] +
+                        dither_pattern[i, 1])
         if cnt == 2:
             breakloop = True
             break
@@ -408,6 +417,7 @@ for ifuslot in ifuslots:
         break
 
 fitslist = [fits.PrimaryHDU(np.vstack(allspec)),
+            fits.ImageHDU(np.array(allflatspec)),
             fits.ImageHDU(commonwave),
             fits.ImageHDU(np.array(allra)),
             fits.ImageHDU(np.array(alldec)),
