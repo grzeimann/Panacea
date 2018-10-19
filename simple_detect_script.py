@@ -391,7 +391,7 @@ for ifuslot in ifuslots:
                                ifuslot)
         images, subimages, spec = subtract_sci(scifiles, twiflat, trace, wave,
                                                bigW)
-        allsub.append(subimages)
+        allsub.append(images)
         allspec.append(spec)
         for i in np.arange(nexp):
             log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
@@ -405,7 +405,7 @@ for ifuslot in ifuslots:
                         dither_pattern[i, 0])
             ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] +
                         dither_pattern[i, 1])
-        if cnt == 51:
+        if cnt == 5:
             breakloop = True
             break
         t2 = time.time()
