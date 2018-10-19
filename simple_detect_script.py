@@ -401,7 +401,9 @@ for ifuslot in ifuslots:
             allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] + dither_pattern[i, 0])
             ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] + dither_pattern[i, 1])
 
-
+        if cnt == 2:
+            breakloop = True
+            break
         t2 = time.time()
         cnt += 1
         time_per_amp = (t2 - t1) / cnt
