@@ -405,7 +405,7 @@ for ifuslot in ifuslots:
                         dither_pattern[i, 0])
             ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] +
                         dither_pattern[i, 1])
-        if cnt == 2:
+        if cnt == 51:
             breakloop = True
             break
         t2 = time.time()
