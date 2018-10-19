@@ -46,7 +46,7 @@ flt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL*.fits')
 sciflt_path = op.join(baseraw, '20181003',  '%s', '%s%s', 'exp*',
                       '%s', '2*_%sLL_twi.fits')
-bias_path = op.join(baseraw, '2018100[2,3,4,5]', '%s', '%s%s', 'exp*',
+bias_path = op.join(baseraw, '20181003', '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
 
 def get_cal_info(twi_path, amp):
@@ -209,25 +209,20 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
         sciflat.append(array_flt / modelimage)
     sciflat = np.median(sciflat, axis=0)
     nc = 10
-    rowchunk = np.array_split(flat[1:-1,1:-1], nc, axis=1)
-    chunk = [np.array_split(row, nc, axis=0) for row in rowchunk]
+    chunk = np.array_split(flat[1:-1,1:-1], nc, axis=0)
     Y, X = np.indices(flat.shape)
-    rowchunk = np.array_split(X[1:-1,1:-1], nc, axis=1)
-    chunkx = [np.array_split(row, nc, axis=0) for row in rowchunk]
-    rowchunk = np.array_split(Y[1:-1,1:-1], nc, axis=1)
-    chunky = [np.array_split(row, nc, axis=0) for row in rowchunk]
+    chunkx = np.array_split(X[1:-1,1:-1], nc, axis=0)
+    chunky = np.array_split(Y[1:-1,1:-1], nc, axis=0)
     fitter = LevMarLSQFitter()
     P = Polynomial1D(1)
     log.info('Getting shift for %s' % files[0])
-    rowchunk = np.array_split(sciflat[1:-1,1:-1], nc, axis=1)
-    chunk2 = [np.array_split(row, nc, axis=0) for row in rowchunk]      
+    chunk2 = np.array_split(sciflat[1:-1,1:-1], nc, axis=0)
     x, y, z = ([], [], [])
     for i in np.arange(len(chunk)):
-        for j in np.arange(len(chunk[0])):
-            shift, error, diffphase = register_translation(chunk[i][j], chunk2[i][j], 500)
-            x.append(np.mean(chunkx[i][j]))
-            y.append(np.mean(chunky[i][j]))
-            z.append(shift)
+        shift, error, diffphase = register_translation(chunk[i], chunk2[i], 500)
+        x.append(np.mean(chunkx[i]))
+        y.append(np.mean(chunky[i]))
+        z.append(shift)
     x, y, z = [np.array(k) for k in [x, y, z]]
     f = fitter(P, y, z[:, 0])
     Xx = np.arange(flat.shape[1])
