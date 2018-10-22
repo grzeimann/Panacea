@@ -391,7 +391,7 @@ for ifuslot in ifuslots:
                                ifuslot)
         images, subimages, spec = subtract_sci(scifiles, twiflat, trace, wave,
                                                bigW)
-        allsub.append(images)
+        allsub.append(subimages)
         allspec.append(spec)
         for i in np.arange(nexp):
             log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
