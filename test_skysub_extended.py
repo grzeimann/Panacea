@@ -80,12 +80,13 @@ def make_frame(xloc, yloc, data, wave, dw, Dx, Dy, wstart=5700.,
     zgrid = np.zeros((b,)+xgrid.shape)
     area = 3. / 4. * np.sqrt(3.) * 0.59**2
     for k in np.arange(b):
+        sel = np.isfinite(data[:, k])
         D = np.sqrt((xloc[:, np.newaxis, np.newaxis] - Dx[k] - xgrid)**2 +
                     (yloc[:, np.newaxis, np.newaxis] - Dy[k] - ygrid)**2)
         W = np.exp(-0.5 / (seeing/2.35)**2 * D**2)
         N = W.sum(axis=0)
-        zgrid[k, :, :] = ((data[:, k][:, np.newaxis, np.newaxis] *
-                           W).sum(axis=0) / N / scale**2 / area)
+        zgrid[k, :, :] = ((data[sel, k][:, np.newaxis, np.newaxis] *
+                           W[sel]).sum(axis=0) / N / scale**2 / area)
     wi = np.searchsorted(wave, wstart, side='left')
     we = np.searchsorted(wave, wend, side='right')
 
@@ -185,8 +186,8 @@ def get_selection(array1, array2):
     m2 = medfilt(array2, 5)
     y1 = np.abs(array1 - m1)
     y2 = np.abs(array2 - m2)
-    mad1 = np.median(y1)
-    mad2 = np.median(y2)
+    mad1 = np.nanmedian(y1)
+    mad2 = np.nanmedian(y2)
     return (y1 < (5 * mad1)) * (y2 < (5 * mad2))
 
 
@@ -208,6 +209,8 @@ def solve_system(sci_list, sky_list, x, y, xoff, yoff, sci_image):
         else:
             C[:, 0] = sci_image[:, j]
         sel = get_selection(sci_list[1][:, j], sky_list[1][:, j])
+        sel = (sel * np.isfinite(sci_list[1][:, j]) *
+               np.isfinite(sky_list[1][:, j]))
         C[:, 1] = sky_list[1][:, j]
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -243,6 +246,7 @@ def main(reduc_info, info_list):
         # Initial Models
         xn, yn = (0., 0.)
         sel = np.where(((x - xn)**2 + (y-yn)**2) > 5.0**2)[0]
+        sel = np.where()
         v = biweight_location(sci_list[1][sel, :] / sky_list[1][sel, :],
                               axis=(0,))
         gal_image = biweight_location(sci_list[1] - v * sky_list[1], axis=(1,))
