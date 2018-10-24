@@ -252,8 +252,9 @@ def find_cosmics(Y, E, thresh=5.):
     for i in np.arange(-1, 2):
         for j in np.arange(-1, 2):
             sel = ((x + i) >= 0) * ((x + i) < Y.shape[0])
+            sel2 = ((y + j) >= 0) * ((y + j) < Y.shape[1])
+            sel = sel * sel2
             xx.append((x + i)[sel])
-            sel = ((y + j) >= 0) * ((y + j) < Y.shape[1])
             yy.append((y + j)[sel])
     xx = np.hstack(xx)
     yy = np.hstack(yy)
