@@ -247,7 +247,6 @@ def find_cosmics(Y, E, thresh=8.):
     A = medfilt2d(Y, (5, 1))
     S = safe_division((Y - A), E)
     P = S - medfilt2d(S, (1, 15))
-    fits.PrimaryHDU(E).writeto('wtf.fits', overwrite=True)
     x, y = np.where(P > thresh)
     xx, yy = ([], [])
     for i in np.arange(-1, 2):
@@ -267,6 +266,7 @@ def find_cosmics(Y, E, thresh=8.):
     log.info('Number of pixels affected by cosmics: %i' % len(x))
     log.info('Fraction of pixels affected by cosmics: %0.5f' %
              (1.*len(inds)/Y.shape[0]/Y.shape[1]))
+    fits.PrimaryHDU(np.array(C, dtype=float)).writeto('wtf.fits', overwrite=True)
     return C
 
 
