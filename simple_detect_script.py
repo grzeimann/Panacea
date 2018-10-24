@@ -245,9 +245,9 @@ def safe_division(num, denom, eps=1e-8, fillval=0.0):
 
 def find_cosmics(Y, E, thresh=8.):
     A = medfilt2d(Y, (5, 1))
-    E[E>1e6] = 0.0
     S = safe_division((Y - A), E)
     P = S - medfilt2d(S, (1, 15))
+    fits.PrimaryHDU(P).writeto('wtf.fits', overwrite=True)
     x, y = np.where(P > thresh)
     xx, yy = ([], [])
     for i in np.arange(-1, 2):
