@@ -248,14 +248,14 @@ def find_cosmics(Y, E, thresh=5.):
     S = safe_division((Y - A), E)
     P = S - medfilt2d(S, (1, 15))
     x, y = np.where(P > thresh)
-    X, Y = ([], [])
+    xx, yy = ([], [])
     for i in np.arange(-1, 2):
         for j in np.arange(-1, 2):
-            X.append(x + i)
-            Y.append(y + j)
-    X = np.hstack(X)
-    Y = np.hstack(Y)
-    inds = np.ravel_multi_index([X, Y], Y.shape)
+            xx.append(x + i)
+            yy.append(y + j)
+    xx = np.hstack(xx)
+    yy = np.hstack(yy)
+    inds = np.ravel_multi_index([xx, yy], Y.shape)
     inds = np.unique(inds)
     C = np.zeros(Y.shape, dtype=bool)
     C[inds] = True
