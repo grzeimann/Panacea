@@ -444,7 +444,7 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
                                                            [], [])
 
 # Rectified wavelength
-commonwave = np.linspace(3500, 5500, 1500)
+commonwave = np.linspace(6450, 8400, 3000)
 N = len(ifuslots) * len(virus_amps)
 t1 = time.time()
 cnt = 0
