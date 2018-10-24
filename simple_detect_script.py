@@ -245,7 +245,8 @@ def safe_division(num, denom, eps=1e-8, fillval=0.0):
 
 def find_cosmics(Y, E, thresh=5.):
     A = medfilt2d(Y, (5, 1))
-    P = (Y - A) / E - medfilt2d((Y - A) / E, (1, 15))
+    S = safe_division((Y - A), E)
+    P = S - medfilt2d(S, (1, 15))
     x, y = np.where(P > thresh)
     X, Y = ([], [])
     for i in np.arange(-1, 2):
@@ -254,7 +255,7 @@ def find_cosmics(Y, E, thresh=5.):
             Y.append(y + j)
     X = np.hstack(X)
     Y = np.hstack(Y)
-    inds = np.ravel_multi_index(np.array([X, Y]).swapaxes(0, 1), Y.shape)
+    inds = np.ravel_multi_index([X, Y], Y.shape)
     inds = np.unique(inds)
     C = np.zeros(Y.shape, dtype=bool)
     C[inds] = True
