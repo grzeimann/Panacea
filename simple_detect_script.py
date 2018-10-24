@@ -247,7 +247,7 @@ def find_cosmics(Y, E, thresh=8.):
     A = medfilt2d(Y, (5, 1))
     S = safe_division((Y - A), E)
     P = S - medfilt2d(S, (1, 15))
-    fits.PrimaryHDU(P).writeto('wtf.fits', overwrite=True)
+    fits.PrimaryHDU(S).writeto('wtf.fits', overwrite=True)
     x, y = np.where(P > thresh)
     xx, yy = ([], [])
     for i in np.arange(-1, 2):
