@@ -197,7 +197,6 @@ def dummy_copy():
 
 def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
     files = sorted(glob.glob(sci_path.replace('LL', amp)))
-
     sciflat = []
     for filename in files:
         log.info('Getting flat for sci %s' % filename)
@@ -398,14 +397,14 @@ for ifuslot in ifuslots:
                  (ifuslot, amp))
         twiflat, bigW, twispec = get_sciflat_field(twibase, amp, wave, trace,
                                                    commonwave, masterbias, log)
-        allflatspec.append(twispec)
+        allflatspec.append(twiflat)
         wave = np.array(wave, dtype=float)
         i1 = []
         scifiles = sci_path % (instrument, instrument, sci_obs, '*', instrument,
                                ifuslot)
         images, subimages, spec = subtract_sci(scifiles, twiflat, trace, wave,
                                                bigW)
-        allsub.append(subimages)
+        allsub.append(images)
         allspec.append(spec)
         for i in np.arange(nexp):
             log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
