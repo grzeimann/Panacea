@@ -49,9 +49,9 @@ sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*.fits')
 flt_path = op.join(baseraw, flt_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL*.fits')
-sciflt_path = op.join(baseraw, '20181003',  '%s', '%s%s', 'exp*',
+sciflt_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
                       '%s', '2*_%sLL_twi.fits')
-bias_path = op.join(baseraw, '20181003', '%s', '%s%s', 'exp*',
+bias_path = op.join(baseraw, twi_date, '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
 
 def get_cal_info(twi_path, amp):
