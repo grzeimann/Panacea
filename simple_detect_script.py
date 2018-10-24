@@ -260,9 +260,9 @@ def find_cosmics(Y, E, thresh=5.):
     yy = np.hstack(yy)
     inds = np.ravel_multi_index([xx, yy], Y.shape)
     inds = np.unique(inds)
-    print(inds)
-    C = np.zeros(Y.shape, dtype=bool)
+    C = np.zeros(Y.shape, dtype=bool).ravel()
     C[inds] = True
+    C = C.reshape(Y.shape)
     return C
 
 
