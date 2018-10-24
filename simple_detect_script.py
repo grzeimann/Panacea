@@ -251,8 +251,10 @@ def find_cosmics(Y, E, thresh=5.):
     xx, yy = ([], [])
     for i in np.arange(-1, 2):
         for j in np.arange(-1, 2):
-            xx.append(x + i)
-            yy.append(y + j)
+            if ((x + i) >= 0) and ((x + i) < Y.shape[0]):
+                xx.append(x + i)
+            if ((y + j) >= 0) and ((y + j) < Y.shape[1]):
+                yy.append(y + j)
     xx = np.hstack(xx)
     yy = np.hstack(yy)
     inds = np.ravel_multi_index([xx, yy], Y.shape)
