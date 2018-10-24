@@ -283,6 +283,7 @@ def weighted_extraction(image, flat, trace):
     cosmics = find_cosmics(Y, E)
     x = np.arange(trace.shape[1])
     spectrum = 0. * trace
+    TT = np.zeros((trace.shape[0], 3, trace.shape[1], 4))
     for fiber in np.arange(trace.shape[0]):
         T = np.zeros((3, trace.shape[1], 4))
         indl = np.floor(trace[fiber]).astype(int)
@@ -313,6 +314,8 @@ def weighted_extraction(image, flat, trace):
             a = np.sum(T[0] * T[1] * T[2], axis=1)
             b = np.sum(T[1] * T[2], axis=1)
             spectrum[fiber] = safe_division(a, b)
+        TT[fiber] = T
+    fits.PrimaryHDU(TT).writeto('wtf2.fits', overwrite=True)
     return spectrum
 
 
