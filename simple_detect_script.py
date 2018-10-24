@@ -273,6 +273,7 @@ def weighted_extraction(image, flat, trace):
     I[I < 0.] = 0.
     E = np.sqrt(rdnoise**2 + gain * I) / gain
     E = safe_division(E, flat)
+    E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
     cosmics = find_cosmics(Y, E)
     x = np.arange(trace.shape[1])
