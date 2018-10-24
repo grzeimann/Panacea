@@ -31,6 +31,7 @@ sci_obs = '%07d' % 9
 twi_date = '20181003'
 sci_date = twi_date
 flt_date = twi_date
+instrument = 'lrs2'
 
 log = setup_logging('panacea_quicklook')
 
@@ -340,14 +341,14 @@ def get_flat_field(flt_path, amp, array_wave, array_trace, common_wave):
 
 
 # GET ALL VIRUS IFUSLOTS
-twilist = glob.glob(twi_path % ('virus', 'virus', twi_obs, 'virus', '*'))
+twilist = glob.glob(twi_path % (instrument, instrument, twi_obs, instrument, '*'))
 ifuslots = [op.basename(x).split('_')[2] for x in twilist]
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
-nexp = len(glob.glob(sci_path % ('virus', 'virus', sci_obs, '*', 'virus',
+nexp = len(glob.glob(sci_path % (instrument, instrument, sci_obs, '*', instrument,
                                  ifuslots[0])))
-header = fits.open(glob.glob(sci_path % ('virus', 'virus', sci_obs, '01',
-                                         'virus', ifuslots[0]))[0])[0].header
+header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
+                                         instrument, ifuslots[0]))[0])[0].header
 PA = float(header['PARANGLE'])
 RA = float(header['TRAJRA'])
 DEC = float(header['TRAJDEC'])
@@ -362,24 +363,25 @@ t1 = time.time()
 cnt = 0
 cnt2 = 0
 breakloop = False
+ifuslots = ['066']
 for ifuslot in ifuslots:
-    for amp in virus_amps:
+    for amp in lrs2_amps:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
-        twibase = twi_path % ('virus', 'virus', twi_obs, 'virus', ifuslot)
+        twibase = twi_path % (instrument, instrument, twi_obs, instrument, ifuslot)
         amppos, trace, wave = get_cal_info(twibase, amp)
         if wave.ndim == 1:
             log.info('Insufficient cal data for ifuslot, %s, and amp, %s'
                      % (ifuslot, amp))
             continue
-        # fltbase = flt_path % ('virus', 'virus', flt_obs, 'virus', ifuslot)
+        # fltbase = flt_path % (instrument, instrument, flt_obs, instrument, ifuslot)
         # log.info('Getting Flat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
         # flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
         #                                      commonwave)
         log.info('Getting Masterbias for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        zro_path = bias_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
+        zro_path = bias_path % (instrument, instrument, '00000*', instrument, ifuslot)
         masterbias = get_masterbias(zro_path, amp)
-        twibase = sciflt_path % ('virus', 'virus', '00000*', 'virus', ifuslot)
+        twibase = sciflt_path % (instrument, instrument, '00000*', instrument, ifuslot)
         log.info('Getting SciFlat for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         twiflat, bigW, twispec = get_sciflat_field(twibase, amp, wave, trace,
@@ -387,7 +389,7 @@ for ifuslot in ifuslots:
         allflatspec.append(twispec)
         wave = np.array(wave, dtype=float)
         i1 = []
-        scifiles = sci_path % ('virus', 'virus', sci_obs, '*', 'virus',
+        scifiles = sci_path % (instrument, instrument, sci_obs, '*', instrument,
                                ifuslot)
         images, subimages, spec = subtract_sci(scifiles, twiflat, trace, wave,
                                                bigW)
