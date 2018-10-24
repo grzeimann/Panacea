@@ -26,12 +26,16 @@ virus_amps = ['LL', 'LU', 'RU', 'RL']
 lrs2_amps = [['LL', 'LU'], ['RL', 'RU']]
 fplane_file = '/work/03730/gregz/maverick/fplane.txt'
 flt_obs = '%07d' % 15
-twi_obs = '%07d' % 2
-sci_obs = '%07d' % 9
-twi_date = '20181003'
+twi_obs = '%07d' % 1
+sci_obs = '%07d' % 13
+twi_date = '20170205'
 sci_date = twi_date
 flt_date = twi_date
+
+# FOR LRS2
 instrument = 'lrs2'
+AMPS = lrs2_amps[0]
+dither_pattern = np.zeros((10, 2))
 
 log = setup_logging('panacea_quicklook')
 
@@ -90,9 +94,8 @@ def base_reduction(filename):
     image = np.array(a[0].data, dtype=float)
     # overscan sub
     overscan_length = 32 * (image.shape[1] / 1064)
-    if image.shape[1] == 1064:
-        O = biweight_location(image[:, -(overscan_length-2):])
-        image[:] = image - O
+    O = biweight_location(image[:, -(overscan_length-2):])
+    image[:] = image - O
     # trim image
     image = image[:, :-overscan_length]
     try:
@@ -107,9 +110,11 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
                       masterbias, log):
     files = glob.glob(flt_path.replace('LL', amp))
     listflat = []
-    bigW = np.zeros((1032, 1032))
+    array_flt = base_reduction(files[0])
+
+    bigW = np.zeros(array_flt.shape)
     Y, X = np.indices(array_wave.shape)
-    YY, XX = np.indices((1032, 1032))
+    YY, XX = np.indices(array_flt.shape)
     for x, at, aw, xx, yy in zip(np.array_split(X, 2, axis=0),
                                  np.array_split(array_trace, 2, axis=0),
                                  np.array_split(array_wave, 2, axis=0),
@@ -146,7 +151,7 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         flat = array_flt / modelimage
         listflat.append(flat)
         listspec.append(I(common_wave))
-    flat = biweight_location(listflat, axis=(0,))
+    flat = np.median(listflat, axis=(0,))
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
 
@@ -202,7 +207,8 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
         for fiber in np.arange(array_wave.shape[0]):
             indl = np.floor(array_trace[fiber]).astype(int)
             indh = np.ceil(array_trace[fiber]).astype(int)
-            spectrum[fiber] = array_flt[indl, x] / flat[indl, x] / 2. + array_flt[indh, x] / flat[indh, x] / 2.
+            spectrum[fiber] = (array_flt[indl, x] / flat[indl, x] / 2. +
+                               array_flt[indh, x] / flat[indh, x] / 2.)
         spectrum[~np.isfinite(spectrum)] = 0.0
         nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
         ns[~np.isfinite(ns)] = 0.0
@@ -211,17 +217,18 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
         sciflat.append(array_flt / modelimage)
     sciflat = np.median(sciflat, axis=0)
     nc = 10
-    chunk = np.array_split(flat[1:-1,1:-1], nc, axis=0)
+    chunk = np.array_split(flat[1:-1, 1:-1], nc, axis=0)
     Y, X = np.indices(flat.shape)
-    chunkx = np.array_split(X[1:-1,1:-1], nc, axis=0)
-    chunky = np.array_split(Y[1:-1,1:-1], nc, axis=0)
+    chunkx = np.array_split(X[1:-1, 1:-1], nc, axis=0)
+    chunky = np.array_split(Y[1:-1, 1:-1], nc, axis=0)
     fitter = LevMarLSQFitter()
     P = Polynomial1D(1)
     log.info('Getting shift for %s' % files[0])
-    chunk2 = np.array_split(sciflat[1:-1,1:-1], nc, axis=0)
+    chunk2 = np.array_split(sciflat[1:-1, 1:-1], nc, axis=0)
     x, y, z = ([], [], [])
     for i in np.arange(len(chunk)):
-        shift, error, diffphase = register_translation(chunk[i], chunk2[i], 500)
+        shift, error, diffphase = register_translation(chunk[i], chunk2[i],
+                                                       500)
         x.append(np.mean(chunkx[i]))
         y.append(np.mean(chunky[i]))
         z.append(shift)
@@ -341,20 +348,25 @@ def get_flat_field(flt_path, amp, array_wave, array_trace, common_wave):
 
 
 # GET ALL VIRUS IFUSLOTS
-twilist = glob.glob(twi_path % (instrument, instrument, twi_obs, instrument, '*'))
+twilist = glob.glob(twi_path % (instrument, instrument, twi_obs, instrument,
+                                '*'))
 ifuslots = [op.basename(x).split('_')[2] for x in twilist]
+# LRS2-R
+ifuslots = ['066']
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
-nexp = len(glob.glob(sci_path % (instrument, instrument, sci_obs, '*', instrument,
-                                 ifuslots[0])))
+nexp = len(glob.glob(sci_path % (instrument, instrument, sci_obs, '*',
+                                 instrument, ifuslots[0])))
 header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
-                                         instrument, ifuslots[0]))[0])[0].header
+                                         instrument,
+                                         ifuslots[0]))[0])[0].header
 PA = float(header['PARANGLE'])
 RA = float(header['TRAJRA'])
 DEC = float(header['TRAJDEC'])
 log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
 A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
-allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [], [], [])
+allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
+                                                           [], [])
 
 # Rectified wavelength
 commonwave = np.linspace(3500, 5500, 1500)
@@ -363,11 +375,11 @@ t1 = time.time()
 cnt = 0
 cnt2 = 0
 breakloop = False
-ifuslots = ['066']
 for ifuslot in ifuslots:
-    for amp in lrs2_amps:
+    for amp in AMPS:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
-        twibase = twi_path % (instrument, instrument, twi_obs, instrument, ifuslot)
+        twibase = twi_path % (instrument, instrument, twi_obs, instrument,
+                              ifuslot)
         amppos, trace, wave = get_cal_info(twibase, amp)
         if wave.ndim == 1:
             log.info('Insufficient cal data for ifuslot, %s, and amp, %s'
