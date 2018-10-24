@@ -263,6 +263,9 @@ def find_cosmics(Y, E, thresh=5.):
     C = np.zeros(Y.shape, dtype=bool).ravel()
     C[inds] = True
     C = C.reshape(Y.shape)
+    log.info('Number of pixels affected by cosmics: %i' % len(inds))
+    log.info('Fraction of pixels affected by cosmics: %0.3f%' %
+             (1.*len(inds)/Y.shape[0]/Y.shape[1]))
     return C
 
 
