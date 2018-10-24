@@ -13,7 +13,7 @@ import sys
 
 from astropy.io import fits
 from utils import biweight_location
-from scipy.signal import savgol_filter
+from scipy.signal import savgol_filter, medfilt2d
 from scipy.interpolate import interp1d, interp2d
 from input_utils import setup_logging
 from astrometry import Astrometry
@@ -158,6 +158,42 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
     return flat, bigW, np.nanmedian(listspec, axis=0)
 
 
+def dummy_copy2():
+    pass
+    x = np.arange(array_wave.shape[1])
+    spectrum = array_trace * 0.
+    temp = np.zeros((array_flt.shape[1], 6))
+    temp2 = np.zeros((array_flt.shape[1], 6))
+    speclist = []
+    for fiber in np.arange(array_wave.shape[0]):
+        indl = np.floor(array_trace[fiber]).astype(int)
+        flag = False
+        for ss, k in enumerate(np.arange(-2, 4)):
+            try:
+                temp[:, ss] = array_flt[indl+k, x]
+                temp2[:, ss] = flat[indl+k, x]
+            except:
+                v = indl+k
+                sel = np.where((v >= 0) * (v < array_flt.shape[0]))[0]
+                temp[:, ss] = 0.0
+                temp2[:, ss] = 1.0
+                temp[sel, ss] = array_flt[v[sel], x[sel]]
+                temp2[sel, ss] = flat[v[sel], x[sel]]
+                flag = True
+        if flag:
+            if np.mean(indl) > (array_flt.shape[0]/2.):
+                k = 3
+            else:
+                k = -2
+            v = indl+k
+            sel = np.where((v >= 0) * (v < len(x)))[0]
+            spectrum[fiber, sel] = (np.sum(temp[sel]*temp2[sel], axis=1) /
+                                    np.sum(temp2[sel]**2, axis=1))
+        else:
+            spectrum[fiber] = (np.sum(temp*temp2, axis=1) /
+                               np.sum(temp2**2, axis=1))
+
+
 def dummy_copy():
     pass
     nc = 10
@@ -195,6 +231,80 @@ def dummy_copy():
         log.info('Found shift for %s of %0.3f' % (filename, np.mean(f(Yx))))
 
 
+def safe_division(num, denom, eps=1e-8, fillval=0.0):
+    good = np.isfinite(denom) * (np.abs(denom) > eps)
+    div = num * 0.
+    if num.ndim == denom.ndim:
+        div[good] = num[good] / denom[good]
+        div[~good] = fillval
+    else:
+        div[:, good] = num[:, good] / denom[good]
+        div[:, ~good] = fillval
+    return div
+
+
+def find_cosmics(Y, E, thresh=5.):
+    A = medfilt2d(Y, (5, 1))
+    P = (Y - A) / E - medfilt2d((Y - A) / E, (1, 15))
+    x, y = np.where(P > thresh)
+    X, Y = ([], [])
+    for i in np.arange(-1, 2):
+        for j in np.arange(-1, 2):
+            X.append(x + i)
+            Y.append(y + j)
+    X = np.hstack(X)
+    Y = np.hstack(Y)
+    inds = np.ravel_multi_index(np.array([X, Y]).swapaxes(0, 1), Y.shape)
+    inds = np.unique(inds)
+    C = np.zeros(Y.shape, dtype=bool)
+    C[inds] = True
+    return C
+
+
+def weighted_extraction(image, flat, trace):
+    gain = 0.83
+    rdnoise = 3.
+    I = image * 0.
+    I[I < 0.] = 0.
+    E = np.sqrt(rdnoise**2 + gain * I) / gain
+    E = safe_division(E, flat)
+    Y = safe_division(image, flat)
+    cosmics = find_cosmics(Y, E)
+    x = np.arange(trace.shape[1])
+    spectrum = 0. * trace
+    for fiber in np.arange(trace.shape[0]):
+        T = np.zeros((3, trace.shape[1], 4))
+        indl = np.floor(trace[fiber]).astype(int)
+        flag = False
+        for ss, k in enumerate(np.arange(-1, 3)):
+            try:
+                T[0, :, ss] = Y[indl+k, x]
+                T[1, :, ss] = 1. / E[indl+k, x]**2
+                T[2, :, ss] = ~cosmics[indl+k, x]
+            except:
+                v = indl+k
+                sel = np.where((v >= 0) * (v < Y.shape[0]))[0]
+                T[0, sel, ss] = Y[v[sel], x[sel]]
+                T[1, sel, ss] = 1. / E[v[sel], x[sel]]**2
+                T[2, sel, ss] = ~cosmics[v[sel], x[sel]]
+                flag = True
+        if flag:
+            if np.mean(indl) > (Y.shape[0]/2.):
+                k = 2
+            else:
+                k = -1
+            v = indl+k
+            sel = np.where((v >= 0) * (v < len(x)))[0]
+            a = np.sum(T[0, sel] * T[1, sel] * T[2, sel], axis=1)
+            b = np.sum(T[1, sel] * T[2, sel], axis=1)
+            spectrum[fiber, sel] = safe_division(a, b)
+        else:
+            a = np.sum(T[0] * T[1] * T[2], axis=1)
+            b = np.sum(T[1] * T[2], axis=1)
+            spectrum[fiber] = safe_division(a, b)
+    return spectrum
+
+
 def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
     files = sorted(glob.glob(sci_path.replace('LL', amp)))
     sciflat = []
@@ -215,30 +325,12 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
         modelimage = I(bigW)
         sciflat.append(array_flt / modelimage)
     sciflat = np.median(sciflat, axis=0)
-    nc = 10
-    chunk = np.array_split(flat[1:-1, 1:-1], nc, axis=0)
-    Y, X = np.indices(flat.shape)
-    chunkx = np.array_split(X[1:-1, 1:-1], nc, axis=0)
-    chunky = np.array_split(Y[1:-1, 1:-1], nc, axis=0)
-    fitter = LevMarLSQFitter()
-    P = Polynomial1D(1)
-    log.info('Getting shift for %s' % files[0])
-    chunk2 = np.array_split(sciflat[1:-1, 1:-1], nc, axis=0)
-    x, y, z = ([], [], [])
-    for i in np.arange(len(chunk)):
-        shift, error, diffphase = register_translation(chunk[i], chunk2[i],
-                                                       500)
-        x.append(np.mean(chunkx[i]))
-        y.append(np.mean(chunky[i]))
-        z.append(shift)
-    x, y, z = [np.array(k) for k in [x, y, z]]
-    f = fitter(P, y, z[:, 0])
     Xx = np.arange(flat.shape[1])
     Yx = np.arange(flat.shape[0])
     I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
                  fill_value=0.0)
-    flat = I(Xx, Yx+f(Yx))
-    log.info('Found shift for %s of %0.3f' % (files[0], np.mean(f(Yx))))
+    flat = I(Xx, Yx + 0.0)
+    log.info('Found shift for %s of %0.3f' % (files[0], 0.0))
     array_list = []
     residual = []
     spec_list = []
@@ -246,44 +338,14 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
         log.info('Skysubtracting sci %s' % filename)
         array_flt = base_reduction(filename) - masterbias
         array_list.append(array_flt)
-        x = np.arange(array_wave.shape[1])
-        spectrum = array_trace * 0.
-        temp = np.zeros((array_flt.shape[1], 6))
-        temp2 = np.zeros((array_flt.shape[1], 6))
-        speclist = []
-        for fiber in np.arange(array_wave.shape[0]):
-            indl = np.floor(array_trace[fiber]).astype(int)
-            flag = False
-            for ss, k in enumerate(np.arange(-2, 4)):
-                try:
-                    temp[:, ss] = array_flt[indl+k, x]
-                    temp2[:, ss] = flat[indl+k, x]
-                except:
-                    v = indl+k
-                    sel = np.where((v >= 0) * (v < array_flt.shape[0]))[0]
-                    temp[:, ss] = 0.0
-                    temp2[:, ss] = 1.0
-                    temp[sel, ss] = array_flt[v[sel], x[sel]]
-                    temp2[sel, ss] = flat[v[sel], x[sel]]
-                    flag = True
-            if flag:
-                if np.mean(indl) > (array_flt.shape[0]/2.):
-                    k = 3
-                else:
-                    k = -2
-                v = indl+k
-                sel = np.where((v >= 0) * (v < len(x)))[0]
-                spectrum[fiber, sel] = (np.sum(temp[sel]*temp2[sel], axis=1) /
-                                        np.sum(temp2[sel]**2, axis=1))
-            else:
-                spectrum[fiber] = (np.sum(temp*temp2, axis=1) /
-                                   np.sum(temp2**2, axis=1))
+        spectrum = weighted_extraction(array_flt, flat, array_trace)
         spectrum[~np.isfinite(spectrum)] = 0.0
         nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
         ns[~np.isfinite(ns)] = 0.0
         I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
         residual.append((array_flt - modelimage*flat))
+        speclist = []
         for fiber in np.arange(array_wave.shape[0]):
             I = interp1d(array_wave[fiber], spectrum[fiber], kind='quadratic',
                          fill_value='extrapolate')
