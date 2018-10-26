@@ -74,7 +74,7 @@ def orient_image(image, amp, ampname):
     return image
 
 
-def make_avg_spec(wave, spec, binsize=35):
+def make_avg_spec(wave, spec, binsize=35, per=50):
     ind = np.argsort(wave.ravel())
     T = 1
     for p in wave.shape:
@@ -84,7 +84,7 @@ def make_avg_spec(wave, spec, binsize=35):
     schunks = np.array_split(spec.ravel()[ind],
                              T / binsize)
     nwave = np.array([np.mean(chunk) for chunk in wchunks])
-    nspec = np.array([np.median(chunk) for chunk in schunks])
+    nspec = np.array([np.percentile(chunk, per) for chunk in schunks])
     nwave, nind = np.unique(nwave, return_index=True)
     return nwave, nspec[nind]
 
@@ -139,13 +139,14 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
         avg = biweight_location(smooth, axis=(0,))
         norm = biweight_location(smooth / avg, axis=(1,))
         nw, ns = make_avg_spec(array_wave, spectrum / norm[:, np.newaxis],
-                               binsize=41)
+                               binsize=41, per=95)
         I = interp1d(nw, ns, kind='linear', fill_value='extrapolate')
         ftf = spectrum * 0.
         for fiber in np.arange(array_wave.shape[0]):
             model = I(array_wave[fiber])
             ftf[fiber] = savgol_filter(spectrum[fiber] / model, 151, 1)
-        nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41)
+        nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41,
+                                 per=95)
         I = interp1d(nw1, ns1, kind='quadratic', fill_value='extrapolate')
         modelimage = I(bigW)
         flat = array_flt / modelimage
@@ -321,24 +322,6 @@ def weighted_extraction(image, flat, trace):
 
 def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
     files = sorted(glob.glob(sci_path.replace('LL', amp)))
-    sciflat = []
-    for filename in files:
-        log.info('Getting flat for sci %s' % filename)
-        array_flt = base_reduction(filename) - masterbias
-        x = np.arange(array_wave.shape[1])
-        spectrum = array_trace * 0.
-        for fiber in np.arange(array_wave.shape[0]):
-            indl = np.floor(array_trace[fiber]).astype(int)
-            indh = np.ceil(array_trace[fiber]).astype(int)
-            spectrum[fiber] = (array_flt[indl, x] / flat[indl, x] / 2. +
-                               array_flt[indh, x] / flat[indh, x] / 2.)
-        spectrum[~np.isfinite(spectrum)] = 0.0
-        nw, ns = make_avg_spec(array_wave, spectrum, binsize=41)
-        ns[~np.isfinite(ns)] = 0.0
-        I = interp1d(nw, ns, kind='quadratic', fill_value='extrapolate')
-        modelimage = I(bigW)
-        sciflat.append(array_flt / modelimage)
-    sciflat = np.median(sciflat, axis=0)
     Xx = np.arange(flat.shape[1])
     Yx = np.arange(flat.shape[0])
     I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
