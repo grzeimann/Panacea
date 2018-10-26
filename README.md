@@ -78,20 +78,16 @@ where XXXXXX is the 6 job number, which is printed out at the end of the command
 After the job has finished, in other words is no longer in the squeue, you can run both the science and standard star reductions.
 
 #### Running basic reductions for science and standard star frames
-Next, simply copy the "rsci*.slurm" and "rstd*.slurm" commands to the terminal window and hit enter:
+Next, simply copy the "rsci*.slurm" commands to the terminal window and hit enter:
 ```
 sbatch rsci_blue_1.slurm
-sbatch rstd_blue_1.slurm
 ```
 
-Note, if you may have more than one rsci*.slurm or rstd*.slurm file generated you may run all of them in quick succession.  For example:
+Note, if you may have more than one rsci*.slurmfile generated you may run all of them in quick succession.  For example:
 ```
 sbatch rsci_blue_1.slurm
 sbatch rsci_blue_2.slurm
 sbatch rsci_blue_3.slurm
-sbatch rstd_blue_1.slurm
-sbatch rstd_blue_2.slurm
-sbatch rstd_blue_3.slurm
 ```
 
 #### Combine amplifier reductions
