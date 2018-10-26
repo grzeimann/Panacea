@@ -344,7 +344,9 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
         residual.append((array_flt - modelimage*flat))
         speclist = []
         for fiber in np.arange(array_wave.shape[0]):
-            I = interp1d(array_wave[fiber], spectrum[fiber], kind='quadratic',
+            dlam = np.diff(array_wave[fiber])
+            dlam = np.hstack([dlam[0], dlam])
+            I = interp1d(array_wave[fiber], spectrum[fiber] / dlam, kind='quadratic',
                          fill_value='extrapolate')
             speclist.append(I(commonwave))
         spec_list.append(np.array(speclist))
