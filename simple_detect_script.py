@@ -383,7 +383,7 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
             I = interp1d(array_wave[fiber], spectrum[fiber] / dlam, kind='quadratic',
                          fill_value='extrapolate')
             speclist.append(I(commonwave))
-        spec_list.append(np.array(spectrum))
+        spec_list.append(np.array(speclist))
     return np.array(array_list), np.array(residual), np.array(spec_list)
 
 
