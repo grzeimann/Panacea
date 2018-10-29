@@ -342,19 +342,20 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
     Trace = array_trace * 0.
     FlatTrace = array_trace * 0.
     N = YM.max()
+    x = np.arange(array_trace.shape[1])
     for i in np.arange(Trace.shape[0]):
-        sel = YM[inds[0, i, :]] >= 0.
-        sel = sel * (YM[inds[2, i, :]] < N)
-        xmax = (YM[inds[1, i, sel]] - (sci_array[inds[2, i, sel]] -
-                sci_array[inds[0, i, sel]]) /
-                (2. * (sci_array[inds[2, i, sel]] -
-                 2. * sci_array[inds[1, i, sel]] +
-                 sci_array[inds[0, i, sel]])))
+        sel = YM[inds[0, i, :], x] >= 0.
+        sel = sel * (YM[inds[2, i, :], x] < N)
+        xmax = (YM[inds[1, i, sel], x[sel]] - (sci_array[inds[2, i, sel], x[sel]] -
+                sci_array[inds[0, i, sel], x[sel]]) /
+                (2. * (sci_array[inds[2, i, sel], x[sel]] -
+                 2. * sci_array[inds[1, i, sel], x[sel]] +
+                 sci_array[inds[0, i, sel], x[sel]])))
         Trace[i, sel] = xmax
-        xmax = (YM[inds[1, i, sel]] - (flat[inds[2, i, sel]] -
-                flat[inds[0, i, sel]]) /
-                (2. * (flat[inds[2, i, sel]] - 2. * flat[inds[1, i, sel]] +
-                 flat[inds[0, i, sel]])))
+        xmax = (YM[inds[1, i, sel], x[sel]] - (flat[inds[2, i, sel], x[sel]] -
+                flat[inds[0, i, sel], x[sel]]) /
+                (2. * (flat[inds[2, i, sel], x[sel]] - 2. * flat[inds[1, i, sel], x[sel]] +
+                 flat[inds[0, i, sel], x[sel]])))
         FlatTrace[i, sel] = xmax
     shifts = np.median(FlatTrace - Trace, axis=1)
     log.info(shifts)
