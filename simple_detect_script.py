@@ -357,7 +357,8 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
                 (2. * (flat[inds[2, i, sel], x[sel]] - 2. * flat[inds[1, i, sel], x[sel]] +
                  flat[inds[0, i, sel], x[sel]])))
         FlatTrace[i, sel] = xmax
-    shifts = np.median(FlatTrace - Trace, axis=1)
+    shifts = np.nanmedian(FlatTrace - Trace, axis=1)
+    fits.HDUList([fits.PrimaryHDU(FlatTrace), fits.ImageHDU(Trace)]).writeto('test_trace.fits', overwrite=true)
     log.info(shifts)
     flat = I(Xx, Yx + shifts)
     log.info('Found shift for %s of %0.3f' % (files[0], np.median(shifts)))
