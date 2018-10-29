@@ -340,6 +340,7 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
     inds[2] = XN + 1.
     inds = np.array(inds, dtype=int)
     Trace = array_trace * 0.
+    FlatTrace = array_trace * 0.
     N = YM.max()
     for i in np.arange(Trace.shape[0]):
         sel = YM[inds[0, i, :]] >= 0.
@@ -350,7 +351,12 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
                  2. * sci_array[inds[1, i, sel]] +
                  sci_array[inds[0, i, sel]])))
         Trace[i, sel] = xmax
-    shifts = np.median(array_trace - Trace, axis=1)
+        xmax = (YM[inds[1, i, sel]] - (flat[inds[2, i, sel]] -
+                flat[inds[0, i, sel]]) /
+                (2. * (flat[inds[2, i, sel]] - 2. * flat[inds[1, i, sel]] +
+                 flat[inds[0, i, sel]])))
+        FlatTrace[i, sel] = xmax
+    shifts = np.median(FlatTrace - Trace, axis=1)
     log.info(shifts)
     flat = I(Xx, Yx + shifts)
     log.info('Found shift for %s of %0.3f' % (files[0], np.median(shifts)))
