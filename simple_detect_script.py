@@ -322,12 +322,38 @@ def weighted_extraction(image, flat, trace):
 
 def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
     files = sorted(glob.glob(sci_path.replace('LL', amp)))
+    array_list = []
+    for filename in files:
+        log.info('Skysubtracting sci %s' % filename)
+        array_flt = base_reduction(filename) - masterbias
+        array_list.append(array_flt)
+    sci_array = np.sum(array_list, axis=0)
     Xx = np.arange(flat.shape[1])
     Yx = np.arange(flat.shape[0])
     I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
                  fill_value=0.0)
-    flat = I(Xx, Yx + 0.0)
-    log.info('Found shift for %s of %0.3f' % (files[0], 0.0))
+    YM, XM = np.indices(flat.shape)
+    inds = np.zeros((3, array_trace.shape[0], array_trace.shape[1]))
+    XN = np.round(array_trace)
+    inds[0] = XN - 1.
+    inds[1] = XN + 0.
+    inds[2] = XN + 1.
+    inds = np.array(inds, dtype=int)
+    Trace = array_trace * 0.
+    N = YM.max()
+    for i in np.arange(Trace.shape[0]):
+        sel = YM[inds[0, i, :]] >= 0.
+        sel = sel * (YM[inds[2, i, :]] < N)
+        xmax = (YM[inds[1, i, sel]] - (sci_array[inds[2, i, sel]] -
+                sci_array[inds[0, i, sel]]) /
+                (2. * (sci_array[inds[2, i, sel]] -
+                 2. * sci_array[inds[1, i, sel]] +
+                 sci_array[inds[0, i, sel]])))
+        Trace[i, sel] = xmax
+    shifts = np.median(array_trace - Trace, axis=1)
+    log.info(shifts)
+    flat = I(Xx, Yx + shifts)
+    log.info('Found shift for %s of %0.3f' % (files[0], np.median(shifts)))
     array_list = []
     residual = []
     spec_list = []
