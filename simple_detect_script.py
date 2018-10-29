@@ -360,7 +360,7 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
     shifts = np.nanmedian(FlatTrace - Trace, axis=1)
     log.info(shifts)
     shifts = np.polyval(np.polyfit(np.nanmedian(FlatTrace, axis=1), shifts, 1), Yx)
-    fits.HDUList([fits.PrimaryHDU(FlatTrace), fits.ImageHDU(Trace)]).writeto('test_trace.fits', overwrite=true)
+    fits.HDUList([fits.PrimaryHDU(FlatTrace), fits.ImageHDU(Trace)]).writeto('test_trace.fits', overwrite=True)
     flat = I(Xx, Yx + shifts)
     log.info('Found shift for %s of %0.3f' % (files[0], np.median(shifts)))
     array_list = []
