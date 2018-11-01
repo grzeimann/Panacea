@@ -9,7 +9,6 @@ import numpy as np
 import os.path as op
 import glob
 import warnings
-import sys
 
 from astropy.io import fits
 from utils import biweight_location
@@ -17,9 +16,6 @@ from scipy.signal import savgol_filter, medfilt2d
 from scipy.interpolate import interp1d, interp2d
 from input_utils import setup_logging
 from astrometry import Astrometry
-from skimage.feature import register_translation
-from astropy.modeling.models import Polynomial1D
-from astropy.modeling.fitting import LevMarLSQFitter
 
 dither_pattern = np.array([[0., 0.], [1.27, -0.73], [1.27, 0.73]])
 virus_amps = ['LL', 'LU', 'RU', 'RL']
@@ -54,9 +50,12 @@ sciflt_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
 bias_path = op.join(baseraw, twi_date, '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
 
+
 def get_cal_info(twi_path, amp):
     F = fits.open(glob.glob(twi_path.replace('LL', amp))[0])
-    return np.array(F['ifupos'].data, dtype=float), np.array(F['trace'].data, dtype=float), np.array(F['wavelength'].data, dtype=float)
+    return (np.array(F['ifupos'].data, dtype=float),
+            np.array(F['trace'].data, dtype=float),
+            np.array(F['wavelength'].data, dtype=float))
 
 
 def orient_image(image, amp, ampname):
@@ -159,79 +158,6 @@ def get_sciflat_field(flt_path, amp, array_wave, array_trace, common_wave,
     return flat, bigW, np.nanmedian(listspec, axis=0)
 
 
-def dummy_copy2():
-    pass
-    x = np.arange(array_wave.shape[1])
-    spectrum = array_trace * 0.
-    temp = np.zeros((array_flt.shape[1], 6))
-    temp2 = np.zeros((array_flt.shape[1], 6))
-    speclist = []
-    for fiber in np.arange(array_wave.shape[0]):
-        indl = np.floor(array_trace[fiber]).astype(int)
-        flag = False
-        for ss, k in enumerate(np.arange(-2, 4)):
-            try:
-                temp[:, ss] = array_flt[indl+k, x]
-                temp2[:, ss] = flat[indl+k, x]
-            except:
-                v = indl+k
-                sel = np.where((v >= 0) * (v < array_flt.shape[0]))[0]
-                temp[:, ss] = 0.0
-                temp2[:, ss] = 1.0
-                temp[sel, ss] = array_flt[v[sel], x[sel]]
-                temp2[sel, ss] = flat[v[sel], x[sel]]
-                flag = True
-        if flag:
-            if np.mean(indl) > (array_flt.shape[0]/2.):
-                k = 3
-            else:
-                k = -2
-            v = indl+k
-            sel = np.where((v >= 0) * (v < len(x)))[0]
-            spectrum[fiber, sel] = (np.sum(temp[sel]*temp2[sel], axis=1) /
-                                    np.sum(temp2[sel]**2, axis=1))
-        else:
-            spectrum[fiber] = (np.sum(temp*temp2, axis=1) /
-                               np.sum(temp2**2, axis=1))
-
-
-def dummy_copy():
-    pass
-    nc = 10
-    rowchunk = np.array_split(listflat[0][1:-1,1:-1], nc, axis=1)
-    chunk = [np.array_split(row, nc, axis=0) for row in rowchunk]
-    Y, X = np.indices(listflat[0].shape)
-    rowchunk = np.array_split(X[1:-1,1:-1], nc, axis=1)
-    chunkx = [np.array_split(row, nc, axis=0) for row in rowchunk]
-    rowchunk = np.array_split(Y[1:-1,1:-1], nc, axis=1)
-    chunky = [np.array_split(row, nc, axis=0) for row in rowchunk]
-    fitter = LevMarLSQFitter()
-    P = Polynomial1D(1)
-    shifts = []
-    nlistflat = []
-    for flat, filename in zip(listflat, files):
-        log.info('Getting shift for %s' % filename)
-        rowchunk = np.array_split(flat[1:-1,1:-1], nc, axis=1)
-        chunk2 = [np.array_split(row, nc, axis=0) for row in rowchunk]      
-        x, y, z = ([], [], [])
-        for i in np.arange(len(chunk)):
-            for j in np.arange(len(chunk[0])):
-                shift, error, diffphase = register_translation(chunk[i][j], chunk2[i][j], 500)
-                x.append(np.mean(chunkx[i][j]))
-                y.append(np.mean(chunky[i][j]))
-                z.append(shift)
-        x, y, z = [np.array(k) for k in [x, y, z]]
-        f = fitter(P, y, z[:, 0])
-        Xx = np.arange(flat.shape[1])
-        Yx = np.arange(flat.shape[0])
-        I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
-                     fill_value=0.0)
-        flat = I(Xx, Yx-f(Yx))
-        nlistflat.append(flat*1.)
-        shifts.append(f(Yx))
-        log.info('Found shift for %s of %0.3f' % (filename, np.mean(f(Yx))))
-
-
 def safe_division(num, denom, eps=1e-8, fillval=0.0):
     good = np.isfinite(denom) * (np.abs(denom) > eps)
     div = num * 0.
@@ -267,8 +193,6 @@ def find_cosmics(Y, E, thresh=8.):
     log.info('Number of pixels affected by cosmics: %i' % len(x))
     log.info('Fraction of pixels affected by cosmics: %0.5f' %
              (1.*len(inds)/Y.shape[0]/Y.shape[1]))
-    fits.PrimaryHDU(np.array(Y, dtype=float)).writeto('wtf.fits',
-                    overwrite=True)
     return C
 
 
@@ -320,18 +244,7 @@ def weighted_extraction(image, flat, trace):
     return spectrum
 
 
-def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
-    files = sorted(glob.glob(sci_path.replace('LL', amp)))
-    array_list = []
-    for filename in files:
-        log.info('Skysubtracting sci %s' % filename)
-        array_flt = base_reduction(filename) - masterbias
-        array_list.append(array_flt)
-    sci_array = np.sum(array_list, axis=0)
-    Xx = np.arange(flat.shape[1])
-    Yx = np.arange(flat.shape[0])
-    I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
-                 fill_value=0.0)
+def get_trace_shift(sci_array, flat, array_trace, Yx):
     YM, XM = np.indices(flat.shape)
     inds = np.zeros((3, array_trace.shape[0], array_trace.shape[1]))
     XN = np.round(array_trace)
@@ -346,7 +259,8 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
     for i in np.arange(Trace.shape[0]):
         sel = YM[inds[0, i, :], x] >= 0.
         sel = sel * (YM[inds[2, i, :], x] < N)
-        xmax = (YM[inds[1, i, sel], x[sel]] - (sci_array[inds[2, i, sel], x[sel]] -
+        xmax = (YM[inds[1, i, sel], x[sel]] -
+                (sci_array[inds[2, i, sel], x[sel]] -
                 sci_array[inds[0, i, sel], x[sel]]) /
                 (2. * (sci_array[inds[2, i, sel], x[sel]] -
                  2. * sci_array[inds[1, i, sel], x[sel]] +
@@ -354,12 +268,32 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
         Trace[i, sel] = xmax
         xmax = (YM[inds[1, i, sel], x[sel]] - (flat[inds[2, i, sel], x[sel]] -
                 flat[inds[0, i, sel], x[sel]]) /
-                (2. * (flat[inds[2, i, sel], x[sel]] - 2. * flat[inds[1, i, sel], x[sel]] +
+                (2. * (flat[inds[2, i, sel], x[sel]] - 2. *
+                 flat[inds[1, i, sel], x[sel]] +
                  flat[inds[0, i, sel], x[sel]])))
         FlatTrace[i, sel] = xmax
     shifts = np.nanmedian(FlatTrace - Trace, axis=1)
-    shifts = np.polyval(np.polyfit(np.nanmedian(FlatTrace, axis=1), shifts, 1), Yx)
-    fits.HDUList([fits.PrimaryHDU(FlatTrace), fits.ImageHDU(Trace)]).writeto('test_trace.fits', overwrite=True)
+    shifts = np.polyval(np.polyfit(np.nanmedian(FlatTrace, axis=1), shifts, 1),
+                        Yx)
+    fits.HDUList([fits.PrimaryHDU(FlatTrace),
+                  fits.ImageHDU(Trace)]).writeto('test_trace.fits',
+                                                 overwrite=True)
+    return shifts
+
+
+def subtract_sci(sci_path, flat, array_trace, array_wave, bigW, masterbias):
+    files = sorted(glob.glob(sci_path.replace('LL', amp)))
+    array_list = []
+    for filename in files:
+        log.info('Skysubtracting sci %s' % filename)
+        array_flt = base_reduction(filename) - masterbias
+        array_list.append(array_flt)
+    sci_array = np.sum(array_list, axis=0)
+    Xx = np.arange(flat.shape[1])
+    Yx = np.arange(flat.shape[0])
+    I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
+                 fill_value=0.0)
+    shifts = get_trace_shift(sci_array, flat, array_trace, Yx)
     flat = I(Xx, Yx + shifts)
     log.info('Found shift for %s of %0.3f' % (files[0], np.median(shifts)))
     array_list = []
@@ -380,10 +314,10 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW):
         for fiber in np.arange(array_wave.shape[0]):
             dlam = np.diff(array_wave[fiber])
             dlam = np.hstack([dlam[0], dlam])
-            I = interp1d(array_wave[fiber], spectrum[fiber] / dlam, kind='quadratic',
-                         fill_value='extrapolate')
+            I = interp1d(array_wave[fiber], spectrum[fiber] / dlam,
+                         kind='quadratic', fill_value='extrapolate')
             speclist.append(I(commonwave))
-        spec_list.append(np.array(speclist))
+        spec_list.append(np.array(spectrum))
     return np.array(array_list), np.array(residual), np.array(spec_list)
 
 
@@ -394,51 +328,6 @@ def get_masterbias(zro_path, amp):
         a = base_reduction(filename)
         listzro.append(a)
     return np.median(listzro, axis=0)
-
-
-def get_flat_field(flt_path, amp, array_wave, array_trace, common_wave):
-    files = glob.glob(flt_path.replace('LL', amp))
-    listflt = []
-    for filename in files:
-        a = base_reduction(filename)
-        listflt.append(a)
-    array_flt = np.array(listflt)
-    norm = np.median(array_flt, axis=(1, 2))
-    array_flt = np.median(array_flt / norm[:, np.newaxis, np.newaxis], axis=0)
-    x = np.arange(array_wave.shape[1])
-    spectrum = array_trace * 0.
-    for fiber in np.arange(array_wave.shape[0]):
-        indl = np.floor(array_trace[fiber]).astype(int)
-        indh = np.ceil(array_trace[fiber]).astype(int)
-        spectrum[fiber] = array_flt[indl, x] / 2. + array_flt[indh, x] / 2.
-    smooth = savgol_filter(spectrum, 315, 1, axis=1)
-    avg = biweight_location(smooth, axis=(0,))
-    norm = biweight_location(smooth / avg, axis=(1,))
-    nw, ns = make_avg_spec(array_wave, spectrum / norm[:, np.newaxis],
-                           binsize=41)
-    I = interp1d(nw, ns, kind='linear', fill_value='extrapolate')
-    ftf = spectrum * 0.
-    for fiber in np.arange(array_wave.shape[0]):
-        model = I(array_wave[fiber])
-        ftf[fiber] = savgol_filter(spectrum[fiber] / model, 151, 1)
-    nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41)
-    Y, X = np.indices(array_wave.shape)
-    YY, XX = np.indices(array_flt.shape)
-    bigW = array_flt * 0.
-    for x, at, aw, xx, yy in zip(np.array_split(X, 2, axis=0),
-                                 np.array_split(array_trace, 2, axis=0),
-                                 np.array_split(array_wave, 2, axis=0),
-                                 np.array_split(XX, 2, axis=0),
-                                 np.array_split(YY, 2, axis=0)):
-        for j in np.arange(at.shape[1]):
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                p0 = np.polyfit(at[:, j], aw[:, j], 7)
-            bigW[yy[:, j], j] = np.polyval(p0, yy[:, j])
-    I = interp1d(nw1, ns1, kind='linear', fill_value='extrapolate')
-    modelimage = I(bigW)
-    flat = array_flt / modelimage
-    return flat, bigW, I(common_wave)
 
 
 # GET ALL VIRUS IFUSLOTS
@@ -479,15 +368,13 @@ for ifuslot in ifuslots:
             log.info('Insufficient cal data for ifuslot, %s, and amp, %s'
                      % (ifuslot, amp))
             continue
-        # fltbase = flt_path % (instrument, instrument, flt_obs, instrument, ifuslot)
-        # log.info('Getting Flat for ifuslot, %s, and amp, %s' % (ifuslot, amp))
-        # flat, bigW, flatspec = get_flat_field(fltbase, amp, wave, trace,
-        #                                      commonwave)
         log.info('Getting Masterbias for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        zro_path = bias_path % (instrument, instrument, '00000*', instrument, ifuslot)
+        zro_path = bias_path % (instrument, instrument, '00000*', instrument,
+                                ifuslot)
         masterbias = get_masterbias(zro_path, amp)
-        twibase = sciflt_path % (instrument, instrument, '00000*', instrument, ifuslot)
+        twibase = sciflt_path % (instrument, instrument, '00000*', instrument,
+                                 ifuslot)
         log.info('Getting SciFlat for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         twiflat, bigW, twispec = get_sciflat_field(twibase, amp, wave, trace,
@@ -495,14 +382,14 @@ for ifuslot in ifuslots:
         allflatspec.append(twiflat)
         wave = np.array(wave, dtype=float)
         i1 = []
-        scifiles = sci_path % (instrument, instrument, sci_obs, '*', instrument,
-                               ifuslot)
+        scifiles = sci_path % (instrument, instrument, sci_obs, '*',
+                               instrument, ifuslot)
         images, subimages, spec = subtract_sci(scifiles, twiflat, trace, wave,
-                                               bigW)
+                                               bigW, masterbias)
         allsub.append(images)
         allspec.append(spec)
         for i in np.arange(nexp):
-            log.info('Getting spectra for exposure, %i,  ifuslot, %s, and amp,'
+            log.info('Getting RA, Dec for exposure, %i,  ifuslot, %s, and amp,'
                      ' %s' % (i+1, ifuslot, amp))
             ra, dec = A.get_ifupos_ra_dec(ifuslot,
                                           amppos[:, 0] + dither_pattern[i, 0],
@@ -513,7 +400,7 @@ for ifuslot in ifuslots:
                         dither_pattern[i, 0])
             ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] +
                         dither_pattern[i, 1])
-        
+
         t2 = time.time()
         cnt += 1
         time_per_amp = (t2 - t1) / cnt
