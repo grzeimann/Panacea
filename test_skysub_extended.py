@@ -246,7 +246,6 @@ def main(reduc_info, info_list):
         # Initial Models
         xn, yn = (0., 0.)
         sel = np.where(((x - xn)**2 + (y-yn)**2) > 5.0**2)[0]
-        sel = np.where()
         v = biweight_location(sci_list[1][sel, :] / sky_list[1][sel, :],
                               axis=(0,))
         gal_image = biweight_location(sci_list[1] - v * sky_list[1], axis=(1,))
