@@ -441,7 +441,7 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 # Rectified wavelength
 
 for ifuslot in ifuslots:
-    specinit, specname, multi, lims, amps, slims, arc_names = info_side
+    specinit, specname, multi, lims, amps, slims, arc_names = info_side[0]
     commonwave = np.linspace(lims[0], lims[1], 3000)
     for amp in amps:
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
