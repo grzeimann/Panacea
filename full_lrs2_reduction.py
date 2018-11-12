@@ -261,8 +261,8 @@ def find_cosmics(Y, E, thresh=8.):
     P = S - medfilt2d(S, (1, 15))
     x, y = np.where(P > thresh)
     xx, yy = ([], [])
-    for i in np.arange(-1, 2):
-        for j in np.arange(-1, 2):
+    for i in np.arange(0, 1):
+        for j in np.arange(0, 1):
             sel = ((x + i) >= 0) * ((x + i) < Y.shape[0])
             sel2 = ((y + j) >= 0) * ((y + j) < Y.shape[1])
             sel = sel * sel2
@@ -290,7 +290,7 @@ def weighted_extraction(image, flat, trace):
     E = safe_division(E, flat)
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
-    cosmics = find_cosmics(Y, E, 500)
+    cosmics = find_cosmics(Y, E)
     x = np.arange(trace.shape[1])
     spectrum = 0. * trace
     TT = np.zeros((trace.shape[0], 3, trace.shape[1], 4))
