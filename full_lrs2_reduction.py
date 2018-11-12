@@ -409,13 +409,13 @@ def get_masterbias(zro_path, amp):
     return np.median(listzro, axis=0)
 
 
-def get_masterarc(arc_path, amp, arc_names):
+def get_masterarc(arc_path, amp, arc_names, masterbias):
     files = glob.glob(arc_path.replace('LL', amp))
     listarc = []
     for filename in files:
         f = fits.open(filename)
         if f[0].header['OBJECT'] in arc_names:
-            a = base_reduction(filename)
+            a = base_reduction(filename) - masterbias
             listarc.append(a)
     return np.sum(listarc, axis=0)
 
@@ -459,7 +459,7 @@ for ifuslot in ifuslots:
         masterbias = get_masterbias(zro_path, amp)
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
-        masterarc = get_masterarc(lamp_path, amp, arc_names)
+        masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias)
         twibase = sciflt_path % (instrument, instrument, '00000*', instrument,
                                  ifuslot)
         log.info('Getting SciFlat for ifuslot, %s, and amp, %s' %
