@@ -290,7 +290,7 @@ def weighted_extraction(image, flat, trace):
     E = safe_division(E, flat)
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
-    cosmics = find_cosmics(Y, E)
+    cosmics = find_cosmics(Y, E, 5)
     x = np.arange(trace.shape[1])
     spectrum = 0. * trace
     TT = np.zeros((trace.shape[0], 3, trace.shape[1], 4))
