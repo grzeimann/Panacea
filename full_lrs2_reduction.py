@@ -283,7 +283,7 @@ def find_cosmics(Y, E, thresh=8.):
 
 
 def weighted_extraction(image, flat, trace):
-    rdnoise = 3.
+    rdnoise = 3. * np.sqrt(9)
     gain = 0.85
     I = image * 1.
     I[I < 0.] = 0.
