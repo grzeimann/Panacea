@@ -278,6 +278,7 @@ def find_cosmics(Y, E, thresh=8.):
     log.info('Number of pixels affected by cosmics: %i' % len(x))
     log.info('Fraction of pixels affected by cosmics: %0.5f' %
              (1.*len(inds)/Y.shape[0]/Y.shape[1]))
+    fits.PrimaryHDU(P).writeto('wtf.fits', overwrite=True)
     return C
 
 
