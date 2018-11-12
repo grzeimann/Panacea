@@ -469,7 +469,7 @@ for ifuslot in ifuslots:
                                                    commonwave, masterbias, log)
         allflatspec.append(twiflat)
         arcspec = weighted_extraction(masterarc, twiflat, trace)
-        fits.PrimaryHDU(arcspec).writeto('test_arc.fits', overwrite=True)
+        fits.PrimaryHDU(masterarc).writeto('test_arc.fits', overwrite=True)
         sys.exit(1)
         wave = np.array(wave, dtype=float)
         scifiles = sci_path % (instrument, instrument, sci_obs, '*',
