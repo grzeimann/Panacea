@@ -256,7 +256,7 @@ def safe_division(num, denom, eps=1e-8, fillval=0.0):
 
 
 def find_cosmics(Y, E, thresh=8.):
-    A = medfilt2d(Y, (4, 1))
+    A = medfilt2d(Y, (3, 1))
     S = safe_division((Y - A), E)
     P = S - medfilt2d(S, (1, 7))
     x, y = np.where(P > thresh)
