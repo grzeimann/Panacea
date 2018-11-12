@@ -278,7 +278,7 @@ def find_cosmics(Y, E, thresh=8.):
     log.info('Number of pixels affected by cosmics: %i' % len(x))
     log.info('Fraction of pixels affected by cosmics: %0.5f' %
              (1.*len(inds)/Y.shape[0]/Y.shape[1]))
-    fits.PrimaryHDU(P).writeto('wtf.fits', overwrite=True)
+    fits.PrimaryHDU(C).writeto('wtf.fits', overwrite=True)
     return C
 
 
@@ -303,7 +303,6 @@ def weighted_extraction(image, flat, trace):
                 T[0, :, ss] = Y[indl+k, x]
                 T[1, :, ss] = 1. / E[indl+k, x]**2
                 T[2, :, ss] = ~cosmics[indl+k, x]
-                print('success')
             except:
                 v = indl+k
                 sel = np.where((v >= 0) * (v < Y.shape[0]))[0]
