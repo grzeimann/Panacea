@@ -486,7 +486,7 @@ def find_peaks(y):
     std = biweight_midvariance(y)
     loc = loc[peaks > (20. * std)]+1
     peak_loc = get_peaks(y, loc)
-    peaks = y[np.round(peaks).astype(int)]
+    peaks = y[np.round(peak_loc).astype(int)]
     return peak_loc, peaks
 
 
