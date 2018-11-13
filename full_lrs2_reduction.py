@@ -427,10 +427,8 @@ def get_mastertwi(twi_path, amp, masterbias):
     files = glob.glob(twi_path.replace('LL', amp))
     listtwi = []
     for filename in files:
-        f = fits.open(filename)
-        if f[0].header['OBJECT'] in arc_names:
-            a = base_reduction(filename) - masterbias
-            listtwi.append(a)
+        a = base_reduction(filename) - masterbias
+        listtwi.append(a)
     twi_array = np.array(listtwi, dtype=float)
     norm = np.median(twi_array, axis=(1, 2))[:, np.newaxis, np.newaxis]
     return np.median(twi_array / norm, axis=0), filename
@@ -495,8 +493,6 @@ for ifuslot in ifuslots:
                  (ifuslot, amp))
         twibase = sciflt_path % (instrument, instrument, '00000*', instrument,
                                  ifuslot)
-        log.info('Getting MasterTwi for ifuslot, %s, and amp, %s' %
-                 (ifuslot, amp))
         mastertwi, twiname = get_mastertwi(twibase, amp, masterbias)
         trace = get_trace(mastertwi, twiname)
         fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
