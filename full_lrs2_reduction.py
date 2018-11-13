@@ -22,7 +22,7 @@ from astropy.stats import biweight_midvariance
 
 ifuslots = ['056']
 blueinfo = [['BL', 'uv', 'multi_503_056_7001', [3640., 4640.], ['LL', 'LU'],
-             [4350., 4375.], ['Hg_B', 'Cd-A_B', 'FeAr_R']],
+             [4350., 4375.], ['Hg_B', 'Cd-A_B', 'FeAr_R'], 4358.327],
             ['BR', 'orange', 'multi_503_056_7001',
              [4660., 6950.], ['RU', 'RL'], [6270., 6470.],
              ['Hg_B', 'Cd-A_B', 'FeAr_R']]]
@@ -385,7 +385,7 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW, masterbias):
     for filename in files:
         log.info('Skysubtracting sci %s' % filename)
         array_flt, error = base_reduction(filename)
-        array_flat[:] -= masterbias
+        array_flt[:] -= masterbias
         array_list.append(array_flt)
         spectrum = weighted_extraction(array_flt, flat, array_trace)
         spectrum[~np.isfinite(spectrum)] = 0.0
@@ -491,10 +491,7 @@ def find_peaks(y):
 
 
 def get_wavelength_from_arc(image, trace):
-    print(image.shape)
-    cont = percentile_filter(image, 15, size=(1, 101))
-    data = image - cont
-    spectrum = get_spectra(data, trace)
+    spectrum = get_spectra(image, trace)
     iloc, loc = ([], [])
     for i, spec in enumerate(spectrum):
         px, py = find_peaks(spec)
