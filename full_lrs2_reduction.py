@@ -203,7 +203,7 @@ def get_twiflat_field(flt_path, amp, array_wave, array_trace, common_wave,
             bigW[yy[:, j], j] = np.polyval(p0, yy[:, j])
     listspec = []
     for filename in files:
-        log.info('Working on sciflat %s' % filename)
+        log.info('Working on twiflat %s' % filename)
         array_flt = base_reduction(filename) - masterbias
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
@@ -326,7 +326,6 @@ def weighted_extraction(image, flat, trace):
             b = np.sum(T[1] * T[2], axis=1)
             spectrum[fiber] = safe_division(a, b)
         TT[fiber] = T
-    fits.PrimaryHDU(TT).writeto('wtf2.fits', overwrite=True)
     return spectrum
 
 
@@ -464,13 +463,14 @@ for ifuslot in ifuslots:
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias)
         twibase = sciflt_path % (instrument, instrument, '00000*', instrument,
                                  ifuslot)
-        log.info('Getting SciFlat for ifuslot, %s, and amp, %s' %
+        log.info('Getting TwiFlat for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         twiflat, bigW, twispec = get_twiflat_field(twibase, amp, wave, trace,
                                                    commonwave, masterbias, log)
         allflatspec.append(twiflat)
         arcspec = weighted_extraction(masterarc, twiflat, trace)
         fits.PrimaryHDU(masterarc).writeto('test_arc.fits', overwrite=True)
+        log.info('COWARD!')
         sys.exit(1)
         wave = np.array(wave, dtype=float)
         scifiles = sci_path % (instrument, instrument, sci_obs, '*',
