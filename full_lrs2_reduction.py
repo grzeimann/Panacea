@@ -233,6 +233,7 @@ def get_twiflat_field(flt_path, amp, array_wave, array_trace, common_wave,
 
 def get_spectra(array_flt, array_trace):
     spectrum = array_trace * 0.
+    x = np.arange(array_flt.shape[1])
     for fiber in np.arange(array_trace.shape[0]):
         indl = np.floor(array_trace[fiber]).astype(int)
         indh = np.ceil(array_trace[fiber]).astype(int)
@@ -418,7 +419,7 @@ def get_masterarc(arc_path, amp, arc_names, masterbias):
             a[:] -= masterbias
             listarc.append(a)
             listarce.append(e)
-    listarc, listarce = [np.vstack(x) for x in [listarc, listarce]]
+    listarc, listarce = [np.array(x) for x in [listarc, listarce]]
     # total_error = np.sqrt(np.sum(listarce**2, axis=0))
     return np.sum(listarc, axis=0)
 
