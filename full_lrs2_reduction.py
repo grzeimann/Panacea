@@ -434,15 +434,36 @@ def get_mastertwi(twi_path, amp, masterbias):
     return np.median(twi_array / norm, axis=0), filename
 
 
-def get_trace(twilight, twi_name):
-    twi = Amplifier(twi_name, '', virusconfig=Conf.virusconfig)
-    twi.use_trace_ref = True
-    twi.use_pixelflat = False
-    twi.trace_step=8
-    twi.bias_mult = 0.0
-    twi.dark_mult = 0.0
-    twi.get_trace()
-    trace = np.array([fiber.trace for fiber in twi.fibers], dtype=float)
+def get_trace(twilight):
+    def get_trace_chunk(flat, XN):
+        YM = np.arange(flat.shape[0])
+        inds = np.zeros((3, len(XN)))
+        inds[0] = XN - 1.
+        inds[1] = XN + 0.
+        inds[2] = XN + 1.
+        inds = np.array(inds, dtype=int)
+        Trace = (YM[inds[1]] - (flat[inds[2]] - flat[inds[0]]) /
+                 (2. * (flat[inds[2]] - 2. * flat[inds[1]] + flat[inds[0]])))
+        return Trace
+    image = twilight
+    N = 40
+    xchunks = [np.mean(x) for x in
+               np.array_split(np.arange(image.shape[1]), N)]
+    chunks = np.array_split(image, N, axis=1)
+    flats = [np.median(chunk, axis=1) for chunk in chunks]
+    Trace = []
+    for flat, x in zip(flats, xchunks):
+        diff_array = flat[1:] - flat[:-1]
+        loc = np.where((diff_array[:-1] > 0.) * (diff_array[1:] < 0.))[0]
+        peaks = flat[loc+1]
+        loc = loc[peaks > 0.1 * np.median(peaks)]+1
+        trace = get_trace(flat, loc)
+        Trace.append(trace)
+    Trace = np.array(Trace)
+    x = np.arange(twilight.shape[1])
+    trace = np.zeros((Trace.shape[1], twilight.shape[1]))
+    for i in np.arange(Trace.shape[1]):
+        trace[i] = np.polyval(np.polyfit(xchunks, Trace[:, 0], 7), x)
     return trace
 
 # GET ALL VIRUS IFUSLOTS
@@ -495,8 +516,10 @@ for ifuslot in ifuslots:
         twibase = sciflt_path % (instrument, instrument, '00000*', instrument,
                                  ifuslot)
         mastertwi, twiname = get_mastertwi(twibase, amp, masterbias)
-        #trace = get_trace(mastertwi, twiname)
-        fits.PrimaryHDU(mastertwi).writeto('test_trace.fits', overwrite=True)
+        log.info('Getting Trace for ifuslot, %s, and amp, %s' %
+                 (ifuslot, amp))
+        trace = get_trace(mastertwi, twiname)
+        fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
 
         log.info('Getting TwiFlat for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
