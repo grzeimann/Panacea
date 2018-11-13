@@ -461,7 +461,7 @@ def get_trace(twilight):
     x = np.arange(twilight.shape[1])
     trace = np.zeros((Trace.shape[1], twilight.shape[1]))
     for i in np.arange(Trace.shape[1]):
-        trace[i] = np.polyval(np.polyfit(xchunks, Trace[:, 0], 7), x)
+        trace[i] = np.polyval(np.polyfit(xchunks, Trace[:, i], 7), x)
     return trace
 
 # GET ALL VIRUS IFUSLOTS
