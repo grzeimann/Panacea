@@ -511,7 +511,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     yt = robust_polyfit(xt, np.array(iloc))
     x = np.arange(image.shape[1])
     init_wave = (1. * (lims[1] - lims[0]) / image.shape[1] *
-                 (x[np.newaxis, :] - xt) + yt[:, np.newaxis])
+                 (x[np.newaxis, :] - xt[:, np.newaxis]) + yt[:, np.newaxis])
     print(init_wave)
 
 # GET ALL VIRUS IFUSLOTS
