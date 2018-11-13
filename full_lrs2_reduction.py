@@ -20,7 +20,6 @@ from input_utils import setup_logging
 from astrometry import Astrometry
 from astropy.stats import biweight_midvariance
 
-lrs2_amps = [['LL', 'LU'], ['RL', 'RU']]
 ifuslots = ['056']
 blueinfo = [['BL', 'uv', 'multi_503_056_7001', [3640., 4640.], ['LL', 'LU'],
              [4350., 4375.], ['Hg_B', 'Cd-A_B', 'FeAr_R']],
@@ -41,7 +40,6 @@ sci_date = twi_date
 
 # FOR LRS2
 instrument = 'lrs2'
-AMPS = lrs2_amps[0]
 info_side = blueinfo
 dither_pattern = np.zeros((50, 2))
 
@@ -526,7 +524,7 @@ DIRNAME = get_script_path()
 for ifuslot in ifuslots:
     specinit, specname, multi, lims, amps, slims, arc_names = info_side[0]
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
-                                   specname, format='ascii'))
+                                   specname), format='ascii')
 
     commonwave = np.linspace(lims[0], lims[1], 3000)
     for amp in amps:
