@@ -8,10 +8,8 @@ import numpy as np
 import os.path as op
 import glob
 import warnings
-import config as Conf
 
 from astropy.io import fits
-from amplifier import Amplifier
 from utils import biweight_location
 from scipy.signal import savgol_filter, medfilt2d
 from scipy.ndimage.filters import percentile_filter
