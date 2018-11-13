@@ -8,8 +8,10 @@ import numpy as np
 import os.path as op
 import glob
 import warnings
+import config as Conf
 
 from astropy.io import fits
+from amplifier import Amplifier
 from utils import biweight_location
 from scipy.signal import savgol_filter, medfilt2d
 from scipy.ndimage.filters import percentile_filter
@@ -420,6 +422,30 @@ def get_masterarc(arc_path, amp, arc_names, masterbias):
             listarc.append(a)
     return np.sum(listarc, axis=0)
 
+
+def get_mastertwi(twi_path, amp, masterbias):
+    files = glob.glob(twi_path.replace('LL', amp))
+    listtwi = []
+    for filename in files:
+        f = fits.open(filename)
+        if f[0].header['OBJECT'] in arc_names:
+            a = base_reduction(filename) - masterbias
+            listtwi.append(a)
+    twi_array = np.array(listtwi, dtype=float)
+    norm = np.median(twi_array, axis=(1, 2))[:, np.newaxis, np.newaxis]
+    return np.median(twi_array / norm, axis=0), filename
+
+
+def get_trace(twilight, twi_name):
+    twi = Amplifier(twi_name, '', virusconfig=Conf.virusconfig)
+    twi.use_trace_ref = True
+    twi.use_pixelflat = False
+    twi.bias_mult = 0.0
+    twi.dark_mult = 0.0
+    twi.get_trace()
+    trace = np.array([fiber.trace for fiber in twi.fibers], dtype=float)
+    return trace
+
 # GET ALL VIRUS IFUSLOTS
 twilist = glob.glob(twi_path % (instrument, instrument, twi_obs, instrument,
                                 '*'))
@@ -458,11 +484,23 @@ for ifuslot in ifuslots:
         zro_path = bias_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
         masterbias = get_masterbias(zro_path, amp)
+
+        log.info('Getting MasterArc for ifuslot, %s, and amp, %s' %
+                 (ifuslot, amp))
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias)
+
+        log.info('Getting MasterTwi for ifuslot, %s, and amp, %s' %
+                 (ifuslot, amp))
         twibase = sciflt_path % (instrument, instrument, '00000*', instrument,
                                  ifuslot)
+        log.info('Getting MasterTwi for ifuslot, %s, and amp, %s' %
+                 (ifuslot, amp))
+        mastertwi, twiname = get_mastertwi(twibase, amp, masterbias)
+        trace = get_trace(mastertwi, twiname)
+        fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
+
         log.info('Getting TwiFlat for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         twiflat, bigW, twispec = get_twiflat_field(twibase, amp, wave, trace,
