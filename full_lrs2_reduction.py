@@ -455,7 +455,7 @@ def get_trace(twilight):
         loc = np.where((diff_array[:-1] > 0.) * (diff_array[1:] < 0.))[0]
         peaks = flat[loc+1]
         loc = loc[peaks > 0.1 * np.median(peaks)]+1
-        trace = get_trace(flat, loc)
+        trace = get_trace_chunk(flat, loc)
         Trace.append(trace)
     Trace = np.array(Trace)
     x = np.arange(twilight.shape[1])
