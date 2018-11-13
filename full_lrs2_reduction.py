@@ -7,17 +7,18 @@ Created on Thu Oct  4 13:30:06 2018
 import numpy as np
 import os.path as op
 import glob
+import sys
 import warnings
 
 from astropy.io import fits
+from astropy.table import Table
 from utils import biweight_location
 from scipy.signal import savgol_filter, medfilt2d
 from scipy.ndimage.filters import percentile_filter
 from scipy.interpolate import interp1d, interp2d, griddata
 from input_utils import setup_logging
 from astrometry import Astrometry
-from photutils import DAOStarFinder
-from astropy.stats import sigma_clipped_stats
+from astropy.stats import biweight_midvariance
 
 lrs2_amps = [['LL', 'LU'], ['RL', 'RU']]
 ifuslots = ['056']
@@ -62,6 +63,10 @@ bias_path = op.join(baseraw, twi_date, '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
 
 
+def get_script_path():
+    return op.dirname(op.realpath(sys.argv[0]))
+
+
 def get_cal_info(twi_path, amp):
     F = fits.open(glob.glob(twi_path.replace('LL', amp))[0])
     return (np.array(F['ifupos'].data, dtype=float),
@@ -83,17 +88,6 @@ def orient_image(image, amp, ampname):
             image[:] = image[:, ::-1]
     return image
 
-
-def get_wavelength_from_arc(image, wave, trace, lines, ind):
-    cont = percentile_filter(image, 15, size=(1, 101))
-    data = image - cont
-    mean, median, std = sigma_clipped_stats(data, sigma=3.0)
-    daofind = DAOStarFinder(fwhm=3.0, threshold=8.*std)
-    sources = daofind(data)
-    newwave = wave * 0.
-    
-    for line in lines:
-        np.interp()
 
 def make_avg_spec(wave, spec, binsize=35, per=50):
     ind = np.argsort(wave.ravel())
@@ -120,6 +114,9 @@ def base_reduction(filename):
     # trim image
     image = image[:, :-overscan_length]
     gain = a[0].header['GAIN']
+    gain = np.where(gain > 0., gain, 0.85)
+    rdnoise = a[0].header['RDNOISE']
+    rdnoise = np.where(rdnoise > 0., rdnoise, 3.)
     amp = (a[0].header['CCDPOS'].replace(' ', '') +
            a[0].header['CCDHALF'].replace(' ', ''))
     try:
@@ -127,7 +124,8 @@ def base_reduction(filename):
     except:
         ampname = None
     a = orient_image(image, amp, ampname) * gain
-    return a
+    E = np.sqrt(rdnoise**2 + np.where(a > 0., a, 0.))
+    return a, E
 
 
 def power_law(x, c1, c2=.5, c3=.15, c4=1., sig=2.5):
@@ -186,7 +184,7 @@ def get_twiflat_field(flt_path, amp, array_wave, array_trace, common_wave,
                       masterbias, log):
     files = glob.glob(flt_path.replace('LL', amp))
     listflat = []
-    array_flt = base_reduction(files[0])
+    array_flt, error = base_reduction(files[0])
 
     bigW = np.zeros(array_flt.shape)
     Y, X = np.indices(array_wave.shape)
@@ -204,7 +202,8 @@ def get_twiflat_field(flt_path, amp, array_wave, array_trace, common_wave,
     listspec = []
     for filename in files:
         log.info('Working on twiflat %s' % filename)
-        array_flt = base_reduction(filename) - masterbias
+        array_flt, error = base_reduction(filename)
+        array_flt[:] -= masterbias
         x = np.arange(array_wave.shape[1])
         spectrum = array_trace * 0.
         for fiber in np.arange(array_wave.shape[0]):
@@ -278,12 +277,11 @@ def find_cosmics(Y, E, thresh=8.):
     log.info('Number of pixels affected by cosmics: %i' % len(x))
     log.info('Fraction of pixels affected by cosmics: %0.5f' %
              (1.*len(inds)/Y.shape[0]/Y.shape[1]))
-    fits.PrimaryHDU(np.array(C, dtype=float)).writeto('wtf.fits', overwrite=True)
     return C
 
 
 def weighted_extraction(image, flat, trace):
-    rdnoise = 3. * np.sqrt(9)
+    rdnoise = 3.
     gain = 0.85
     I = image * 1.
     I[I < 0.] = 0.
@@ -371,7 +369,8 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW, masterbias):
     array_list = []
     for filename in files:
         log.info('Skysubtracting sci %s' % filename)
-        array_flt = base_reduction(filename) - masterbias
+        array_flt, error = base_reduction(filename)
+        array_flt[:] -= masterbias
         array_list.append(array_flt)
     sci_array = np.sum(array_list, axis=0)
     Xx = np.arange(flat.shape[1])
@@ -386,7 +385,8 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW, masterbias):
     spec_list = []
     for filename in files:
         log.info('Skysubtracting sci %s' % filename)
-        array_flt = base_reduction(filename) - masterbias
+        array_flt, error = base_reduction(filename)
+        array_flat[:] -= masterbias
         array_list.append(array_flt)
         spectrum = weighted_extraction(array_flt, flat, array_trace)
         spectrum[~np.isfinite(spectrum)] = 0.0
@@ -405,19 +405,23 @@ def get_masterbias(zro_path, amp):
     files = glob.glob(zro_path.replace('LL', amp))
     listzro = []
     for filename in files:
-        a = base_reduction(filename)
+        a, error = base_reduction(filename)
         listzro.append(a)
     return np.median(listzro, axis=0)
 
 
 def get_masterarc(arc_path, amp, arc_names, masterbias):
     files = glob.glob(arc_path.replace('LL', amp))
-    listarc = []
+    listarc, listarce = ([], [])
     for filename in files:
         f = fits.open(filename)
         if f[0].header['OBJECT'] in arc_names:
-            a = base_reduction(filename) - masterbias
+            a, e = base_reduction(filename)
+            a[:] -= masterbias
             listarc.append(a)
+            listarce.append(e)
+    listarc, listarce = [np.vstack(x) for x in [listarc, listarce]]
+    total_error = np.sqrt(np.sum(listarce**2, axis=0))
     return np.sum(listarc, axis=0)
 
 
@@ -425,11 +429,12 @@ def get_mastertwi(twi_path, amp, masterbias):
     files = glob.glob(twi_path.replace('LL', amp))
     listtwi = []
     for filename in files:
-        a = base_reduction(filename) - masterbias
+        a, e = base_reduction(filename)
+        a[:] -= masterbias
         listtwi.append(a)
     twi_array = np.array(listtwi, dtype=float)
     norm = np.median(twi_array, axis=(1, 2))[:, np.newaxis, np.newaxis]
-    return np.median(twi_array / norm, axis=0), filename
+    return np.median(twi_array / norm, axis=0)
 
 
 def get_trace(twilight):
@@ -464,6 +469,39 @@ def get_trace(twilight):
         trace[i] = np.polyval(np.polyfit(xchunks, Trace[:, i], 7), x)
     return trace
 
+
+def find_peaks(y):
+    def get_peaks(flat, XN):
+        YM = np.arange(flat.shape[0])
+        inds = np.zeros((3, len(XN)))
+        inds[0] = XN - 1.
+        inds[1] = XN + 0.
+        inds[2] = XN + 1.
+        inds = np.array(inds, dtype=int)
+        Peaks = (YM[inds[1]] - (flat[inds[2]] - flat[inds[0]]) /
+                 (2. * (flat[inds[2]] - 2. * flat[inds[1]] + flat[inds[0]])))
+        return Peaks
+    diff_array = y[1:] - y[:-1]
+    loc = np.where((diff_array[:-1] > 0.) * (diff_array[1:] < 0.))[0]
+    peaks = y[loc+1]
+    std = biweight_midvariance(y)
+    loc = loc[peaks > (20. * std)]+1
+    peak_loc = get_peaks(y, loc)
+    peaks = y[np.round(peaks).astype(int)]
+    return peak_loc, peaks
+
+
+def get_wavelength_from_arc(image, trace, lines, ind):
+    cont = percentile_filter(image, 15, size=(1, 101))
+    data = image - cont
+    spectrum = get_spectra(data, trace)
+    iloc, loc = ([], [])
+    for i, spec in enumerate(spectrum):
+        px, py = find_peaks(spec)
+        loc.append(px)
+        iloc.append(px[np.argmax(py)])
+    print(iloc)
+
 # GET ALL VIRUS IFUSLOTS
 twilist = glob.glob(twi_path % (instrument, instrument, twi_obs, instrument,
                                 '*'))
@@ -483,12 +521,18 @@ A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
 allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
                                                            [], [])
 
-# Rectified wavelength
+DIRNAME = get_script_path()
 
 for ifuslot in ifuslots:
     specinit, specname, multi, lims, amps, slims, arc_names = info_side[0]
+    arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
+                                   specname, format='ascii'))
+
     commonwave = np.linspace(lims[0], lims[1], 3000)
     for amp in amps:
+        ################
+        # TO BE REPLACED
+        ################
         log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
         twibase = twi_path % (instrument, instrument, twi_obs, instrument,
                               ifuslot)
@@ -497,28 +541,43 @@ for ifuslot in ifuslots:
             log.info('Insufficient cal data for ifuslot, %s, and amp, %s'
                      % (ifuslot, amp))
             continue
+        ##############
+        # MASTERBIAS #
+        ##############
         log.info('Getting Masterbias for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         zro_path = bias_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
         masterbias = get_masterbias(zro_path, amp)
 
-        log.info('Getting MasterArc for ifuslot, %s, and amp, %s' %
-                 (ifuslot, amp))
-        lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
-                                ifuslot)
-        masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias)
-
+        #####################
+        # MASTERTWI [TRACE] #
+        #####################
         log.info('Getting MasterTwi for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         twibase = sciflt_path % (instrument, instrument, '00000*', instrument,
                                  ifuslot)
-        mastertwi, twiname = get_mastertwi(twibase, amp, masterbias)
+        mastertwi = get_mastertwi(twibase, amp, masterbias)
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         trace = get_trace(mastertwi)
         fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
 
+        ##########################
+        # MASTERARC [WAVELENGTH] #
+        ##########################
+        log.info('Getting MasterArc for ifuslot, %s, and amp, %s' %
+                 (ifuslot, amp))
+        lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
+                                ifuslot)
+        masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias)
+        get_wavelength_from_arc(masterarc, trace)
+        log.info('COWARD!')
+        sys.exit(1)
+
+        #################################
+        # TWILIGHT FLAT [FIBER PROFILE] #
+        #################################
         log.info('Getting TwiFlat for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         twiflat, bigW, twispec = get_twiflat_field(twibase, amp, wave, trace,
