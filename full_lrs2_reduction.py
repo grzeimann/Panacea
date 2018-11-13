@@ -489,7 +489,7 @@ def find_peaks(y):
     return peak_loc, peaks
 
 
-def get_wavelength_from_arc(image, trace, lines, ind):
+def get_wavelength_from_arc(image, trace):
     cont = percentile_filter(image, 15, size=(1, 101))
     data = image - cont
     spectrum = get_spectra(data, trace)
