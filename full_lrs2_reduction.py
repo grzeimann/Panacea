@@ -516,7 +516,7 @@ for ifuslot in ifuslots:
         mastertwi, twiname = get_mastertwi(twibase, amp, masterbias)
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        trace = get_trace(mastertwi, twiname)
+        trace = get_trace(mastertwi)
         fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
 
         log.info('Getting TwiFlat for ifuslot, %s, and amp, %s' %
