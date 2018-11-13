@@ -419,7 +419,7 @@ def get_masterarc(arc_path, amp, arc_names, masterbias):
             listarc.append(a)
             listarce.append(e)
     listarc, listarce = [np.vstack(x) for x in [listarc, listarce]]
-    total_error = np.sqrt(np.sum(listarce**2, axis=0))
+    # total_error = np.sqrt(np.sum(listarce**2, axis=0))
     return np.sum(listarc, axis=0)
 
 
@@ -490,6 +490,7 @@ def find_peaks(y):
 
 
 def get_wavelength_from_arc(image, trace):
+    print(image.shape)
     cont = percentile_filter(image, 15, size=(1, 101))
     data = image - cont
     spectrum = get_spectra(data, trace)
@@ -569,6 +570,8 @@ for ifuslot in ifuslots:
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias)
+        log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
+                 (ifuslot, amp))
         get_wavelength_from_arc(masterarc, trace)
         log.info('COWARD!')
         sys.exit(1)
