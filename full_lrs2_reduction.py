@@ -438,6 +438,7 @@ def get_trace(twilight, twi_name):
     twi = Amplifier(twi_name, '', virusconfig=Conf.virusconfig)
     twi.use_trace_ref = True
     twi.use_pixelflat = False
+    twi.trace_step=8
     twi.bias_mult = 0.0
     twi.dark_mult = 0.0
     twi.get_trace()
@@ -494,8 +495,8 @@ for ifuslot in ifuslots:
         twibase = sciflt_path % (instrument, instrument, '00000*', instrument,
                                  ifuslot)
         mastertwi, twiname = get_mastertwi(twibase, amp, masterbias)
-        trace = get_trace(mastertwi, twiname)
-        fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
+        #trace = get_trace(mastertwi, twiname)
+        fits.PrimaryHDU(mastertwi).writeto('test_trace.fits', overwrite=True)
 
         log.info('Getting TwiFlat for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
