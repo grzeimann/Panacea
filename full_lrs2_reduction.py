@@ -490,14 +490,29 @@ def find_peaks(y):
     return peak_loc, peaks
 
 
-def get_wavelength_from_arc(image, trace):
+def robust_polyfit(x, y, order=3, niter=3):
+    ymod = np.polyval(np.polyfit(x, y, order), x)
+    for i in np.arange(niter):
+        a = np.abs(y - ymod)
+        mad = np.median(a)
+        sel = a < 3. * mad
+        ymod = np.polyval(np.polyfit(x[sel], y[sel], order), x)
+    return ymod
+
+def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     spectrum = get_spectra(image, trace)
     iloc, loc = ([], [])
     for i, spec in enumerate(spectrum):
         px, py = find_peaks(spec)
         loc.append(px)
         iloc.append(px[np.argmax(py)])
-    print(iloc)
+    ind = np.array(iloc, dtype=int)
+    xt = trace[np.arange(trace.shape[0]), ind]
+    yt = robust_polyfit(xt, np.array(iloc))
+    x = np.arange(image.shape[1])
+    init_wave = (1. * (lims[1] - lims[0]) / image.shape[1] *
+                 (x[np.newaxis, :] - xt) + yt[:, np.newaxis])
+    print(init_wave)
 
 # GET ALL VIRUS IFUSLOTS
 twilist = glob.glob(twi_path % (instrument, instrument, twi_obs, instrument,
@@ -521,7 +536,7 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 DIRNAME = get_script_path()
 
 for ifuslot in ifuslots:
-    specinit, specname, multi, lims, amps, slims, arc_names, skyline = info_side[0]
+    specinit, specname, multi, lims, amps, slims, arc_names, brightline = info_side[0]
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
 
@@ -570,7 +585,7 @@ for ifuslot in ifuslots:
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        get_wavelength_from_arc(masterarc, trace)
+        get_wavelength_from_arc(masterarc, trace, brightline, arc_lines, lims)
         log.info('COWARD!')
         sys.exit(1)
 
