@@ -536,7 +536,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
         if np.abs(np.median(yt)-lines['col2'][i]) > 40.:
             found_lines[:, i] = 0.0
         else:
-            found_lines[:, i] = yt 
+            found_lines[:, i] = yt
     for i in np.arange(ind, len(lines)):
         cols = lines['col2'][i] + found_lines[:, i-1] - lines['col2'][i-1]
         kk = []
@@ -554,9 +554,37 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
         if np.abs(np.median(yt)-lines['col2'][i]) > 40.:
             found_lines[:, i] = 0.0
         else:
-            found_lines[:, i] = yt  
+            found_lines[:, i] = yt
+    wave = np.zeros(trace.shape)
+    for i in np.arange(trace.shape[0]):
+        sel = found_lines[i, :] > 0.
+        p = np.polyfit(found_lines[i, sel], np.array(lines['col2'][sel]), 3)
+        wave[i] = np.polyval(p, x)
+    for i in np.arange(len(lines)):
+        for j, loci in enumerate(loc):
+            col = np.interp(lines[i]['col1'], wave[j], x)
+            dist = np.abs(loci - col)
+            if np.min(dist) < 8.:
+                found_lines[j, i] = loci[np.argmin(dist)]
+        if (found_lines[:, i] > 0.).sum() < (0.5 * trace.shape[0]):
+            found_lines[:, i] = 0.0
+            continue
+        inds = np.array(found_lines[:, i], dtype=int)
+        xt = trace[np.arange(trace.shape[0]), inds]
+        yt = robust_polyfit(xt, found_lines[:, i])
+        if np.abs(np.median(yt)-lines['col2'][i]) > 40.:
+            found_lines[:, i] = 0.0
+        else:
+            found_lines[:, i] = yt
+    wave = np.zeros(trace.shape)
+    for i in np.arange(trace.shape[0]):
+        sel = found_lines[i, :] > 0.
+        p = np.polyfit(found_lines[i, sel], np.array(lines['col2'][sel]), 3)
+        wave[i] = np.polyval(p, x)
+
     print(lines['col2'])
     print(found_lines[0, :])
+    
 
 # GET ALL VIRUS IFUSLOTS
 twilist = glob.glob(twi_path % (instrument, instrument, twi_obs, instrument,
