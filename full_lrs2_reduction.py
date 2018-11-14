@@ -513,7 +513,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
         px, py = find_peaks(spec)
         loc.append(px)
     found_lines = np.zeros((trace.shape[0], len(lines)))
-    M = lines['col2'] - loc[fib][np.newaxis, :]
+    M = np.abs(lines['col2'][:, np.newaxis] - loc[fib][np.newaxis, :])
     offset = np.median(M[M < 10.])
     for i, line in enumerate(lines):
         col = line['col2'] + offset
