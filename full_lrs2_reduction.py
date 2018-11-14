@@ -520,7 +520,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     for i in np.arange(0, ind)[::-1]:
         line = lines['col1'][i]
         for j, loci in enumerate(loc):
-            waves = np.interp(loci, x, init_wave)
+            waves = np.interp(loci, x, init_wave[j, :])
             ind1 = np.argmin(np.abs(waves - line))
             m1 = np.min(np.abs(waves - line))
             if m1 < 1.5:
