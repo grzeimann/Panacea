@@ -504,6 +504,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     spectrum = get_spectra(image, trace)
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
+    fits.PrimaryHDU(spectrum).writeto('test_spec.fits', overwrite=True)
     iloc, loc, sloc = ([], [], [])
     for i, spec in enumerate(spectrum):
         px, py = find_peaks(spec)
