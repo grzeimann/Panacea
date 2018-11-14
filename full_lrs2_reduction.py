@@ -554,7 +554,8 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
         if np.abs(np.median(yt)-lines['col2'][i]) > 40.:
             found_lines[:, i] = 0.0
         else:
-            found_lines[:, i] = yt        
+            found_lines[:, i] = yt  
+    print(lines['col2'])
     print(found_lines[0, :])
 
 # GET ALL VIRUS IFUSLOTS
