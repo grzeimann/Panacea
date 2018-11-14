@@ -506,21 +506,56 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     fib = np.argmax(np.median(spectrum, axis=1))
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
+    x = np.arange(trace.shape[1])
     fits.PrimaryHDU(spectrum).writeto('test_spec.fits', overwrite=True)
-    iloc, loc, sloc = ([], [], [])
+    loc = []
     for i, spec in enumerate(spectrum):
         px, py = find_peaks(spec)
         loc.append(px)
-        iloc.append(px[np.argmax(py)])
-        sloc.append(px[np.argsort(py)[::-1]])
-    ind = np.array(iloc, dtype=int)
-    xt = trace[np.arange(trace.shape[0]), ind]
-    yt = robust_polyfit(xt, np.array(iloc))
-    x = np.arange(image.shape[1])
-    ind = np.argmin(np.abs(brightline - lines['col1']))
     found_lines = np.zeros((trace.shape[0], len(lines)))
-    found_lines[:, ind] = yt
-    print(sloc[fib])
+    M = lines['col2'] - loc[fib][np.newaxis, :]
+    offset = np.median(M[M < 10.])
+    for i, line in enumerate(lines):
+        col = line['col2'] + offset
+        v = np.abs(col - loc[fib])
+        if np.min(v) < 10.:
+            found_lines[fib, i] = loc[fib]
+    for i, line in enumerate(lines):
+        if found_lines[fib, i] == 0.:
+            continue
+        for j in np.arange(0, fib)[::-1]:
+            k = j + 1
+            v = found_lines[k, i]
+            while (v == 0.) and (k < trace.shape[0]):
+                k += 1
+                v = found_lines[k, i]
+            m = np.abs(loc[j] - v)
+            if np.min(m) < 2.:
+                found_lines[j, i] = loc[j]
+        for j in np.arange(fib, trace.shape[0]):
+            k = j - 1
+            v = found_lines[k, i]
+            while (v == 0.) and (k >= 0):
+                k -= 1
+                v = found_lines[k, i]
+            m = np.abs(loc[j] - v)
+            if np.min(m) < 2.:
+                found_lines[j, i] = loc[j]
+    for i, line in enumerate(lines):
+        if np.sum(found_lines[:, i]) < (0.5 * trace.shape[0]):
+            found_lines[:, i] = 0.0
+            continue
+        ind = np.array(found_lines[:, i], dtype=int)
+        xt = trace[np.arange(trace.shape[0]), ind]
+        sel = found_lines[:, i] > 0.
+        yt = robust_polyfit(xt[sel], found_lines[sel, i])
+        found_lines[:, i] = yt
+    wave = trace * 0.0
+    for j in np.arange(trace.shape[0]):
+        sel = found_lines[j, :] > 0.0
+        wave[j] = np.polyval(np.polyfit(found_lines[j, sel],
+                             lines['col1'[sel]], 3), x)
+    print(wave)
     
 
 # GET ALL VIRUS IFUSLOTS
