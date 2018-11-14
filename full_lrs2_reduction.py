@@ -515,6 +515,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     init_wave = (1. * (lims[1] - lims[0]) / image.shape[1] *
                  (x[np.newaxis, :] - yt[:, np.newaxis]) + brightline)
     ind = np.argmin(brightline - lines['col1'])
+    print(ind)
     found_lines = np.zeros((trace.shape[0], len(lines)))
     found_lines[:, ind] = yt
     for i in np.arange(0, ind)[::-1]:
