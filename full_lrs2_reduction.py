@@ -520,6 +520,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
         v = np.abs(col - loc[fib])
         if np.min(v) < 10.:
             found_lines[fib, i] = loc[fib][np.argmin(v)]
+    print(found_lines[fib])
     for i, line in enumerate(lines):
         if found_lines[fib, i] == 0.:
             continue
