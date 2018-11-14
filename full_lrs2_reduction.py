@@ -496,7 +496,8 @@ def robust_polyfit(x, y, order=3, niter=3):
         a = np.abs(y - ymod)
         mad = np.median(a)
         sel = a < 3. * mad
-        ymod = np.polyval(np.polyfit(x[sel], y[sel], order), x)
+        if sel.sum() > (order+2):
+            ymod = np.polyval(np.polyfit(x[sel], y[sel], order), x)
     return ymod
 
 
@@ -537,9 +538,10 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
         xt = trace[np.arange(trace.shape[0]), inds]
         yt = robust_polyfit(xt, found_lines[:, i])
         found_lines[:, i] = yt
-        print(yt)
-        init_wave = (1. * (lines['col1'][i+1] - lines['col1'][i]) /
-                     (found_lines[:, i+1:i+2] - found_lines[:, i:i+1]) *
+        m = ((lines['col1'][i+1] - lines['col1'][i]) /
+             (found_lines[:, i+1:i+2] - found_lines[:, i:i+1]))
+        print(m)
+        init_wave = (1. * m *
                      (x[np.newaxis, :] - yt[:, np.newaxis]) + brightline)
     print(found_lines)
 
