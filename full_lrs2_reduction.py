@@ -558,7 +558,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     for j in np.arange(trace.shape[0]):
         sel = found_lines[j, :] > 0.0
         wave[j] = np.polyval(np.polyfit(found_lines[j, sel],
-                             lines['col1'[sel]], 3), x)
+                             lines['col1'][sel], 3), x)
     print(wave)
     
 
