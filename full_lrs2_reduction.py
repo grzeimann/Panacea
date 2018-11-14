@@ -519,74 +519,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     ind = np.argmin(np.abs(brightline - lines['col1']))
     found_lines = np.zeros((trace.shape[0], len(lines)))
     found_lines[:, ind] = yt
-    for i in np.arange(0, ind)[::-1]:
-        cols = lines['col2'][i] + found_lines[:, i+1] - lines['col2'][i+1]
-        kk = []
-        for j, loci in enumerate(loc):
-            dist = np.abs(loci - cols[j])
-            kk.append(np.min(dist))
-            if np.min(dist) < 8.:
-                found_lines[j, i] = loci[np.argmin(dist)]
-        if (found_lines[:, i] > 0.).sum() < (0.5 * trace.shape[0]):
-            found_lines[:, i] = 0.0
-            continue
-        inds = np.array(found_lines[:, i], dtype=int)
-        xt = trace[np.arange(trace.shape[0]), inds]
-        yt = robust_polyfit(xt, found_lines[:, i])
-        if np.abs(np.median(yt)-lines['col2'][i]) > 40.:
-            found_lines[:, i] = 0.0
-        else:
-            found_lines[:, i] = yt
-    for i in np.arange(ind, len(lines)):
-        cols = lines['col2'][i] + found_lines[:, i-1] - lines['col2'][i-1]
-        kk = []
-        for j, loci in enumerate(loc):
-            dist = np.abs(loci - cols[j])
-            kk.append(np.min(dist))
-            if np.min(dist) < 8.:
-                found_lines[j, i] = loci[np.argmin(dist)]
-        if (found_lines[:, i] > 0.).sum() < (0.5 * trace.shape[0]):
-            found_lines[:, i] = 0.0
-            continue
-        inds = np.array(found_lines[:, i], dtype=int)
-        xt = trace[np.arange(trace.shape[0]), inds]
-        yt = robust_polyfit(xt, found_lines[:, i])
-        if np.abs(np.median(yt)-lines['col2'][i]) > 40.:
-            found_lines[:, i] = 0.0
-        else:
-            found_lines[:, i] = yt
-    wave = np.zeros(trace.shape)
-    for i in np.arange(trace.shape[0]):
-        sel = found_lines[i, :] > 0.
-        p = np.polyfit(found_lines[i, sel], np.array(lines['col2'][sel]), 3)
-        wave[i] = np.polyval(p, x)
-    for i in np.arange(len(lines)):
-        kk = []
-        for j, loci in enumerate(loc):
-            col = np.interp(lines[i]['col1'], wave[j], x)
-            dist = np.abs(loci - col)
-            kk.append(loci)
-            if np.min(dist) < 8.:
-                found_lines[j, i] = loci[np.argmin(dist)]
-        if (found_lines[:, i] > 0.).sum() < (0.5 * trace.shape[0]):
-            found_lines[:, i] = 0.0
-            continue
-        print(kk)
-        inds = np.array(found_lines[:, i], dtype=int)
-        xt = trace[np.arange(trace.shape[0]), inds]
-        yt = robust_polyfit(xt, found_lines[:, i])
-        if np.abs(np.median(yt)-lines['col2'][i]) > 40.:
-            found_lines[:, i] = 0.0
-        else:
-            found_lines[:, i] = yt
-    wave = np.zeros(trace.shape)
-    for i in np.arange(trace.shape[0]):
-        sel = found_lines[i, :] > 0.
-        p = np.polyfit(found_lines[i, sel], np.array(lines['col2'][sel]), 3)
-        wave[i] = np.polyval(p, x)
-
-    print(lines['col2'])
-    print(found_lines[0, :])
+    print(sloc)
     
 
 # GET ALL VIRUS IFUSLOTS
