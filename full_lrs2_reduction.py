@@ -523,6 +523,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
                  (x[np.newaxis, :] - yt[:, np.newaxis]) + brightline)
     found_lines = np.zeros((trace.shape[0], len(lines)))
     found_lines[:, ind] = yt
+    print(loc)
     for i in np.arange(0, ind)[::-1]:
         line = lines['col1'][i]
         kk = []
@@ -530,10 +531,9 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
             waves = np.interp(loci, x, init_wave[j, :])
             ind1 = np.argmin(np.abs(waves - line))
             m1 = np.min(np.abs(waves - line))
-            kk.append(m1)
+            kk.append(waves)
             if m1 < 5.:
                 found_lines[j, i] = loci[ind1]
-        print(kk)
         if (found_lines[:, i] > 0.).sum() < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
             continue
