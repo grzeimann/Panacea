@@ -519,8 +519,8 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     ind = np.argmin(np.abs(brightline - lines['col1']))
     found_lines = np.zeros((trace.shape[0], len(lines)))
     found_lines[:, ind] = yt
-    n = np.min([len(sl) for sl in sloc])
-    print([np.median([sl[i] for sl in sloc]) for i in np.arange(n)])
+    n = np.max([len(sl) for sl in sloc])
+    print([np.median([sl[i] for sl in sloc if i < len(sl)]) for i in np.arange(n)])
     
 
 # GET ALL VIRUS IFUSLOTS
