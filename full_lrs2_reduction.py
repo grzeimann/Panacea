@@ -491,7 +491,8 @@ def find_peaks(y):
 
 
 def robust_polyfit(x, y, order=3, niter=3):
-    ymod = np.polyval(np.polyfit(x, y, order), x)
+    sel = y > 0.
+    ymod = np.polyval(np.polyfit(x[sel], y[sel], order), x)
     for i in np.arange(niter):
         a = np.abs(y - ymod)
         mad = np.median(a)
