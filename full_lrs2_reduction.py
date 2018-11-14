@@ -484,7 +484,6 @@ def find_peaks(y):
     loc = np.where((diff_array[:-1] > 0.) * (diff_array[1:] < 0.))[0]
     peaks = y[loc+1]
     std = np.sqrt(biweight_midvariance(y))
-    print(std)
     loc = loc[peaks > (5. * std)]+1
     peak_loc = get_peaks(y, loc)
     peaks = y[np.round(peak_loc).astype(int)]
@@ -523,12 +522,11 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     found_lines[:, ind] = yt
     for i in np.arange(0, ind)[::-1]:
         line = lines['col1'][i]
-        print(line)
         for j, loci in enumerate(loc):
             waves = np.interp(loci, x, init_wave[j, :])
             ind1 = np.argmin(np.abs(waves - line))
             m1 = np.min(np.abs(waves - line))
-            print(loci[ind1], waves)
+            print(m1)
             if m1 < 1.5:
                 found_lines[j, i] = loci[ind1]
         sys.exit(1)
