@@ -503,6 +503,7 @@ def robust_polyfit(x, y, order=3, niter=3):
 
 def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     spectrum = get_spectra(image, trace)
+    fib = np.argmax(np.median(spectrum, axis=1))
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
     fits.PrimaryHDU(spectrum).writeto('test_spec.fits', overwrite=True)
@@ -519,8 +520,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     ind = np.argmin(np.abs(brightline - lines['col1']))
     found_lines = np.zeros((trace.shape[0], len(lines)))
     found_lines[:, ind] = yt
-    n = np.max([len(sl) for sl in sloc])
-    print([np.median([sl[i] for sl in sloc if i < len(sl)]) for i in np.arange(n)])
+    print(sloc[fib])
     
 
 # GET ALL VIRUS IFUSLOTS
