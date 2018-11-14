@@ -22,7 +22,7 @@ from astropy.stats import biweight_midvariance
 
 ifuslots = ['056']
 blueinfo = [['BL', 'uv', 'multi_503_056_7001', [3640., 4640.], ['LL', 'LU'],
-             [4350., 4375.], ['Hg_B', 'Cd-A_B', 'FeAr_R'], 4358.327],
+             [4350., 4375.], ['Hg_B', 'Cd-A_B', 'FeAr_R']],
             ['BR', 'orange', 'multi_503_056_7001',
              [4660., 6950.], ['RU', 'RL'], [6270., 6470.],
              ['Hg_B', 'Cd-A_B', 'FeAr_R']]]
@@ -502,7 +502,7 @@ def robust_polyfit(x, y, order=3, niter=3):
     return ymod
 
 
-def get_wavelength_from_arc(image, trace, brightline, lines, lims):
+def get_wavelength_from_arc(image, trace, lines):
     spectrum = get_spectra(image, trace)
     fib = np.argmax(np.median(spectrum, axis=1))
     cont = percentile_filter(spectrum, 15, (1, 101))
@@ -587,7 +587,7 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 DIRNAME = get_script_path()
 
 for ifuslot in ifuslots:
-    specinit, specname, multi, lims, amps, slims, arc_names, brightline = info_side[0]
+    specinit, specname, multi, lims, amps, slims, arc_names = info_side[0]
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
 
@@ -636,9 +636,7 @@ for ifuslot in ifuslots:
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        get_wavelength_from_arc(masterarc, trace, brightline, arc_lines, lims)
-        log.info('COWARD!')
-        sys.exit(1)
+        get_wavelength_from_arc(masterarc, trace, arc_lines)
 
         #################################
         # TWILIGHT FLAT [FIBER PROFILE] #
@@ -650,8 +648,6 @@ for ifuslot in ifuslots:
         allflatspec.append(twiflat)
         arcspec = weighted_extraction(masterarc, twiflat, trace)
         fits.PrimaryHDU(masterarc).writeto('test_arc.fits', overwrite=True)
-        log.info('COWARD!')
-        sys.exit(1)
         wave = np.array(wave, dtype=float)
         scifiles = sci_path % (instrument, instrument, sci_obs, '*',
                                instrument, ifuslot)
