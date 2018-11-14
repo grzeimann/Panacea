@@ -517,23 +517,14 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     yt = robust_polyfit(xt, np.array(iloc))
     x = np.arange(image.shape[1])
     ind = np.argmin(np.abs(brightline - lines['col1']))
-    m = ((lines['col1'][ind] - lines['col1'][ind-1]) /
-         (lines['col2'][ind] - lines['col2'][ind-1]))
-    init_wave = (1. * m *
-                 (x[np.newaxis, :] - yt[:, np.newaxis]) + brightline)
     found_lines = np.zeros((trace.shape[0], len(lines)))
     found_lines[:, ind] = yt
-    print(loc)
     for i in np.arange(0, ind)[::-1]:
-        line = lines['col1'][i]
-        kk = []
+        cols = lines['col2'][i] + found_lines[:, i+1] - lines['col2'][i+1]
         for j, loci in enumerate(loc):
-            waves = np.interp(loci, x, init_wave[j, :])
-            ind1 = np.argmin(np.abs(waves - line))
-            m1 = np.min(np.abs(waves - line))
-            kk.append(waves)
-            if m1 < 5.:
-                found_lines[j, i] = loci[ind1]
+            dist = np.abs(loci - cols[j])
+            if dist < 5.:
+                found_lines[j, i] = loci[np.argmin(dist)]
         if (found_lines[:, i] > 0.).sum() < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
             continue
@@ -541,10 +532,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
         xt = trace[np.arange(trace.shape[0]), inds]
         yt = robust_polyfit(xt, found_lines[:, i])
         found_lines[:, i] = yt
-        m = ((lines['col1'][i+1] - lines['col1'][i]) /
-             (found_lines[:, i+1:i+2] - found_lines[:, i:i+1]))
-        init_wave = (1. * m *
-                     (x[np.newaxis, :] - yt[:, np.newaxis]) + line)
+        
     print(found_lines)
 
 # GET ALL VIRUS IFUSLOTS
