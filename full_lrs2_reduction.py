@@ -521,6 +521,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     found_lines[:, ind] = yt
     for i in np.arange(0, ind)[::-1]:
         cols = lines['col2'][i] + found_lines[:, i+1] - lines['col2'][i+1]
+        print(cols)
         kk = []
         for j, loci in enumerate(loc):
             dist = np.abs(loci - cols[j])
