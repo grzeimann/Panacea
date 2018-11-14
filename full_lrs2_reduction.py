@@ -484,7 +484,7 @@ def find_peaks(y):
     loc = np.where((diff_array[:-1] > 0.) * (diff_array[1:] < 0.))[0]
     peaks = y[loc+1]
     std = np.sqrt(biweight_midvariance(y))
-    loc = loc[peaks > (3. * std)]+1
+    loc = loc[peaks > (5. * std)]+1
     peak_loc = get_peaks(y, loc)
     peaks = y[np.round(peak_loc).astype(int)]
     return peak_loc, peaks
@@ -521,14 +521,12 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     found_lines[:, ind] = yt
     for i in np.arange(0, ind)[::-1]:
         cols = lines['col2'][i] + found_lines[:, i+1] - lines['col2'][i+1]
-        print(cols)
         kk = []
         for j, loci in enumerate(loc):
             dist = np.abs(loci - cols[j])
             kk.append(np.min(dist))
             if np.min(dist) < 8.:
                 found_lines[j, i] = loci[np.argmin(dist)]
-        print(kk)
         if (found_lines[:, i] > 0.).sum() < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
             continue
@@ -538,14 +536,12 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
         found_lines[:, i] = yt
     for i in np.arange(ind, len(lines)):
         cols = lines['col2'][i] + found_lines[:, i-1] - lines['col2'][i-1]
-        print(cols)
         kk = []
         for j, loci in enumerate(loc):
             dist = np.abs(loci - cols[j])
             kk.append(np.min(dist))
             if np.min(dist) < 8.:
                 found_lines[j, i] = loci[np.argmin(dist)]
-        print(kk)
         if (found_lines[:, i] > 0.).sum() < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
             continue
@@ -553,7 +549,7 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
         xt = trace[np.arange(trace.shape[0]), inds]
         yt = robust_polyfit(xt, found_lines[:, i])
         found_lines[:, i] = yt        
-    print(found_lines)
+    print(found_lines[0, :])
 
 # GET ALL VIRUS IFUSLOTS
 twilist = glob.glob(twi_path % (instrument, instrument, twi_obs, instrument,
