@@ -533,13 +533,16 @@ def get_wavelength_from_arc(image, trace, brightline, lines, lims):
             kk.append(m1)
             if m1 < 5.:
                 found_lines[j, i] = loci[ind1]
+        print(kk)
+        if (found_lines[:, i] > 0.).sum() < (0.5 * trace.shape[0]):
+            found_lines[:, i] = 0.0
+            continue
         inds = np.array(found_lines[:, i], dtype=int)
         xt = trace[np.arange(trace.shape[0]), inds]
         yt = robust_polyfit(xt, found_lines[:, i])
         found_lines[:, i] = yt
         m = ((lines['col1'][i+1] - lines['col1'][i]) /
              (found_lines[:, i+1:i+2] - found_lines[:, i:i+1]))
-        print(m)
         init_wave = (1. * m *
                      (x[np.newaxis, :] - yt[:, np.newaxis]) + line)
     print(found_lines)
