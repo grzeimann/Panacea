@@ -499,20 +499,40 @@ def robust_polyfit(x, y, order=3, niter=3):
         ymod = np.polyval(np.polyfit(x[sel], y[sel], order), x)
     return ymod
 
+
 def get_wavelength_from_arc(image, trace, brightline, lines, lims):
     spectrum = get_spectra(image, trace)
-    iloc, loc = ([], [])
+    iloc, loc, sloc = ([], [], [])
     for i, spec in enumerate(spectrum):
         px, py = find_peaks(spec)
         loc.append(px)
         iloc.append(px[np.argmax(py)])
+        sloc.append(px[np.argsort(py)[::-1]])
     ind = np.array(iloc, dtype=int)
     xt = trace[np.arange(trace.shape[0]), ind]
     yt = robust_polyfit(xt, np.array(iloc))
     x = np.arange(image.shape[1])
     init_wave = (1. * (lims[1] - lims[0]) / image.shape[1] *
                  (x[np.newaxis, :] - yt[:, np.newaxis]) + brightline)
-    print(init_wave)
+    ind = np.argmin(brightline - lines['col1'])
+    found_lines = np.zeros((trace.shape[0], len(lines)))
+    found_lines[:, ind] = yt
+    for i in np.arange(0, ind)[::-1]:
+        line = lines['col1'][i]
+        for j, loci in enumerate(loc):
+            waves = np.interp(loci, x, init_wave)
+            ind1 = np.argmin(np.abs(waves - line))
+            m1 = np.min(np.abs(waves - line))
+            if m1 < 1.5:
+                found_lines[j, i] = loci[ind1]
+        inds = np.array(found_lines[:, i], dtype=int)
+        xt = trace[np.arange(trace.shape[0]), inds]
+        yt = robust_polyfit(xt, found_lines[:, i])
+        found_lines[:, i] = yt
+        init_wave = (1. * (lines['col1'][i+1] - lines['col1'][i]) /
+                     (found_lines[:, i+1:i+2] - found_lines[:, i:i+1]) *
+                     (x[np.newaxis, :] - yt[:, np.newaxis]) + brightline)
+    print(found_lines)
 
 # GET ALL VIRUS IFUSLOTS
 twilist = glob.glob(twi_path % (instrument, instrument, twi_obs, instrument,
