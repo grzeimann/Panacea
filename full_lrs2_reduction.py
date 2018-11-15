@@ -456,10 +456,13 @@ def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate,
                               'fiber_loc_%s_%s_%s_%s.txt' %
                               (specid, ifuslot, ifuid, amp)))
     dates = [op.basename(op.dirname(fn)) for fn in files]
+    print(dates)
+    obsdate = datetime(int(obsdate[:4]), int(obsdate[4:6]),
+                       int(obsdate[6:]))
     timediff = np.zeros((len(dates),))
-    for i, date in enumerate(dates):
-        d = datetime(int(date[:4]), int(date[4:6]),
-                     int(date[6:]))
+    for i, datei in enumerate(dates):
+        d = datetime(int(datei[:4]), int(datei[4:6]),
+                     int(datei[6:]))
         timediff[i] = np.abs((obsdate - d).days)
     ref_file = np.loadtxt(files[np.argmin(timediff)])
     return ref_file
