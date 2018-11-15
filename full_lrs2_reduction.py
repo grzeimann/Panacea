@@ -22,14 +22,14 @@ from astrometry import Astrometry
 from astropy.stats import biweight_midvariance
 
 ifuslots = ['056']
-blueinfo = [['BL', 'uv', 'multi_503_056_7001', [3640., 4640.], ['LL', 'LU'],
+blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4640.], ['LL', 'LU'],
              [4350., 4375.], ['Hg_B', 'Cd-A_B', 'FeAr_R']],
-            ['BR', 'orange', 'multi_503_056_7001',
+            ['BR', 'orange', '503_056_7001',
              [4660., 6950.], ['RU', 'RL'], [6270., 6470.],
              ['Hg_B', 'Cd-A_B', 'FeAr_R']]]
-redinfo = [['RL', 'red', 'multi_502_066_7002', [6450., 8400.], ['LL', 'LU'],
+redinfo = [['RL', 'red', '502_066_7002', [6450., 8400.], ['LL', 'LU'],
             [7225., 7425.], ['Hg_R', 'Cd-A_B', 'FeAr_R']],
-           ['RR', 'farred', 'multi_502_066_7002',
+           ['RR', 'farred', '502_066_7002',
             [8275., 10500.], ['RU', 'RL'], [9280., 9530.],
             ['Hg_R', 'Cd-A_B', 'FeAr_R']]]
 
@@ -627,8 +627,8 @@ for ifuslot in ifuslots:
     specinit, specname, multi, lims, amps, slims, arc_names = info_side[1]
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
-
     commonwave = np.linspace(lims[0], lims[1], 3000)
+    specid, ifuslot, ifuid = multi.split('_')
     for amp in amps:
         ##############
         # MASTERBIAS #
@@ -649,7 +649,7 @@ for ifuslot in ifuslots:
         mastertwi = get_mastertwi(twibase, amp, masterbias)
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        trace = get_trace(mastertwi)
+        trace = get_trace(mastertwi, specid, ifuslot, ifuid, amp, twi_date)
         fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
 
         ##########################
