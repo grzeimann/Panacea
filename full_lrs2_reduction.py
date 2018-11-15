@@ -45,11 +45,8 @@ dither_pattern = np.zeros((50, 2))
 
 log = setup_logging('panacea_quicklook')
 
-basered = '/work/03730/gregz/maverick'
 baseraw = '/work/03946/hetdex/maverick'
 
-twi_path = op.join(basered, 'reductions', twi_date, '%s', '%s%s', 'exp01',
-                   '%s', 'multi_*_%s_*_LL.fits')
 
 sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*.fits')
@@ -63,13 +60,6 @@ bias_path = op.join(baseraw, twi_date, '%s', '%s%s', 'exp*',
 
 def get_script_path():
     return op.dirname(op.realpath(sys.argv[0]))
-
-
-def get_cal_info(twi_path, amp):
-    F = fits.open(glob.glob(twi_path.replace('LL', amp))[0])
-    return (np.array(F['ifupos'].data, dtype=float),
-            np.array(F['trace'].data, dtype=float),
-            np.array(F['wavelength'].data, dtype=float))
 
 
 def orient_image(image, amp, ampname):
@@ -288,7 +278,7 @@ def weighted_extraction(image, flat, trace):
     E = safe_division(E, flat)
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
-    cosmics = find_cosmics(Y, E, 5)
+    cosmics = find_cosmics(Y, E)
     x = np.arange(trace.shape[1])
     spectrum = 0. * trace
     TT = np.zeros((trace.shape[0], 3, trace.shape[1], 4))
@@ -563,11 +553,8 @@ def get_wavelength_from_arc(image, trace, lines):
         wave[j] = np.polyval(np.polyfit(found_lines[j, sel],
                              lines['col1'][sel], 3), x)
     print(wave)
-    
+    return wave
 
-# GET ALL VIRUS IFUSLOTS
-twilist = glob.glob(twi_path % (instrument, instrument, twi_obs, instrument,
-                                '*'))
 # LRS2-R
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
@@ -587,23 +574,12 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 DIRNAME = get_script_path()
 
 for ifuslot in ifuslots:
-    specinit, specname, multi, lims, amps, slims, arc_names = info_side[0]
+    specinit, specname, multi, lims, amps, slims, arc_names = info_side[1]
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
 
     commonwave = np.linspace(lims[0], lims[1], 3000)
     for amp in amps:
-        ################
-        # TO BE REPLACED
-        ################
-        log.info('Starting on ifuslot, %s, and amp, %s' % (ifuslot, amp))
-        twibase = twi_path % (instrument, instrument, twi_obs, instrument,
-                              ifuslot)
-        amppos, trace, wave = get_cal_info(twibase, amp)
-        if wave.ndim == 1:
-            log.info('Insufficient cal data for ifuslot, %s, and amp, %s'
-                     % (ifuslot, amp))
-            continue
         ##############
         # MASTERBIAS #
         ##############
@@ -636,7 +612,7 @@ for ifuslot in ifuslots:
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        get_wavelength_from_arc(masterarc, trace, arc_lines)
+        wave = get_wavelength_from_arc(masterarc, trace, arc_lines)
 
         #################################
         # TWILIGHT FLAT [FIBER PROFILE] #
@@ -646,8 +622,10 @@ for ifuslot in ifuslots:
         twiflat, bigW, twispec = get_twiflat_field(twibase, amp, wave, trace,
                                                    commonwave, masterbias, log)
         allflatspec.append(twiflat)
-        arcspec = weighted_extraction(masterarc, twiflat, trace)
-        fits.PrimaryHDU(masterarc).writeto('test_arc.fits', overwrite=True)
+
+        #####################
+        # SCIENCE REDUCTION #
+        #####################
         wave = np.array(wave, dtype=float)
         scifiles = sci_path % (instrument, instrument, sci_obs, '*',
                                instrument, ifuslot)
