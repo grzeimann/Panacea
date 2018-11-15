@@ -508,7 +508,8 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
     x = np.arange(twilight.shape[1])
     trace = np.zeros((Trace.shape[0], twilight.shape[1]))
     for i in np.arange(Trace.shape[0]):
-        trace[i] = np.polyval(np.polyfit(xchunks, Trace[i, :], 7), x)
+        clean = robust_polyfit(xchunks, Trace[i, :], order=7)
+        trace[i] = np.polyval(np.polyfit(xchunks, clean, 7), x)
     return trace
 
 
