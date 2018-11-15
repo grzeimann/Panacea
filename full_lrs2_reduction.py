@@ -557,7 +557,7 @@ def get_wavelength_from_arc(image, trace, lines):
     for i, spec in enumerate(spectrum):
         px, py = find_peaks(spec)
         loc.append(px)
-    print(loc[fib])
+    print(fib, loc[fib])
     found_lines = np.zeros((trace.shape[0], len(lines)))
     diff = [loc[fib][0] - lines['col2'][0],
             loc[fib][-1] - lines['col2'][-1]]
