@@ -658,6 +658,7 @@ def get_wavelength_from_arc(image, trace, lines, side):
             wave[missing, j] = np.polyval(np.polyfit(x, y, 3),
                                           trace[missing, j])
     print(res)
+    print(wave.min(), wave.max())
     return wave
 
 # LRS2-R
