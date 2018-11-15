@@ -513,7 +513,7 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
     return trace
 
 
-def find_peaks(y):
+def find_peaks(y, thresh=8.):
     def get_peaks(flat, XN):
         YM = np.arange(flat.shape[0])
         inds = np.zeros((3, len(XN)))
@@ -528,7 +528,7 @@ def find_peaks(y):
     loc = np.where((diff_array[:-1] > 0.) * (diff_array[1:] < 0.))[0]
     peaks = y[loc+1]
     std = np.sqrt(biweight_midvariance(y))
-    loc = loc[peaks > (8. * std)]+1
+    loc = loc[peaks > (thresh * std)]+1
     peak_loc = get_peaks(y, loc)
     peaks = y[np.round(peak_loc).astype(int)]
     return peak_loc, peaks/std
@@ -567,7 +567,11 @@ def count_matches(lines, loc, fib, cnt=5):
     return np.unravel_index(np.argmax(M), M.shape)
 
 
-def get_wavelength_from_arc(image, trace, lines):
+def get_wavelength_from_arc(image, trace, lines, side):
+    if side == 'uv':
+        thresh = 5.
+    if side == 'orange':
+        thresh = 20.
     spectrum = get_spectra(image, trace)
     fib = np.argmax(np.median(spectrum, axis=1))
     cont = percentile_filter(spectrum, 15, (1, 101))
@@ -698,7 +702,7 @@ for ifuslot in ifuslots:
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        wave = get_wavelength_from_arc(masterarc, trace, arc_lines)
+        wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname)
 
         #################################
         # TWILIGHT FLAT [FIBER PROFILE] #
