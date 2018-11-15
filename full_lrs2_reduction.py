@@ -737,6 +737,7 @@ for info in redinfo:
                for i in np.arange(len(package[0]))]
     calinfo[1][package[0][1].shape[0]:, :] += package[0][1].shape[0]
     flatspec = get_spectra(calinfo[2], calinfo[1])
+    calinfo.append(flatspec)
     log.info('Getting Powerlaw of Flat Cal for %s' % specname)
     plaw = get_powerlaw(calinfo[2], calinfo[1], flatspec)
     fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
