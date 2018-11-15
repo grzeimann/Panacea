@@ -574,7 +574,7 @@ def get_wavelength_from_arc(image, trace, lines):
     spectrum -= cont
     x = np.arange(trace.shape[1])
         
-    fits.PrimaryHDU(spectrum).writeto('test_spec_red.fits', overwrite=True)
+    fits.PrimaryHDU(spectrum).writeto('test_spec_farred.fits', overwrite=True)
     loc = []
     ph = []
     for i, spec in enumerate(spectrum):
