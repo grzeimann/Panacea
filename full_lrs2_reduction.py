@@ -547,8 +547,6 @@ def robust_polyfit(x, y, order=3, niter=3):
 def get_wavelength_from_arc(image, trace, lines):
     spectrum = get_spectra(image, trace)
     fib = np.argmax(np.median(spectrum, axis=1))
-    print(fib)
-    print(lines)
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
     x = np.arange(trace.shape[1])
@@ -557,6 +555,7 @@ def get_wavelength_from_arc(image, trace, lines):
     for i, spec in enumerate(spectrum):
         px, py = find_peaks(spec)
         loc.append(px)
+    print(loc[fib])
     found_lines = np.zeros((trace.shape[0], len(lines)))
     diff = [loc[fib][0] - lines['col2'][0],
             loc[fib][-1] - lines['col2'][-1]]
