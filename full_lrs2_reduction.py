@@ -505,6 +505,7 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
                               ref[good[gind], 0])
         Trace[:, k] = T
         k += 1
+    print(Trace)
     x = np.arange(twilight.shape[1])
     trace = np.zeros((Trace.shape[0], twilight.shape[1]))
     for i in np.arange(Trace.shape[0]):
