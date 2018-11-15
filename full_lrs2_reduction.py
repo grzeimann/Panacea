@@ -158,6 +158,7 @@ def get_powerlaw(image, trace, spec):
     xy = np.median(spec, axis=1)
     bottom = np.percentile(xy, 15)
     sel = np.where(xy > (3. * bottom))[0]
+    print(len(sel))
     xp = np.hstack([np.arange(xlim[0], xlim[1], 128), image.shape[1]])
     ylim = [0, image.shape[0]]
     yz = np.hstack([np.arange(ylim[0], ylim[1], 128), image.shape[0]])
@@ -595,7 +596,7 @@ def get_wavelength_from_arc(image, trace, lines, side):
     m = (diff[1] - diff[0]) / (lines['col2'][-1] - lines['col2'][0])
     y = np.array(m * (lines['col2'] - lines['col2'][0]) +
                  diff[0] + lines['col2'])
-    print(loc[fib], y, ph[fib])
+    # print(loc[fib], y, ph[fib])
     for i, line in enumerate(lines):
         col = y[i]
         v = np.abs(col - loc[fib])
@@ -653,8 +654,8 @@ def get_wavelength_from_arc(image, trace, lines, side):
             y = wave[good, j]
             wave[missing, j] = np.polyval(np.polyfit(x, y, 3),
                                           trace[missing, j])
-    print(res)
-    print(wave.min(), wave.max())
+    # print(res)
+    log.info('Min, Max Wave: %0.2f, %0.2f' % (wave.min(), wave.max()))
     return wave
 
 # LRS2-R
@@ -735,8 +736,9 @@ for info in redinfo:
         package.append([wave, trace, twiflat, bigW, masterbias, amppos])
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
+    calinfo[1][package[0][1].shape[0]:, :] += package[0][1].shape[0]
     flatspec = get_spectra(calinfo[2], calinfo[1])
-    log.info('Getting Powerlaw of Flat Cal for ifuslot %s' % ifuslot)
+    log.info('Getting Powerlaw of Flat Cal for %s' % specname)
     plaw = get_powerlaw(calinfo[2], calinfo[1], flatspec)
     fits.PrimaryHDU(plaw).writeto('test_plaw.fits')
     #####################
