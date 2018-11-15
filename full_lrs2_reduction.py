@@ -452,6 +452,7 @@ def get_trace(twilight):
         trace = get_trace_chunk(flat, loc)
         Trace.append(trace)
     Trace = np.array(Trace)
+    print(Trace)
     x = np.arange(twilight.shape[1])
     trace = np.zeros((Trace.shape[1], twilight.shape[1]))
     for i in np.arange(Trace.shape[1]):
