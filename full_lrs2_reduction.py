@@ -580,9 +580,7 @@ def get_wavelength_from_arc(image, trace, lines):
         px, py = find_peaks(spec)
         loc.append(px)
         ph.append(py)
-    print(loc[fib], ph[fib])
     ind1, ind2 = count_matches(lines, loc, fib)
-    print(ind1, ind2)
     found_lines = np.zeros((trace.shape[0], len(lines)))
     diff = [loc[fib][ind1] - lines['col2'][0],
             loc[fib][-ind2-1] - lines['col2'][-1]]
@@ -655,9 +653,13 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 DIRNAME = get_script_path()
 
 for ifuslot in ifuslots:
-    specinit, specname, multi, lims, amps, slims, arc_names = info_side[1]
-    arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
-                                   specname), format='ascii')
+    specinit, specname, multi, lims, amps, slims, arc_names = redinfo[0]
+    try:
+        arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
+                                       specname), format='ascii')
+    except:
+        arc_lines = None
+        print('TESTING')
     commonwave = np.linspace(lims[0], lims[1], 3000)
     specid, ifuslot, ifuid = multi.split('_')
     for amp in amps:
