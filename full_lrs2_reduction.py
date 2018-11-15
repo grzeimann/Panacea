@@ -470,8 +470,7 @@ def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate,
 def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
     ref = get_trace_reference(specid, ifuslot, ifuid, amp, obsdate)
     N = (ref[:, 1] == 0.).sum()
-    print(N)
-    good = np.where(ref[:, 1] == 0)[0]
+    good = np.where(ref[:, 1] == 0.)[0]
     def get_trace_chunk(flat, XN):
         YM = np.arange(flat.shape[0])
         inds = np.zeros((3, len(XN)))
@@ -497,6 +496,7 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
         loc = loc[peaks > 0.1 * np.median(peaks)]+1
         trace = get_trace_chunk(flat, loc)
         T = np.zeros((len(ref)))
+        print(len(trace))
         if len(trace) == N:
             T[good] = trace
             for missing in np.where(ref[:, 1] == 1)[0]:
