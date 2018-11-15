@@ -582,12 +582,10 @@ def get_wavelength_from_arc(image, trace, lines, side):
     loc = []
     ph = []
     for i, spec in enumerate(spectrum):
-        px, py = find_peaks(spec)
+        px, py = find_peaks(spec, thresh=thresh)
         loc.append(px)
         ph.append(py)
     ind1, ind2 = count_matches(lines, loc, fib)
-    ind1 = 0
-    ind2 = 0
     found_lines = np.zeros((trace.shape[0], len(lines)))
     diff = [loc[fib][ind1] - lines['col2'][0],
             loc[fib][-ind2-1] - lines['col2'][-1]]
