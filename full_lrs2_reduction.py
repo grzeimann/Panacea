@@ -531,7 +531,7 @@ def find_peaks(y):
     loc = loc[peaks > (5. * std)]+1
     peak_loc = get_peaks(y, loc)
     peaks = y[np.round(peak_loc).astype(int)]
-    return peak_loc, peaks
+    return peak_loc, peaks/std
 
 
 def robust_polyfit(x, y, order=3, niter=3):
@@ -554,10 +554,12 @@ def get_wavelength_from_arc(image, trace, lines):
     x = np.arange(trace.shape[1])
     fits.PrimaryHDU(spectrum).writeto('test_spec.fits', overwrite=True)
     loc = []
+    ph = []
     for i, spec in enumerate(spectrum):
         px, py = find_peaks(spec)
         loc.append(px)
-    print(fib, loc[fib])
+        ph.append(py)
+    print(loc[fib], ph[fib])
     found_lines = np.zeros((trace.shape[0], len(lines)))
     diff = [loc[fib][0] - lines['col2'][0],
             loc[fib][-1] - lines['col2'][-1]]
