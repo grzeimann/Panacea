@@ -669,6 +669,7 @@ for ifuslot in ifuslots:
     specid, ifuslot, ifuid = multi.split('_')
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
+        print(amppos)
         ##############
         # MASTERBIAS #
         ##############
