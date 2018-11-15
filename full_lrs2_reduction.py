@@ -546,6 +546,27 @@ def robust_polyfit(x, y, order=3, niter=3):
     return ymod
 
 
+def count_matches(lines, loc, fib, cnt=5):
+    found_lines = np.zeros((trace.shape[0], len(lines)))
+    M = np.zeros((cnt, cnt))
+    for k in np.arange(cnt):
+        for j in np.arange(cnt):
+            i1 = 0 + k
+            i2 = -1 - j
+            diff = [loc[fib][i1] - lines['col2'][0],
+                    loc[fib][i2] - lines['col2'][-1]]
+            m = (diff[1] - diff[0]) / (lines['col2'][-1] - lines['col2'][0])
+            y = np.array(m * (lines['col2'] - lines['col2'][0]) +
+                         diff[0] + lines['col2'])
+            for i, line in enumerate(lines):
+                col = y[i]
+                v = np.abs(col - loc[fib])
+                if np.min(v) < 3.:
+                    found_lines[fib, i] = loc[fib][np.argmin(v)]
+            M[k, j] = (found_lines[fib] > 0.).sum()
+    return np.unravel_index(np.argmax(M), M.shape)
+
+
 def get_wavelength_from_arc(image, trace, lines):
     spectrum = get_spectra(image, trace)
     fib = np.argmax(np.median(spectrum, axis=1))
@@ -560,9 +581,11 @@ def get_wavelength_from_arc(image, trace, lines):
         loc.append(px)
         ph.append(py)
     print(loc[fib], ph[fib])
+    ind1, ind2 = count_matches(lines, loc, fib)
+    print(ind1, ind2)
     found_lines = np.zeros((trace.shape[0], len(lines)))
-    diff = [loc[fib][0] - lines['col2'][0],
-            loc[fib][-1] - lines['col2'][-1]]
+    diff = [loc[fib][ind1] - lines['col2'][0],
+            loc[fib][-ind2] - lines['col2'][-1]]
     m = (diff[1] - diff[0]) / (lines['col2'][-1] - lines['col2'][0])
     y = np.array(m * (lines['col2'] - lines['col2'][0]) +
                  diff[0] + lines['col2'])
