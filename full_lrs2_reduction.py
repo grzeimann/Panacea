@@ -654,7 +654,7 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 DIRNAME = get_script_path()
 
 for ifuslot in ifuslots:
-    specinit, specname, multi, lims, amps, slims, arc_names = redinfo[0]
+    specinit, specname, multi, lims, amps, slims, arc_names = redinfo[1]
     try:
         arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                        specname), format='ascii')
