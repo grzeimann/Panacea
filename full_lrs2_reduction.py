@@ -183,7 +183,7 @@ def get_powerlaw(image, trace, spec):
     grid_x, grid_y = np.meshgrid(np.arange(image.shape[1]),
                                  np.arange(image.shape[0]))
     C = griddata(np.array([XX, YY]).swapaxes(0, 1), plaw, (grid_x, grid_y),
-                 method='cubic', fill_value=0.0)
+                 method='cubic', fill_value=0.0).swapaxes(0, 1)
     norm = np.zeros((image.shape[1],))
     for b in np.arange(image.shape[1]):
         sel = (x == b)
