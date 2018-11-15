@@ -470,6 +470,7 @@ def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate,
 def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
     ref = get_trace_reference(specid, ifuslot, ifuid, amp, obsdate)
     N = (ref[:, 1] == 0.).sum()
+    print(N)
     good = np.where(ref[:, 1] == 0)[0]
     def get_trace_chunk(flat, XN):
         YM = np.arange(flat.shape[0])
