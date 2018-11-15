@@ -576,6 +576,10 @@ def get_wavelength_from_arc(image, trace, lines, side):
         thresh = 5.
     if side == 'orange':
         thresh = 50.
+    if side == 'red':
+        thresh = 50.
+    if side == 'farred':
+        thresh = 20.
     spectrum = get_spectra(image, trace)
     fib = np.argmax(np.median(spectrum, axis=1))
     cont = percentile_filter(spectrum, 15, (1, 101))
