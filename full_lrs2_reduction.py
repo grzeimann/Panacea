@@ -456,7 +456,6 @@ def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate,
                               'fiber_loc_%s_%s_%s_%s.txt' %
                               (specid, ifuslot, ifuid, amp)))
     dates = [op.basename(op.dirname(fn)) for fn in files]
-    print(dates)
     obsdate = datetime(int(obsdate[:4]), int(obsdate[4:6]),
                        int(obsdate[6:]))
     timediff = np.zeros((len(dates),))
@@ -548,6 +547,8 @@ def robust_polyfit(x, y, order=3, niter=3):
 def get_wavelength_from_arc(image, trace, lines):
     spectrum = get_spectra(image, trace)
     fib = np.argmax(np.median(spectrum, axis=1))
+    print(fib)
+    print(lines)
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
     x = np.arange(trace.shape[1])
