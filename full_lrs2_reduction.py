@@ -425,7 +425,7 @@ def get_masterbias(zro_path, amp):
 def get_masterarc(arc_path, amp, arc_names, masterbias, specname):
     files = glob.glob(arc_path.replace('LL', amp))
     if specname == 'farred':
-        ofiles = glob.glob(arc_path.replace('LL', amp)).replace('cmp', 'sci')
+        ofiles = glob.glob(arc_path.replace('LL', amp).replace('cmp', 'sci'))
         files = files + ofiles
     listarc, listarce = ([], [])
     for filename in files:
