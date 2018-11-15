@@ -451,6 +451,7 @@ def get_trace(twilight):
         loc = loc[peaks > 0.1 * np.median(peaks)]+1
         trace = get_trace_chunk(flat, loc)
         Trace.append(trace)
+        print(len(trace))
     Trace = np.array(Trace)
     print(Trace)
     x = np.arange(twilight.shape[1])
