@@ -585,7 +585,6 @@ def get_wavelength_from_arc(image, trace, lines, side):
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
     x = np.arange(trace.shape[1])
-        
     fits.PrimaryHDU(spectrum).writeto('test_spec_farred.fits', overwrite=True)
     loc = []
     ph = []
@@ -610,6 +609,8 @@ def get_wavelength_from_arc(image, trace, lines, side):
         if found_lines[fib, i] == 0.:
             continue
         for j in np.arange(0, fib)[::-1]:
+            if len(loc[j]) < 1:
+                continue
             k = j + 1
             v = found_lines[k, i]
             while (v == 0.) and (k < trace.shape[0]):
@@ -619,6 +620,8 @@ def get_wavelength_from_arc(image, trace, lines, side):
             if np.min(m) < 2.:
                 found_lines[j, i] = loc[j][np.argmin(m)]
         for j in np.arange(fib+1, trace.shape[0]):
+            if len(loc[j]) < 1:
+                continue
             k = j - 1
             v = found_lines[k, i]
             while (v == 0.) and (k >= 0):
@@ -627,7 +630,6 @@ def get_wavelength_from_arc(image, trace, lines, side):
             m = np.abs(loc[j] - v)
             if np.min(m) < 2.:
                 found_lines[j, i] = loc[j][np.argmin(m)]
-    F = fits.PrimaryHDU(found_lines * 1.)
     for i, line in enumerate(lines):
         if np.sum(found_lines[:, i]) < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
@@ -637,16 +639,24 @@ def get_wavelength_from_arc(image, trace, lines, side):
         sel = found_lines[:, i] > 0.
         yt = robust_polyfit(xt, found_lines[:, i])
         found_lines[:, i] = yt
-    F1 = fits.ImageHDU(found_lines * 1.)
-    fits.HDUList([F, F1]).writeto('test_lines.fits', overwrite=True)
     wave = trace * 0.0
     res = np.zeros((trace.shape[0],))
     for j in np.arange(trace.shape[0]):
         sel = found_lines[j, :] > 0.0
+        if sel.sum() < 3:
+            continue
         wave[j] = np.polyval(np.polyfit(found_lines[j, sel],
                              lines['col1'][sel], 3), x)
         res[j] = np.std(np.interp(found_lines[j, sel], x, wave[j]) -
                         lines['col1'][sel])
+    missing = np.where(np.all(wave == 0., axis=1))[0]
+    if len(missing):
+        good = np.where(~np.all(wave == 0., axis=1))[0]
+        for j in np.arange(trace.shape[1]):
+            x = trace[good, j]
+            y = wave[good, j]
+            wave[missing, j] = np.polyval(np.polyfit(x, y, 3),
+                                          trace[missing, j])
     print(res)
     return wave
 
