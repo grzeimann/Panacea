@@ -9,7 +9,7 @@ import os.path as op
 import glob
 import sys
 import warnings
-import datetime
+from datetime import datetime
 
 from astropy.io import fits
 from astropy.table import Table
