@@ -503,7 +503,7 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
                 gind = np.argmin(np.abs(missing - good))
                 T[missing] = (T[good[gind]] + ref[missing, 0] -
                               ref[good[gind], 0])
-        Trace[:, k] = Trace
+        Trace[:, k] = T
         k += 1
     x = np.arange(twilight.shape[1])
     trace = np.zeros((Trace.shape[1], twilight.shape[1]))
