@@ -422,8 +422,11 @@ def get_masterbias(zro_path, amp):
     return np.median(listzro, axis=0)
 
 
-def get_masterarc(arc_path, amp, arc_names, masterbias):
+def get_masterarc(arc_path, amp, arc_names, masterbias, specname):
     files = glob.glob(arc_path.replace('LL', amp))
+    if specname == 'farred':
+        ofiles = glob.glob(arc_path.replace('LL', amp)).replace('cmp', 'sci')
+        files = files + ofiles
     listarc, listarce = ([], [])
     for filename in files:
         f = fits.open(filename)
@@ -657,7 +660,8 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 
 DIRNAME = get_script_path()
 
-for info in blueinfo:
+for info in redinfo:
+    info = redinfo[1]
     specinit, specname, multi, lims, amps, slims, arc_names = info
     try:
         arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
@@ -698,7 +702,10 @@ for info in blueinfo:
                  (ifuslot, amp))
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
-        masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias)
+        masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
+                                  specname)
+        fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
+
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname)
@@ -723,7 +730,7 @@ for info in blueinfo:
         allsub.append(images)
         allspec.append(spec)
         for i in np.arange(nexp):
-            log.info('Getting RA, Dec for exposure, %i,  ifuslot, %s, and amp,'
+            log.info('Getting RA, Dec for exposure, %i, ifuslot, %s, and amp,'
                      ' %s' % (i+1, ifuslot, amp))
             ra, dec = A.get_ifupos_ra_dec(ifuslot,
                                           amppos[:, 0] + dither_pattern[i, 0],
