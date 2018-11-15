@@ -370,9 +370,6 @@ def get_trace_shift(sci_array, flat, array_trace, Yx):
     shifts = np.nanmedian(FlatTrace - Trace, axis=1)
     shifts = np.polyval(np.polyfit(np.nanmedian(FlatTrace, axis=1), shifts, 1),
                         Yx)
-    fits.HDUList([fits.PrimaryHDU(FlatTrace),
-                  fits.ImageHDU(Trace)]).writeto('test_trace.fits',
-                                                 overwrite=True)
     return shifts
 
 
@@ -585,7 +582,6 @@ def get_wavelength_from_arc(image, trace, lines, side):
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
     x = np.arange(trace.shape[1])
-    fits.PrimaryHDU(spectrum).writeto('test_spec_farred.fits', overwrite=True)
     loc = []
     ph = []
     for i, spec in enumerate(spectrum):
@@ -689,6 +685,7 @@ for info in redinfo:
         print('TESTING')
     commonwave = np.linspace(lims[0], lims[1], 3000)
     specid, ifuslot, ifuid = multi.split('_')
+    package = []
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
         ##############
@@ -722,11 +719,11 @@ for info in redinfo:
                                 ifuslot)
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
                                   specname)
-        fits.PrimaryHDU(masterarc).writeto('test_arc.fits', overwrite=True)
 
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname)
+        fits.PrimaryHDU(wave).writeto('test_wave.fits', overwrite=True)
 
         #################################
         # TWILIGHT FLAT [FIBER PROFILE] #
@@ -735,46 +732,46 @@ for info in redinfo:
                  (ifuslot, amp))
         twiflat, bigW, twispec = get_twiflat_field(twibase, amp, wave, trace,
                                                    commonwave, masterbias, log)
-        allflatspec.append(twiflat)
+        package.append(wave, trace, twiflat, bigW, masterbias, amppos)
+    calinfo = [np.vstack([package[0][i], package[1][i]])
+               for i in np.arange(len(package[0]))]
+    flatspec = get_spectra(calinfo[2], calinfo[1])
+    log.info('Getting Powerlaw of Flat Cal for ifuslot %s' % ifuslot)
+    plaw = get_powerlaw(calinfo[2], calinfo[1], flatspec)
+    fits.PrimaryHDU(plaw).writeto('test_plaw.fits')
+    #####################
+    # SCIENCE REDUCTION #
+    #####################
+    scifiles = sci_path % (instrument, instrument, sci_obs, '*',
+                           instrument, ifuslot)
+    for i in np.arange(nexp):
+        log.info('Getting RA, Dec for exposure, %i, ifuslot, %s, and amp,'
+                 ' %s' % (i+1, ifuslot, amp))
+        ra, dec = A.get_ifupos_ra_dec(ifuslot,
+                                      amppos[:, 0] + dither_pattern[i, 0],
+                                      amppos[:, 1] + dither_pattern[i, 1])
+        allra.append(ra)
+        alldec.append(dec)
+        allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] +
+                    dither_pattern[i, 0])
+        ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] +
+                    dither_pattern[i, 1])
 
-        #####################
-        # SCIENCE REDUCTION #
-        #####################
-        wave = np.array(wave, dtype=float)
-        scifiles = sci_path % (instrument, instrument, sci_obs, '*',
-                               instrument, ifuslot)
-        images, subimages, spec = subtract_sci(scifiles, twiflat, trace, wave,
-                                               bigW, masterbias)
-        allsub.append(images)
-        allspec.append(spec)
-        for i in np.arange(nexp):
-            log.info('Getting RA, Dec for exposure, %i, ifuslot, %s, and amp,'
-                     ' %s' % (i+1, ifuslot, amp))
-            ra, dec = A.get_ifupos_ra_dec(ifuslot,
-                                          amppos[:, 0] + dither_pattern[i, 0],
-                                          amppos[:, 1] + dither_pattern[i, 1])
-            allra.append(ra)
-            alldec.append(dec)
-            allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] +
-                        dither_pattern[i, 0])
-            ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] +
-                        dither_pattern[i, 1])
-
-
-fitslist = [fits.PrimaryHDU(np.vstack(allspec)),
-            fits.ImageHDU(np.array(allflatspec)),
-            fits.ImageHDU(commonwave),
-            fits.ImageHDU(np.array(allra)),
-            fits.ImageHDU(np.array(alldec)),
-            fits.ImageHDU(np.array(allx)),
-            fits.ImageHDU(np.array(ally))]
-fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
-flist1 = []
-alls = np.vstack(allsub)
-for j, resi in enumerate(alls):
-    if j == 0:
-        func = fits.PrimaryHDU
-    else:
-        func = fits.ImageHDU
-    flist1.append(func(resi))
-fits.HDUList(flist1).writeto('test_sub.fits', overwrite=True)
+#
+#fitslist = [fits.PrimaryHDU(np.vstack(allspec)),
+#            fits.ImageHDU(np.array(allflatspec)),
+#            fits.ImageHDU(commonwave),
+#            fits.ImageHDU(np.array(allra)),
+#            fits.ImageHDU(np.array(alldec)),
+#            fits.ImageHDU(np.array(allx)),
+#            fits.ImageHDU(np.array(ally))]
+#fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
+#flist1 = []
+#alls = np.vstack(allsub)
+#for j, resi in enumerate(alls):
+#    if j == 0:
+#        func = fits.PrimaryHDU
+#    else:
+#        func = fits.ImageHDU
+#    flist1.append(func(resi))
+#fits.HDUList(flist1).writeto('test_sub.fits', overwrite=True)
