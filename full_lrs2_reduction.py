@@ -585,7 +585,7 @@ def get_wavelength_from_arc(image, trace, lines):
     print(ind1, ind2)
     found_lines = np.zeros((trace.shape[0], len(lines)))
     diff = [loc[fib][ind1] - lines['col2'][0],
-            loc[fib][-ind2] - lines['col2'][-1]]
+            loc[fib][-ind2-1] - lines['col2'][-1]]
     m = (diff[1] - diff[0]) / (lines['col2'][-1] - lines['col2'][0])
     y = np.array(m * (lines['col2'] - lines['col2'][0]) +
                  diff[0] + lines['col2'])
