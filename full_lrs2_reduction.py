@@ -668,7 +668,7 @@ for ifuslot in ifuslots:
     commonwave = np.linspace(lims[0], lims[1], 3000)
     specid, ifuslot, ifuid = multi.split('_')
     for amp in amps:
-        amppos = get_ifucenfile(side, amp)
+        amppos = get_ifucenfile(specname, amp)
         ##############
         # MASTERBIAS #
         ##############
