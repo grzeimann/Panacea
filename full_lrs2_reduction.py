@@ -571,7 +571,7 @@ def get_wavelength_from_arc(image, trace, lines, side):
     if side == 'uv':
         thresh = 5.
     if side == 'orange':
-        thresh = 20.
+        thresh = 50.
     spectrum = get_spectra(image, trace)
     fib = np.argmax(np.median(spectrum, axis=1))
     cont = percentile_filter(spectrum, 15, (1, 101))
@@ -669,7 +669,6 @@ for ifuslot in ifuslots:
     specid, ifuslot, ifuid = multi.split('_')
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
-        print(amppos)
         ##############
         # MASTERBIAS #
         ##############
