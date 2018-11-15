@@ -704,7 +704,7 @@ for info in redinfo:
                                 ifuslot)
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
                                   specname)
-        fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
+        fits.PrimaryHDU(masterarc).writeto('test_arc.fits', overwrite=True)
 
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
