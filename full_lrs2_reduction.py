@@ -484,8 +484,8 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
         return Trace
     image = twilight
     N = 40
-    xchunks = [np.mean(x) for x in
-               np.array_split(np.arange(image.shape[1]), N)]
+    xchunks = np.array([np.mean(x) for x in
+                        np.array_split(np.arange(image.shape[1]), N)])
     chunks = np.array_split(image, N, axis=1)
     flats = [np.median(chunk, axis=1) for chunk in chunks]
     Trace = np.zeros((len(ref), len(chunks)))
@@ -505,7 +505,6 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
                               ref[good[gind], 0])
         Trace[:, k] = T
         k += 1
-    print(Trace)
     x = np.arange(twilight.shape[1])
     trace = np.zeros((Trace.shape[0], twilight.shape[1]))
     for i in np.arange(Trace.shape[0]):
