@@ -748,7 +748,7 @@ for info in redinfo:
         else:
             func = fits.ImageHDU
         f.append(func(cal))
-    fits.HDUList(f).writeto('test_all.fits')
+    fits.HDUList(f).writeto('test_all_%s.fits' % specname, overwrite=True)
     #####################
     # SCIENCE REDUCTION #
     #####################
