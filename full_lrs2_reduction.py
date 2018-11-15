@@ -9,6 +9,7 @@ import os.path as op
 import glob
 import sys
 import warnings
+import datetime
 
 from astropy.io import fits
 from astropy.table import Table
@@ -60,6 +61,28 @@ bias_path = op.join(baseraw, twi_date, '%s', '%s%s', 'exp*',
 
 def get_script_path():
     return op.dirname(op.realpath(sys.argv[0]))
+
+
+def get_ifucenfile(side, amp,
+                   virusconfig='/work/03946/hetdex/maverick/virus_config',
+                   skiprows=4):
+
+    file_dict = {"uv": "LRS2_B_UV_mapping.txt",
+                 "orange": "LRS2_B_OR_mapping.txt",
+                 "red": "LRS2_R_NR_mapping.txt",
+                 "farred": "LRS2_R_FR_mapping.txt"}
+
+    ifucen = np.loadtxt(op.join(virusconfig, 'IFUcen_files',
+                        file_dict[side]), usecols=[0, 1, 2], skiprows=skiprows)
+
+    if amp == "LL":
+        return ifucen[140:, 1:3][::-1, :]
+    if amp == "LU":
+        return ifucen[:140, 1:3][::-1, :]
+    if amp == "RL":
+        return ifucen[:140, 1:3][::-1, :]
+    if amp == "RU":
+        return ifucen[140:, 1:3][::-1, :]
 
 
 def orient_image(image, amp, ampname):
@@ -426,7 +449,26 @@ def get_mastertwi(twi_path, amp, masterbias):
     return np.median(twi_array / norm, axis=0)
 
 
-def get_trace(twilight):
+def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate,
+                        virusconfig='/work/03946/hetdex/'
+                        'maverick/virus_config'):
+    files = glob.glob(op.join(virusconfig, 'Fiber_Locations', '*',
+                              'fiber_loc_%s_%s_%s_%s.txt' %
+                              (specid, ifuslot, ifuid, amp)))
+    dates = [op.basename(op.dirname(fn)) for fn in files]
+    timediff = np.zeros((len(dates),))
+    for i, date in enumerate(dates):
+        d = datetime(int(date[:4]), int(date[4:6]),
+                     int(date[6:]))
+        timediff[i] = np.abs((obsdate - d).days)
+    ref_file = np.loadtxt(files[np.argmin(timediff)])
+    return ref_file
+
+
+def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
+    ref = get_trace_reference(specid, ifuslot, ifuid, amp, obsdate)
+    N = (ref[:, 1] == 0.).sum()
+    good = np.where(ref[:, 1] == 0)[0]
     def get_trace_chunk(flat, XN):
         YM = np.arange(flat.shape[0])
         inds = np.zeros((3, len(XN)))
@@ -443,17 +485,23 @@ def get_trace(twilight):
                np.array_split(np.arange(image.shape[1]), N)]
     chunks = np.array_split(image, N, axis=1)
     flats = [np.median(chunk, axis=1) for chunk in chunks]
-    Trace = []
+    Trace = np.zeros((len(ref), len(chunks)))
+    k = 0
     for flat, x in zip(flats, xchunks):
         diff_array = flat[1:] - flat[:-1]
         loc = np.where((diff_array[:-1] > 0.) * (diff_array[1:] < 0.))[0]
         peaks = flat[loc+1]
         loc = loc[peaks > 0.1 * np.median(peaks)]+1
         trace = get_trace_chunk(flat, loc)
-        Trace.append(trace)
-        print(len(trace))
-    Trace = np.array(Trace)
-    print(Trace)
+        T = np.zeros((len(ref)))
+        if len(trace) == N:
+            T[good] = trace
+            for missing in np.where(ref[:, 1] == 1)[0]:
+                gind = np.argmin(np.abs(missing - good))
+                T[missing] = (T[good[gind]] + ref[missing, 0] -
+                              ref[good[gind], 0])
+        Trace[:, k] = Trace
+        k += 1
     x = np.arange(twilight.shape[1])
     trace = np.zeros((Trace.shape[1], twilight.shape[1]))
     for i in np.arange(Trace.shape[1]):
