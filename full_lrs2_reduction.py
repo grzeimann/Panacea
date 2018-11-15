@@ -735,7 +735,7 @@ for info in redinfo:
         package.append([wave, trace, twiflat, bigW, masterbias, amppos])
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
-    calinfo[1][package[0][1].shape[0]:, :] += package[0][1].shape[0]
+    calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
     flatspec = get_spectra(calinfo[2], calinfo[1])
     calinfo.append(flatspec)
     log.info('Getting Powerlaw of Flat Cal for %s' % specname)
