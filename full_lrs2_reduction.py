@@ -640,11 +640,14 @@ def get_wavelength_from_arc(image, trace, lines, side):
     F1 = fits.ImageHDU(found_lines * 1.)
     fits.HDUList([F, F1]).writeto('test_lines.fits', overwrite=True)
     wave = trace * 0.0
+    res = np.zeros((trace.shape[0],))
     for j in np.arange(trace.shape[0]):
         sel = found_lines[j, :] > 0.0
         wave[j] = np.polyval(np.polyfit(found_lines[j, sel],
                              lines['col1'][sel], 3), x)
-    print(wave)
+        res[j] = np.std(np.interp(found_lines[j, sel], x, wave[j]) -
+                        lines['col1'][sel])
+    print(res)
     return wave
 
 # LRS2-R
