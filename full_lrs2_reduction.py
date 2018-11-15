@@ -506,9 +506,9 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
         Trace[:, k] = T
         k += 1
     x = np.arange(twilight.shape[1])
-    trace = np.zeros((Trace.shape[1], twilight.shape[1]))
-    for i in np.arange(Trace.shape[1]):
-        trace[i] = np.polyval(np.polyfit(xchunks, Trace[:, i], 7), x)
+    trace = np.zeros((Trace.shape[0], twilight.shape[1]))
+    for i in np.arange(Trace.shape[0]):
+        trace[i] = np.polyval(np.polyfit(xchunks, Trace[i, :], 7), x)
     return trace
 
 
