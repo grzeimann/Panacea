@@ -732,7 +732,7 @@ for info in redinfo:
                  (ifuslot, amp))
         twiflat, bigW, twispec = get_twiflat_field(twibase, amp, wave, trace,
                                                    commonwave, masterbias, log)
-        package.append(wave, trace, twiflat, bigW, masterbias, amppos)
+        package.append([wave, trace, twiflat, bigW, masterbias, amppos])
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
     flatspec = get_spectra(calinfo[2], calinfo[1])
