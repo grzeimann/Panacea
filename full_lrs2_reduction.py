@@ -734,7 +734,8 @@ def sky_subtraction(rect, xloc, yloc, seeing=1.5):
         smooth = (y[:, np.newaxis] * W).sum(axis=0) / N
         o = outlier(y, smooth, y>0.)
         for i in np.arange(3):
-            smooth = (y[~o, np.newaxis] * W[~o]).sum(axis=0) / W[~o].sum(axis=0)
+            smooth = (np.dot(W[~o].swapaxes(0, 1), y[~o, np.newaxis]) /
+                      W[~o].sum(axis=0))
             o = outlier(y, smooth, ~o)
         return smooth
 
