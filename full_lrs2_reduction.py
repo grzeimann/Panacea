@@ -377,6 +377,8 @@ def get_trace_shift(sci_array, flat, array_trace, Yx):
                  flat[inds[0, i, sel], x[sel]])))
         FlatTrace[i, sel] = xmax
     shifts = np.nanmedian(FlatTrace - Trace, axis=1)
+    fits.PrimaryHDU(shifts).writeto('test_shifts.fits', overwrite=True)
+    sys.exit(1)
     shifts = np.polyval(np.polyfit(np.nanmedian(FlatTrace, axis=1), shifts, 2),
                         Yx)
     return shifts
@@ -735,7 +737,7 @@ def sky_subtraction(rect):
         y1 = I(x)
         for i in np.arange(3):
             o += outlier(y, y1, ~o)
-            y1 = savgol_filter(y[~o], 15, 3)
+            y1 = savgol_filter(y[~o], 51, 3)
             I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
             y1 = I(x)
         return I(x)
@@ -765,7 +767,7 @@ def make_frame(xloc, yloc, data, wave, dw, Dx, Dy, wstart=5700.,
         W = np.exp(-0.5 / (seeing/2.35)**2 * D**2)
         N = W.sum(axis=0)
         zgrid[k, :, :] = ((data[sel, k][:, np.newaxis, np.newaxis] *
-                           W[sel]).sum(axis=0) / N / scale**2 / area)
+                           W[sel]).sum(axis=0) / N * (scale**2 / area))
     wi = np.searchsorted(wave, wstart, side='left')
     we = np.searchsorted(wave, wend, side='right')
 
@@ -922,6 +924,8 @@ for info in redinfo:
                                                          wstart=wave_0-50.,
                                                          wend=wave_0+50.)
                 write_cube(commonwave, xgrid, ygrid, zcube, outname)
+            outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
+                                                'exp%02d' % cnt, specname))
             f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
             f2 = create_header_objection(commonwave, sky)
             f3 = create_header_objection(commonwave, skysub)
