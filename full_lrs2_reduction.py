@@ -399,6 +399,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         sci_array = np.sum(array_list, axis=0)
     else:
         sci_array = np.array(array_list)
+    print(sci_array.shape)
     Xx = np.arange(flat.shape[1])
     Yx = np.arange(flat.shape[0])
     I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
@@ -783,8 +784,6 @@ for info in redinfo:
     #####################
     # SCIENCE REDUCTION #
     #####################
-    print(sci_path % (instrument, instrument, '0000*',
-                                             '01', instrument, ifuslot))
     basefiles = sorted(glob.glob(sci_path % (instrument, instrument, '0000*',
                                              '01', instrument, ifuslot)))
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
