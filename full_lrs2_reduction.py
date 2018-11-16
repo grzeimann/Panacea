@@ -780,7 +780,7 @@ for info in redinfo:
     # SCIENCE REDUCTION #
     #####################
     basefiles = sorted(glob.glob(sci_path % (instrument, instrument, '0000*',
-                                             '*', instrument, ifuslot)))
+                                             'exp01', instrument, ifuslot)))
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
                    for fn in basefiles]
     objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
