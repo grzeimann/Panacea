@@ -24,6 +24,14 @@ from astropy.stats import biweight_midvariance
 from photutils import DAOStarFinder
 from astropy.modeling.models import Moffat2D
 
+try:
+    from pyhetdex.het.telescope import HetpupilModel
+    hetpupil_installed = True
+except ImportError:
+    print('Cannot find HETpupilModel.  Please check pyhetdex installation.')
+    print('For now, using default 50m**2 for mirror illumination')
+    hetpupil_installed = False
+
 parser = ap.ArgumentParser(add_help=True)
 
 parser.add_argument("-d", "--date",
@@ -687,8 +695,10 @@ def get_objects(basefiles, attrs):
     for fn in basefiles:
         F = fits.open(fn)
         s.append([])
+        area = get_mirror_illumination(fn)
         for att in attrs:
             s[-1].append(F[0].header[att])
+        s.append(area)
     return s
 
 
@@ -847,6 +857,24 @@ def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, seeing=1.5):
         spec[i] = (data[:, i] * W).sum() / (W**2).sum()
     return spec
 
+
+def get_mirror_illumination(fn=None):
+    ''' Use Hetpupil from Cure to calculate mirror illumination (cm^2) '''
+    log.info('Getting mirror illumination')
+    if hetpupil_installed:
+        log.info('Using HetpupilModel from pyhetdex')
+        try:
+            mirror_illum = HetpupilModel([fn], normalize=False)
+            area = mirror_illum.fill_factor[0] * 55. * 1e4
+        except:
+            log.info('Using default mirror illumination value')
+            area = 50. * 1e4
+    else:
+        log.info('Using default mirror illumination value')
+        area = 50. * 1e4
+    log.info('Mirror illumination: %0.2f m^2' % (area/1e4))
+    return area
+
 # LRS2-R
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
@@ -855,7 +883,8 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 
 DIRNAME = get_script_path()
 
-for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
+# for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
+for info in [blueinfo[1]]:
     specinit, specname, multi, lims, amps, slims, arc_names = info
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
