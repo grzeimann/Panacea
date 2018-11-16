@@ -916,7 +916,7 @@ def get_response(objname, commonwave, spec):
                 if len(sel):
                     compare[i] = np.mean(spec[sel])
             sel = compare > 0.
-            S = standard_flam[sel] / (6.63e-27 * (3e18 / standard_wave[sel]))
+            S = standard_flam[sel] #/ (6.63e-27 * (3e18 / standard_wave[sel]))
             p = np.polyfit(standard_wave[sel], S / compare[sel],
                            np.min([7, len(sel)-1]))
             return np.polyval(p, commonwave)
