@@ -989,7 +989,8 @@ for info in redinfo:
                                             commonwave, calinfo[5][:, 0],
                                             calinfo[5][:, 1])
             else:
-                spec = commonwave * 0.
+                skyspec = commonwave * 0.
+                skysubspec = commonwave * 0.
             outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
                                                 'exp%02d' % cnt, specname))
             cnt += 1
