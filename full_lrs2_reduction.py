@@ -921,7 +921,7 @@ for info in redinfo:
                                                          xoff, yoff,
                                                          wstart=wave_0-50.,
                                                          wend=wave_0+50.)
-                write_cube(wave, xgrid, ygrid, zcube, outname)
+                write_cube(commonwave, xgrid, ygrid, zcube, outname)
             f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
             f2 = create_header_objection(commonwave, sky)
             f3 = create_header_objection(commonwave, skysub)
