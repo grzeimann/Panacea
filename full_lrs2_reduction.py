@@ -875,6 +875,131 @@ def get_mirror_illumination(fn=None):
     log.info('Mirror illumination: %0.2f m^2' % (area/1e4))
     return area
 
+
+def check_if_standard(objname):
+    standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B', 'FEIGE_25',
+                      'HILTNER_600', 'G193-74', 'PG0823+546', 'HD_84937',
+                      'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
+                      'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
+                      'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
+                      'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4']
+    for standard in standard_names:
+        if standard.lower() in objname.lower():
+            return True
+    return False
+
+
+def get_response(objname, commonwave, spec):
+    standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B', 'FEIGE_25',
+                      'HILTNER_600', 'G193-74', 'PG0823+546', 'HD_84937',
+                      'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
+                      'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
+                      'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
+                      'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4']
+    for standard in standard_names:
+        if standard.lower() in objname.lower():
+            filename = op.join('/work/03946/hetdex/maverick/virus_config/'
+                               'standards',
+                               'm' + standard.lower() + '.dat.txt')
+            wave, standardmag = np.loadtxt(filename, usecols=(0, 1),
+                                           unpack=True)
+            fnu = 10**(0.4 * (-48.6 - standardmag))
+            standard_flam = fnu * 2.99792e18 / wave**2
+            standard_wave = wave
+            d = np.diff(standard_wave)
+            d = np.hstack([d[0]/2., d/2., d[1]/2.])
+            compare = standard_flam * 0.
+            for i, v in enumerate(standard_wave):
+                l = v - d[i]
+                h = v + d[i+1]
+                sel = np.where((commonwave > l) * (commonwave < h))[0]
+                if len(sel):
+                    compare[i] = np.mean(spec[sel])
+            sel = compare > 0.
+            S = standard_flam[sel] / 6.63e-27 / 3e18 / standard_wave[sel]
+            p = np.polyfit(standard_wave[sel], S / compare[sel],
+                           np.min([7, len(sel)-1]))
+            return np.polyval(p, commonwave)
+
+    return None
+
+
+def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
+                  ifuslot, standard=False, response=None):
+    log.info('Extracting %s from %s' % (obj[0], bf))
+    scifiles = sci_path % (instrument, instrument, sci_obs, '*',
+                           instrument, ifuslot)
+    images, rect, spec = extract_sci(scifiles, amps, calinfo[2],
+                                     calinfo[1], calinfo[0], calinfo[3],
+                                     calinfo[4])
+    cnt = 1
+    wave_0 = np.mean(commonwave)
+    darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % specinit)
+    T = Table.read(darfile, format='ascii.fixed_width_two_line')
+    xoff = (np.interp(commonwave, T['wave'], T['x_0']) -
+            np.interp(wave_0, T['wave'], T['x_0']))
+    yoff = (np.interp(commonwave, T['wave'], T['y_0']) -
+            np.interp(wave_0, T['wave'], T['y_0']))
+    for im, r, s in zip(images, rect, spec):
+        fn = (sci_path % (instrument, instrument, sci_obs,
+                          '%02d' % cnt, instrument, ifuslot))
+        fn = glob.glob(fn)
+        mini = get_objects(fn, ['OBJECT', 'EXPTIME'])
+        print(mini)
+        log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
+        r[calinfo[7][:, 1] == 1.] = 0.
+        r /= mini[0][1]
+        r /= mini[0][2]
+        #ftf_cor = correct_fiber_to_fiber(r, calinfo[5][:, 0],
+        #                                 calinfo[5][:, 1])
+        #r = r / ftf_cor[:, np.newaxis]
+        sky = sky_subtraction(r, calinfo[5][:, 0], calinfo[5][:, 1])
+        sky[calinfo[7][:, 1] == 1.] = 0.
+        skysub = r - sky
+        X = np.array([T['wave'], T['x_0'], T['y_0']])
+        for S, name in zip([sky, skysub], ['sky', 'skysub']):
+            outname = ('%s_%s_%s_%s_%s_cube.fits' % (args.date, sci_obs,
+                       'exp%02d' % cnt, specname, name))
+            zcube, zimage, xgrid, ygrid = make_frame(calinfo[5][:, 0],
+                                                     calinfo[5][:, 1], S,
+                                                     commonwave,
+                                                     T['wave'],
+                                                     xoff, yoff,
+                                                     wstart=wave_0-50.,
+                                                     wend=wave_0+50.)
+            write_cube(commonwave, xgrid, ygrid, zcube, outname)
+        loc = find_source(zimage, xgrid, ygrid)
+        if loc is not None:
+            log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
+            skyspec = extract_source(sky, loc[0], loc[1], xoff, yoff,
+                                     commonwave, calinfo[5][:, 0],
+                                     calinfo[5][:, 1])
+            skysubspec = extract_source(skysub, loc[0], loc[1], xoff, yoff,
+                                        commonwave, calinfo[5][:, 0],
+                                        calinfo[5][:, 1])
+        else:
+            skyspec = commonwave * 0.
+            skysubspec = commonwave * 0.
+        if response is not None:
+            skyspec *= response
+            skysubspec *= response
+            f5 = fits.ImageHDU(np.vstack([commonwave, skysubspec, skyspec,
+                                          response]))
+        else:
+            f5 = fits.ImageHDU(np.vstack([commonwave, skysubspec, skyspec]))
+        outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
+                                            'exp%02d' % cnt, specname))
+        cnt += 1
+        f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
+        f2 = create_header_objection(commonwave, sky)
+        f3 = create_header_objection(commonwave, skysub)
+        f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
+        fits.HDUList([f1, f2, f3, f4, fits.ImageHDU(calinfo[5]), f5,
+                      fits.ImageHDU(X)]).writeto(outname, overwrite=True)
+        if standard:
+            return get_response(obj[0], commonwave, skysubspec)
+
+
 # LRS2-R
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
@@ -972,68 +1097,15 @@ for info in [blueinfo[1]]:
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
                    for fn in basefiles]
     objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
+
+    response = None
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-        log.info('Extracting %s from %s' % (obj[0], bf))
-        scifiles = sci_path % (instrument, instrument, sci_obs, '*',
-                               instrument, ifuslot)
-        images, rect, spec = extract_sci(scifiles, amps, calinfo[2],
-                                         calinfo[1], calinfo[0], calinfo[3],
-                                         calinfo[4])
-        cnt = 1
-        wave_0 = np.mean(commonwave)
-        darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % specinit)
-        T = Table.read(darfile, format='ascii.fixed_width_two_line')
-        xoff = (np.interp(commonwave, T['wave'], T['x_0']) -
-                np.interp(wave_0, T['wave'], T['x_0']))
-        yoff = (np.interp(commonwave, T['wave'], T['y_0']) -
-                np.interp(wave_0, T['wave'], T['y_0']))
-        for im, r, s in zip(images, rect, spec):
-            fn = (sci_path % (instrument, instrument, sci_obs,
-                              '%02d' % cnt, instrument, ifuslot))
-            fn = glob.glob(fn)
-            mini = get_objects(fn, ['OBJECT', 'EXPTIME'])
-            log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
-            r[calinfo[7][:, 1] == 1.] = 0.
-            #ftf_cor = correct_fiber_to_fiber(r, calinfo[5][:, 0],
-            #                                 calinfo[5][:, 1])
-            #r = r / ftf_cor[:, np.newaxis]
-            sky = sky_subtraction(r, calinfo[5][:, 0], calinfo[5][:, 1])
-            sky[calinfo[7][:, 1] == 1.] = 0.
-            skysub = r - sky
-            X = np.array([T['wave'], T['x_0'], T['y_0']])
-            for S, name in zip([sky, skysub], ['sky', 'skysub']):
-                outname = ('%s_%s_%s_%s_%s_cube.fits' % (args.date, sci_obs,
-                           'exp%02d' % cnt, specname, name))
-                zcube, zimage, xgrid, ygrid = make_frame(calinfo[5][:, 0],
-                                                         calinfo[5][:, 1], S,
-                                                         commonwave,
-                                                         T['wave'],
-                                                         xoff, yoff,
-                                                         wstart=wave_0-50.,
-                                                         wend=wave_0+50.)
-                write_cube(commonwave, xgrid, ygrid, zcube, outname)
-            loc = find_source(zimage, xgrid, ygrid)
-            if loc is not None:
-                log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
-                skyspec = extract_source(sky, loc[0], loc[1], xoff, yoff,
-                                         commonwave, calinfo[5][:, 0],
-                                         calinfo[5][:, 1])
-                skysubspec = extract_source(skysub, loc[0], loc[1], xoff, yoff,
-                                            commonwave, calinfo[5][:, 0],
-                                            calinfo[5][:, 1])
-            else:
-                skyspec = commonwave * 0.
-                skysubspec = commonwave * 0.
-            outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
-                                                'exp%02d' % cnt, specname))
-            cnt += 1
-            f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
-            f2 = create_header_objection(commonwave, sky)
-            f3 = create_header_objection(commonwave, skysub)
-            f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
-            fits.HDUList([f1, f2, f3, f4, fits.ImageHDU(calinfo[5]),
-                          fits.ImageHDU(np.vstack([commonwave, skysubspec, skyspec])),
-                          fits.ImageHDU(X)]).writeto(outname, overwrite=True)
+        if check_if_standard(obj[0]) and (ifuslot in obj[0]):
+            response = big_reduction(obj, bf, instrument, sci_obs, calinfo,
+                                     amps, commonwave, ifuslot, standard=True)
+    for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
+        big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
+                      ifuslot)
             
 
 #        header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
