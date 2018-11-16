@@ -823,7 +823,6 @@ def find_source(image, xgrid, ygrid):
     daofind = DAOStarFinder(fwhm=4.0, threshold=5.*std)
     sources = daofind(image)
     print(sources)
-    print(np.unique(xgrid), np.unique(ygrid))
     if len(sources) == 1:
         xg = np.unique(xgrid)
         yg = np.unique(ygrid)
@@ -982,9 +981,12 @@ for info in redinfo:
             loc = find_source(zimage, xgrid, ygrid)
             if loc is not None:
                 log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
-                spec = extract_source(r, loc[0], loc[1], xoff, yoff,
-                                      commonwave, calinfo[5][:, 0],
-                                      calinfo[5][:, 1])
+                skyspec = extract_source(sky, loc[0], loc[1], xoff, yoff,
+                                         commonwave, calinfo[5][:, 0],
+                                         calinfo[5][:, 1])
+                skysubspec = extract_source(skysub, loc[0], loc[1], xoff, yoff,
+                                            commonwave, calinfo[5][:, 0],
+                                            calinfo[5][:, 1])
             else:
                 spec = commonwave * 0.
             outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
@@ -995,7 +997,7 @@ for info in redinfo:
             f3 = create_header_objection(commonwave, skysub)
             f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
             fits.HDUList([f1, f2, f3, f4, fits.ImageHDU(calinfo[5]),
-                          fits.ImageHDU(np.vstack([commonwave, spec])),
+                          fits.ImageHDU(np.vstack([commonwave, skysubspec, skyspec])),
                           fits.ImageHDU(X)]).writeto(outname, overwrite=True)
             
 
