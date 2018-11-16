@@ -990,9 +990,7 @@ for info in [blueinfo[1]]:
         for im, r, s in zip(images, rect, spec):
             fn = (sci_path % (instrument, instrument, sci_obs,
                               '%02d' % cnt, instrument, ifuslot))
-            print(fn)
-            fn = glob.glob(fn)[0]
-            print(fn)
+            fn = glob.glob(fn)
             mini = get_objects(fn, ['OBJECT', 'EXPTIME'])
             log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
             r[calinfo[7][:, 1] == 1.] = 0.
