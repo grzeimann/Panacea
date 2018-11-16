@@ -903,7 +903,7 @@ for info in redinfo:
         for im, r, s in zip(images, rect, spec):
             log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
             r[calinfo[7][:, 1] == 1.] = 0.
-            sky = sky_subtraction(r)
+            sky = sky_subtraction(r, calinfo[5][:, 0], calinfo[5][:, 1])
             skysub = r - sky
             outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
                                                 'exp%02d' % cnt, specname))
