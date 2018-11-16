@@ -21,6 +21,8 @@ from scipy.interpolate import interp1d, interp2d, griddata
 from input_utils import setup_logging
 from astrometry import Astrometry
 from astropy.stats import biweight_midvariance
+from photutils import DAOStarFinder
+from astropy.modeling.models import Moffat2D
 
 parser = ap.ArgumentParser(add_help=True)
 
@@ -310,7 +312,7 @@ def weighted_extraction(image, error, flat, trace):
     E = safe_division(error, flat)
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
-    cosmics = find_cosmics(Y, E)
+    cosmics = find_cosmics(Y, E, 4.)
     x = np.arange(trace.shape[1])
     spectrum = 0. * trace
     TT = np.zeros((trace.shape[0], 3, trace.shape[1], 4))
@@ -758,6 +760,13 @@ def correct_fiber_to_fiber(rect, xloc, yloc, seeing=1.5):
         return o
 
     data = np.mean(rect, axis=1)
+    o = data == 0.
+    low = np.percentile(data[~o], 16)
+    mid = np.percentile(data[~o], 50)
+    high = np.percentile(data[~o], 84)
+    if (high - mid) > 2.0 * (mid - low):
+        log.info('Source is too bright to correct fiber to fiber')
+        return np.ones(data.shape)
     smooth = (data[:, np.newaxis] * W).sum(axis=0) / W.sum(axis=0)
     o = outlier(data, smooth, data > 0.)
     for i in np.arange(3):
@@ -782,9 +791,9 @@ def make_frame(xloc, yloc, data, wave, dw, Dx, Dy, wstart=5700.,
         D = np.sqrt((xloc[:, np.newaxis, np.newaxis] - Dx[k] - xgrid)**2 +
                     (yloc[:, np.newaxis, np.newaxis] - Dy[k] - ygrid)**2)
         W = np.exp(-0.5 / (seeing/2.35)**2 * D**2)
-        N = W.sum(axis=0)
         zgrid[k, :, :] = ((data[sel, k][:, np.newaxis, np.newaxis] *
-                           W[sel]).sum(axis=0) / N * (scale**2 / area))
+                           W[sel]).sum(axis=0) / W[sel].sum(axis=0) *
+                          (scale**2 / area))
     wi = np.searchsorted(wave, wstart, side='left')
     we = np.searchsorted(wave, wend, side='right')
 
@@ -809,6 +818,35 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname):
     hdu.writeto(outname, overwrite=True)
 
 
+def find_source(image, xgrid, ygrid):
+    std = np.sqrt(biweight_midvariance(image))
+    daofind = DAOStarFinder(fwhm=4.0, threshold=5.*std)
+    sources = daofind(image)
+    print(sources)
+    print(np.unique(xgrid), np.unique(ygrid))
+    if len(sources) == 1:
+        xg = np.unique(xgrid)
+        yg = np.unique(ygrid)
+        xc = np.interp(sources[0]['xcentroid'], np.arange(len(xg)), xg)
+        yc = np.interp(sources[0]['ycentroid'], np.arange(len(yg)), yg)
+        return xc, yc
+    else:
+        return None
+
+
+def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, seeing=1.5):
+    gamma = seeing / (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
+    PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=3.5, gamma=gamma)
+    spec = wave * 0.
+    for i in np.arange(len(wave)):
+        x = xc + xoff[i]
+        y = yc + yoff[i]
+        PSF.x_0.value = x
+        PSF.y_0.value = y
+        W = PSF(xloc, yloc)
+        W /= W.sum()
+        spec[i] = (data[:, i] * W).sum() / (W**2).sum()
+    return spec
 
 # LRS2-R
 fiberpos, fiberspec = ([], [])
@@ -941,6 +979,14 @@ for info in redinfo:
                                                          wstart=wave_0-50.,
                                                          wend=wave_0+50.)
                 write_cube(commonwave, xgrid, ygrid, zcube, outname)
+            loc = find_source(zimage, xgrid, ygrid)
+            if loc is not None:
+                log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
+                spec = extract_source(r, loc[0], loc[1], xoff, yoff,
+                                      commonwave, calinfo[5][:, 0],
+                                      calinfo[5][:, 1])
+            else:
+                spec = commonwave * 0.
             outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
                                                 'exp%02d' % cnt, specname))
             cnt += 1
@@ -949,8 +995,9 @@ for info in redinfo:
             f3 = create_header_objection(commonwave, skysub)
             f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
             fits.HDUList([f1, f2, f3, f4, fits.ImageHDU(calinfo[5]),
-                          fits.ImageHDU(commonwave),
+                          fits.ImageHDU(np.vstack([commonwave, spec])),
                           fits.ImageHDU(X)]).writeto(outname, overwrite=True)
+            
 
 #        header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
 #                                         instrument,
