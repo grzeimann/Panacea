@@ -377,8 +377,6 @@ def get_trace_shift(sci_array, flat, array_trace, Yx):
                  flat[inds[0, i, sel], x[sel]])))
         FlatTrace[i, sel] = xmax
     shifts = np.nanmedian(FlatTrace - Trace, axis=1)
-    fits.PrimaryHDU(shifts).writeto('test_shifts.fits', overwrite=True)
-    sys.exit(1)
     shifts = np.polyval(np.polyfit(np.nanmedian(FlatTrace, axis=1), shifts, 2),
                         Yx)
     return shifts
