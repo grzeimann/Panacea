@@ -761,8 +761,7 @@ def correct_fiber_to_fiber(rect, xloc, yloc, seeing=1.5):
     smooth = (data[:, np.newaxis] * W).sum(axis=0) / W.sum(axis=0)
     o = outlier(data, smooth, data > 0.)
     for i in np.arange(3):
-        smooth = (np.dot(W[~o].swapaxes(0, 1), data[~o, np.newaxis]) /
-                  W[~o].sum(axis=0))
+        smooth = (data[~o, np.newaxis] * W[~o]).sum(axis=0) / W[~o].sum(axis=0)
         o = outlier(data, smooth, ~o)
     return smooth / np.mean(smooth)
 
