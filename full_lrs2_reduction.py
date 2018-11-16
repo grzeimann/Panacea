@@ -50,7 +50,7 @@ baseraw = '/work/03946/hetdex/maverick'
 
 
 sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
-                   '%s', '2*_%sLL*.fits')
+                   '%s', '2*_%sLL*sci.fits')
 sciflt_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
                       '%s', '2*_%sLL_twi.fits')
 cmp_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
@@ -381,7 +381,10 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         array_flt = np.vstack([array_flt1, array_flt2])
         array_flt[:] -= masterbias
         array_list.append(array_flt)
-    sci_array = np.sum(array_list, axis=0)
+    if len(array_list) > 1:
+        sci_array = np.sum(array_list, axis=0)
+    else:
+        sci_array = np.array(array_list)
     Xx = np.arange(flat.shape[1])
     Yx = np.arange(flat.shape[0])
     I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
@@ -778,7 +781,8 @@ for info in redinfo:
     #####################
     basefiles = sorted(glob.glob(sci_path % (instrument, instrument, '0000*',
                                              '*', instrument, ifuslot)))
-    all_sci_obs = [op.basename(fn)[-7:] for fn in basefiles]
+    all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
+                   for fn in basefiles]
     objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
     print(all_sci_obs)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
