@@ -783,6 +783,8 @@ for info in redinfo:
     #####################
     # SCIENCE REDUCTION #
     #####################
+    print(sci_path % (instrument, instrument, '0000*',
+                                             '01', instrument, ifuslot))
     basefiles = sorted(glob.glob(sci_path % (instrument, instrument, '0000*',
                                              '01', instrument, ifuslot)))
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
