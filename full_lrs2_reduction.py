@@ -286,8 +286,8 @@ def find_cosmics(Y, E, thresh=8.):
     P = S - medfilt2d(S, (1, 15))
     x, y = np.where(P > thresh)
     xx, yy = ([], [])
-    for i in np.arange(-1, 2):
-        for j in np.arange(-1, 2):
+    for i in np.arange(-0, 1):
+        for j in np.arange(-0, 1):
             sel = ((x + i) >= 0) * ((x + i) < Y.shape[0])
             sel2 = ((y + j) >= 0) * ((y + j) < Y.shape[1])
             sel = sel * sel2
