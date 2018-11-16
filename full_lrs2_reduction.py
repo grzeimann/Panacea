@@ -399,7 +399,6 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         sci_array = np.sum(array_list, axis=0)
     else:
         sci_array = np.squeeze(np.array(array_list))
-    print(sci_array.shape)
     Xx = np.arange(flat.shape[1])
     Yx = np.arange(flat.shape[0])
     I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
@@ -690,6 +689,33 @@ def get_objects(basefiles, attrs):
             s[-1].append(F[0].header[att])
     return s
 
+
+def create_image_header(wave, xgrid, ygrid, zgrid, func=fits.ImageHDU):
+    hdu = func(np.array(zgrid, dtype='float32'))
+    hdu.header['CRVAL1'] = xgrid[0, 0]
+    hdu.header['CRVAL2'] = ygrid[0, 0]
+    hdu.header['CRPIX1'] = 1
+    hdu.header['CRPIX2'] = 1
+    hdu.header['CTYPE1'] = 'pixel'
+    hdu.header['CTYPE2'] = 'pixel'
+    hdu.header['CDELT1'] = xgrid[0, 1] - xgrid[0, 0]
+    hdu.header['CDELT2'] = ygrid[1, 0] - ygrid[0, 0]
+    return hdu
+
+
+def create_header_objection(wave, image, func=fits.ImageHDU):
+    hdu = func(np.array(image, dtype='float32'))
+    hdu.header['CRVAL1'] = wave[0]
+    hdu.header['CRVAL2'] = 1
+    hdu.header['CRPIX1'] = 1
+    hdu.header['CRPIX2'] = 1
+    hdu.header['CTYPE1'] = 'pixel'
+    hdu.header['CTYPE2'] = 'pixel'
+    hdu.header['CDELT2'] = 1
+    hdu.header['CDELT1'] = wave[1] - wave[0]
+    return hdu
+
+
 # LRS2-R
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
@@ -797,6 +823,18 @@ for info in redinfo:
         images, rect, spec = extract_sci(scifiles, amps, calinfo[2],
                                          calinfo[1], calinfo[0], calinfo[3],
                                          calinfo[4])
+        cnt = 1
+        for im, r, s in zip(images, rect, spec):
+            outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
+                                                'exp%02d' % cnt, specname))
+            cnt += 1
+            # X = np.array([T['wave'], T['x_0'], T['y_0']])
+            f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
+            # f2 = create_header_objection(wave, sky)
+            # f3 = create_header_objection(wave, skysub)
+            fits.HDUList([f1, fits.ImageHDU(calinfo[5]),
+                          fits.ImageHDU(commonwave)]).writeto(outname,
+                                                              overwrite=True)
 #        header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
 #                                         instrument,
 #                                         ifuslots[0]))[0])[0].header
