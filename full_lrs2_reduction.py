@@ -896,7 +896,7 @@ for info in redinfo:
                                          calinfo[4])
         cnt = 1
         wave_0 = np.mean(commonwave)
-        darfile = '/Users/gregz/cure/panacea/lrs2_config/dar_%s.dat' % specinit
+        darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % specinit)
         T = Table.read(darfile, format='ascii.fixed_width_two_line')
         xoff = (np.interp(commonwave, T['wave'], T['x_0']) -
                 np.interp(wave_0, T['wave'], T['x_0']))
