@@ -735,7 +735,7 @@ def sky_subtraction(rect):
         y1 = I(x)
         for i in np.arange(3):
             o += outlier(y, y1, ~o)
-            y1 = savgol_filter(y[~o], 51, 3)
+            y1 = savgol_filter(y[~o], 15, 3)
             I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
             y1 = I(x)
         return I(x)
@@ -745,6 +745,51 @@ def sky_subtraction(rect):
     for j in np.arange(rect.shape[1]):
         sky[:, j] = fit_sky_col(x, rect[:, j])
     return sky
+
+
+def make_frame(xloc, yloc, data, wave, dw, Dx, Dy, wstart=5700.,
+               wend=5800., scale=0.4, seeing_fac=1.3):
+    seeing = seeing_fac * scale
+    a, b = data.shape
+    x = np.arange(xloc.min()-scale,
+                  xloc.max()+1*scale, scale)
+    y = np.arange(yloc.min()-scale,
+                  yloc.max()+1*scale, scale)
+    xgrid, ygrid = np.meshgrid(x, y)
+    zgrid = np.zeros((b,)+xgrid.shape)
+    area = 3. / 4. * np.sqrt(3.) * 0.59**2
+    for k in np.arange(b):
+        sel = np.isfinite(data[:, k])
+        D = np.sqrt((xloc[:, np.newaxis, np.newaxis] - Dx[k] - xgrid)**2 +
+                    (yloc[:, np.newaxis, np.newaxis] - Dy[k] - ygrid)**2)
+        W = np.exp(-0.5 / (seeing/2.35)**2 * D**2)
+        N = W.sum(axis=0)
+        zgrid[k, :, :] = ((data[sel, k][:, np.newaxis, np.newaxis] *
+                           W[sel]).sum(axis=0) / N / scale**2 / area)
+    wi = np.searchsorted(wave, wstart, side='left')
+    we = np.searchsorted(wave, wend, side='right')
+
+    zimage = biweight_location(zgrid[wi:we+1], axis=(0,))
+    return zgrid, zimage, xgrid, ygrid
+
+
+def write_cube(wave, xgrid, ygrid, zgrid, outname):
+    hdu = fits.PrimaryHDU(np.array(zgrid, dtype='float32'))
+    hdu.header['CRVAL1'] = xgrid[0, 0]
+    hdu.header['CRVAL2'] = ygrid[0, 0]
+    hdu.header['CRVAL3'] = wave[0]
+    hdu.header['CRPIX1'] = 1
+    hdu.header['CRPIX2'] = 1
+    hdu.header['CRPIX3'] = 1
+    hdu.header['CTYPE1'] = 'pixel'
+    hdu.header['CTYPE2'] = 'pixel'
+    hdu.header['CTYPE3'] = 'pixel'
+    hdu.header['CDELT1'] = xgrid[0, 1] - xgrid[0, 0]
+    hdu.header['CDELT2'] = ygrid[1, 0] - ygrid[0, 0]
+    hdu.header['CDELT3'] = wave[1] - wave[0]
+    hdu.writeto(outname, overwrite=True)
+
+
 
 # LRS2-R
 fiberpos, fiberspec = ([], [])
@@ -850,6 +895,13 @@ for info in redinfo:
                                          calinfo[1], calinfo[0], calinfo[3],
                                          calinfo[4])
         cnt = 1
+        wave_0 = np.mean(commonwave)
+        darfile = '/Users/gregz/cure/panacea/lrs2_config/dar_%s.dat' % specinit
+        T = Table.read(darfile, format='ascii.fixed_width_two_line')
+        xoff = (np.interp(commonwave, T['wave'], T['x_0']) -
+                np.interp(wave_0, T['wave'], T['x_0']))
+        yoff = (np.interp(commonwave, T['wave'], T['y_0']) -
+                np.interp(wave_0, T['wave'], T['y_0']))
         for im, r, s in zip(images, rect, spec):
             log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
             r[calinfo[7][:, 1] == 1.] = 0.
@@ -858,13 +910,26 @@ for info in redinfo:
             outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
                                                 'exp%02d' % cnt, specname))
             cnt += 1
-            # X = np.array([T['wave'], T['x_0'], T['y_0']])
+            X = np.array([T['wave'], T['x_0'], T['y_0']])
+            for S, name in zip([sky, skysub], ['sky', 'skysub']):
+                outname = ('%s_%s_%s_%s_%s_cube.fits' %
+                           (args.date, sci_obs, 'exp%02d' % cnt, specname))
+                zcube, zimage, xgrid, ygrid = make_frame(calinfo[5][:, 0],
+                                                         calinfo[5][:, 1], S,
+                                                         commonwave,
+                                                         T['wave'],
+                                                         xoff, yoff,
+                                                         wstart=wave_0-50.,
+                                                         wend=wave_0+50.)
+                write_cube(wave, xgrid, ygrid, zcube, outname)
             f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
             f2 = create_header_objection(commonwave, sky)
             f3 = create_header_objection(commonwave, skysub)
-            fits.HDUList([f1, f2, f3, fits.ImageHDU(calinfo[5]),
-                          fits.ImageHDU(commonwave)]).writeto(outname,
-                                                              overwrite=True)
+            f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
+            fits.HDUList([f1, f2, f3, f4, fits.ImageHDU(calinfo[5]),
+                          fits.ImageHDU(commonwave),
+                          fits.ImageHDU(X)]).writeto(outname, overwrite=True)
+
 #        header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
 #                                         instrument,
 #                                         ifuslots[0]))[0])[0].header
