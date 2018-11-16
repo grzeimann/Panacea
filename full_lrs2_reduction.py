@@ -717,33 +717,54 @@ def create_header_objection(wave, image, func=fits.ImageHDU):
 
 
 def sky_subtraction(rect, xloc, yloc, seeing=1.5):
-    D = np.sqrt((xloc[:, np.newaxis] - xloc)**2 + (yloc[:, np.newaxis] - yloc)**2)
-    W = np.exp(-0.5 / (seeing/2.35)**2 * D**2)
-    N = W.sum(axis=0)
-
     def outlier(y, y1, oi):
         m = np.abs(y[oi] - y1[oi])
         o = (y - y1) > 3. * np.median(m)
         return o
 
     def fit_sky_col(x, y):
-        #o = y == 0.
-        #low = np.percentile(y[~o], 16)
-        #mid = np.percentile(y[~o], 50)
-        #high = np.percentile(y[~o], 84)
-        smooth = (y[:, np.newaxis] * W).sum(axis=0) / N
-        o = outlier(y, smooth, y>0.)
+        o = y == 0.
+        low = np.percentile(y[~o], 16)
+        mid = np.percentile(y[~o], 50)
+        high = np.percentile(y[~o], 84)
+        if (high - mid) > 2.0 * (mid - low):
+            y1 = np.ones(x[~o].shape) * low
+        else:
+            y1 = savgol_filter(y[~o], 31, 3)
+        I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
+        y1 = I(x)
         for i in np.arange(3):
-            smooth = (np.dot(W[~o].swapaxes(0, 1), y[~o, np.newaxis]) /
-                      W[~o].sum(axis=0))
-            o = outlier(y, smooth, ~o)
-        return smooth
+            o += outlier(y, y1, ~o)
+            y1 = savgol_filter(y[~o], 51, 3)
+            I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
+            y1 = I(x)
+        return I(x)
 
     x = np.arange(rect.shape[0])
     sky = rect * 0.
     for j in np.arange(rect.shape[1]):
         sky[:, j] = fit_sky_col(x, rect[:, j])
     return sky
+
+
+def correct_fiber_to_fiber(rect, xloc, yloc, seeing=1.5):
+    D = np.sqrt((xloc[:, np.newaxis] - xloc)**2 +
+                (yloc[:, np.newaxis] - yloc)**2)
+    W = np.exp(-0.5 / (seeing/2.35)**2 * D**2)
+
+    def outlier(y, y1, oi):
+        m = np.abs(y[oi] - y1[oi])
+        o = (y - y1) > 3. * np.median(m)
+        return o
+
+    data = np.mean(rect, axis=1)
+    smooth = (data[:, np.newaxis] * W).sum(axis=0) / W.sum(axis=0)
+    o = outlier(data, smooth, data > 0.)
+    for i in np.arange(3):
+        smooth = (np.dot(W[~o].swapaxes(0, 1), data[~o, np.newaxis]) /
+                  W[~o].sum(axis=0))
+        o = outlier(data, smooth, ~o)
+    return smooth / np.mean(smooth)
 
 
 def make_frame(xloc, yloc, data, wave, dw, Dx, Dy, wstart=5700.,
@@ -904,6 +925,9 @@ for info in redinfo:
         for im, r, s in zip(images, rect, spec):
             log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
             r[calinfo[7][:, 1] == 1.] = 0.
+            ftf_cor = correct_fiber_to_fiber(r, calinfo[5][:, 0],
+                                             calinfo[5][:, 1])
+            r = r / ftf_cor[:, np.newaxis]
             sky = sky_subtraction(r, calinfo[5][:, 0], calinfo[5][:, 1])
             skysub = r - sky
             outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
