@@ -698,7 +698,7 @@ def get_objects(basefiles, attrs):
         area = get_mirror_illumination(fn)
         for att in attrs:
             s[-1].append(F[0].header[att])
-        s.append(area)
+        s[-1].append(area)
     return s
 
 
@@ -988,6 +988,9 @@ for info in [blueinfo[1]]:
         yoff = (np.interp(commonwave, T['wave'], T['y_0']) -
                 np.interp(wave_0, T['wave'], T['y_0']))
         for im, r, s in zip(images, rect, spec):
+            fn = (sci_path % (instrument, instrument, sci_obs,
+                              'exp%02d' % cnt, instrument, ifuslot))
+            mini = get_objects(fn, ['OBJECT', 'EXPTIME'])
             log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
             r[calinfo[7][:, 1] == 1.] = 0.
             #ftf_cor = correct_fiber_to_fiber(r, calinfo[5][:, 0],
