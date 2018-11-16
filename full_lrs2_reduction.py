@@ -750,7 +750,7 @@ def sky_subtraction(rect, xloc, yloc, seeing=1.5):
             y1 = savgol_filter(y[~o], 51, 3)
             I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
             y1 = I(x)
-        return I(x)
+        return biweight_location(y[~o])
 
     x = np.arange(rect.shape[0])
     sky = rect * 0.
@@ -1007,8 +1007,7 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 
 DIRNAME = get_script_path()
 
-# for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
-for info in [blueinfo[1]]:
+for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
     specinit, specname, multi, lims, amps, slims, arc_names = info
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
