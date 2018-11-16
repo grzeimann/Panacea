@@ -961,9 +961,9 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
         for im, r, s in zip(images, rect, spec):
             log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
             r[calinfo[7][:, 1] == 1.] = 0.
-            ftf_cor = correct_fiber_to_fiber(r, calinfo[5][:, 0],
-                                             calinfo[5][:, 1])
-            r = r / ftf_cor[:, np.newaxis]
+            #ftf_cor = correct_fiber_to_fiber(r, calinfo[5][:, 0],
+            #                                 calinfo[5][:, 1])
+            #r = r / ftf_cor[:, np.newaxis]
             sky = sky_subtraction(r, calinfo[5][:, 0], calinfo[5][:, 1])
             sky[calinfo[7][:, 1] == 1.] = 0.
             skysub = r - sky
