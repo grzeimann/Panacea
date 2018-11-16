@@ -533,7 +533,7 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
     for i in np.arange(Trace.shape[0]):
         sel = Trace[i, :] > 0.
         trace[i] = np.polyval(np.polyfit(xchunks[sel], Trace[i, sel], 7), x)
-    return trace, ref[:, 1]
+    return trace, ref
 
 
 def find_peaks(y, thresh=8.):
@@ -857,7 +857,7 @@ for info in redinfo:
         cnt = 1
         for im, r, s in zip(images, rect, spec):
             log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
-            r[calinfo[7] == 1.] = 0.
+            r[calinfo[7][:, 1] == 1.] = 0.
             sky = sky_subtraction(r)
             skysub = r - sky
             outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
