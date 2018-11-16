@@ -292,13 +292,8 @@ def find_cosmics(Y, E, thresh=8.):
     return C
 
 
-def weighted_extraction(image, flat, trace):
-    rdnoise = 3.
-    gain = 0.85
-    I = image * 1.
-    I[I < 0.] = 0.
-    E = np.sqrt(rdnoise**2 + I * gain) / gain
-    E = safe_division(E, flat)
+def weighted_extraction(image, error, flat, trace):
+    E = safe_division(error, flat)
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
     cosmics = find_cosmics(Y, E)
@@ -368,17 +363,22 @@ def get_trace_shift(sci_array, flat, array_trace, Yx):
                  flat[inds[0, i, sel], x[sel]])))
         FlatTrace[i, sel] = xmax
     shifts = np.nanmedian(FlatTrace - Trace, axis=1)
-    shifts = np.polyval(np.polyfit(np.nanmedian(FlatTrace, axis=1), shifts, 1),
+    shifts = np.polyval(np.polyfit(np.nanmedian(FlatTrace, axis=1), shifts, 2),
                         Yx)
     return shifts
 
 
-def subtract_sci(sci_path, flat, array_trace, array_wave, bigW, masterbias):
-    files = sorted(glob.glob(sci_path.replace('LL', amp)))
+def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
+                masterbias):
+    files1 = sorted(glob.glob(sci_path.replace('LL', amps[0])))
+    files2 = sorted(glob.glob(sci_path.replace('LL', amps[1])))
+
     array_list = []
-    for filename in files:
-        log.info('Skysubtracting sci %s' % filename)
-        array_flt, error = base_reduction(filename)
+    for filename1, filename2 in zip(files1, files2):
+        log.info('Prepping sci %s' % filename1)
+        array_flt1, e1 = base_reduction(filename1)
+        array_flt2, e2 = base_reduction(filename2)
+        array_flt = np.vstack([array_flt1, array_flt2])
         array_flt[:] -= masterbias
         array_list.append(array_flt)
     sci_array = np.sum(array_list, axis=0)
@@ -388,16 +388,20 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW, masterbias):
                  fill_value=0.0)
     shifts = get_trace_shift(sci_array, flat, array_trace, Yx)
     flat = I(Xx, Yx + shifts)
-    log.info('Found shift for %s of %0.3f' % (files[0], np.median(shifts)))
+    log.info('Found shift for %s of %0.3f' % (files1[0], np.median(shifts)))
     array_list = []
-    residual = []
     spec_list = []
-    for filename in files:
-        log.info('Skysubtracting sci %s' % filename)
-        array_flt, error = base_reduction(filename)
+    orig_list = []
+    for filename1, filename2 in zip(files1, files2):
+        log.info('Fiber extraction sci %s' % filename1)
+        array_flt1, e1 = base_reduction(filename1)
+        array_flt2, e2 = base_reduction(filename2)
+        array_flt = np.vstack([array_flt1, array_flt2])
+        array_err = np.vstack([e1, e2])
+
         array_flt[:] -= masterbias
         array_list.append(array_flt)
-        spectrum = weighted_extraction(array_flt, flat, array_trace)
+        spectrum = weighted_extraction(array_flt, array_err, flat, array_trace)
         spectrum[~np.isfinite(spectrum)] = 0.0
         speclist = []
         for fiber in np.arange(array_wave.shape[0]):
@@ -406,8 +410,9 @@ def subtract_sci(sci_path, flat, array_trace, array_wave, bigW, masterbias):
             I = interp1d(array_wave[fiber], spectrum[fiber] / dlam,
                          kind='quadratic', fill_value='extrapolate')
             speclist.append(I(commonwave))
-        spec_list.append(np.array(spectrum))
-    return np.array(array_list), np.array(residual), np.array(spec_list)
+        spec_list.append(np.array(speclist))
+        orig_list.append(spectrum)
+    return np.array(array_list), np.array(spec_list), np.array(orig_list)
 
 
 def get_masterbias(zro_path, amp):
@@ -657,6 +662,16 @@ def get_wavelength_from_arc(image, trace, lines, side):
     log.info('Min, Max Wave: %0.2f, %0.2f' % (wave.min(), wave.max()))
     return wave
 
+
+def get_objects(basefiles, attrs):
+    s = []
+    for fn in basefiles:
+        F = fits.open(fn)
+        s.append([])
+        for att in attrs:
+            s[-1].append(F.header[att])
+    return s
+
 # LRS2-R
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
@@ -683,7 +698,7 @@ for info in redinfo:
     except:
         arc_lines = None
         print('TESTING')
-    commonwave = np.linspace(lims[0], lims[1], 3000)
+    commonwave = np.linspace(lims[0], lims[1], int(2064*1.5))
     specid, ifuslot, ifuid = multi.split('_')
     package = []
     for amp in amps:
@@ -732,15 +747,24 @@ for info in redinfo:
                  (ifuslot, amp))
         twiflat, bigW, twispec = get_twiflat_field(twibase, amp, wave, trace,
                                                    commonwave, masterbias, log)
-        package.append([wave, trace, twiflat, bigW, masterbias, amppos])
+        package.append([wave, trace, twiflat, bigW, masterbias, amppos,
+                        twispec])
+    # Normalize the two amps and correct the flat
+    avg = package[0][-1] / 2. + package[1][-1] / 2.
+    for i in np.arange(len(package)):
+        norm = safe_division(avg, package[i][-1])
+        I = interp1d(commonwave, norm, kind='quadratic',
+                     fill_value='extrapolate')
+        model = I(package[i][3])
+        package[i][2][:] = package[i][2] * model
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
     flatspec = get_spectra(calinfo[2], calinfo[1])
     calinfo.append(flatspec)
     log.info('Getting Powerlaw of Flat Cal for %s' % specname)
-    plaw = get_powerlaw(calinfo[2], calinfo[1], flatspec)
-    fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
+    # plaw = get_powerlaw(calinfo[2], calinfo[1], flatspec)
+    # fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
     f = []
     for i, cal in enumerate(calinfo):
         if i == 0:
@@ -752,8 +776,18 @@ for info in redinfo:
     #####################
     # SCIENCE REDUCTION #
     #####################
-    scifiles = sci_path % (instrument, instrument, sci_obs, '*',
-                           instrument, ifuslot)
+    basefiles = sorted(glob.glob(sci_path % (instrument, instrument, '0000*',
+                                             '*', instrument, ifuslot)))
+    all_sci_obs = [op.basename(fn)[-7:] for fn in basefiles]
+    objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
+    print(all_sci_obs)
+    for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
+        log.info('Extracting %s from %s' % (obj[0], bf))
+        scifiles = sci_path % (instrument, instrument, sci_obs, '*',
+                               instrument, ifuslot)
+        images, rect, spec = extract_sci(scifiles, amps, calinfo[2],
+                                         calinfo[1], calinfo[0], calinfo[3],
+                                         calinfo[4])
     for i in np.arange(nexp):
         log.info('Getting RA, Dec for exposure, %i, ifuslot, %s, and amp,'
                  ' %s' % (i+1, ifuslot, amp))
