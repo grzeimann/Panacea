@@ -398,7 +398,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
     if len(array_list) > 1:
         sci_array = np.sum(array_list, axis=0)
     else:
-        sci_array = np.array(array_list)
+        sci_array = np.squeeze(np.array(array_list))
     print(sci_array.shape)
     Xx = np.arange(flat.shape[1])
     Yx = np.arange(flat.shape[0])
