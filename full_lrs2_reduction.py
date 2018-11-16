@@ -833,11 +833,12 @@ def find_source(image, xgrid, ygrid):
     daofind = DAOStarFinder(fwhm=4.0, threshold=5.*std)
     sources = daofind(image)
     print(sources)
-    if len(sources) == 1:
+    if len(sources) >= 1:
+        ind = np.argmax(sources['flux'])
         xg = np.unique(xgrid)
         yg = np.unique(ygrid)
-        xc = np.interp(sources[0]['xcentroid'], np.arange(len(xg)), xg)
-        yc = np.interp(sources[0]['ycentroid'], np.arange(len(yg)), yg)
+        xc = np.interp(sources[ind]['xcentroid'], np.arange(len(xg)), xg)
+        yc = np.interp(sources[ind]['ycentroid'], np.arange(len(yg)), yg)
         return xc, yc
     else:
         return None
