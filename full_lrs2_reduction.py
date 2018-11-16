@@ -822,7 +822,7 @@ for info in redinfo:
     specinit, specname, multi, lims, amps, slims, arc_names = info
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
-    commonwave = np.linspace(lims[0], lims[1], int(2064*1.5))
+    commonwave = np.linspace(lims[0], lims[1], 2064)
     specid, ifuslot, ifuid = multi.split('_')
     package = []
     for amp in amps:
@@ -929,9 +929,6 @@ for info in redinfo:
             r = r / ftf_cor[:, np.newaxis]
             sky = sky_subtraction(r, calinfo[5][:, 0], calinfo[5][:, 1])
             skysub = r - sky
-            outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
-                                                'exp%02d' % cnt, specname))
-            cnt += 1
             X = np.array([T['wave'], T['x_0'], T['y_0']])
             for S, name in zip([sky, skysub], ['sky', 'skysub']):
                 outname = ('%s_%s_%s_%s_%s_cube.fits' % (args.date, sci_obs,
@@ -946,6 +943,7 @@ for info in redinfo:
                 write_cube(commonwave, xgrid, ygrid, zcube, outname)
             outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
                                                 'exp%02d' % cnt, specname))
+            cnt += 1
             f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
             f2 = create_header_objection(commonwave, sky)
             f3 = create_header_objection(commonwave, skysub)
