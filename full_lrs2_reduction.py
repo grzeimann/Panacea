@@ -727,7 +727,7 @@ def sky_subtraction(rect):
         low = np.percentile(y[~o], 16)
         mid = np.percentile(y[~o], 50)
         high = np.percentile(y[~o], 84)
-        if (high-mid) > 2.0 * (mid - low):
+        if (high - mid) > 2.0 * (mid - low):
             y1 = np.ones(x[~o].shape) * low
         else:
             y1 = savgol_filter(y[~o], 31, 3)
@@ -756,12 +756,8 @@ DIRNAME = get_script_path()
 
 for info in redinfo:
     specinit, specname, multi, lims, amps, slims, arc_names = info
-    try:
-        arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
-                                       specname), format='ascii')
-    except:
-        arc_lines = None
-        print('TESTING')
+    arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
+                                   specname), format='ascii')
     commonwave = np.linspace(lims[0], lims[1], int(2064*1.5))
     specid, ifuslot, ifuid = multi.split('_')
     package = []
@@ -846,7 +842,6 @@ for info in redinfo:
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
                    for fn in basefiles]
     objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
-    print(all_sci_obs)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
         log.info('Extracting %s from %s' % (obj[0], bf))
         scifiles = sci_path % (instrument, instrument, sci_obs, '*',
