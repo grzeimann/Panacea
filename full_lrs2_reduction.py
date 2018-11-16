@@ -989,7 +989,7 @@ for info in [blueinfo[1]]:
                 np.interp(wave_0, T['wave'], T['y_0']))
         for im, r, s in zip(images, rect, spec):
             fn = (sci_path % (instrument, instrument, sci_obs,
-                              'exp%02d' % cnt, instrument, ifuslot))
+                              '%02d' % cnt, instrument, ifuslot))
             fn = glob.glob(fn)[0]
             mini = get_objects(fn, ['OBJECT', 'EXPTIME'])
             log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
