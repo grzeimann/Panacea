@@ -945,7 +945,6 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           '%02d' % cnt, instrument, ifuslot))
         fn = glob.glob(fn)
         mini = get_objects(fn, ['OBJECT', 'EXPTIME'])
-        print(mini)
         log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
         r[calinfo[7][:, 1] == 1.] = 0.
         r /= mini[0][1]
@@ -1101,11 +1100,12 @@ for info in [blueinfo[1]]:
     response = None
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
         if check_if_standard(obj[0]) and (ifuslot in obj[0]):
+            log.info('Getting Response Function from %s' % obj[0])
             response = big_reduction(obj, bf, instrument, sci_obs, calinfo,
                                      amps, commonwave, ifuslot, standard=True)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
         big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                      ifuslot)
+                      ifuslot, response=response)
             
 
 #        header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
