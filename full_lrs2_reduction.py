@@ -718,29 +718,27 @@ def create_header_objection(wave, image, func=fits.ImageHDU):
     return hdu
 
 
-def sky_subtraction(rect):
+def sky_subtraction(rect, xloc, yloc, seeing=1.5):
+    D = np.sqrt((xloc[:, np.newaxis] - xloc)**2 + (yloc[:, np.newaxis] - yloc)**2)
+    W = np.exp(-0.5 / (seeing/2.35)**2 * D**2)
+    N = W.sum(axis=0)
+
     def outlier(y, y1, oi):
         m = np.abs(y[oi] - y1[oi])
         o = (y - y1) > 3. * np.median(m)
         return o
 
     def fit_sky_col(x, y):
-        o = y == 0.
-        low = np.percentile(y[~o], 16)
-        mid = np.percentile(y[~o], 50)
-        high = np.percentile(y[~o], 84)
-        if (high - mid) > 2.0 * (mid - low):
-            y1 = np.ones(x[~o].shape) * low
-        else:
-            y1 = savgol_filter(y[~o], 31, 3)
-        I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
-        y1 = I(x)
+        #o = y == 0.
+        #low = np.percentile(y[~o], 16)
+        #mid = np.percentile(y[~o], 50)
+        #high = np.percentile(y[~o], 84)
+        smooth = (y[:, np.newaxis] * W).sum(axis=0) / N
+        o = outlier(y, smooth, y>0.)
         for i in np.arange(3):
-            o += outlier(y, y1, ~o)
-            y1 = savgol_filter(y[~o], 51, 3)
-            I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
-            y1 = I(x)
-        return I(x)
+            smooth = (y[~o, np.newaxis] * W[~o]).sum(axis=0) / W[~o].sum(axis=0)
+            o = outlier(y, smooth, ~o)
+        return smooth
 
     x = np.arange(rect.shape[0])
     sky = rect * 0.
