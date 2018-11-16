@@ -9,6 +9,7 @@ import os.path as op
 import glob
 import sys
 import warnings
+import argparse as ap
 from datetime import datetime
 
 from astropy.io import fits
@@ -21,7 +22,18 @@ from input_utils import setup_logging
 from astrometry import Astrometry
 from astropy.stats import biweight_midvariance
 
-ifuslots = ['056']
+parser = ap.ArgumentParser(add_help=True)
+
+parser.add_argument("-d", "--date",
+                    help='''Date for reduction''',
+                    type=str, default='20181108')
+
+parser.add_argument("-s", "--side",
+                    help='''Blue or Red''',
+                    type=str, default='red')
+
+args = parser.parse_args(args=None)
+
 blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4640.], ['LL', 'LU'],
              [4350., 4375.], ['Hg_B', 'Cd-A_B', 'FeAr_R']],
             ['BR', 'orange', '503_056_7001',
@@ -34,14 +46,16 @@ redinfo = [['RL', 'red', '502_066_7002', [6450., 8400.], ['LL', 'LU'],
             ['Hg_R', 'Cd-A_B', 'FeAr_R']]]
 
 fplane_file = '/work/03730/gregz/maverick/fplane.txt'
-twi_obs = '%07d' % 1
-sci_obs = '%07d' % 24
-twi_date = '20181108'
-sci_date = twi_date
+twi_date = args.date
+sci_date = args.date
 
 # FOR LRS2
 instrument = 'lrs2'
-info_side = blueinfo
+if args.side.lower() == 'blue':
+    info_side = blueinfo
+else:
+    info_side = redinfo
+
 dither_pattern = np.zeros((50, 2))
 
 log = setup_logging('panacea_quicklook')
@@ -678,16 +692,6 @@ def get_objects(basefiles, attrs):
 # LRS2-R
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
-nexp = len(glob.glob(sci_path % (instrument, instrument, sci_obs, '*',
-                                 instrument, ifuslots[0])))
-header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
-                                         instrument,
-                                         ifuslots[0]))[0])[0].header
-PA = float(header['PARANGLE'])
-RA = float(header['TRAJRA'])
-DEC = float(header['TRAJDEC'])
-log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
-A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
 allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
                                                            [], [])
 
@@ -780,7 +784,7 @@ for info in redinfo:
     # SCIENCE REDUCTION #
     #####################
     basefiles = sorted(glob.glob(sci_path % (instrument, instrument, '0000*',
-                                             'exp01', instrument, ifuslot)))
+                                             '01', instrument, ifuslot)))
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
                    for fn in basefiles]
     objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
@@ -792,18 +796,26 @@ for info in redinfo:
         images, rect, spec = extract_sci(scifiles, amps, calinfo[2],
                                          calinfo[1], calinfo[0], calinfo[3],
                                          calinfo[4])
-    for i in np.arange(nexp):
-        log.info('Getting RA, Dec for exposure, %i, ifuslot, %s, and amp,'
-                 ' %s' % (i+1, ifuslot, amp))
-        ra, dec = A.get_ifupos_ra_dec(ifuslot,
-                                      amppos[:, 0] + dither_pattern[i, 0],
-                                      amppos[:, 1] + dither_pattern[i, 1])
-        allra.append(ra)
-        alldec.append(dec)
-        allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] +
-                    dither_pattern[i, 0])
-        ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] +
-                    dither_pattern[i, 1])
+#        header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
+#                                         instrument,
+#                                         ifuslots[0]))[0])[0].header
+#        PA = float(header['PARANGLE'])
+#        RA = float(header['TRAJRA'])
+#        DEC = float(header['TRAJDEC'])
+#        log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
+#        A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
+#        for i in np.arange(nexp):
+#            log.info('Getting RA, Dec for exposure, %i, ifuslot, %s, and amp,'
+#                     ' %s' % (i+1, ifuslot, amp))
+#            ra, dec = A.get_ifupos_ra_dec(ifuslot,
+#                                          amppos[:, 0] + dither_pattern[i, 0],
+#                                          amppos[:, 1] + dither_pattern[i, 1])
+#            allra.append(ra)
+#            alldec.append(dec)
+#            allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] +
+#                        dither_pattern[i, 0])
+#            ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] +
+#                        dither_pattern[i, 1])
 
 #
 #fitslist = [fits.PrimaryHDU(np.vstack(allspec)),
