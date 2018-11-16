@@ -815,9 +815,9 @@ for info in redinfo:
         package.append([wave, trace, twiflat, bigW, masterbias, amppos,
                         twispec, dead])
     # Normalize the two amps and correct the flat
-    avg = package[0][-1] / 2. + package[1][-1] / 2.
+    avg = package[0][-2] / 2. + package[1][-2] / 2.
     for i in np.arange(len(package)):
-        norm = safe_division(package[i][-1], avg)
+        norm = safe_division(package[i][-2], avg)
         I = interp1d(commonwave, norm, kind='quadratic',
                      fill_value='extrapolate')
         model = I(package[i][3])
