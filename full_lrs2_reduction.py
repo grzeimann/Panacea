@@ -767,7 +767,7 @@ def correct_fiber_to_fiber(rect, xloc, yloc, seeing=1.5):
     if (high - mid) > 2.0 * (mid - low):
         log.info('Source is too bright to correct fiber to fiber')
         return np.ones(data.shape)
-    smooth = (data[:, np.newaxis] * W).sum(axis=0) / W.sum(axis=0)
+    smooth = (data[~o, np.newaxis] * W[~o]).sum(axis=0) / W[~o].sum(axis=0)
     o = outlier(data, smooth, data > 0.)
     for i in np.arange(3):
         smooth = (data[~o, np.newaxis] * W[~o]).sum(axis=0) / W[~o].sum(axis=0)
@@ -855,7 +855,7 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 
 DIRNAME = get_script_path()
 
-for info in redinfo:
+for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
     specinit, specname, multi, lims, amps, slims, arc_names = info
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
