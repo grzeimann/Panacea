@@ -912,8 +912,8 @@ for info in redinfo:
             cnt += 1
             X = np.array([T['wave'], T['x_0'], T['y_0']])
             for S, name in zip([sky, skysub], ['sky', 'skysub']):
-                outname = ('%s_%s_%s_%s_%s_cube.fits' %
-                           (args.date, sci_obs, 'exp%02d' % cnt, specname))
+                outname = ('%s_%s_%s_%s_%s_cube.fits' % (args.date, sci_obs,
+                           'exp%02d' % cnt, specname, name))
                 zcube, zimage, xgrid, ygrid = make_frame(calinfo[5][:, 0],
                                                          calinfo[5][:, 1], S,
                                                          commonwave,
