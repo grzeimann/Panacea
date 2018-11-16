@@ -965,6 +965,7 @@ for info in redinfo:
                                              calinfo[5][:, 1])
             r = r / ftf_cor[:, np.newaxis]
             sky = sky_subtraction(r, calinfo[5][:, 0], calinfo[5][:, 1])
+            sky[calinfo[7][:, 1] == 1.] = 0.
             skysub = r - sky
             X = np.array([T['wave'], T['x_0'], T['y_0']])
             for S, name in zip([sky, skysub], ['sky', 'skysub']):
