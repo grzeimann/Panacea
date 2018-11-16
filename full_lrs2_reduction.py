@@ -533,7 +533,7 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
     for i in np.arange(Trace.shape[0]):
         sel = Trace[i, :] > 0.
         trace[i] = np.polyval(np.polyfit(xchunks[sel], Trace[i, sel], 7), x)
-    return trace
+    return trace, ref[:, 1]
 
 
 def find_peaks(y, thresh=8.):
@@ -716,6 +716,36 @@ def create_header_objection(wave, image, func=fits.ImageHDU):
     return hdu
 
 
+def sky_subtraction(rect):
+    def outlier(y, y1, oi):
+        m = np.abs(y[oi] - y1[oi])
+        o = (y - y1) > 3. * np.median(m)
+        return o
+
+    def fit_sky_col(x, y):
+        o = y == 0.
+        low = np.percentile(y[~o], 16)
+        mid = np.percentile(y[~o], 50)
+        high = np.percentile(y[~o], 84)
+        if (high-mid) > 2.0 * (mid - low):
+            y1 = np.ones(x[~o].shape) * low
+        else:
+            y1 = savgol_filter(y[~o], 31, 3)
+        I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
+        y1 = I(x)
+        for i in np.arange(3):
+            o += outlier(y, y1, ~o)
+            y1 = savgol_filter(y[~o], 51, 3)
+            I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
+            y1 = I(x)
+        return I(x)
+
+    x = np.arange(rect.shape[0])
+    sky = rect * 0.
+    for j in np.arange(rect.shape[1]):
+        sky[:, j] = fit_sky_col(x, rect[:, j])
+    return sky
+
 # LRS2-R
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
@@ -756,7 +786,8 @@ for info in redinfo:
         mastertwi = get_mastertwi(twibase, amp, masterbias)
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        trace = get_trace(mastertwi, specid, ifuslot, ifuid, amp, twi_date)
+        trace, dead = get_trace(mastertwi, specid, ifuslot, ifuid, amp,
+                                twi_date)
         fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
 
         ##########################
@@ -782,7 +813,7 @@ for info in redinfo:
         twiflat, bigW, twispec = get_twiflat_field(twibase, amp, wave, trace,
                                                    commonwave, masterbias, log)
         package.append([wave, trace, twiflat, bigW, masterbias, amppos,
-                        twispec])
+                        twispec, dead])
     # Normalize the two amps and correct the flat
     avg = package[0][-1] / 2. + package[1][-1] / 2.
     for i in np.arange(len(package)):
@@ -825,14 +856,18 @@ for info in redinfo:
                                          calinfo[4])
         cnt = 1
         for im, r, s in zip(images, rect, spec):
+            log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
+            r[calinfo[7] == 1.] = 0.
+            sky = sky_subtraction(r)
+            skysub = r - sky
             outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
                                                 'exp%02d' % cnt, specname))
             cnt += 1
             # X = np.array([T['wave'], T['x_0'], T['y_0']])
             f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
-            # f2 = create_header_objection(wave, sky)
-            # f3 = create_header_objection(wave, skysub)
-            fits.HDUList([f1, fits.ImageHDU(calinfo[5]),
+            f2 = create_header_objection(commonwave, sky)
+            f3 = create_header_objection(commonwave, skysub)
+            fits.HDUList([f1, f2, f3, fits.ImageHDU(calinfo[5]),
                           fits.ImageHDU(commonwave)]).writeto(outname,
                                                               overwrite=True)
 #        header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
