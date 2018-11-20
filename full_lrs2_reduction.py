@@ -1019,7 +1019,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         fits.HDUList([f1, f2, f3, f4, fits.ImageHDU(calinfo[5]), f5,
                       fits.ImageHDU(X),
                       fits.ImageHDU(im),
-                      fits.imageHDU(c)]).writeto(outname, overwrite=True)
+                      fits.ImageHDU(c)]).writeto(outname, overwrite=True)
         if standard:
             return get_response(obj[0], commonwave, skysubspec, specname)
 
