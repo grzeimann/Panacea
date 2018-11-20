@@ -355,7 +355,7 @@ def weighted_extraction(image, error, flat, trace):
             b = np.sum(T[1] * T[2], axis=1)
             spectrum[fiber] = safe_division(a, b)
         TT[fiber] = T
-    return spectrum
+    return spectrum, cosmics
 
 
 def get_trace_shift(sci_array, flat, array_trace, Yx):
@@ -419,6 +419,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
     array_list = []
     spec_list = []
     orig_list = []
+    clist = []
     for filename1, filename2 in zip(files1, files2):
         log.info('Fiber extraction sci %s' % filename1)
         array_flt1, e1 = base_reduction(filename1)
@@ -428,7 +429,8 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
 
         array_flt[:] -= masterbias
         array_list.append(array_flt)
-        spectrum = weighted_extraction(array_flt, array_err, flat, array_trace)
+        spectrum, c = weighted_extraction(array_flt, array_err, flat,
+                                          array_trace)
         spectrum[~np.isfinite(spectrum)] = 0.0
         speclist = []
         for fiber in np.arange(array_wave.shape[0]):
@@ -439,7 +441,8 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
             speclist.append(I(commonwave))
         spec_list.append(np.array(speclist))
         orig_list.append(spectrum)
-    return np.array(array_list), np.array(spec_list), np.array(orig_list)
+        clist.append(c)
+    return np.array(array_list), np.array(spec_list), np.array(orig_list), np.array(clist)
 
 
 def get_masterbias(zro_path, amp):
@@ -949,9 +952,9 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
     log.info('Extracting %s from %s' % (obj[0], bf))
     scifiles = sci_path % (instrument, instrument, sci_obs, '*',
                            instrument, ifuslot)
-    images, rect, spec = extract_sci(scifiles, amps, calinfo[2],
-                                     calinfo[1], calinfo[0], calinfo[3],
-                                     calinfo[4])
+    images, rect, spec, cos = extract_sci(scifiles, amps, calinfo[2],
+                                          calinfo[1], calinfo[0], calinfo[3],
+                                          calinfo[4])
     cnt = 1
     wave_0 = np.mean(commonwave)
     darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % specinit)
@@ -960,7 +963,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             np.interp(wave_0, T['wave'], T['x_0']))
     yoff = (np.interp(commonwave, T['wave'], T['y_0']) -
             np.interp(wave_0, T['wave'], T['y_0']))
-    for im, r, s in zip(images, rect, spec):
+    for im, r, s, c in zip(images, rect, spec, cos):
         fn = (sci_path % (instrument, instrument, sci_obs,
                           '%02d' % cnt, instrument, ifuslot))
         fn = glob.glob(fn)
@@ -1014,7 +1017,9 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         f3 = create_header_objection(commonwave, skysub)
         f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
         fits.HDUList([f1, f2, f3, f4, fits.ImageHDU(calinfo[5]), f5,
-                      fits.ImageHDU(X)]).writeto(outname, overwrite=True)
+                      fits.ImageHDU(X),
+                      fits.ImageHDU(im),
+                      fits.imageHDU(c)]).writeto(outname, overwrite=True)
         if standard:
             return get_response(obj[0], commonwave, skysubspec, specname)
 
