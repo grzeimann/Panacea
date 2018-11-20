@@ -47,7 +47,7 @@ args = parser.parse_args(args=None)
 blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4640.], ['LL', 'LU'],
              [4350., 4375.], ['Hg_B', 'Cd-A_B', 'FeAr_R']],
             ['BR', 'orange', '503_056_7001',
-             [4660., 6950.], ['RU', 'RL'], [6270., 6470.],
+             [4620., 6950.], ['RU', 'RL'], [6270., 6470.],
              ['Hg_B', 'Cd-A_B', 'FeAr_R']]]
 redinfo = [['RL', 'red', '502_066_7002', [6450., 8400.], ['LL', 'LU'],
             [7225., 7425.], ['Hg_R', 'Cd-A_B', 'FeAr_R']],
@@ -890,7 +890,38 @@ def check_if_standard(objname):
     return False
 
 
-def get_response(objname, commonwave, spec):
+def fit_response_cont(wv, sky, skip=5, fil_len=95, func=np.array):
+    skym_s = 1. * sky
+    sky_sm = savgol_filter(skym_s, fil_len, 1)
+    allind = np.arange(len(wv), dtype=int)
+    y = np.abs(np.diff(np.hstack([sky[0], sky])))
+    sel = np.where(y > 1.5 * np.median(sky))[0]
+    for j in np.arange(1, skip+1):
+            sel = np.union1d(sel, sel + 1)
+            sel = np.union1d(sel, sel - 1)
+    sel = np.sort(np.unique(sel))
+    sel = sel[skip:-skip]
+    good = np.setdiff1d(allind, sel)
+    skym_s = 1.*sky
+    skym_s[sel] = np.interp(wv[sel], wv[good], sky_sm[good])
+    sky_sm = savgol_filter(skym_s, fil_len, 1)
+    for i in np.arange(5):
+        mad = np.median(np.abs(sky - sky_sm))
+        outlier = func(sky - sky_sm) < -1.5 * mad
+        sel = np.where(outlier)[0]
+        for j in np.arange(1, skip+1):
+            sel = np.union1d(sel, sel + 1)
+            sel = np.union1d(sel, sel - 1)
+        sel = np.sort(np.unique(sel))
+        sel = sel[skip:-skip]
+        good = np.setdiff1d(allind, sel)
+        skym_s = 1.*sky
+        skym_s[sel] = np.interp(wv[sel], wv[good], sky_sm[good])
+        sky_sm = savgol_filter(skym_s, fil_len, 1)
+    return sky_sm
+
+
+def get_response(objname, commonwave, spec, specname):
     standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B', 'FEIGE_25',
                       'HILTNER_600', 'G193-74', 'PG0823+546', 'HD_84937',
                       'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
@@ -907,26 +938,14 @@ def get_response(objname, commonwave, spec):
             fnu = 10**(0.4 * (-48.6 - standardmag))
             standard_flam = fnu * 2.99792e18 / wave**2
             standard_wave = wave
-            d = np.diff(standard_wave)
-            d = np.hstack([d[0]/2., d/2., d[1]/2.])
-            compare = standard_flam * 0.
-            for i, v in enumerate(standard_wave):
-                l = v - d[i]
-                h = v + d[i+1]
-                sel = np.where((commonwave > l) * (commonwave < h))[0]
-                if len(sel):
-                    compare[i] = np.mean(spec[sel])
-            sel = compare > 0.
-            S = standard_flam[sel] #/ (6.63e-27 * (3e18 / standard_wave[sel]))
-            p = np.polyfit(standard_wave[sel], S / compare[sel],
-                           np.min([7, len(sel)-1]))
-            return np.polyval(p, commonwave)
-
+            flam = np.interp(commonwave, standard_wave, standard_flam)
+            cont = fit_response_cont(commonwave, spec / flam)
+            return 1. / cont
     return None
 
 
 def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                  ifuslot, standard=False, response=None):
+                  ifuslot, specname, standard=False, response=None):
     log.info('Extracting %s from %s' % (obj[0], bf))
     scifiles = sci_path % (instrument, instrument, sci_obs, '*',
                            instrument, ifuslot)
@@ -997,7 +1016,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         fits.HDUList([f1, f2, f3, f4, fits.ImageHDU(calinfo[5]), f5,
                       fits.ImageHDU(X)]).writeto(outname, overwrite=True)
         if standard:
-            return get_response(obj[0], commonwave, skysubspec)
+            return get_response(obj[0], commonwave, skysubspec, specname)
 
 
 # LRS2-R
@@ -1102,10 +1121,11 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
         if check_if_standard(obj[0]) and (ifuslot in obj[0]):
             log.info('Getting Response Function from %s' % obj[0])
             response = big_reduction(obj, bf, instrument, sci_obs, calinfo,
-                                     amps, commonwave, ifuslot, standard=True)
+                                     amps, commonwave, ifuslot, specname,
+                                     standard=True)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
         big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                      ifuslot, response=response)
+                      ifuslot, specname, response=response)
             
 
 #        header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
