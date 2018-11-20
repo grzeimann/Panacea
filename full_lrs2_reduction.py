@@ -442,7 +442,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         spec_list.append(np.array(speclist))
         orig_list.append(spectrum)
         clist.append(c)
-    return np.array(array_list), np.array(spec_list), np.array(orig_list), np.array(clist)
+    return np.array(array_list), np.array(spec_list), np.array(orig_list), np.array(clist, dtype=float)
 
 
 def get_masterbias(zro_path, amp):
