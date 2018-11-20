@@ -939,7 +939,7 @@ def get_response(objname, commonwave, spec, specname):
             standard_flam = fnu * 2.99792e18 / wave**2
             standard_wave = wave
             flam = np.interp(commonwave, standard_wave, standard_flam)
-            cont = fit_response_cont(commonwave, spec / flam)
+            cont = fit_response_cont(commonwave, spec / flam, fil_len=11)
             return 1. / cont
     return None
 
