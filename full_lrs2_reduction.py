@@ -74,7 +74,7 @@ baseraw = '/work/03946/hetdex/maverick'
 
 
 sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
-                   '%s', '2*_%sLL*sci.fits')
+                   '%s', '2*_%sLL*i.fits')
 sciflt_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
                       '%s', '2*_%sLL_twi.fits')
 cmp_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
