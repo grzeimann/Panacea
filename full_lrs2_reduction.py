@@ -436,6 +436,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         spectrum, c = weighted_extraction(array_flt, array_err, flat,
                                           array_trace)
         spectrum[~np.isfinite(spectrum)] = 0.0
+        log.info('Number of 0.0 pixels in spectra: %i' % (spectrum==0.0).sum())
         speclist = []
         for fiber in np.arange(array_wave.shape[0]):
             dlam = np.diff(array_wave[fiber])
