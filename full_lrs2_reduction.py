@@ -300,10 +300,11 @@ def find_cosmics(Y, E, thresh=8., ran=0):
         for j in np.arange(-0 - ran, 1 + ran):
             sel = ((x + i) >= 0) * ((x + i) < Y.shape[0])
             sel2 = ((y + j) >= 0) * ((y + j) < Y.shape[1])
-            sel3 = P[y + j, x + i] > thresh / 2.
-            sel = sel * sel2 * sel3
-            xx.append((x + i)[sel])
-            yy.append((y + j)[sel])
+            sel3 = P[x + i, y + j] > thresh / 2.
+            sel = sel * sel2
+            sel3 = P[(x + i)[sel], (y + j)[sel]] > thresh / 2.
+            xx.append((x + i)[sel][sel3])
+            yy.append((y + j)[sel][sel3])
     xx = np.hstack(xx)
     yy = np.hstack(yy)
     inds = np.ravel_multi_index([xx, yy], Y.shape)
