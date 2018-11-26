@@ -325,6 +325,7 @@ def weighted_extraction(image, error, flat, trace):
     x = np.arange(trace.shape[1])
     spectrum = 0. * trace
     TT = np.zeros((trace.shape[0], 3, trace.shape[1], 4))
+    Fimage = image * 0.
     for fiber in np.arange(trace.shape[0]):
         T = np.zeros((3, trace.shape[1], 4))
         indl = np.floor(trace[fiber]).astype(int)
@@ -334,12 +335,14 @@ def weighted_extraction(image, error, flat, trace):
                 T[0, :, ss] = Y[indl+k, x]
                 T[1, :, ss] = 1. / E[indl+k, x]**2
                 T[2, :, ss] = ~cosmics[indl+k, x]
+                Fimage[indl+k, x] = fiber + 1
             except:
                 v = indl+k
                 sel = np.where((v >= 0) * (v < Y.shape[0]))[0]
                 T[0, sel, ss] = Y[v[sel], x[sel]]
                 T[1, sel, ss] = 1. / E[v[sel], x[sel]]**2
                 T[2, sel, ss] = ~cosmics[v[sel], x[sel]]
+                Fimage[v[sel], x[sel]] = fiber + 1
                 flag = True
         if flag:
             if np.mean(indl) > (Y.shape[0]/2.):
@@ -360,7 +363,7 @@ def weighted_extraction(image, error, flat, trace):
             sel = T[2].sum(axis=1) < 4.
             spectrum[fiber][sel] = 0.0
         TT[fiber] = T
-    return spectrum, cosmics, Y
+    return spectrum, cosmics, Y, Fimage
 
 
 def get_trace_shift(sci_array, flat, array_trace, Yx):
@@ -960,7 +963,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
     log.info('Extracting %s from %s' % (obj[0], bf))
     scifiles = sci_path % (instrument, instrument, sci_obs, '*',
                            instrument, ifuslot)
-    images, rect, spec, cos, fl = extract_sci(scifiles, amps, calinfo[2],
+    images, rect, spec, cos, fl, Fi = extract_sci(scifiles, amps, calinfo[2],
                                               calinfo[1], calinfo[0], calinfo[3],
                                               calinfo[4])
     cnt = 1
@@ -971,7 +974,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             np.interp(wave_0, T['wave'], T['x_0']))
     yoff = (np.interp(commonwave, T['wave'], T['y_0']) -
             np.interp(wave_0, T['wave'], T['y_0']))
-    for im, r, s, c, fli in zip(images, rect, spec, cos, fl):
+    for im, r, s, c, fli, Fii in zip(images, rect, spec, cos, fl, Fi):
         fn = (sci_path % (instrument, instrument, sci_obs,
                           '%02d' % cnt, instrument, ifuslot))
         fn = glob.glob(fn)
@@ -1025,8 +1028,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         f3 = create_header_objection(commonwave, skysub)
         f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
         fits.HDUList([f1, f2, f3, f4, fits.ImageHDU(calinfo[5]), f5,
-                      fits.ImageHDU(X),
-                      fits.ImageHDU(im), fits.ImageHDU(fli),
+                      fits.ImageHDU(X), fits.ImageHDU(calinfo[3]),
+                      fits.ImageHDU(im), fits.ImageHDU(fli), fits.ImageHDU(Fii),
                       fits.ImageHDU(c)]).writeto(outname, overwrite=True)
         if standard:
             return get_response(obj[0], commonwave, skysubspec, specname)
