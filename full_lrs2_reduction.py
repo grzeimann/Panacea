@@ -427,7 +427,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
     array_list = []
     spec_list = []
     orig_list = []
-    clist, flist = ([], [])
+    clist, flist, Flist = ([], [], [])
     for filename1, filename2 in zip(files1, files2):
         log.info('Fiber extraction sci %s' % filename1)
         array_flt1, e1 = base_reduction(filename1)
@@ -437,8 +437,8 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
 
         array_flt[:] -= masterbias
         array_list.append(array_flt)
-        spectrum, c, fl = weighted_extraction(array_flt, array_err, flat,
-                                          array_trace)
+        spectrum, c, fl, Fimage = weighted_extraction(array_flt, array_err, flat,
+                                                      array_trace)
         spectrum[~np.isfinite(spectrum)] = 0.0
         log.info('Number of 0.0 pixels in spectra: %i' % (spectrum==0.0).sum())
         speclist = []
@@ -452,8 +452,9 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         orig_list.append(spectrum)
         clist.append(c)
         flist.append(fl)
+        Flist.append(Fimage)
     return (np.array(array_list), np.array(spec_list), np.array(orig_list),
-            np.array(clist, dtype=float), np.array(flist))
+            np.array(clist, dtype=float), np.array(flist), np.array(Flist))
 
 
 def get_masterbias(zro_path, amp):
