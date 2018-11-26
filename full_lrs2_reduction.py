@@ -350,13 +350,13 @@ def weighted_extraction(image, error, flat, trace):
             a = np.sum(T[0, sel] * T[1, sel] * T[2, sel], axis=1)
             b = np.sum(T[1, sel] * T[2, sel], axis=1)
             spectrum[fiber, sel] = safe_division(a, b)
-            sel1 = T[2, sel].sum(axis=0) < 4.
+            sel1 = T[2, sel].sum(axis=1) < 4.
             spectrum[fiber][sel][sel1] = 0.0
         else:
             a = np.sum(T[0] * T[1] * T[2], axis=1)
             b = np.sum(T[1] * T[2], axis=1)
             spectrum[fiber] = safe_division(a, b)
-            sel = T[2].sum(axis=0) < 4.
+            sel = T[2].sum(axis=1) < 4.
             spectrum[fiber][sel] = 0.0
         TT[fiber] = T
     return spectrum, cosmics
