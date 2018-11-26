@@ -290,17 +290,18 @@ def safe_division(num, denom, eps=1e-8, fillval=0.0):
     return div
 
 
-def find_cosmics(Y, E, thresh=8.):
+def find_cosmics(Y, E, thresh=8., ran=0):
     A = medfilt2d(Y, (5, 1))
     S = safe_division((Y - A), E)
     P = S - medfilt2d(S, (1, 15))
     x, y = np.where(P > thresh)
     xx, yy = ([], [])
-    for i in np.arange(-0, 1):
-        for j in np.arange(-0, 1):
+    for i in np.arange(-0 - ran, 1 + ran):
+        for j in np.arange(-0 - ran, 1 + ran):
             sel = ((x + i) >= 0) * ((x + i) < Y.shape[0])
             sel2 = ((y + j) >= 0) * ((y + j) < Y.shape[1])
-            sel = sel * sel2
+            sel3 = P[x + i, y + j] > thresh/2.
+            sel = sel * sel2 * sel3
             xx.append((x + i)[sel])
             yy.append((y + j)[sel])
     xx = np.hstack(xx)
@@ -320,7 +321,7 @@ def weighted_extraction(image, error, flat, trace):
     E = safe_division(error, flat)
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
-    cosmics = find_cosmics(Y, E, 4.)
+    cosmics = find_cosmics(Y, E, 4., ran=1)
     x = np.arange(trace.shape[1])
     spectrum = 0. * trace
     TT = np.zeros((trace.shape[0], 3, trace.shape[1], 4))
