@@ -265,7 +265,7 @@ def get_twiflat_field(flt_path, amp, array_wave, array_trace, common_wave,
     flat = np.median(listflat, axis=(0,))
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
-    return flat, bigW, np.nanmedian(listspec, axis=0)
+    return flat, bigW, np.nanpercentile(listspec, 95, axis=0)
 
 
 def get_spectra(array_flt, array_trace):
@@ -350,10 +350,14 @@ def weighted_extraction(image, error, flat, trace):
             a = np.sum(T[0, sel] * T[1, sel] * T[2, sel], axis=1)
             b = np.sum(T[1, sel] * T[2, sel], axis=1)
             spectrum[fiber, sel] = safe_division(a, b)
+            sel1 = T[2, sel].sum(axis=0) < 4.
+            spectrum[fiber][sel][sel1] = 0.0
         else:
             a = np.sum(T[0] * T[1] * T[2], axis=1)
             b = np.sum(T[1] * T[2], axis=1)
             spectrum[fiber] = safe_division(a, b)
+            sel = T[2].sum(axis=0) < 4.
+            spectrum[fiber][sel] = 0.0
         TT[fiber] = T
     return spectrum, cosmics
 
@@ -1089,7 +1093,7 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
         package.append([wave, trace, twiflat, bigW, masterbias, amppos,
                         twispec, dead])
     # Normalize the two amps and correct the flat
-    avg = package[0][-2] / 2. + package[1][-2] / 2.
+    avg = np.max([package[0][-2], package[1][-2]], axis=0)
     for i in np.arange(len(package)):
         norm = safe_division(package[i][-2], avg)
         I = interp1d(commonwave, norm, kind='quadratic',
