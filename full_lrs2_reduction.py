@@ -1122,7 +1122,8 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
     log.info('Getting twiflat for ifuslot, %s, side, %s' % (ifuslot, specname))
     twiflat, twispec = get_twiflat_field(twibase, amps, calinfo[0], calinfo[1],
-                                         bigW, commonwave, masterbias, specname)
+                                         calinfo[2], commonwave, calinfo[3],
+                                         specname)
     calinfo.insert(2, twiflat)
     flatspec = get_spectra(calinfo[2], calinfo[1])
     calinfo.append(flatspec)
