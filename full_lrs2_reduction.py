@@ -437,9 +437,9 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         sci_array = np.squeeze(np.array(array_list))
     Xx = np.arange(flat.shape[1])
     Yx = np.arange(flat.shape[0])
-    print(flat.shape)
     I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
                  fill_value=0.0)
+    print(sci_array.shape, flat.shape, array_trace.shape, Yx.shape)
     shifts = get_trace_shift(sci_array, flat, array_trace, Yx)
     flat = I(Xx, Yx + shifts)
     log.info('Found shift for %s of %0.3f' % (files1[0], np.median(shifts)))
