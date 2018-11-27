@@ -436,7 +436,7 @@ def modify_spectrum(spectrum, w, xloc, yloc):
             sel = np.where((w[i] > bini) * (w[i] < bini + 100))[0]
             norm[i] = np.mean(spectrum[i][sel])
         smooth = correct_fiber_to_fiber(norm / np.mean(norm), xloc, yloc,
-                                        seeing=1.)
+                                        seeing=0.7)
         Z[:, j] = smooth
     ftf = spectrum * 0.
     for i in np.arange(spectrum.shape[0]):
@@ -449,13 +449,13 @@ def modify_spectrum(spectrum, w, xloc, yloc):
             sel = np.where((w[i] > bini) * (w[i] < bini + 100))[0]
             norm[i] = np.mean(nspectrum[i][sel])
         smooth = correct_fiber_to_fiber(norm / np.mean(norm), xloc, yloc,
-                                        seeing=1.)
+                                        seeing=0.7)
         Z[:, j] = smooth
     nftf = spectrum * 0.
     for i in np.arange(spectrum.shape[0]):
         I = interp1d(x, Z[i, :], kind='quadratic', fill_value='extrapolate')
         nftf[i] = I(w[i])
-    return spectrum# / ftf / nftf
+    return spectrum / ftf / nftf
 
 
 def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
