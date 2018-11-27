@@ -73,7 +73,7 @@ log = setup_logging('panacea_quicklook')
 baseraw = '/work/03946/hetdex/maverick'
 
 
-sci_path = op.join(baseraw, sci_date,  '%s', '%s%s21', 'exp%s',
+sci_path = op.join(baseraw, sci_date,  '%s', '%s%s22', 'exp%s',
                    '%s', '2*_%sLL*flt.fits')
 twiflt_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
                       '%s', '2*_%sLL_twi.fits')
