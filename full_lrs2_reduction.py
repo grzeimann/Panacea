@@ -207,12 +207,12 @@ def get_powerlaw(image, trace, spec):
     grid_x, grid_y = np.meshgrid(np.arange(image.shape[1]),
                                  np.arange(image.shape[0]))
     C = griddata(np.array([XX, YY]).swapaxes(0, 1), plaw, (grid_x, grid_y),
-                 method='cubic', fill_value=0.0).swapaxes(0, 1)
+                 method='cubic', fill_value=0.0)
     norm = np.zeros((image.shape[1],))
     for b in np.arange(image.shape[1]):
         sel = (x == b)
         norm[b] = np.median(image[y[sel], x[sel]] / C[y[sel], x[sel]])
-    return C * savgol_filter(norm, 141, 1)[np.newaxis, :]
+    return C * savgol_filter(norm, 141, 1)[np.newaxis, :], norm
 
 
 def get_twiflat_field(flt_path, amp, array_wave, array_trace, common_wave,
@@ -1114,9 +1114,9 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
     flatspec = get_spectra(calinfo[2], calinfo[1])
     calinfo.append(flatspec)
     log.info('Getting Powerlaw of Flat Cal for %s' % specname)
-    plaw = get_powerlaw(calinfo[2], calinfo[1], flatspec)
+    plaw, norm = get_powerlaw(calinfo[2], calinfo[1], flatspec)
     calinfo[2] = calinfo[2] - plaw
-    fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
+    fits.PrimaryHDU(norm).writeto('test_plaw_%s.fits' % specname, overwrite=True)
     f = []
     for i, cal in enumerate(calinfo):
         if i == 0:
