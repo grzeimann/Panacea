@@ -260,6 +260,7 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
         indh = np.ceil(array_trace[fiber]).astype(int)
         spectrum[fiber] = array_flt[indl, x] / 2. + array_flt[indh, x] / 2.
     
+    log.info('Getting powerlaw for side %s' % specname)
     plaw, norm = get_powerlaw(array_flt, array_trace, spectrum)
     array_flt[:] -= plaw
     fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
