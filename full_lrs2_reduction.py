@@ -437,6 +437,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         sci_array = np.squeeze(np.array(array_list))
     Xx = np.arange(flat.shape[1])
     Yx = np.arange(flat.shape[0])
+    print(flat.shape)
     I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
                  fill_value=0.0)
     shifts = get_trace_shift(sci_array, flat, array_trace, Yx)
