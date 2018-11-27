@@ -73,7 +73,7 @@ log = setup_logging('panacea_quicklook')
 baseraw = '/work/03946/hetdex/maverick'
 
 
-sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
+sci_path = op.join(baseraw, sci_date,  '%s', '%s%s22', 'exp%s',
                    '%s', '2*_%sLL*flt.fits')
 twiflt_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
                       '%s', '2*_%sLL_twi.fits')
@@ -263,6 +263,7 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
     log.info('Getting powerlaw for side %s' % specname)
     plaw, norm = get_powerlaw(array_flt, array_trace, spectrum)
     array_flt[:] -= plaw
+    array_flt[:] = np.where(array_flt < 0., 0., array_flt)
     fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
     fits.PrimaryHDU(spectrum).writeto('test_spec_%s.fits' % specname, overwrite=True)
     smooth = savgol_filter(spectrum, 315, 1, axis=1)
