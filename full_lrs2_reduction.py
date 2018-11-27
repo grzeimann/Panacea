@@ -1113,9 +1113,10 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
     flatspec = get_spectra(calinfo[2], calinfo[1])
     calinfo.append(flatspec)
-    # log.info('Getting Powerlaw of Flat Cal for %s' % specname)
-    # plaw = get_powerlaw(calinfo[2], calinfo[1], flatspec)
-    # fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
+    log.info('Getting Powerlaw of Flat Cal for %s' % specname)
+    plaw = get_powerlaw(calinfo[2], calinfo[1], flatspec)
+    calinfo[2] = calinfo[2] - plaw
+    fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
     f = []
     for i, cal in enumerate(calinfo):
         if i == 0:
