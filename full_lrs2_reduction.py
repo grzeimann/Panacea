@@ -73,8 +73,8 @@ log = setup_logging('panacea_quicklook')
 baseraw = '/work/03946/hetdex/maverick'
 
 
-sci_path = op.join(baseraw, sci_date,  '%s', '%s%s22', 'exp%s',
-                   '%s', '2*_%sLL*flt.fits')
+sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
+                   '%s', '2*_%sLL*twi.fits')
 twiflt_path = op.join(baseraw, twi_date,  '%s', '%s%s22', 'exp*',
                       '%s', '2*_%sLL_flt.fits')
 cmp_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
@@ -237,7 +237,7 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
 
     array_list = []
     for filename1, filename2 in zip(files1, files2):
-        log.info('Prepping twi %s' % filename1)
+        log.info('Prepping flat %s' % filename1)
         array_flt1, e1 = base_reduction(filename1)
         array_flt2, e2 = base_reduction(filename2)
         array_flt = np.vstack([array_flt1, array_flt2])
@@ -252,7 +252,7 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
         array_flt = np.squeeze(np.array(array_list))
         array_flt[:] /= np.median(array_flt)
     
-    log.info('Working on twiflat')
+    log.info('Working on flat')
     x = np.arange(array_wave.shape[1])
     spectrum = array_trace * 0.
     for fiber in np.arange(array_wave.shape[0]):
@@ -277,7 +277,7 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
         model = I(array_wave[fiber])
         ftf[fiber] = savgol_filter(spectrum[fiber] / model, 151, 1)
     nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41,
-                             per=50)
+                             per=95)
     I = interp1d(nw1, ns1, kind='quadratic', fill_value='extrapolate')
     modelimage = I(bigW)
     flat = array_flt / modelimage
@@ -439,7 +439,6 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
     Yx = np.arange(flat.shape[0])
     I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
                  fill_value=0.0)
-    print(sci_array.shape, flat.shape, array_trace.shape, Yx.shape)
     shifts = get_trace_shift(sci_array, flat, array_trace, Yx)
     flat = I(Xx, Yx + shifts)
     log.info('Found shift for %s of %0.3f' % (files1[0], np.median(shifts)))
@@ -1121,7 +1120,7 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
-    log.info('Getting twiflat for ifuslot, %s, side, %s' % (ifuslot, specname))
+    log.info('Getting flat for ifuslot, %s, side, %s' % (ifuslot, specname))
     twiflat = get_twiflat_field(twibase, amps, calinfo[0], calinfo[1],
                                 calinfo[2], commonwave, calinfo[3], specname)
     calinfo.insert(2, twiflat)
