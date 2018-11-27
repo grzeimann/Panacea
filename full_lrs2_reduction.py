@@ -181,6 +181,7 @@ def get_powerlaw(image, trace, spec):
     xy = np.median(spec, axis=1)
     bottom = np.percentile(xy, 15)
     sel = np.where(xy > (3. * bottom))[0]
+    log.info('Number of fibers that need powerlaw modeling: %i' % len(sel))
     xp = np.hstack([np.arange(xlim[0], xlim[1], 128), image.shape[1]])
     ylim = [0, image.shape[0]]
     yz = np.hstack([np.arange(ylim[0], ylim[1], 128), image.shape[0]])
