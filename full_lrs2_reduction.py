@@ -455,7 +455,7 @@ def modify_spectrum(spectrum, w, xloc, yloc):
     for i in np.arange(spectrum.shape[0]):
         I = interp1d(x, Z[i, :], kind='quadratic', fill_value='extrapolate')
         nftf[i] = I(w[i])
-    return spectrum / ftf / nftf
+    return spectrum# / ftf / nftf
 
 
 def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
