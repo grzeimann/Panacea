@@ -282,7 +282,7 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
      
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
-    return flat, np.nanpercentile(listspec, 95, axis=0)
+    return flat
 
 
 def get_spectra(array_flt, array_trace):
@@ -998,14 +998,14 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         fn = glob.glob(fn)
         mini = get_objects(fn, ['OBJECT', 'EXPTIME'])
         log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
-        r[calinfo[7][:, 1] == 1.] = 0.
+        r[calinfo[-1][:, 1] == 1.] = 0.
         r /= mini[0][1]
         r /= mini[0][2]
         #ftf_cor = correct_fiber_to_fiber(r, calinfo[5][:, 0],
         #                                 calinfo[5][:, 1])
         #r = r / ftf_cor[:, np.newaxis]
         sky = sky_subtraction(r, calinfo[5][:, 0], calinfo[5][:, 1])
-        sky[calinfo[7][:, 1] == 1.] = 0.
+        sky[calinfo[-1][:, 1] == 1.] = 0.
         skysub = r - sky
         X = np.array([T['wave'], T['x_0'], T['y_0']])
         for S, name in zip([sky, skysub], ['sky', 'skysub']):
@@ -1122,20 +1122,9 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
     log.info('Getting twiflat for ifuslot, %s, side, %s' % (ifuslot, specname))
     twiflat, twispec = get_twiflat_field(twibase, amps, calinfo[0], calinfo[1],
                                          bigW, commonwave, masterbias, specname)
-    #avg = np.max([package[0][-2], package[1][-2]], axis=0)
-    #for i in np.arange(len(package)):
-    #    norm = safe_division(package[i][-2], avg)
-    #    I = interp1d(commonwave, norm, kind='quadratic',
-    #                 fill_value='extrapolate')
-    #    model = I(package[i][3])
-    #    package[i][2][:] = package[i][2] * model
-    
+    calinfo.insert(2, twiflat)
     flatspec = get_spectra(calinfo[2], calinfo[1])
     calinfo.append(flatspec)
-    log.info('Getting Powerlaw of Flat Cal for %s' % specname)
-    plaw, norm = get_powerlaw(calinfo[2], calinfo[1], flatspec)
-    calinfo[2] = calinfo[2]# - plaw
-    fits.PrimaryHDU(calinfo[2] / plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
     f = []
     for i, cal in enumerate(calinfo):
         if i == 0:
