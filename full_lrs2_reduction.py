@@ -232,8 +232,8 @@ def get_bigW(amp, array_wave, array_trace, image):
 
 def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW, 
                       common_wave, masterbias, specname):
-    files1 = sorted(glob.glob(sci_path.replace('LL', amps[0])))
-    files2 = sorted(glob.glob(sci_path.replace('LL', amps[1])))
+    files1 = sorted(glob.glob(flt_path.replace('LL', amps[0])))
+    files2 = sorted(glob.glob(flt_path.replace('LL', amps[1])))
 
     array_list = []
     for filename1, filename2 in zip(files1, files2):
@@ -243,7 +243,7 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
         array_flt = np.vstack([array_flt1, array_flt2])
         array_flt[:] -= masterbias
         array_list.append(array_flt)
-    array_list = np.array(array_flt)
+    array_list = np.array(array_list)
     if len(array_list) > 1:
         norm = np.median(array_list, axis=(1,2))
         array_flt = np.median(array_list / norm[:, np.newaxis, np.newaxis],
