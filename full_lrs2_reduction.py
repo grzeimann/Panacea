@@ -419,11 +419,51 @@ def get_trace_shift(sci_array, flat, array_trace, Yx):
     return shifts
 
 
+def modify_spectrum(spectrum, w, xloc, yloc):
+    for i in np.arange(spectrum.shape[0]):
+        sel = spectrum[i] == 0.
+        I = interp1d(w[i][~sel], spectrum[i][~sel], kind='quadratic',
+                     fill_value='extrapolate')
+        dw = np.diff(w[i])
+        dw = np.hstack([dw[0], dw])
+        spectrum[i] = I(w[i]) / dw
+    norm = np.zeros((spectrum.shape[0],))
+    bins = np.arange(w.min(), w.max(), 40)
+    x = bins + 20.
+    Z = np.zeros((spectrum.shape[0], len(bins)))
+    for j, bini in enumerate(bins):
+        for i in np.arange(spectrum.shape[0]):
+            sel = np.where((w[i] > bini) * (w[i] < bini + 100))[0]
+            norm[i] = np.mean(spectrum[i][sel])
+        smooth = correct_fiber_to_fiber(norm / np.mean(norm), xloc, yloc,
+                                        seeing=1.)
+        Z[:, j] = smooth
+    ftf = spectrum * 0.
+    for i in np.arange(spectrum.shape[0]):
+        I = interp1d(x, Z[i, :], kind='quadratic', fill_value='extrapolate')
+        ftf[i] = I(w[i])
+    nspectrum = spectrum / ftf
+
+    for j, bin in enumerate(bins):
+        for i in np.arange(spectrum.shape[0]):
+            sel = np.where((w[i] > bini) * (w[i] < bini + 100))[0]
+            norm[i] = np.mean(nspectrum[i][sel])
+        smooth = correct_fiber_to_fiber(norm / np.mean(norm), xloc, yloc,
+                                        seeing=1.)
+        Z[:, j] = smooth
+    nftf = spectrum * 0.
+    for i in np.arange(spectrum.shape[0]):
+        I = interp1d(x, Z[i, :], kind='quadratic', fill_value='extrapolate')
+        nftf[i] = I(w[i])
+    return spectrum / ftf / nftf
+
+
 def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
-                masterbias):
+                masterbias, pos):
     files1 = sorted(glob.glob(sci_path.replace('LL', amps[0])))
     files2 = sorted(glob.glob(sci_path.replace('LL', amps[1])))
-
+    
+    xloc, yloc = (pos[:, 0], pos[:, 1])
     array_list = []
     for filename1, filename2 in zip(files1, files2):
         log.info('Prepping sci %s' % filename1)
@@ -460,15 +500,14 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         plaw, norm = get_powerlaw(array_flt, array_trace, spectrum)
         array_flt[:] -= plaw
         array_list.append(array_flt)
-        spectrum, c, fl, Fimage = weighted_extraction(array_flt, array_err, flat,
-                                                      array_trace)
+        spectrum, c, fl, Fimage = weighted_extraction(array_flt, array_err,
+                                                      flat, array_trace)
         spectrum[~np.isfinite(spectrum)] = 0.0
         log.info('Number of 0.0 pixels in spectra: %i' % (spectrum==0.0).sum())
         speclist = []
+        spectrum = modify_spectrum(spectrum, array_wave, xloc, yloc)
         for fiber in np.arange(array_wave.shape[0]):
-            dlam = np.diff(array_wave[fiber])
-            dlam = np.hstack([dlam[0], dlam])
-            I = interp1d(array_wave[fiber], spectrum[fiber] / dlam,
+            I = interp1d(array_wave[fiber], spectrum[fiber],
                          kind='quadratic', fill_value='extrapolate')
             speclist.append(I(commonwave))
         spec_list.append(np.array(speclist))
@@ -797,7 +836,7 @@ def sky_subtraction(rect, xloc, yloc, seeing=1.5):
     return sky
 
 
-def correct_fiber_to_fiber(rect, xloc, yloc, seeing=1.5):
+def correct_fiber_to_fiber(data, xloc, yloc, seeing=1.5):
     D = np.sqrt((xloc[:, np.newaxis] - xloc)**2 +
                 (yloc[:, np.newaxis] - yloc)**2)
     W = np.exp(-0.5 / (seeing/2.35)**2 * D**2)
@@ -807,20 +846,19 @@ def correct_fiber_to_fiber(rect, xloc, yloc, seeing=1.5):
         o = (y - y1) > 3. * np.median(m)
         return o
 
-    data = np.mean(rect, axis=1)
     o = data == 0.
-    low = np.percentile(data[~o], 16)
-    mid = np.percentile(data[~o], 50)
-    high = np.percentile(data[~o], 84)
-    if (high - mid) > 2.0 * (mid - low):
-        log.info('Source is too bright to correct fiber to fiber')
-        return np.ones(data.shape)
+#    low = np.percentile(data[~o], 16)
+#    mid = np.percentile(data[~o], 50)
+#    high = np.percentile(data[~o], 84)
+#    if (high - mid) > 2.0 * (mid - low):
+#        log.info('Source is too bright to correct fiber to fiber')
+#        return np.ones(data.shape)
     smooth = (data[~o, np.newaxis] * W[~o]).sum(axis=0) / W[~o].sum(axis=0)
     o = outlier(data, smooth, data > 0.)
     for i in np.arange(3):
         smooth = (data[~o, np.newaxis] * W[~o]).sum(axis=0) / W[~o].sum(axis=0)
         o = outlier(data, smooth, ~o)
-    return smooth / np.mean(smooth)
+    return smooth
 
 
 def make_frame(xloc, yloc, data, wave, dw, Dx, Dy, wstart=5700.,
@@ -989,7 +1027,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                            instrument, ifuslot)
     images, rect, spec, cos, fl, Fi = extract_sci(scifiles, amps, calinfo[2],
                                               calinfo[1], calinfo[0], calinfo[3],
-                                              calinfo[4])
+                                              calinfo[4], calinfo[5])
     cnt = 1
     wave_0 = np.mean(commonwave)
     darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % specinit)
