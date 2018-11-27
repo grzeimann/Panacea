@@ -169,7 +169,6 @@ def power_law(x, c1, c2=.5, c3=.15, c4=1., sig=2.5):
 
 def get_powerlaw(image, trace, spec):
     YM, XM = np.indices(image.shape)
-    x = np.arange(image.shape[1])
     inds = []
     for j in np.arange(trace.shape[0]):
         inds.append(np.where(np.abs(YM - trace[j, np.newaxis, :]).ravel() <
@@ -207,12 +206,12 @@ def get_powerlaw(image, trace, spec):
     grid_x, grid_y = np.meshgrid(np.arange(image.shape[1]),
                                  np.arange(image.shape[0]))
     C = griddata(np.array([XX, YY]).swapaxes(0, 1), plaw, (grid_x, grid_y),
-                 method='cubic', fill_value=0.0)
+                 method='cubic', fill_value=0.0).swapaxes(0, 1)
     norm = np.zeros((image.shape[1],))
     for b in np.arange(image.shape[1]):
         sel = (x == b)
         norm[b] = np.median(image[y[sel], x[sel]] / C[y[sel], x[sel]])
-    return C * savgol_filter(norm, 141, 1)[np.newaxis, :], norm
+    return C , norm#* savgol_filter(norm, 141, 1)[np.newaxis, :], norm
 
 
 def get_twiflat_field(flt_path, amp, array_wave, array_trace, common_wave,
