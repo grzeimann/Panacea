@@ -277,11 +277,10 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
         model = I(array_wave[fiber])
         ftf[fiber] = savgol_filter(spectrum[fiber] / model, 151, 1)
     nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41,
-                             per=95)
+                             per=50)
     I = interp1d(nw1, ns1, kind='quadratic', fill_value='extrapolate')
     modelimage = I(bigW)
     flat = array_flt / modelimage
-     
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
     return flat
@@ -1123,9 +1122,9 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
     log.info('Getting twiflat for ifuslot, %s, side, %s' % (ifuslot, specname))
     twiflat = get_twiflat_field(twibase, amps, calinfo[0], calinfo[1],
-                                         calinfo[2], commonwave, calinfo[3],
-                                         specname)
+                                calinfo[2], commonwave, calinfo[3], specname)
     calinfo.insert(2, twiflat)
+    print(calinfo)
     flatspec = get_spectra(calinfo[2], calinfo[1])
     calinfo.append(flatspec)
     f = []
