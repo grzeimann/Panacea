@@ -265,7 +265,7 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
     array_flt[:] -= plaw
     array_flt[:] = np.where(array_flt < 0., 0., array_flt)
     fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
-    fits.PrimaryHDU(spectrum).writeto('test_spec_%s.fits' % specname, overwrite=True)
+    fits.PrimaryHDU(array_flt).writeto('test_spec_%s.fits' % specname, overwrite=True)
     smooth = savgol_filter(spectrum, 315, 1, axis=1)
     avg = biweight_location(smooth, axis=(0,))
     norm = biweight_location(smooth / avg, axis=(1,))
