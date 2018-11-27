@@ -211,18 +211,13 @@ def get_powerlaw(image, trace, spec):
     for b in np.arange(image.shape[1]):
         sel = (x == b)
         norm[b] = np.median(image[y[sel], x[sel]] / C[y[sel], x[sel]])
-    return C , norm#* savgol_filter(norm, 141, 1)[np.newaxis, :], norm
+    return C * savgol_filter(norm, 141, 1)[np.newaxis, :], norm
 
 
-def get_twiflat_field(flt_path, amp, array_wave, array_trace, common_wave,
-                      masterbias, log):
-    files = glob.glob(flt_path.replace('LL', amp))
-    listflat = []
-    array_flt, error = base_reduction(files[0])
-
-    bigW = np.zeros(array_flt.shape)
+def get_bigW(amp, array_wave, array_trace, image):
+    bigW = np.zeros(image.shape)
     Y, X = np.indices(array_wave.shape)
-    YY, XX = np.indices(array_flt.shape)
+    YY, XX = np.indices(image.shape)
     for x, at, aw, xx, yy in zip(np.array_split(X, 2, axis=0),
                                  np.array_split(array_trace, 2, axis=0),
                                  np.array_split(array_wave, 2, axis=0),
@@ -233,38 +228,61 @@ def get_twiflat_field(flt_path, amp, array_wave, array_trace, common_wave,
                 warnings.simplefilter("ignore")
                 p0 = np.polyfit(at[:, j], aw[:, j], 7)
             bigW[yy[:, j], j] = np.polyval(p0, yy[:, j])
-    listspec = []
-    for filename in files:
-        log.info('Working on twiflat %s' % filename)
-        array_flt, error = base_reduction(filename)
+    return bigW
+
+def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW, 
+                      common_wave, masterbias, specname):
+    files1 = sorted(glob.glob(sci_path.replace('LL', amps[0])))
+    files2 = sorted(glob.glob(sci_path.replace('LL', amps[1])))
+
+    array_list = []
+    for filename1, filename2 in zip(files1, files2):
+        log.info('Prepping twi %s' % filename1)
+        array_flt1, e1 = base_reduction(filename1)
+        array_flt2, e2 = base_reduction(filename2)
+        array_flt = np.vstack([array_flt1, array_flt2])
         array_flt[:] -= masterbias
-        x = np.arange(array_wave.shape[1])
-        spectrum = array_trace * 0.
-        for fiber in np.arange(array_wave.shape[0]):
-            indl = np.floor(array_trace[fiber]).astype(int)
-            indh = np.ceil(array_trace[fiber]).astype(int)
-            spectrum[fiber] = array_flt[indl, x] / 2. + array_flt[indh, x] / 2.
-        smooth = savgol_filter(spectrum, 315, 1, axis=1)
-        avg = biweight_location(smooth, axis=(0,))
-        norm = biweight_location(smooth / avg, axis=(1,))
-        nw, ns = make_avg_spec(array_wave, spectrum / norm[:, np.newaxis],
-                               binsize=41, per=95)
-        I = interp1d(nw, ns, kind='linear', fill_value='extrapolate')
-        ftf = spectrum * 0.
-        for fiber in np.arange(array_wave.shape[0]):
-            model = I(array_wave[fiber])
-            ftf[fiber] = savgol_filter(spectrum[fiber] / model, 151, 1)
-        nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41,
-                                 per=95)
-        I = interp1d(nw1, ns1, kind='quadratic', fill_value='extrapolate')
-        modelimage = I(bigW)
-        flat = array_flt / modelimage
-        listflat.append(flat)
-        listspec.append(I(common_wave))
-    flat = np.median(listflat, axis=(0,))
+        array_list.append(array_flt)
+    array_list = np.array(array_flt)
+    if len(array_list) > 1:
+        norm = np.median(array_list, axis=(1,2))
+        array_flt = np.median(array_list / norm[:, np.newaxis, np.newaxis],
+                              axis=0)
+    else:
+        array_flt = np.squeeze(np.array(array_list))
+        array_flt[:] /= np.median(array_flt)
+    
+    log.info('Working on twiflat')
+    x = np.arange(array_wave.shape[1])
+    spectrum = array_trace * 0.
+    for fiber in np.arange(array_wave.shape[0]):
+        indl = np.floor(array_trace[fiber]).astype(int)
+        indh = np.ceil(array_trace[fiber]).astype(int)
+        spectrum[fiber] = array_flt[indl, x] / 2. + array_flt[indh, x] / 2.
+    
+    plaw, norm = get_powerlaw(array_flt, array_trace, spectrum)
+    array_flt[:] -= plaw
+    fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
+    fits.PrimaryHDU(spectrum).writeto('test_spec_%s.fits' % specname, overwrite=True)
+    smooth = savgol_filter(spectrum, 315, 1, axis=1)
+    avg = biweight_location(smooth, axis=(0,))
+    norm = biweight_location(smooth / avg, axis=(1,))
+    nw, ns = make_avg_spec(array_wave, spectrum / norm[:, np.newaxis],
+                           binsize=41, per=50)
+    I = interp1d(nw, ns, kind='linear', fill_value='extrapolate')
+    ftf = spectrum * 0.
+    for fiber in np.arange(array_wave.shape[0]):
+        model = I(array_wave[fiber])
+        ftf[fiber] = savgol_filter(spectrum[fiber] / model, 151, 1)
+    nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41,
+                             per=95)
+    I = interp1d(nw1, ns1, kind='quadratic', fill_value='extrapolate')
+    modelimage = I(bigW)
+    flat = array_flt / modelimage
+     
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
-    return flat, bigW, np.nanpercentile(listspec, 95, axis=0)
+    return flat, np.nanpercentile(listspec, 95, axis=0)
 
 
 def get_spectra(array_flt, array_trace):
@@ -1093,23 +1111,25 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
         #################################
         # TWILIGHT FLAT [FIBER PROFILE] #
         #################################
-        log.info('Getting TwiFlat for ifuslot, %s, and amp, %s' %
+        log.info('Getting bigW for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        twiflat, bigW, twispec = get_twiflat_field(twibase, amp, wave, trace,
-                                                   commonwave, masterbias, log)
-        package.append([wave, trace, twiflat, bigW, masterbias, amppos,
-                        twispec, dead])
+        bigW = get_bigW(amp, wave, trace, masterbias)
+        package.append([wave, trace, bigW, masterbias, amppos, dead])
     # Normalize the two amps and correct the flat
-    avg = np.max([package[0][-2], package[1][-2]], axis=0)
-    for i in np.arange(len(package)):
-        norm = safe_division(package[i][-2], avg)
-        I = interp1d(commonwave, norm, kind='quadratic',
-                     fill_value='extrapolate')
-        model = I(package[i][3])
-        package[i][2][:] = package[i][2] * model
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
+    log.info('Getting twiflat for ifuslot, %s, side, %s' % (ifuslot, specname))
+    twiflat, twispec = get_twiflat_field(twibase, amps, calinfo[0], calinfo[1],
+                                         bigW, commonwave, masterbias, specname)
+    #avg = np.max([package[0][-2], package[1][-2]], axis=0)
+    #for i in np.arange(len(package)):
+    #    norm = safe_division(package[i][-2], avg)
+    #    I = interp1d(commonwave, norm, kind='quadratic',
+    #                 fill_value='extrapolate')
+    #    model = I(package[i][3])
+    #    package[i][2][:] = package[i][2] * model
+    
     flatspec = get_spectra(calinfo[2], calinfo[1])
     calinfo.append(flatspec)
     log.info('Getting Powerlaw of Flat Cal for %s' % specname)
