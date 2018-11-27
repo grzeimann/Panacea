@@ -454,6 +454,10 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         array_err = np.vstack([e1, e2])
 
         array_flt[:] -= masterbias
+        log.info('Getting powerlaw for %s' % filename1)
+        spectrum = get_spectra(array_flt, array_trace)
+        plaw, norm = get_powerlaw(array_flt, array_trace, spectrum)
+        array_flt[:] -= plaw
         array_list.append(array_flt)
         spectrum, c, fl, Fimage = weighted_extraction(array_flt, array_err, flat,
                                                       array_trace)
