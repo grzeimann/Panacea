@@ -74,9 +74,9 @@ baseraw = '/work/03946/hetdex/maverick'
 
 
 sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
-                   '%s', '2*_%sLL*[sci,flt].fits')
-sciflt_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
-                      '%s', '2*_%sLL_twi.fits')
+                   '%s', '2*_%sLL*twi.fits')
+twiflt_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
+                      '%s', '2*_%sLL_flt.fits')
 cmp_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_cmp.fits')
 bias_path = op.join(baseraw, twi_date, '%s', '%s%s', 'exp*',
@@ -1067,7 +1067,7 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
         #####################
         log.info('Getting MasterTwi for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        twibase = sciflt_path % (instrument, instrument, '00000*', instrument,
+        twibase = twiflt_path % (instrument, instrument, '00000*', instrument,
                                  ifuslot)
         mastertwi = get_mastertwi(twibase, amp, masterbias)
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
