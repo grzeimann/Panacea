@@ -1318,7 +1318,7 @@ for info in [blueinfo[0], blueinfo[1]]:  # , redinfo[0], redinfo[1]]:
         f.append(fits.ImageHDU(np.array([commonwave, response], dtype=float)))
         names.append('response')
     for fi, n in zip(f, names):
-        f.header['EXTNAME'] = n
+        fi.header['EXTNAME'] = n
     fits.HDUList(f).writeto('cal_%s_%s.fits' % (args.date, specname),
                             overwrite=True)
 #    for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
