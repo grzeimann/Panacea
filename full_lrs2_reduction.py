@@ -783,7 +783,7 @@ def get_objects(basefiles, attrs, full=False):
             s[-1].append(F[0].header[att])
         if full:
             area = get_mirror_illumination(fn)
-            throughput = get_throughput(op.dirname(fn))
+            throughput = get_throughput(op.dirname(op.dirname(op.dirname(fn))))
             s[-1].append(area)
             s[-1].append(throughput)
     return s
