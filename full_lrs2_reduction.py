@@ -1158,12 +1158,13 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         r /= mini[0][1]
         r /= mini[0][2]
         r /= mini[0][3]
-        #ftf_cor = correct_fiber_to_fiber(r, calinfo[5][:, 0],
-        #                                 calinfo[5][:, 1])
-        #r = r / ftf_cor[:, np.newaxis]
         sky = sky_subtraction(r, calinfo[5][:, 0], calinfo[5][:, 1])
         sky[calinfo[-3][:, 1] == 1.] = 0.
         skysub = r - sky
+        if response is not None:
+            r *= response
+            sky *= response
+            skysub *= response
         X = np.array([T['wave'], T['x_0'], T['y_0']])
         for S, name in zip([sky, skysub], ['sky', 'skysub']):
             outname = ('%s_%s_%s_%s_%s_cube.fits' % (args.date, sci_obs,
