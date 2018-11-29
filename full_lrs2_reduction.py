@@ -1005,7 +1005,7 @@ def panstarrs_query(ra_deg, dec_deg, rad_deg, mindet=1,
 
 def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
     attr = ['TARGTRA', 'TARGTDEC', 'GUIDLOOP', 'MJD', 'PSFMAG']
-    m = []
+    M = []
     path = op.join(path, args.date)
     f = op.basename(fn)
     DT = f.split('_')[0]
@@ -1030,12 +1030,12 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
         for fn in init_list:
             fobj = T.extractfile(T.getmember(fn))
             f = fits.open(fobj)
-            m.append([])
+            M.append([])
             if f[1].header['GUIDLOOP'] == 'ACTIVE':
                 for att in attr:
-                    m[-1].append(f[1].header[att])
+                    M[-1].append(f[1].header[att])
     try:
-        T1 = panstarrs_query(m[0]*15., m[1], 3. / 3600.)
+        T1 = panstarrs_query(M[0]*15., M[1], 3. / 3600.)
     except:
         log.info('Could not get panstarrs match.')
         return 1.0
@@ -1048,8 +1048,8 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
     if (gmag < 0.) + (gmag > 25.):
         log.info('Unreasonable g-mag from panstarrs: %0.2f' % gmag)
         return 1.0
-    throughput = np.zeros((len(m),))
-    for i, mi in enumerate(m):
+    throughput = np.zeros((len(M),))
+    for i, mi in enumerate(M):
         throughput[i] = 10**(-0.4 * (mi[4] - gmag))
     t = np.mean(throughput)
     log.info('Throughput for %s is %0.2f' % (path, t))
