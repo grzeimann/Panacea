@@ -955,10 +955,10 @@ def get_mirror_illumination(fn=None):
         mirror_illum = float(os.popen('/home/00156/drory/illum_lib/hetillum -p'
                              ' -x "[%0.4f,%0.4f,%0.4f]" "[%0.4f,%0.4f]" 256' %
                                       (r, t, p, x, y)).read().split('\n')[0])
-        area = mirror_illum * 55. * 1e4
+        area = mirror_illum * 51.4 * 1e4
     except:
         log.info('Using default mirror illumination value')
-        area = 50. * 1e4
+        area = 51.4 * 1e4
 #    if hetpupil_installed:
 #        log.info('Using HetpupilModel from pyhetdex')
 #        try:
@@ -1031,9 +1031,11 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
             fobj = T.extractfile(T.getmember(fn))
             f = fits.open(fobj)
             M.append([])
+            print(f[1].header)
             if f[1].header['GUIDLOOP'] == 'ACTIVE':
                 for att in attr:
                     M[-1].append(f[1].header[att])
+    print(M)
     try:
         T1 = panstarrs_query(M[0]*15., M[1], 3. / 3600.)
     except:
