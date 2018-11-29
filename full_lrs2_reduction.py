@@ -512,7 +512,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         spectrum[~np.isfinite(spectrum)] = 0.0
         log.info('Number of 0.0 pixels in spectra: %i' % (spectrum==0.0).sum())
         speclist = []
-        spectrum = modify_spectrum(spectrum, array_wave, xloc, yloc)
+        #spectrum = modify_spectrum(spectrum, array_wave, xloc, yloc)
         for fiber in np.arange(array_wave.shape[0]):
             I = interp1d(array_wave[fiber], spectrum[fiber],
                          kind='quadratic', fill_value='extrapolate')
@@ -1212,7 +1212,7 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 
 DIRNAME = get_script_path()
 
-for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
+for info in [blueinfo[0], blueinfo[1]]:#, redinfo[0], redinfo[1]]:
     specinit, specname, multi, lims, amps, slims, arc_names = info
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
@@ -1302,7 +1302,7 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
             func = fits.ImageHDU
         f.append(func(cal))
     if response is not None:
-        f.append(fits.ImageHDU(np.array([commonwave, response])))
+        f.append(fits.ImageHDU(np.array([commonwave, response], dtype=float)))
     fits.HDUList(f).writeto('test_all_%s.fits' % specname, overwrite=True)
 #    for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
 #        big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
