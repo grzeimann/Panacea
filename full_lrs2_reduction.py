@@ -1231,8 +1231,7 @@ for info in [blueinfo[0], blueinfo[1]]:  # , redinfo[0], redinfo[1]]:
                 fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
     twiflt_path = op.join(baseraw, twi_date,  '%s', fltobs, 'exp*',
                           '%s', '2*_%sLL_flt.fits')
-    twibase = twiflt_path % (instrument, instrument, instrument,
-                             ifuslot)
+    twibase = twiflt_path % (instrument, instrument, ifuslot)
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
         ##############
