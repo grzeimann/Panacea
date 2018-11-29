@@ -1002,6 +1002,7 @@ def panstarrs_query(ra_deg, dec_deg, rad_deg, mindet=1,
 
 
 def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
+    return 1.
     attr = ['TARGTRA', 'TARGTDEC', 'GUIDLOOP', 'MJD', 'PSFMAG', 'STARMAGS']
     M = []
     path = op.join(path, args.date)
