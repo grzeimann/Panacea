@@ -783,7 +783,7 @@ def get_objects(basefiles, attrs, full=False):
             s[-1].append(F[0].header[att])
         if full:
             area = get_mirror_illumination(fn)
-            throughput = get_throughput(op.dirname(op.dirname(op.dirname(fn))))
+            throughput = get_throughput(fn, s[-1][1])
             s[-1].append(area)
             s[-1].append(throughput)
     return s
@@ -1003,15 +1003,30 @@ def panstarrs_query(ra_deg, dec_deg, rad_deg, mindet=1,
     return data.to_table(use_names_over_ids=True)
 
 
-def get_throughput(path):
+def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
     attr = ['TARGTRA', 'TARGTDEC', 'GUIDLOOP', 'MJD', 'PSFMAG']
     m = []
+    path = op.join(path, args.date)
+    f = op.basename(fn)
+    DT = f.split('_')[0]
+    y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8], DT[9:11],
+                         DT[11:13], DT[13:15]]]
+    d0 = datetime(y, m, d, h, mi, s)
     for gp in ['gc1', 'gc2']:
-        tarfolder = op.join(path, '%s.tar.tar' % gp)
+        tarfolder = op.join(path, gp, '%s.tar' % gp)
         T = tarfile.open(tarfolder, 'r')
         init_list = sorted([name for name in T.getnames()
                             if name[-5:] == '.fits'])
 
+        final_list = []
+        for t in init_list:
+            DT = t.split('_')[0]
+            y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8],
+                                 DT[9:11], DT[11:13], DT[13:15]]]
+            d = datetime(y, m, d, h, mi, s)
+            p = (d - d0).seconds
+            if (p > -10.) * (p < exptime+10.):
+                final_list.append(t)
         for fn in init_list:
             fobj = T.extractfile(T.getmember(fn))
             f = fits.open(fobj)
