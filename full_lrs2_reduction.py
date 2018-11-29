@@ -186,11 +186,11 @@ def get_powerlaw(image, trace, spec):
     xlim = [0, image.shape[1]]
     xy = np.median(spec, axis=1)
     bottom = np.percentile(xy, 15)
-    sel = np.where(xy > (3. * bottom))[0]
+    sel = np.where(xy > (5. * bottom))[0]
     log.info('Number of fibers that need powerlaw modeling: %i' % len(sel))
-    xp = np.hstack([np.arange(xlim[0], xlim[1], 128), image.shape[1]])
+    xp = np.hstack([np.arange(xlim[0], xlim[1], 128), image.shape[1]-1])
     ylim = [0, image.shape[0]]
-    yz = np.hstack([np.arange(ylim[0], ylim[1], 128), image.shape[0]])
+    yz = np.hstack([np.arange(ylim[0], ylim[1], 128), image.shape[0]-1])
     plaw, XX, YY = ([], [], [])
     YM, XM = np.indices(trace.shape)
     for xi in xp:
@@ -203,7 +203,7 @@ def get_powerlaw(image, trace, spec):
     for xi in xp:
         for s in sel:
             y0 = int(trace[s, xi])
-            for i in np.arange(-6, 8, 2):
+            for i in np.arange(-4, 6, 2):
                 d = np.sqrt(((y0+i) - trace)**2 + (xi - XM)**2)
                 plaw.append(np.nansum(spec * power_law(d, 1.4e-5, c3=2.,
                                                        c4=1.0, sig=1.5)))
@@ -769,7 +769,7 @@ def get_wavelength_from_arc(image, trace, lines, side):
             y = wave[good, j]
             wave[missing, j] = np.polyval(np.polyfit(x, y, 3),
                                           trace[missing, j])
-    print(res)
+    # print(res)
     log.info('Min, Max Wave: %0.2f, %0.2f' % (wave.min(), wave.max()))
     return wave
 
