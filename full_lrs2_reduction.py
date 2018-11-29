@@ -1027,11 +1027,10 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
             p = (d - d0).seconds
             if (p > -10.) * (p < exptime+10.):
                 final_list.append(t)
-        for fn in init_list:
+        for fn in final_list:
             fobj = T.extractfile(T.getmember(fn))
             f = fits.open(fobj)
             M.append([])
-            print(f[1].header)
             if f[1].header['GUIDLOOP'] == 'ACTIVE':
                 for att in attr:
                     M[-1].append(f[1].header[att])
