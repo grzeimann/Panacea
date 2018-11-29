@@ -6,11 +6,17 @@ Created on Thu Oct  4 13:30:06 2018
 """
 import numpy as np
 import os.path as op
+import os
 import glob
 import sys
 import warnings
+import tarfile
 import argparse as ap
+import requests
+import uuid
+
 from datetime import datetime
+from astropy.io.votable import parse_single_table
 
 from astropy.io import fits
 from astropy.table import Table
@@ -24,13 +30,13 @@ from astropy.stats import biweight_midvariance
 from photutils import DAOStarFinder
 from astropy.modeling.models import Moffat2D
 
-try:
-    from pyhetdex.het.telescope import HetpupilModel
-    hetpupil_installed = True
-except ImportError:
-    print('Cannot find HETpupilModel.  Please check pyhetdex installation.')
-    print('For now, using default 50m**2 for mirror illumination')
-    hetpupil_installed = False
+#try:
+#    from pyhetdex.het.telescope import HetpupilModel
+#    hetpupil_installed = True
+#except ImportError:
+#    print('Cannot find HETpupilModel.  Please check pyhetdex installation.')
+#    print('For now, using default 50m**2 for mirror illumination')
+#    hetpupil_installed = False
 
 parser = ap.ArgumentParser(add_help=True)
 
@@ -231,7 +237,22 @@ def get_bigW(amp, array_wave, array_trace, image):
             bigW[yy[:, j], j] = np.polyval(p0, yy[:, j])
     return bigW
 
-def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW, 
+
+def get_bigF(array_trace, image):
+    bigF = np.zeros(image.shape)
+    Y, X = np.indices(array_trace.shape)
+    YY, XX = np.indices(image.shape)
+    n, m = array_trace.shape
+    F0 = array_trace[:, m/2]
+    for j in np.arange(image.shape[1]):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            p0 = np.polyfit(array_trace[:, j], F0, 7)
+        bigF[:, j] = np.polyval(p0, YY[:, j])
+    return bigF
+
+
+def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
                       common_wave, masterbias, specname):
     files1 = sorted(glob.glob(flt_path.replace('LL', amps[0])))
     files2 = sorted(glob.glob(flt_path.replace('LL', amps[1])))
@@ -753,15 +774,18 @@ def get_wavelength_from_arc(image, trace, lines, side):
     return wave
 
 
-def get_objects(basefiles, attrs):
+def get_objects(basefiles, attrs, full=False):
     s = []
     for fn in basefiles:
         F = fits.open(fn)
         s.append([])
-        area = get_mirror_illumination(fn)
         for att in attrs:
             s[-1].append(F[0].header[att])
-        s[-1].append(area)
+        if full:
+            area = get_mirror_illumination(fn)
+            throughput = get_throughput(op.dirname(fn))
+            s[-1].append(area)
+            s[-1].append(throughput)
     return s
 
 
@@ -791,7 +815,7 @@ def create_header_objection(wave, image, func=fits.ImageHDU):
     return hdu
 
 
-def sky_subtraction(rect, xloc, yloc, seeing=1.5):
+def sky_subtraction(rect, xloc, yloc):
     def outlier(y, y1, oi):
         m = np.abs(y[oi] - y1[oi])
         o = (y - y1) > 3. * np.median(m)
@@ -922,21 +946,99 @@ def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, seeing=1.5):
 
 
 def get_mirror_illumination(fn=None):
-    ''' Use Hetpupil from Cure to calculate mirror illumination (cm^2) '''
+    ''' Use hetillum from illum_lib to calculate mirror illumination (cm^2) '''
     log.info('Getting mirror illumination')
-    if hetpupil_installed:
-        log.info('Using HetpupilModel from pyhetdex')
-        try:
-            mirror_illum = HetpupilModel([fn], normalize=False)
-            area = mirror_illum.fill_factor[0] * 55. * 1e4
-        except:
-            log.info('Using default mirror illumination value')
-            area = 50. * 1e4
-    else:
+    try:
+        F = fits.open(fn)
+        names = ['RHO_STRT', 'THE_STRT', 'PHI_STRT', 'X_STRT', 'Y_STRT']
+        r, t, p, x, y = [F[0].header[name] for name in names]
+        mirror_illum = float(os.popen('/home/00156/drory/illum_lib/hetillum -p'
+                             '-x "[%0.4f,%0.4f,%0.4f]" "[%0.4f,%0.4f]" 256' %
+                                      (r, t, p, x, y)).read().split('\n')[0])
+        area = mirror_illum * 55. * 1e4
+    except:
         log.info('Using default mirror illumination value')
         area = 50. * 1e4
+#    if hetpupil_installed:
+#        log.info('Using HetpupilModel from pyhetdex')
+#        try:
+#            mirror_illum = HetpupilModel([fn], normalize=False)
+#            area = mirror_illum.fill_factor[0] * 55. * 1e4
+#        except:
+#            log.info('Using default mirror illumination value')
+#            area = 50. * 1e4
+#    else:
+#        log.info('Using default mirror illumination value')
+#        area = 50. * 1e4
     log.info('Mirror illumination: %0.2f m^2' % (area/1e4))
     return area
+
+
+def panstarrs_query(ra_deg, dec_deg, rad_deg, mindet=1,
+                    maxsources=30000,
+                    server=('https://archive.stsci.edu/panstarrs/search.php')):
+    """
+    Query Pan-STARRS DR1 @ MAST
+    parameters: ra_deg, dec_deg, rad_deg: RA, Dec, field
+                                          radius in degrees
+                mindet: minimum number of detection (optional)
+                maxsources: maximum number of sources
+                server: servername
+    returns: astropy.table object
+    """
+    r = requests.get(server, params={'RA': ra_deg, 'DEC': dec_deg,
+                                     'SR': rad_deg, 'max_records': maxsources,
+                                     'outputformat': 'VOTable',
+                                     'ndetections': ('>%d' % mindet)})
+
+    # write query data into local file
+    name = str(uuid.uuid4()) + '.xml'
+    outf = open(name, 'w')
+    outf.write(r.text)
+    outf.close()
+
+    # parse local file into astropy.table object
+    data = parse_single_table(name)
+    os.remove(name)
+    return data.to_table(use_names_over_ids=True)
+
+
+def get_throughput(path):
+    attr = ['TARGTRA', 'TARGTDEC', 'GUIDLOOP', 'MJD', 'PSFMAG']
+    m = []
+    for gp in ['gc1', 'gc2']:
+        tarfolder = op.join(path, '%s.tar.tar' % gp)
+        T = tarfile.open(tarfolder, 'r')
+        init_list = sorted([name for name in T.getnames()
+                            if name[-5:] == '.fits'])
+
+        for fn in init_list:
+            fobj = T.extractfile(T.getmember(fn))
+            f = fits.open(fobj)
+            m.append([])
+            if f[1].header['GUIDLOOP'] == 'ACTIVE':
+                for att in attr:
+                    m[-1].append(f[1].header[att])
+    try:
+        T1 = panstarrs_query(m[0]*15., m[1], 3. / 3600.)
+    except:
+        log.info('Could not get panstarrs match.')
+        return 1.0
+    if len(T1) == 0:
+        log.info('No matches to panstarrs found.')
+        return 1.0
+    elif len(T1) > 1:
+        log.info('Multiple matches within 3", using closest')
+    gmag = T1['gMeanPSFMag'][0]
+    if (gmag < 0.) + (gmag > 25.):
+        log.info('Unreasonable g-mag from panstarrs: %0.2f' % gmag)
+        return 1.0
+    throughput = np.zeros((len(m),))
+    for i, mi in enumerate(m):
+        throughput[i] = 10**(-0.4 * (mi[4] - gmag))
+    t = np.mean(throughput)
+    log.info('Throughput for %s is %0.2f' % (path, t))
+    return t
 
 
 def check_if_standard(objname):
@@ -1026,16 +1128,17 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         fn = (sci_path % (instrument, instrument, sci_obs,
                           '%02d' % cnt, instrument, ifuslot))
         fn = glob.glob(fn)
-        mini = get_objects(fn, ['OBJECT', 'EXPTIME'])
+        mini = get_objects(fn, ['OBJECT', 'EXPTIME'], full=True)
         log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
-        r[calinfo[-1][:, 1] == 1.] = 0.
+        r[calinfo[-3][:, 1] == 1.] = 0.
         r /= mini[0][1]
         r /= mini[0][2]
+        r /= mini[0][3]
         #ftf_cor = correct_fiber_to_fiber(r, calinfo[5][:, 0],
         #                                 calinfo[5][:, 1])
         #r = r / ftf_cor[:, np.newaxis]
         sky = sky_subtraction(r, calinfo[5][:, 0], calinfo[5][:, 1])
-        sky[calinfo[-1][:, 1] == 1.] = 0.
+        sky[calinfo[-3][:, 1] == 1.] = 0.
         skysub = r - sky
         X = np.array([T['wave'], T['x_0'], T['y_0']])
         for S, name in zip([sky, skysub], ['sky', 'skysub']):
@@ -1155,14 +1258,8 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
     calinfo.insert(2, twiflat)
     flatspec = get_spectra(calinfo[2], calinfo[1])
     calinfo.append(flatspec)
-    f = []
-    for i, cal in enumerate(calinfo):
-        if i == 0:
-            func = fits.PrimaryHDU
-        else:
-            func = fits.ImageHDU
-        f.append(func(cal))
-    fits.HDUList(f).writeto('test_all_%s.fits' % specname, overwrite=True)
+    bigF = get_bigF(trace, calinfo[2])
+    calinfo.append(bigF)
     #####################
     # SCIENCE REDUCTION #
     #####################
@@ -1179,9 +1276,19 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
             response = big_reduction(obj, bf, instrument, sci_obs, calinfo,
                                      amps, commonwave, ifuslot, specname,
                                      standard=True)
-    for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-        big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                      ifuslot, specname, response=response)
+    f = []
+    for i, cal in enumerate(calinfo):
+        if i == 0:
+            func = fits.PrimaryHDU
+        else:
+            func = fits.ImageHDU
+        f.append(func(cal))
+    if response is not None:
+        f.append(fits.ImageHDU(np.array([commonwave, response])))
+    fits.HDUList(f).writeto('test_all_%s.fits' % specname, overwrite=True)
+#    for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
+#        big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
+#                      ifuslot, specname, response=response)
             
 
 #        header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
@@ -1204,22 +1311,3 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
 #                        dither_pattern[i, 0])
 #            ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] +
 #                        dither_pattern[i, 1])
-
-#
-#fitslist = [fits.PrimaryHDU(np.vstack(allspec)),
-#            fits.ImageHDU(np.array(allflatspec)),
-#            fits.ImageHDU(commonwave),
-#            fits.ImageHDU(np.array(allra)),
-#            fits.ImageHDU(np.array(alldec)),
-#            fits.ImageHDU(np.array(allx)),
-#            fits.ImageHDU(np.array(ally))]
-#fits.HDUList(fitslist).writeto('test_big.fits', overwrite=True)
-#flist1 = []
-#alls = np.vstack(allsub)
-#for j, resi in enumerate(alls):
-#    if j == 0:
-#        func = fits.PrimaryHDU
-#    else:
-#        func = fits.ImageHDU
-#    flist1.append(func(resi))
-#fits.HDUList(flist1).writeto('test_sub.fits', overwrite=True)
