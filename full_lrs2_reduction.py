@@ -1051,8 +1051,11 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
             return 1.0
     throughput = np.zeros((len(M),))
     for i, mi in enumerate(M):
-        throughput[i] = 10**(-0.4 * (mi[4] - gmag))
-    t = np.mean(throughput)
+        try:
+            throughput[i] = 10**(-0.4 * (mi[4] - gmag))
+        except:
+            args.log.warning(mi)
+    t = np.mean(throughput[throughput>0.0])
     log.info('Throughput for %s is %0.2f' % (path, t))
     return t
 
