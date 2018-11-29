@@ -684,7 +684,7 @@ def count_matches(lines, loc, fib, cnt=5):
 
 def get_wavelength_from_arc(image, trace, lines, side):
     if side == 'uv':
-        thresh = 3.
+        thresh = 5.
     if side == 'orange':
         thresh = 50.
     if side == 'red':
@@ -1268,7 +1268,7 @@ for info in [blueinfo[0], blueinfo[1]]:  # , redinfo[0], redinfo[1]]:
                                 ifuslot)
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
                                   specname)
-
+        fits.PrimaryHDU(masterarc).writeto('wtf.fits', overwrite=True)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname)
