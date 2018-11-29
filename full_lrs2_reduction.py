@@ -446,21 +446,22 @@ def modify_spectrum(spectrum, w, xloc, yloc):
         dw = np.diff(w[i])
         dw = np.hstack([dw[0], dw])
         spectrum[i] = I(w[i]) / dw
-    norm = np.zeros((spectrum.shape[0],))
-    bins = np.arange(w.min(), w.max(), 40)
-    x = bins + 20.
-    Z = np.zeros((spectrum.shape[0], len(bins)))
-    for j, bini in enumerate(bins):
-        for i in np.arange(spectrum.shape[0]):
-            sel = np.where((w[i] > bini) * (w[i] < bini + 100))[0]
-            norm[i] = np.mean(spectrum[i][sel])
-        smooth = norm / np.mean(norm)
-        Z[:, j] = smooth
-    ftf = spectrum * 0.
-    for i in np.arange(spectrum.shape[0]):
-        I = interp1d(x, Z[i, :], kind='quadratic', fill_value='extrapolate')
-        ftf[i] = I(w[i])
-    return spectrum / ftf
+    return spectrum
+#    norm = np.zeros((spectrum.shape[0],))
+#    bins = np.arange(w.min(), w.max(), 40)
+#    x = bins + 20.
+#    Z = np.zeros((spectrum.shape[0], len(bins)))
+#    for j, bini in enumerate(bins):
+#        for i in np.arange(spectrum.shape[0]):
+#            sel = np.where((w[i] > bini) * (w[i] < bini + 100))[0]
+#            norm[i] = np.mean(spectrum[i][sel])
+#        smooth = norm / np.mean(norm)
+#        Z[:, j] = smooth
+#    ftf = spectrum * 0.
+#    for i in np.arange(spectrum.shape[0]):
+#        I = interp1d(x, Z[i, :], kind='quadratic', fill_value='extrapolate')
+#        ftf[i] = I(w[i])
+#    return spectrum / ftf
 
 
 def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
@@ -485,7 +486,9 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
     Yx = np.arange(flat.shape[0])
     I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
                  fill_value=0.0)
-    shifts = get_trace_shift(sci_array, flat, array_trace, Yx)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        shifts = get_trace_shift(sci_array, flat, array_trace, Yx)
     flat = I(Xx, Yx + shifts)
     log.info('Found shift for %s of %0.3f' % (files1[0], np.median(shifts)))
     array_list = []
@@ -508,9 +511,10 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         spectrum, c, fl, Fimage = weighted_extraction(array_flt, array_err,
                                                       flat, array_trace)
         spectrum[~np.isfinite(spectrum)] = 0.0
-        log.info('Number of 0.0 pixels in spectra: %i' % (spectrum==0.0).sum())
+        log.info('Number of 0.0 pixels in spectra: %i' %
+                 (spectrum == 0.0).sum())
         speclist = []
-        #spectrum = modify_spectrum(spectrum, array_wave, xloc, yloc)
+        spectrum = modify_spectrum(spectrum, array_wave, xloc, yloc)
         for fiber in np.arange(array_wave.shape[0]):
             I = interp1d(array_wave[fiber], spectrum[fiber],
                          kind='quadratic', fill_value='extrapolate')
@@ -1325,9 +1329,10 @@ for info in [blueinfo[0], blueinfo[1]]:  # , redinfo[0], redinfo[1]]:
         fi.header['EXTNAME'] = n
     fits.HDUList(f).writeto('cal_%s_%s.fits' % (args.date, specname),
                             overwrite=True)
-#    for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-#        big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-#                      ifuslot, specname, response=response)
+    for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
+        if sci_obs == '0000005':
+            big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
+                          ifuslot, specname, response=response)
             
 
 #        header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
