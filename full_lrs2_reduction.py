@@ -684,7 +684,7 @@ def count_matches(lines, loc, fib, cnt=5):
 
 def get_wavelength_from_arc(image, trace, lines, side):
     if side == 'uv':
-        thresh = 5.
+        thresh = 3.
     if side == 'orange':
         thresh = 50.
     if side == 'red':
