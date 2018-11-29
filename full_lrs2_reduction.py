@@ -339,7 +339,7 @@ def find_cosmics(Y, E, thresh=8., ran=0):
             sel = ((x + i) >= 0) * ((x + i) < Y.shape[0])
             sel2 = ((y + j) >= 0) * ((y + j) < Y.shape[1])
             sel = sel * sel2
-            sel3 = P[(x + i)[sel], (y + j)[sel]] > thresh / 2.
+            sel3 = P[(x + i)[sel], (y + j)[sel]] > thresh / 4.
             xx.append((x + i)[sel][sel3])
             yy.append((y + j)[sel][sel3])
     xx = np.hstack(xx)
@@ -368,7 +368,7 @@ def weighted_extraction(image, error, flat, trace):
         T = np.zeros((3, trace.shape[1], 4))
         indl = np.floor(trace[fiber]).astype(int)
         flag = False
-        for ss, k in enumerate(np.arange(-1, 3)):
+        for ss, k in enumerate(np.arange(0, 2)):
             try:
                 T[0, :, ss] = Y[indl+k, x]
                 T[1, :, ss] = 1. / E[indl+k, x]**2
@@ -392,13 +392,13 @@ def weighted_extraction(image, error, flat, trace):
             a = np.sum(T[0, sel] * T[1, sel] * T[2, sel], axis=1)
             b = np.sum(T[1, sel] * T[2, sel], axis=1)
             spectrum[fiber, sel] = safe_division(a, b)
-            sel1 = T[2, sel].sum(axis=1) < 4.
+            sel1 = T[2, sel].sum(axis=1) < 2.
             spectrum[fiber][sel][sel1] = 0.0
         else:
             a = np.sum(T[0] * T[1] * T[2], axis=1)
             b = np.sum(T[1] * T[2], axis=1)
             spectrum[fiber] = safe_division(a, b)
-            sel = T[2].sum(axis=1) < 4.
+            sel = T[2].sum(axis=1) < 2.
             spectrum[fiber][sel] = 0.0
         TT[fiber] = T
     return spectrum, cosmics, Y, Fimage
@@ -515,6 +515,8 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
                  (spectrum == 0.0).sum())
         speclist = []
         spectrum = modify_spectrum(spectrum, array_wave, xloc, yloc)
+        log.info('Number of 0.0 pixels in spectra: %i' %
+                 (spectrum == 0.0).sum())
         for fiber in np.arange(array_wave.shape[0]):
             I = interp1d(array_wave[fiber], spectrum[fiber],
                          kind='quadratic', fill_value='extrapolate')
@@ -859,12 +861,12 @@ def correct_fiber_to_fiber(data, xloc, yloc, seeing=1.5):
         return o
 
     o = data == 0.
-#    low = np.percentile(data[~o], 16)
-#    mid = np.percentile(data[~o], 50)
-#    high = np.percentile(data[~o], 84)
-#    if (high - mid) > 2.0 * (mid - low):
-#        log.info('Source is too bright to correct fiber to fiber')
-#        return np.ones(data.shape)
+    low = np.percentile(data[~o], 16)
+    mid = np.percentile(data[~o], 50)
+    high = np.percentile(data[~o], 84)
+    if (high - mid) > 2.0 * (mid - low):
+        log.info('Source is too bright to correct fiber to fiber')
+        return np.ones(data.shape)
     smooth = (data[~o, np.newaxis] * W[~o]).sum(axis=0) / W[~o].sum(axis=0)
     o = outlier(data, smooth, data > 0.)
     for i in np.arange(3):
@@ -1331,7 +1333,7 @@ for info in [blueinfo[0], blueinfo[1]]:  # , redinfo[0], redinfo[1]]:
     fits.HDUList(f).writeto('cal_%s_%s.fits' % (args.date, specname),
                             overwrite=True)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-        if sci_obs == '0000025':
+        if sci_obs == '000000005':
             big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
             
