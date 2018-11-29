@@ -81,8 +81,6 @@ baseraw = '/work/03946/hetdex/maverick'
 
 sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*sci.fits')
-twiflt_path = op.join(baseraw, twi_date,  '%s', '%s%s22', 'exp*',
-                      '%s', '2*_%sLL_flt.fits')
 cmp_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_cmp.fits')
 bias_path = op.join(baseraw, twi_date, '%s', '%s%s', 'exp*',
@@ -1212,13 +1210,29 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 
 DIRNAME = get_script_path()
 
-for info in [blueinfo[0], blueinfo[1]]:#, redinfo[0], redinfo[1]]:
+for info in [blueinfo[0], blueinfo[1]]:  # , redinfo[0], redinfo[1]]:
     specinit, specname, multi, lims, amps, slims, arc_names = info
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
     commonwave = np.linspace(lims[0], lims[1], 2064)
     specid, ifuslot, ifuid = multi.split('_')
     package = []
+    flt_check_path = op.join(baseraw, args.date,  'lrs2', 'lrs20000*', 'exp01',
+                             'lrs2', '2*_056LL_flt.fits')
+    flt_files = sorted(glob.glob(flt_check_path))
+    for fn in flt_files:
+        o = fits.open(fn)[0].header['OBJECT']
+        if specname in ['uv', 'orange']:
+            if o == 'ldls_long_B':
+                fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
+        o = fits.open(fn)[0].header['OBJECT']
+        if specname in ['red', 'farred']:
+            if o == 'Qth_R':
+                fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
+    twiflt_path = op.join(baseraw, twi_date,  '%s', fltobs, 'exp*',
+                          '%s', '2*_%sLL_flt.fits')
+    twibase = twiflt_path % (instrument, instrument, instrument,
+                             ifuslot)
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
         ##############
@@ -1235,8 +1249,6 @@ for info in [blueinfo[0], blueinfo[1]]:#, redinfo[0], redinfo[1]]:
         #####################
         log.info('Getting MasterTwi for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        twibase = twiflt_path % (instrument, instrument, '00000*', instrument,
-                                 ifuslot)
         mastertwi = get_mastertwi(twibase, amp, masterbias)
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
@@ -1276,7 +1288,7 @@ for info in [blueinfo[0], blueinfo[1]]:#, redinfo[0], redinfo[1]]:
     calinfo.insert(2, twiflat)
     flatspec = get_spectra(calinfo[2], calinfo[1])
     calinfo.append(flatspec)
-    bigF = get_bigF(trace, calinfo[2])
+    bigF = get_bigF(calinfo[1], calinfo[2])
     calinfo.append(bigF)
     #####################
     # SCIENCE REDUCTION #
@@ -1295,6 +1307,8 @@ for info in [blueinfo[0], blueinfo[1]]:#, redinfo[0], redinfo[1]]:
                                      amps, commonwave, ifuslot, specname,
                                      standard=True)
     f = []
+    names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias', 'xypos',
+             'dead', 'flatspec', 'bigF']
     for i, cal in enumerate(calinfo):
         if i == 0:
             func = fits.PrimaryHDU
@@ -1303,7 +1317,11 @@ for info in [blueinfo[0], blueinfo[1]]:#, redinfo[0], redinfo[1]]:
         f.append(func(cal))
     if response is not None:
         f.append(fits.ImageHDU(np.array([commonwave, response], dtype=float)))
-    fits.HDUList(f).writeto('test_all_%s.fits' % specname, overwrite=True)
+        names.append('response')
+    for fi, n in zip(f, names):
+        f.header['EXTNAME'] = n
+    fits.HDUList(f).writeto('cal_%s_%s.fits' % (args.date, specname),
+                            overwrite=True)
 #    for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
 #        big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
 #                      ifuslot, specname, response=response)
