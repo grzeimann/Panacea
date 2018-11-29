@@ -953,7 +953,7 @@ def get_mirror_illumination(fn=None):
         names = ['RHO_STRT', 'THE_STRT', 'PHI_STRT', 'X_STRT', 'Y_STRT']
         r, t, p, x, y = [F[0].header[name] for name in names]
         mirror_illum = float(os.popen('/home/00156/drory/illum_lib/hetillum -p'
-                             '-x "[%0.4f,%0.4f,%0.4f]" "[%0.4f,%0.4f]" 256' %
+                             ' -x "[%0.4f,%0.4f,%0.4f]" "[%0.4f,%0.4f]" 256' %
                                       (r, t, p, x, y)).read().split('\n')[0])
         area = mirror_illum * 55. * 1e4
     except:
