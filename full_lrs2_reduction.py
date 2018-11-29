@@ -1034,8 +1034,7 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
             if f[1].header['GUIDLOOP'] == 'ACTIVE':
                 for att in attr:
                     M[-1].append(f[1].header[att])
-    print(M)
-    gmag = M[0][-1].split(',')[3]
+    gmag = float(M[0][-1].split(',')[3])
     log.info("Guider header find g' mag: %0.2f" % gmag)
     if gmag < 0.:
         try:
