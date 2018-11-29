@@ -1004,7 +1004,7 @@ def panstarrs_query(ra_deg, dec_deg, rad_deg, mindet=1,
 
 
 def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
-    attr = ['TARGTRA', 'TARGTDEC', 'GUIDLOOP', 'MJD', 'PSFMAG']
+    attr = ['TARGTRA', 'TARGTDEC', 'GUIDLOOP', 'MJD', 'PSFMAG', 'STARMAGS']
     M = []
     path = op.join(path, args.date)
     f = op.basename(fn)
@@ -1035,20 +1035,23 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
                 for att in attr:
                     M[-1].append(f[1].header[att])
     print(M)
-    try:
-        T1 = panstarrs_query(M[0]*15., M[1], 3. / 3600.)
-    except:
-        log.info('Could not get panstarrs match.')
-        return 1.0
-    if len(T1) == 0:
-        log.info('No matches to panstarrs found.')
-        return 1.0
-    elif len(T1) > 1:
-        log.info('Multiple matches within 3", using closest')
-    gmag = T1['gMeanPSFMag'][0]
-    if (gmag < 0.) + (gmag > 25.):
-        log.info('Unreasonable g-mag from panstarrs: %0.2f' % gmag)
-        return 1.0
+    gmag = M[0][-1].split(',')[3]
+    log.info("Guider header find g' mag: %0.2f" % gmag)
+    if gmag < 0.:
+        try:
+            T1 = panstarrs_query(M[0]*15., M[1], 3. / 3600.)
+        except:
+            log.info('Could not get panstarrs match.')
+            return 1.0
+        if len(T1) == 0:
+            log.info('No matches to panstarrs found.')
+            return 1.0
+        elif len(T1) > 1:
+            log.info('Multiple matches within 3", using closest')
+        gmag = T1['gMeanPSFMag'][0]
+        if (gmag < 0.) + (gmag > 25.):
+            log.info('Unreasonable g-mag from panstarrs: %0.2f' % gmag)
+            return 1.0
     throughput = np.zeros((len(M),))
     for i, mi in enumerate(M):
         throughput[i] = 10**(-0.4 * (mi[4] - gmag))
