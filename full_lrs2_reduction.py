@@ -359,7 +359,7 @@ def find_cosmics(Y, E, thresh=8., ran=0):
     K[:-1, :] += C[1:, :]
     K[:, 1:] += C[:, :-1]
     K[:, :-1] += C[:, 1:]
-    Y[K] = np.nan
+    Y[np.array(K, dtype=bool)] = np.nan
     nY = interpolate_replace_nans(Y, G)
     return C, nY
 
