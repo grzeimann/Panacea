@@ -365,7 +365,7 @@ def find_cosmics(Y, E, thresh=8., ran=0):
     return C, nY
 
 
-def weighted_extraction(image, error, flat, trace, bigW, bigF):
+def weighted_extraction(image, error, flat, trace):
     E = safe_division(error, flat)
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
@@ -855,7 +855,7 @@ def create_header_objection(wave, image, func=fits.ImageHDU):
     return hdu
 
 
-def sky_subtraction(rect, ncomponents=15):
+def sky_subtraction(rect, error, ncomponents=15):
     def outlier(y, y1, oi):
         m = np.abs(y[oi] - y1[oi])
         o = (y - y1) > 3. * np.median(m)
@@ -866,8 +866,10 @@ def sky_subtraction(rect, ncomponents=15):
         low = np.percentile(y[~o], 16)
         mid = np.percentile(y[~o], 50)
         high = np.percentile(y[~o], 84)
+        flag = False
         if (high - mid) > 2.0 * (mid - low):
-            y1 = np.ones(x[~o].shape) * low
+            y1 = np.ones(x[~o].shape) * np.percentile(y[~o], 5)
+            flag = True
         else:
             y1 = savgol_filter(y[~o], 31, 3)
         I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
@@ -877,11 +879,14 @@ def sky_subtraction(rect, ncomponents=15):
             y1 = savgol_filter(y[~o], 51, 3)
             I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
             y1 = I(x)
-        return y1, o
+        return y1, o, flag
 
     x = np.arange(rect.shape[0])
     y = np.median(rect, axis=1)
-    f, o = fit_sky_col(x, y)
+    f, o, flag = fit_sky_col(x, y)
+    if flag:
+        sky = np.percentile(rect, 5, axis=0)
+        return sky
     ica = FastICA(n_components=ncomponents)
     md = np.median(rect[~o], axis=0)
     msub = rect[~o] - md
