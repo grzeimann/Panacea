@@ -842,6 +842,42 @@ def create_header_objection(wave, image, func=fits.ImageHDU):
     return hdu
 
 
+def correct_ftf(rect, error):
+    def outlier(y, y1, oi):
+        m = np.abs(y[oi] - y1[oi])
+        o = (y - y1) > 3. * np.median(m)
+        return o
+
+    def fit_sky_col(x, y):
+        o = y == 0.
+        low = np.percentile(y[~o], 16)
+        mid = np.percentile(y[~o], 50)
+        high = np.percentile(y[~o], 84)
+        flag = False
+        if (high - mid) > 2.0 * (mid - low):
+            y1 = np.ones(x[~o].shape) * np.percentile(y[~o], 5)
+            log.info('Object is too bright for fiber to fiber correction.')
+            flag = True
+        else:
+            y1 = savgol_filter(y[~o], 31, 3)
+        I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
+        y1 = I(x)
+        for i in np.arange(3):
+            o += outlier(y, y1, ~o)
+            y1 = savgol_filter(y[~o], 51, 3)
+            I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
+            y1 = I(x)
+        return y1, o, flag
+
+    x = np.arange(rect.shape[0])
+    y = np.median(rect, axis=1)
+    f, o, flag = fit_sky_col(x, y)
+    ftf = f / np.median(f)
+    if not flag:
+        return rect / ftf[:, np.newaxis], error / ftf[:, np.newaxis]
+    else:
+        return rect, error
+
 def sky_subtraction(rect, error, ncomponents=25):
     def outlier(y, y1, oi):
         m = np.abs(y[oi] - y1[oi])
@@ -1213,6 +1249,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         e /= mini[0][1]
         e /= mini[0][2]
         e /= mini[0][3]
+        r, e = correct_ftf(r, e)
         sky = sky_subtraction(r, e)
         sky[calinfo[-3][:, 1] == 1.] = 0.
         skysub = r - sky
