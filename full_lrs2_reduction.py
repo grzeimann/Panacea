@@ -52,15 +52,15 @@ parser.add_argument("-s", "--side",
 args = parser.parse_args(args=None)
 
 blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4645.], ['LL', 'LU'],
-             [4350., 4375.], ['Hg_B', 'Cd-A_B', 'FeAr_R', 'Cd_B']],
+             [4350., 4375.], ['hg_b', 'cd-a_b', 'fear_r', 'cd_b']],
             ['BR', 'orange', '503_056_7001',
              [4635., 6950.], ['RU', 'RL'], [6270., 6470.],
-             ['Hg_B', 'Cd-A_B', 'FeAr_R']]]
+             ['hg_b', 'cd-a_b', 'fear_r', 'cd_b']]]
 redinfo = [['RL', 'red', '502_066_7002', [6450., 8400.], ['LL', 'LU'],
-            [7225., 7425.], ['Hg_R', 'Cd-A_B', 'FeAr_R', 'Cd_B']],
+            [7225., 7425.], ['hg_r', 'cd-a_b', 'fear_r', 'cd_b']],
            ['RR', 'farred', '502_066_7002',
             [8275., 10500.], ['RU', 'RL'], [9280., 9530.],
-            ['Hg_R', 'Cd-A_B', 'FeAr_R']]]
+            ['hg_r', 'cd-a_b', 'fear_r', 'cd_b']]]
 
 fplane_file = '/work/03730/gregz/maverick/fplane.txt'
 twi_date = args.date
@@ -562,7 +562,7 @@ def get_masterarc(arc_path, amp, arc_names, masterbias, specname):
     for filename in files:
         f = fits.open(filename)
         # scicond = ('_056' in f[0].header['OBJECT']) and ('sci' in filename)
-        if f[0].header['OBJECT'] in arc_names:
+        if f[0].header['OBJECT'].lower() in arc_names:
             a, e = base_reduction(filename)
             a[:] -= masterbias
             listarc.append(a)
