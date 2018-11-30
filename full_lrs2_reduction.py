@@ -51,10 +51,10 @@ parser.add_argument("-s", "--side",
 
 args = parser.parse_args(args=None)
 
-blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4640.], ['LL', 'LU'],
+blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4645.], ['LL', 'LU'],
              [4350., 4375.], ['Hg_B', 'Cd-A_B', 'FeAr_R']],
             ['BR', 'orange', '503_056_7001',
-             [4570., 6950.], ['RU', 'RL'], [6270., 6470.],
+             [4635., 6950.], ['RU', 'RL'], [6270., 6470.],
              ['Hg_B', 'Cd-A_B', 'FeAr_R']]]
 redinfo = [['RL', 'red', '502_066_7002', [6450., 8400.], ['LL', 'LU'],
             [7225., 7425.], ['Hg_R', 'Cd-A_B', 'FeAr_R']],
