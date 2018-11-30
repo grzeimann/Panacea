@@ -350,6 +350,7 @@ def find_cosmics(Y, E, trace, thresh=8., ran=0):
             P = np.abs(T[0] - m) / T[1]
             C[T[2][P > 4.], T[3][P > 4.]] = 1.
     C = np.array(C, dtype=bool)
+    log.info('Number of fiber pixels hit by cosmics: %i' % C.sum())
     return C
 
 
