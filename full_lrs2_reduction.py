@@ -378,7 +378,6 @@ def weighted_extraction(image, error, flat, trace):
     x = np.arange(trace.shape[1])
     spectrum = 0. * trace
     error_spec = 0. * trace
-    TT = np.zeros((trace.shape[0], 3, trace.shape[1], 4))
     Fimage = image * 0.
     for fiber in np.arange(trace.shape[0]):
         T = np.zeros((4, trace.shape[1], 4))
@@ -423,7 +422,6 @@ def weighted_extraction(image, error, flat, trace):
             sel = T[2].sum(axis=1) < 2.
             spectrum[fiber][sel] = 0.0
             error_spec[fiber][sel] = 0.0
-        TT[fiber] = T
     return spectrum, error_spec, C, Y, Fimage
 
 
