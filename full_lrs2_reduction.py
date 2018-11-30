@@ -1190,7 +1190,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         r /= mini[0][1]
         r /= mini[0][2]
         r /= mini[0][3]
-        sky = sky_subtraction(r, calinfo[5][:, 0], calinfo[5][:, 1])
+        sky = sky_subtraction(r)
         sky[calinfo[-3][:, 1] == 1.] = 0.
         skysub = r - sky
         if response is not None:
