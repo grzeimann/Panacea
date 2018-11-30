@@ -330,39 +330,27 @@ def safe_division(num, denom, eps=1e-8, fillval=0.0):
     return div
 
 
-def find_cosmics(Y, E, thresh=8., ran=0):
-    A = medfilt2d(Y, (5, 1))
-    S = safe_division((Y - A), E)
-    P = S - medfilt2d(S, (1, 15))
-    x, y = np.where(P > thresh)
-    xx, yy = ([], [])
-    for i in np.arange(-0 - ran, 1 + ran):
-        for j in np.arange(-0 - ran, 1 + ran):
-            sel = ((x + i) >= 0) * ((x + i) < Y.shape[0])
-            sel2 = ((y + j) >= 0) * ((y + j) < Y.shape[1])
-            sel = sel * sel2
-            sel3 = P[(x + i)[sel], (y + j)[sel]] > thresh / 4.
-            xx.append((x + i)[sel][sel3])
-            yy.append((y + j)[sel][sel3])
-    xx = np.hstack(xx)
-    yy = np.hstack(yy)
-    inds = np.ravel_multi_index([xx, yy], Y.shape)
-    inds = np.unique(inds)
-    C = np.zeros(Y.shape, dtype=bool).ravel()
-    C[inds] = True
-    C = C.reshape(Y.shape)
-    log.info('Number of pixels affected by cosmics: %i' % len(x))
-    log.info('Fraction of pixels affected by cosmics: %0.5f' %
-             (1.*len(inds)/Y.shape[0]/Y.shape[1]))
-    G = Gaussian2DKernel(1.5)
-    K = C * 1.
-    K[1:, :] += C[:-1, :]
-    K[:-1, :] += C[1:, :]
-    K[:, 1:] += C[:, :-1]
-    K[:, :-1] += C[:, 1:]
-    Y[np.array(K, dtype=bool)] = np.nan
-    nY = interpolate_replace_nans(Y, G)
-    return C, nY
+def find_cosmics(Y, E, trace, thresh=8., ran=0):
+    x = np.arange(trace.shape[1])
+    C = Y * 0.
+    for fiber in np.arange(trace.shape[0]):
+        indl = np.floor(trace[fiber]).astype(int)
+        T = np.zeros((4, trace.shape[1], 4))
+        flag = True
+        for ss, k in enumerate(np.arange(-1, 3)):
+            try:
+                T[0, :, ss] = Y[indl+k, x]
+                T[1, :, ss] = E[indl+k, x]
+                T[2, :, ss] = indl+k
+                T[3, :, ss] = x
+            except:
+                flag = False
+        if flag:
+            m = np.median(T[0], axis=1)
+            P = np.abs(T[0] - m) / T[1]
+            C[T[2][P > 4.], T[3][P > 4.]] = 1.
+    C = np.array(C, dtype=bool)
+    return C
 
 
 def weighted_extraction(image, error, flat, trace):
@@ -372,7 +360,7 @@ def weighted_extraction(image, error, flat, trace):
     nY = Y * 1.
     C = np.array(Y * 0., dtype=bool)
     for i in np.arange(1):
-        cosmics, nY = find_cosmics(nY, E, 4., ran=1)
+        cosmics = find_cosmics(nY, E, 4., ran=1)
         C = C + cosmics
 
     x = np.arange(trace.shape[1])
