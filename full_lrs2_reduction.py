@@ -330,7 +330,7 @@ def safe_division(num, denom, eps=1e-8, fillval=0.0):
     return div
 
 
-def find_cosmics(Y, E, trace, thresh=4., ran=0):
+def find_cosmics(Y, E, trace, thresh=8., ran=0):
     x = np.arange(trace.shape[1])
     C = Y * 0.
     for fiber in np.arange(trace.shape[0]):
