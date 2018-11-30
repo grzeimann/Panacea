@@ -347,7 +347,7 @@ def find_cosmics(Y, E, trace, thresh=4., ran=0):
                 flag = False
         if flag:
             m = np.median(T[0], axis=1)
-            P = np.abs(T[0] - m) / T[1]
+            P = np.abs(T[0] - m[:, np.newaxis]) / T[1]
             C[T[2][P > thresh], T[3][P > thresh]] = 1.
     C = np.array(C, dtype=bool)
     log.info('Number of fiber pixels hit by cosmics: %i' % C.sum())
