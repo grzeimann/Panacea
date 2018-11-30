@@ -867,6 +867,8 @@ def sky_subtraction(rect, error, ncomponents=15):
         flag = False
         if (high - mid) > 2.0 * (mid - low):
             y1 = np.ones(x[~o].shape) * np.percentile(y[~o], 5)
+            log.info('Object is too bright for regular sky subtraction.')
+            log.info('Subtracting the 5th percentile')
             flag = True
         else:
             y1 = savgol_filter(y[~o], 31, 3)
@@ -1222,7 +1224,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         e /= mini[0][1]
         e /= mini[0][2]
         e /= mini[0][3]
-        sky = sky_subtraction(r)
+        sky = sky_subtraction(r, e)
         sky[calinfo[-3][:, 1] == 1.] = 0.
         skysub = r - sky
         if response is not None:
