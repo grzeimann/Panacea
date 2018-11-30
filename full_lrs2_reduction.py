@@ -842,7 +842,7 @@ def create_header_objection(wave, image, func=fits.ImageHDU):
     return hdu
 
 
-def sky_subtraction(rect, error, ncomponents=15):
+def sky_subtraction(rect, error, ncomponents=25):
     def outlier(y, y1, oi):
         m = np.abs(y[oi] - y1[oi])
         o = (y - y1) > 3. * np.median(m)
@@ -1204,8 +1204,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         fn = glob.glob(fn)
         mini = get_objects(fn, ['OBJECT', 'EXPTIME'], full=True)
         log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
-        r[calinfo[-4][:, 1] == 1.] = 0.
-        e[calinfo[-4][:, 1] == 1.] = 0.
+        r[calinfo[-3][:, 1] == 1.] = 0.
+        e[calinfo[-3][:, 1] == 1.] = 0.
 
         r /= mini[0][1]
         r /= mini[0][2]
@@ -1214,7 +1214,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         e /= mini[0][2]
         e /= mini[0][3]
         sky = sky_subtraction(r, e)
-        sky[calinfo[-4][:, 1] == 1.] = 0.
+        sky[calinfo[-3][:, 1] == 1.] = 0.
         skysub = r - sky
         if response is not None:
             r *= response
