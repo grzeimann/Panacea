@@ -30,6 +30,7 @@ from astropy.stats import biweight_midvariance
 from photutils import DAOStarFinder
 from astropy.modeling.models import Moffat2D
 from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
+from sklearn.decomposition import FastICA
 
 #try:
 #    from pyhetdex.het.telescope import HetpupilModel
@@ -833,7 +834,7 @@ def create_header_objection(wave, image, func=fits.ImageHDU):
     return hdu
 
 
-def sky_subtraction(rect, xloc, yloc):
+def sky_subtraction(rect, ncomponents=15):
     def outlier(y, y1, oi):
         m = np.abs(y[oi] - y1[oi])
         o = (y - y1) > 3. * np.median(m)
@@ -858,9 +859,24 @@ def sky_subtraction(rect, xloc, yloc):
         return y1, o
 
     x = np.arange(rect.shape[0])
-    sky = rect * 0.
-    for j in np.arange(rect.shape[1]):
-        sky[:, j] = fit_sky_col(x, rect[:, j])
+    y = np.median(rect, axis=1)
+    f, o = fit_sky_col(x, y)
+    ica = FastICA(n_components=ncomponents)
+    md = np.median(rect[~o], axis=0)
+    msub = rect[~o] - md
+    S_ = ica.fit_transform(msub.swapaxes(0, 1))  # Reconstruct signals
+    A_ = ica.mixing_  # Get estimated mixing matrix
+    model = (S_[:, np.newaxis, :] *
+             A_[np.newaxis, :, :]).sum(axis=2).swapaxes(0, 1)
+
+    sel = np.where(o)[0]
+    res = rect * 0.
+    res[~o] = model
+    for s in sel:
+        sol = np.linalg.lstsq(S_, rect[s] - md)[0]
+        res[s] = np.dot(S_, sol)
+    m = np.interp(x, x[~o], np.median(rect[~o] - md - model, axis=1))
+    sky = md + res + m[:, np.newaxis]
     return sky
 
 
