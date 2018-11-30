@@ -1246,11 +1246,11 @@ for info in [blueinfo[0], blueinfo[1]]:  # , redinfo[0], redinfo[1]]:
     for fn in flt_files:
         o = fits.open(fn)[0].header['OBJECT']
         if specname in ['uv', 'orange']:
-            if o == 'ldls_long_B':
+            if 'ldls' in o.lower():
                 fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
         o = fits.open(fn)[0].header['OBJECT']
         if specname in ['red', 'farred']:
-            if o == 'Qth_R':
+            if 'qth' in o.lower():
                 fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
     twiflt_path = op.join(baseraw, twi_date,  '%s', fltobs, 'exp*',
                           '%s', '2*_%sLL_flt.fits')
