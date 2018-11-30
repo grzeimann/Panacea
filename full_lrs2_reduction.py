@@ -330,7 +330,7 @@ def safe_division(num, denom, eps=1e-8, fillval=0.0):
     return div
 
 
-def find_cosmics(Y, E, trace, thresh=8., ran=0):
+def find_cosmics(Y, E, trace, thresh=4., ran=0):
     x = np.arange(trace.shape[1])
     C = Y * 0.
     for fiber in np.arange(trace.shape[0]):
@@ -348,7 +348,7 @@ def find_cosmics(Y, E, trace, thresh=8., ran=0):
         if flag:
             m = np.median(T[0], axis=1)
             P = np.abs(T[0] - m) / T[1]
-            C[T[2][P > 4.], T[3][P > 4.]] = 1.
+            C[T[2][P > thresh], T[3][P > thresh]] = 1.
     C = np.array(C, dtype=bool)
     log.info('Number of fiber pixels hit by cosmics: %i' % C.sum())
     return C
@@ -361,7 +361,7 @@ def weighted_extraction(image, error, flat, trace):
     nY = Y * 1.
     C = np.array(Y * 0., dtype=bool)
     for i in np.arange(1):
-        cosmics = find_cosmics(nY, E, 4., ran=1)
+        cosmics = find_cosmics(nY, E, trace, ran=1)
         C = C + cosmics
 
     x = np.arange(trace.shape[1])
