@@ -365,7 +365,7 @@ def find_cosmics(Y, E, thresh=8., ran=0):
     return C, nY
 
 
-def weighted_extraction(image, error, flat, trace):
+def weighted_extraction(image, error, flat, trace, bigW, bigF):
     E = safe_division(error, flat)
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
@@ -377,10 +377,11 @@ def weighted_extraction(image, error, flat, trace):
 
     x = np.arange(trace.shape[1])
     spectrum = 0. * trace
+    error_spec = 0. * trace
     TT = np.zeros((trace.shape[0], 3, trace.shape[1], 4))
     Fimage = image * 0.
     for fiber in np.arange(trace.shape[0]):
-        T = np.zeros((3, trace.shape[1], 4))
+        T = np.zeros((4, trace.shape[1], 4))
         indl = np.floor(trace[fiber]).astype(int)
         flag = False
         for ss, k in enumerate(np.arange(0, 2)):
@@ -388,6 +389,7 @@ def weighted_extraction(image, error, flat, trace):
                 T[0, :, ss] = Y[indl+k, x]
                 T[1, :, ss] = 1. / E[indl+k, x]**2
                 T[2, :, ss] = ~C[indl+k, x]
+                T[3, :, ss] = error[indl+k, x]**2
                 Fimage[indl+k, x] = fiber + 1
             except:
                 v = indl+k
@@ -395,6 +397,7 @@ def weighted_extraction(image, error, flat, trace):
                 T[0, sel, ss] = Y[v[sel], x[sel]]
                 T[1, sel, ss] = 1. / E[v[sel], x[sel]]**2
                 T[2, sel, ss] = ~C[v[sel], x[sel]]
+                T[3, sel, ss] = error[v[sel], x[sel]]**2
                 Fimage[v[sel], x[sel]] = fiber + 1
                 flag = True
         if flag:
@@ -409,14 +412,19 @@ def weighted_extraction(image, error, flat, trace):
             spectrum[fiber, sel] = safe_division(a, b)
             sel1 = T[2, sel].sum(axis=1) < 2.
             spectrum[fiber][sel][sel1] = 0.0
+            error_spec[fiber][sel][sel1] = 0.0
         else:
             a = np.sum(T[0] * T[1] * T[2], axis=1)
             b = np.sum(T[1] * T[2], axis=1)
             spectrum[fiber] = safe_division(a, b)
+            a = np.sum(T[3] * T[1] * T[2], axis=1)
+            b = np.sum(T[1] * T[2], axis=1)
+            error_spec[fiber] = np.sqrt(safe_division(a, b))
             sel = T[2].sum(axis=1) < 2.
             spectrum[fiber][sel] = 0.0
+            error_spec[fiber][sel] = 0.0
         TT[fiber] = T
-    return spectrum, C, Y, Fimage
+    return spectrum, error_spec, C, Y, Fimage
 
 
 def get_trace_shift(sci_array, flat, array_trace, Yx):
@@ -507,7 +515,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
     flat = I(Xx, Yx + shifts)
     log.info('Found shift for %s of %0.3f' % (files1[0], np.median(shifts)))
     array_list = []
-    spec_list = []
+    spec_list, error_list = ([], [])
     orig_list = []
     clist, flist, Flist = ([], [], [])
     for filename1, filename2 in zip(files1, files2):
@@ -523,26 +531,39 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         plaw, norm = get_powerlaw(array_flt, array_trace, spectrum)
         array_flt[:] -= plaw
         array_list.append(array_flt)
-        spectrum, c, fl, Fimage = weighted_extraction(array_flt, array_err,
-                                                      flat, array_trace)
-        spectrum[~np.isfinite(spectrum)] = 0.0
+        spectrum, error, c, fl, Fimage = weighted_extraction(array_flt,
+                                                             array_err,
+                                                             flat, array_trace)
+        sel = ~np.isfinite(spectrum)
+        spectrum[sel] = 0.0
+        error[sel] = 0.0
         log.info('Number of 0.0 pixels in spectra: %i' %
                  (spectrum == 0.0).sum())
-        speclist = []
+        speclist, errorlist = ([], [])
         spectrum = modify_spectrum(spectrum, array_wave, xloc, yloc)
         log.info('Number of 0.0 pixels in spectra: %i' %
                  (spectrum == 0.0).sum())
         for fiber in np.arange(array_wave.shape[0]):
             I = interp1d(array_wave[fiber], spectrum[fiber],
-                         kind='quadratic', fill_value='extrapolate')
+                         kind='linear', fill_value='extrapolate')
+            coV = np.zeros((len(commonwave), spectrum.shape[1]))
+            for i in np.arange(len(commonwave)):
+                w = np.zeros((len(commonwave),))
+                w[i] = 1.
+                coV[i] = np.interp(array_wave[fiber], commonwave, w)
+            error_interp = np.sqrt((coV * error[fiber]**2).sum(axis=1))
             speclist.append(I(commonwave))
+            errorlist.append(error_interp)
+        log.info('Finished rectifying spectra')
         spec_list.append(np.array(speclist))
+        error_list.append(np.array(errorlist))
         orig_list.append(spectrum)
         clist.append(c)
         flist.append(fl)
         Flist.append(Fimage)
     return (np.array(array_list), np.array(spec_list), np.array(orig_list),
-            np.array(clist, dtype=float), np.array(flist), np.array(Flist))
+            np.array(clist, dtype=float), np.array(flist), np.array(Flist),
+            np.array(error_list))
 
 
 def get_masterbias(zro_path, amp):
@@ -964,10 +985,12 @@ def find_source(image, xgrid, ygrid):
         return None
 
 
-def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, seeing=1.5):
+def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
+                   seeing=1.5):
     gamma = seeing / (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
     PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=3.5, gamma=gamma)
     spec = wave * 0.
+    serror = wave * 0.
     for i in np.arange(len(wave)):
         x = xc + xoff[i]
         y = yc + yoff[i]
@@ -976,7 +999,8 @@ def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, seeing=1.5):
         W = PSF(xloc, yloc)
         W /= W.sum()
         spec[i] = (data[:, i] * W).sum() / (W**2).sum()
-    return spec
+        serror[i] = np.sqrt((error[:, i]**2 * W).sum() / (W**2).sum())
+    return spec, serror
 
 
 def get_mirror_illumination(fn=None):
@@ -1169,7 +1193,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
     log.info('Extracting %s from %s' % (obj[0], bf))
     scifiles = sci_path % (instrument, instrument, sci_obs, '*',
                            instrument, ifuslot)
-    images, rect, spec, cos, fl, Fi = extract_sci(scifiles, amps, calinfo[2],
+    images, rect, spec, cos, fl, Fi, E = extract_sci(scifiles, amps, calinfo[2],
                                               calinfo[1], calinfo[0], calinfo[3],
                                               calinfo[4], calinfo[5])
     cnt = 1
@@ -1180,21 +1204,27 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             np.interp(wave_0, T['wave'], T['x_0']))
     yoff = (np.interp(commonwave, T['wave'], T['y_0']) -
             np.interp(wave_0, T['wave'], T['y_0']))
-    for im, r, s, c, fli, Fii in zip(images, rect, spec, cos, fl, Fi):
+    for im, r, s, c, fli, Fii, e in zip(images, rect, spec, cos, fl, Fi, E):
         fn = (sci_path % (instrument, instrument, sci_obs,
                           '%02d' % cnt, instrument, ifuslot))
         fn = glob.glob(fn)
         mini = get_objects(fn, ['OBJECT', 'EXPTIME'], full=True)
         log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
         r[calinfo[-3][:, 1] == 1.] = 0.
+        e[calinfo[-3][:, 1] == 1.] = 0.
+
         r /= mini[0][1]
         r /= mini[0][2]
         r /= mini[0][3]
+        e /= mini[0][1]
+        e /= mini[0][2]
+        e /= mini[0][3]
         sky = sky_subtraction(r)
         sky[calinfo[-3][:, 1] == 1.] = 0.
         skysub = r - sky
         if response is not None:
             r *= response
+            e *= response
             sky *= response
             skysub *= response
         X = np.array([T['wave'], T['x_0'], T['y_0']])
@@ -1212,20 +1242,23 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         loc = find_source(zimage, xgrid, ygrid)
         if loc is not None:
             log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
-            skyspec = extract_source(sky, loc[0], loc[1], xoff, yoff,
+            skyspec, errorskyspec = extract_source(sky, loc[0], loc[1], xoff, yoff,
                                      commonwave, calinfo[5][:, 0],
                                      calinfo[5][:, 1])
-            skysubspec = extract_source(skysub, loc[0], loc[1], xoff, yoff,
+            skysubspec, errorskysubspec = extract_source(skysub, loc[0], loc[1], xoff, yoff,
                                         commonwave, calinfo[5][:, 0],
                                         calinfo[5][:, 1])
         else:
             skyspec = commonwave * 0.
             skysubspec = commonwave * 0.
+            errorskyspec = commonwave * 0.
+            errorskysubspec = commonwave * 0.
         if response is not None:
             f5 = fits.ImageHDU(np.vstack([commonwave, skysubspec, skyspec,
-                                          response]))
+                                          errorskysubspec, errorskyspec, response]))
         else:
-            f5 = fits.ImageHDU(np.vstack([commonwave, skysubspec, skyspec]))
+            f5 = fits.ImageHDU(np.vstack([commonwave, skysubspec, skyspec,
+                                          errorskysubspec, errorskyspec]))
         outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
                                             'exp%02d' % cnt, specname))
         cnt += 1
@@ -1233,7 +1266,9 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         f2 = create_header_objection(commonwave, sky)
         f3 = create_header_objection(commonwave, skysub)
         f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
-        fits.HDUList([f1, f2, f3, f4, fits.ImageHDU(calinfo[5]), f5,
+        f6 = create_header_objection(commonwave, e)
+
+        fits.HDUList([f1, f2, f3, f6, f4, fits.ImageHDU(calinfo[5]), f5,
                       fits.ImageHDU(X), fits.ImageHDU(calinfo[3]),
                       fits.ImageHDU(im), fits.ImageHDU(fli), fits.ImageHDU(Fii),
                       fits.ImageHDU(c), fits.ImageHDU(s)]).writeto(outname, overwrite=True)
