@@ -1361,7 +1361,7 @@ for info in [blueinfo[0], blueinfo[1]]:  # , redinfo[0], redinfo[1]]:
     fits.HDUList(f).writeto('cal_%s_%s.fits' % (args.date, specname),
                             overwrite=True)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-        if sci_obs == '0000010':
+        if sci_obs == '0000024':
             big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
             
