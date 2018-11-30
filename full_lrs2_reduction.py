@@ -364,8 +364,10 @@ def weighted_extraction(image, error, flat, trace):
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
     nY = Y * 1.
-    for i in np.arange(2):
+    C = np.array(Y * 0., dtype=bool)
+    for i in np.arange(3):
         cosmics, nY = find_cosmics(nY, E, 4., ran=1)
+        C = C + cosmics
 
     x = np.arange(trace.shape[1])
     spectrum = 0. * trace
@@ -379,14 +381,14 @@ def weighted_extraction(image, error, flat, trace):
             try:
                 T[0, :, ss] = Y[indl+k, x]
                 T[1, :, ss] = 1. / E[indl+k, x]**2
-                T[2, :, ss] = ~cosmics[indl+k, x]
+                T[2, :, ss] = ~C[indl+k, x]
                 Fimage[indl+k, x] = fiber + 1
             except:
                 v = indl+k
                 sel = np.where((v >= 0) * (v < Y.shape[0]))[0]
                 T[0, sel, ss] = Y[v[sel], x[sel]]
                 T[1, sel, ss] = 1. / E[v[sel], x[sel]]**2
-                T[2, sel, ss] = ~cosmics[v[sel], x[sel]]
+                T[2, sel, ss] = ~C[v[sel], x[sel]]
                 Fimage[v[sel], x[sel]] = fiber + 1
                 flag = True
         if flag:
@@ -408,7 +410,7 @@ def weighted_extraction(image, error, flat, trace):
             sel = T[2].sum(axis=1) < 2.
             spectrum[fiber][sel] = 0.0
         TT[fiber] = T
-    return spectrum, cosmics, nY, Fimage
+    return spectrum, C, nY, Fimage
 
 
 def get_trace_shift(sci_array, flat, array_trace, Yx):
