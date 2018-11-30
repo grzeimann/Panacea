@@ -885,7 +885,7 @@ def sky_subtraction(rect, error, ncomponents=15):
     y = np.median(rect, axis=1)
     f, o, flag = fit_sky_col(x, y)
     if flag:
-        sky = np.percentile(rect, 5, axis=0)
+        sky = np.percentile(rect, 5, axis=0)[np.newaxis] * np.ones((280, 1))
         return sky
     ica = FastICA(n_components=ncomponents)
     md = np.median(rect[~o], axis=0)
