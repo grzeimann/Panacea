@@ -29,6 +29,7 @@ from astrometry import Astrometry
 from astropy.stats import biweight_midvariance
 from photutils import DAOStarFinder
 from astropy.modeling.models import Moffat2D
+from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
 
 #try:
 #    from pyhetdex.het.telescope import HetpupilModel
@@ -352,14 +353,20 @@ def find_cosmics(Y, E, thresh=8., ran=0):
     log.info('Number of pixels affected by cosmics: %i' % len(x))
     log.info('Fraction of pixels affected by cosmics: %0.5f' %
              (1.*len(inds)/Y.shape[0]/Y.shape[1]))
-    return C
+    G = Gaussian2DKernel(1.5)
+    Y[C] = np.nan
+    nY = interpolate_replace_nans(Y, G)
+    return C, nY
 
 
 def weighted_extraction(image, error, flat, trace):
     E = safe_division(error, flat)
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
-    cosmics = find_cosmics(Y, E, 4., ran=1)
+    nY = Y * 1.
+    for i in np.arange(2):
+        cosmics, nY = find_cosmics(nY, E, 4., ran=1)
+
     x = np.arange(trace.shape[1])
     spectrum = 0. * trace
     TT = np.zeros((trace.shape[0], 3, trace.shape[1], 4))
@@ -401,7 +408,7 @@ def weighted_extraction(image, error, flat, trace):
             sel = T[2].sum(axis=1) < 2.
             spectrum[fiber][sel] = 0.0
         TT[fiber] = T
-    return spectrum, cosmics, Y, Fimage
+    return spectrum, cosmics, nY, Fimage
 
 
 def get_trace_shift(sci_array, flat, array_trace, Yx):
