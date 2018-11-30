@@ -354,7 +354,12 @@ def find_cosmics(Y, E, thresh=8., ran=0):
     log.info('Fraction of pixels affected by cosmics: %0.5f' %
              (1.*len(inds)/Y.shape[0]/Y.shape[1]))
     G = Gaussian2DKernel(1.5)
-    Y[C] = np.nan
+    K = C * 1.
+    K[1:, :] += C[:-1, :]
+    K[:-1, :] += C[1:, :]
+    K[:, 1:] += C[:, :-1]
+    K[:, :-1] += C[:, 1:]
+    Y[K] = np.nan
     nY = interpolate_replace_nans(Y, G)
     return C, nY
 
