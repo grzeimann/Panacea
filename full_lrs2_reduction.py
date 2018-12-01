@@ -30,7 +30,7 @@ from astropy.stats import biweight_midvariance
 from photutils import DAOStarFinder
 from astropy.modeling.models import Moffat2D
 from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
-from sklearn.decomposition import FastICA
+from sklearn.decomposition import PCA
 
 #try:
 #    from pyhetdex.het.telescope import HetpupilModel
@@ -909,24 +909,20 @@ def sky_subtraction(rect, error, ncomponents=25):
     x = np.arange(rect.shape[0])
     y = np.median(rect, axis=1)
     f, o, flag = fit_sky_col(x, y)
+    o[:-1] += o[1:]
+    o[1:] += o[:-1]
     if flag:
         sky = np.percentile(rect, 5, axis=0)[np.newaxis] * np.ones((280, 1))
         return sky
-    ica = FastICA(n_components=ncomponents)
     md = np.median(rect[~o], axis=0)
     msub = rect[~o] - md
-    S_ = ica.fit_transform(msub.swapaxes(0, 1))  # Reconstruct signals
-    A_ = ica.mixing_  # Get estimated mixing matrix
-    model = (S_[:, np.newaxis, :] *
-             A_[np.newaxis, :, :]).sum(axis=2).swapaxes(0, 1)
-
-    sel = np.where(o)[0]
+    pca = PCA(n_components=ncomponents)
+    H = pca.fit_transform(msub.swapaxes(0, 1))
     res = rect * 0.
-    res[~o] = model
-    for s in sel:
-        sol = np.linalg.lstsq(S_, rect[s] - md)[0]
-        res[s] = np.dot(S_, sol)
-    m = np.interp(x, x[~o], np.median(rect[~o] - md - model, axis=1))
+    for s in np.arange(rect.shape[0]):
+        sol = np.linalg.lstsq(H, rect[s] - md)[0]
+        res[s] = np.dot(H, sol)
+    m = np.interp(x, x[~o], np.median(rect[~o] - md - res[~o], axis=1))
     sky = md + res + m[:, np.newaxis]
     return sky
 
@@ -1427,7 +1423,7 @@ for info in [redinfo[0], redinfo[1]]:
     fits.HDUList(f).writeto('cal_%s_%s.fits' % (args.date, specname),
                             overwrite=True)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-        if sci_obs == '0000025':
+        if sci_obs == '0000008':
             big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
             
