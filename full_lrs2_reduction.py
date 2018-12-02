@@ -744,7 +744,6 @@ def get_wavelength_from_arc(image, trace, lines, side):
         if np.abs(off) < 50.:
             break
     off = loc[fib][ind] - lines['col2'][ls[0]]
-    print('Pix offset for first match: %0.2f' % off)
     found_lines[fib, ls[0]] = loc[fib][ind]
     y = lines['col2'] + off
     s = found_lines[fib] * 0.
@@ -1345,7 +1344,7 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 
 DIRNAME = get_script_path()
 
-for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
+for info in [redinfo[0], redinfo[1]]:
     specinit, specname, multi, lims, amps, slims, arc_names = info
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
@@ -1416,7 +1415,6 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
                  (ifuslot, amp))
         bigW = get_bigW(amp, wave, trace, masterbias)
         package.append([wave, trace, bigW, masterbias, amppos, dead])
-    continue
     # Normalize the two amps and correct the flat
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
