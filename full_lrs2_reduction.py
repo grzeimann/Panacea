@@ -739,7 +739,12 @@ def get_wavelength_from_arc(image, trace, lines, side):
         print(i, j, k)
     found_lines = np.zeros((trace.shape[0], len(lines)))
     ls = np.argsort(lines['col3'])[::-1]
-    ind = np.argmax(pr[fib])
+
+    inds = np.argsort(pr[fib])[::-1]
+    for ind in inds:
+        off = loc[fib][ind] - lines['col2'][ls[0]]
+        if off < 50.:
+            break
     off = loc[fib][ind] - lines['col2'][ls[0]]
     print('Pix offset for first match: %0.2f' % off)
     found_lines[fib, ls[0]] = loc[fib][ind]
