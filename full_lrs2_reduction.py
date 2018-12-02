@@ -46,9 +46,9 @@ parser.add_argument("-d", "--date",
                     help='''Date for reduction''',
                     type=str, default='20181108')
 
-parser.add_argument("-s", "--side",
-                    help='''Blue or Red''',
-                    type=str, default='red')
+parser.add_argument("-o", "--object",
+                    help='''Object name, no input reduces all objects''',
+                    type=str, default=None)
 
 args = parser.parse_args(args=None)
 
@@ -1460,8 +1460,12 @@ for info in [redinfo[0], redinfo[1]]:
     fits.HDUList(f).writeto('cal_%s_%s.fits' % (args.date, specname),
                             overwrite=True)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-        if sci_obs == '0000008':
+        if args.object is None:
             big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
+                          ifuslot, specname, response=response)
+        else:
+            if args.object.lower() in obj.lower():
+                big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
             
 
