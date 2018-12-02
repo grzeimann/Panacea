@@ -754,7 +754,6 @@ def get_wavelength_from_arc(image, trace, lines, side):
         print(guess)
         v = np.abs(guess - loc[fib])
         ER = lines['col3'][l] / lines['col3'][ls[0]]
-        print(l, ls[0], lines['col3'][l], lines['col3'][ls[0]])
         for ind1 in np.where(v < 30.)[0]:
             MR = pr[fib][ind1] / pr[fib][ind]
             EE = MR * np.sqrt(1./ph[fib][ind1]**2 + 1./ph[fib][ind])
@@ -766,7 +765,7 @@ def get_wavelength_from_arc(image, trace, lines, side):
                 diff = [found_lines[fib, ll] - lines['col2'][ll],
                         found_lines[fib, lh] - lines['col2'][lh]]
                 m = ((diff[1] - diff[0]) /
-                     (lines['col2'][ll] - lines['col2'][lh]))
+                     (lines['col2'][lh] - lines['col2'][ll]))
                 y = np.array(m * (lines['col2'] - lines['col2'][ll]) +
                              diff[0] + lines['col2'])
                 s.append([lines['col1'][l], loc[fib][ind1], pr[fib][ind1]])
