@@ -15,7 +15,6 @@ import argparse as ap
 import requests
 import uuid
 
-from fiber_utils import calculate
 from datetime import datetime
 from astropy.io.votable import parse_single_table
 
