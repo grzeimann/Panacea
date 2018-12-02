@@ -677,7 +677,7 @@ def find_peaks(y, thresh=8.):
     loc = loc[peaks > (thresh * std)]+1
     peak_loc = get_peaks(y, loc)
     peaks = y[np.round(peak_loc).astype(int)]
-    return peak_loc, peaks/std
+    return peak_loc, peaks/std, peaks
 
 
 def robust_polyfit(x, y, order=3, niter=3):
@@ -728,11 +728,12 @@ def get_wavelength_from_arc(image, trace, lines, side):
     spectrum -= cont
     x = np.arange(trace.shape[1])
     loc = []
-    ph = []
+    ph, pr = ([], [])
     for i, spec in enumerate(spectrum):
-        px, py = find_peaks(spec, thresh=thresh)
+        px, ps, py = find_peaks(spec, thresh=thresh)
         loc.append(px)
-        ph.append(py)
+        ph.append(ps)
+        pr.append(py)
     ind1, ind2 = (0, 0)
     found_lines = np.zeros((trace.shape[0], len(lines)))
     diff = [loc[fib][ind1] - lines['col2'][0],
@@ -748,8 +749,10 @@ def get_wavelength_from_arc(image, trace, lines, side):
         v = np.abs(col - loc[fib])
         if np.min(v) < 5.:
             found_lines[fib, i] = loc[fib][np.argmin(v)]
-            s.append([line['col1'], loc[fib][np.argmin(v)], ph[fib][np.argmin(v)]])
-    print(s)
+            s.append([line['col1'], loc[fib][np.argmin(v)], pr[fib][np.argmin(v)]])
+    mx = np.max([si[2] for si in s])
+    for si in s:    
+        print(si[0], si[1], si[2]/mx)
     sys.exit(1)
     for i, line in enumerate(lines):
         if found_lines[fib, i] == 0.:
@@ -1354,7 +1357,7 @@ for info in [redinfo[0], redinfo[1]]:
         #####################
         # MASTERTWI [TRACE] #
         #####################
-        log.info('Getting MasterTwi for ifuslot, %s, and amp, %s' %
+        log.info('Getting MasterFlat for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         masterflt = get_mastertwi(twibase, amp, masterbias)
         #twipath = twi_path % (instrument, instrument, '00000*', instrument,
