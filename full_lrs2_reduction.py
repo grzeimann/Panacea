@@ -758,7 +758,7 @@ def get_wavelength_from_arc(image, trace, lines, side):
         MR = pr[fib] / pr[fib][ind]
         EE = MR * np.sqrt(1./ph[fib]**2 + 1./ph[fib][ind])
         EE = np.max([EE, .1 * MR], axis=0)
-        dist = v/5. + np.abs(ER - MR) / EE
+        dist = v/2. + np.abs(ER - MR) / EE
         if np.min(dist) < 10.:
             ind1 = np.argmin(dist)
             found_lines[fib, l] = loc[fib][ind1]
@@ -829,8 +829,9 @@ def get_wavelength_from_arc(image, trace, lines, side):
             y = wave[good, j]
             wave[missing, j] = np.polyval(np.polyfit(x, y, 3),
                                           trace[missing, j])
-    # print(res)
     log.info('Min, Max Wave: %0.2f, %0.2f' % (wave.min(), wave.max()))
+    log.info('Mean Res, Median Res: %0.3f, %0.3f' % (np.mean(res),
+                                                     np.median(res)))
     return wave
 
 
