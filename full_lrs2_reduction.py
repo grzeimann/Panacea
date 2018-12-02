@@ -69,10 +69,6 @@ sci_date = args.date
 
 # FOR LRS2
 instrument = 'lrs2'
-if args.side.lower() == 'blue':
-    info_side = blueinfo
-else:
-    info_side = redinfo
 
 dither_pattern = np.zeros((50, 2))
 
