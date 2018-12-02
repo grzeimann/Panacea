@@ -709,7 +709,7 @@ def count_matches(lines, loc, fib, cnt=5):
     return np.unravel_index(np.argmax(M), M.shape)
 
 
-def get_wavelength_from_arc(image, trace, lines, side):
+def get_wavelength_from_arc(image, trace, lines, side, amp):
     if side == 'uv':
         thresh = 3.  # 5
     if side == 'orange':
@@ -797,13 +797,13 @@ def get_wavelength_from_arc(image, trace, lines, side):
             m = np.abs(loc[j] - v)
             if np.min(m) < 2.:
                 found_lines[j, i] = loc[j][np.argmin(m)]
+    fits.PrimaryHDU(found_lines, 'fl_%s_%s.fits' % (side, amp), overwrite=True)
     for i, line in enumerate(lines):
         if np.sum(found_lines[:, i]) < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
             continue
         ind = np.array(found_lines[:, i], dtype=int)
         xt = trace[np.arange(trace.shape[0]), ind]
-        sel = found_lines[:, i] > 0.
         yt = robust_polyfit(xt, found_lines[:, i])
         found_lines[:, i] = yt
     wave = trace * 0.0
@@ -1401,7 +1401,7 @@ for info in [redinfo[0], redinfo[1]]:
         fits.PrimaryHDU(masterarc).writeto('wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname)
+        wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname, amp)
         fits.PrimaryHDU(wave).writeto('test_wave.fits', overwrite=True)
 
         #################################
