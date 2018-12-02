@@ -715,13 +715,13 @@ def count_matches(lines, loc, fib, cnt=5):
 
 def get_wavelength_from_arc(image, trace, lines, side):
     if side == 'uv':
-        thresh = 5.
+        thresh = 3.  # 5
     if side == 'orange':
-        thresh = 50.
+        thresh = 3.  # 8
     if side == 'red':
-        thresh = 50.
+        thresh = 3.  # 50
     if side == 'farred':
-        thresh = 20.
+        thresh = 3.  # 20
     spectrum = get_spectra(image, trace)
     fib = np.argmax(np.median(spectrum, axis=1))
     cont = percentile_filter(spectrum, 15, (1, 101))
@@ -734,23 +734,51 @@ def get_wavelength_from_arc(image, trace, lines, side):
         loc.append(px)
         ph.append(ps)
         pr.append(py)
-    ind1, ind2 = (0, 0)
+
     found_lines = np.zeros((trace.shape[0], len(lines)))
-    diff = [loc[fib][ind1] - lines['col2'][0],
-            loc[fib][-ind2-1] - lines['col2'][-1]]
-    m = (diff[1] - diff[0]) / (lines['col2'][-1] - lines['col2'][0])
-    y = np.array(m * (lines['col2'] - lines['col2'][0]) +
-                 diff[0] + lines['col2'])
+    ls = np.argsort(lines['col3'])[::-1]
+    ind = np.argmax(pr[fib])
+    off = loc[fib][ind] - lines['col2'][ls[0]]
+    print('Pix offset for first match: %0.2f' % off)
+    found_lines[fib, ls[0]] = loc[fib][ind]
+    y = lines['col2'] + off
+    s = []
+    for l in ls[1:]:
+        guess = y[l]
+        v = np.abs(guess - loc[fib])
+        ER = lines['col3'][l] / lines['col3'][ls[0]]
+        if np.min(v) < 5.:
+            ind1 = np.argmin(v)
+            MR = pr[fib][ind1] / pr[fib][ind]
+            EE = MR * np.sqrt(1./ps[fib][ind1]**2 + 1./ps[fib][ind])
+            print(MR, ER, np.abs(MR - ER), EE)
+            if np.abs(ER - MR) < 2. * EE:
+                found_lines[fib, l] = loc[fib][ind1]
+                ll = np.where(found_lines[fib] > 0.)[0][0]
+                lh = np.where(found_lines[fib] > 0.)[0][0]
+                diff = [found_lines[fib, ll] - lines['col2'][ll],
+                        found_lines[fib, lh] - lines['col2'][lh]]
+                m = ((diff[1] - diff[0]) /
+                     (lines['col2'][ll] - lines['col2'][lh]))
+                y = np.array(m * (lines['col2'] - lines['col2'][ll]) +
+                             diff[0] + lines['col2'])
+                s.append([lines['col1'][l], loc[fib][ind1], pr[fib][ind1]])
+#    ind1, ind2 = (0, 0)
+#    diff = [loc[fib][ind1] - lines['col2'][0],
+#            loc[fib][-ind2-1] - lines['col2'][-1]]
+#    m = (diff[1] - diff[0]) / (lines['col2'][-1] - lines['col2'][0])
+#    y = np.array(m * (lines['col2'] - lines['col2'][0]) +
+#                 diff[0] + lines['col2'])
     
     # print(loc[fib], y, ph[fib])
-    s = []
-    for i, line in enumerate(lines):
-        col = y[i]
-        v = np.abs(col - loc[fib])
-        if np.min(v) < 5.:
-            found_lines[fib, i] = loc[fib][np.argmin(v)]
-            s.append([line['col1'], loc[fib][np.argmin(v)], pr[fib][np.argmin(v)]])
-    mx = np.max([si[2] for si in s])
+#    s = []
+#    for i, line in enumerate(lines):
+#        col = y[i]
+#        v = np.abs(col - loc[fib])
+#        if np.min(v) < 5.:
+#            found_lines[fib, i] = loc[fib][np.argmin(v)]
+#            s.append([line['col1'], loc[fib][np.argmin(v)], pr[fib][np.argmin(v)]])
+#    mx = np.max([si[2] for si in s])
     for si in s:    
         print(si[0], si[1], si[2]/mx)
     sys.exit(1)
