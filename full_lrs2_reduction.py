@@ -735,7 +735,6 @@ def get_wavelength_from_arc(image, trace, lines, side):
         ph.append(ps)
         pr.append(py)
 
-
     found_lines = np.zeros((trace.shape[0], len(lines)))
     ls = np.argsort(lines['col3'])[::-1]
 
@@ -749,29 +748,34 @@ def get_wavelength_from_arc(image, trace, lines, side):
     found_lines[fib, ls[0]] = loc[fib][ind]
     y = lines['col2'] + off
     s = found_lines[fib] * 0.
+    pp = s * 0.
     s[ls[0]] = 1.
+    pp[ls[0]] = 0.
     for l in ls[1:]:
         guess = y[l]
         v = np.abs(guess - loc[fib])
         ER = lines['col3'][l] / lines['col3'][ls[0]]
-        for ind1 in np.where(v < 10.)[0]:
-            MR = pr[fib][ind1] / pr[fib][ind]
-            EE = MR * np.sqrt(1./ph[fib][ind1]**2 + 1./ph[fib][ind])
-            if np.abs(ER - MR) < 5. * EE:
-                found_lines[fib, l] = loc[fib][ind1]
-                ll = np.where(found_lines[fib] > 0.)[0][0]
-                lh = np.where(found_lines[fib] > 0.)[0][-1]
-                diff = [found_lines[fib, ll] - lines['col2'][ll],
-                        found_lines[fib, lh] - lines['col2'][lh]]
-                m = ((diff[1] - diff[0]) /
-                     (lines['col2'][lh] - lines['col2'][ll]))
-                y = np.array(m * (lines['col2'] - lines['col2'][ll]) +
-                             diff[0] + lines['col2'])
-                s[l] = MR
+        MR = pr[fib] / pr[fib][ind]
+        EE = MR * np.sqrt(1./ph[fib]**2 + 1./ph[fib][ind])
+        EE = np.max([EE, .1 * MR], axis=0)
+        dist = v/5. + np.abs(ER - MR) / EE
+        if np.min(dist) < 10.:
+            ind1 = np.argmin(dist)
+            found_lines[fib, l] = loc[fib][ind1]
+            ll = np.where(found_lines[fib] > 0.)[0][0]
+            lh = np.where(found_lines[fib] > 0.)[0][-1]
+            diff = [found_lines[fib, ll] - lines['col2'][ll],
+                    found_lines[fib, lh] - lines['col2'][lh]]
+            m = ((diff[1] - diff[0]) /
+                 (lines['col2'][lh] - lines['col2'][ll]))
+            y = np.array(m * (lines['col2'] - lines['col2'][ll]) +
+                         diff[0] + lines['col2'])
+            s[l] = MR
+            pp[l] = dist[ind1]
     inds = np.where(found_lines[fib] > 0.)[0]
     for ind in inds:
         print(lines['col1'][ind], lines['col2'][ind], found_lines[fib][ind],
-              lines['col3'][ind], s[ind])
+              lines['col3'][ind], s[ind], pp[ind])
 
     for i, line in enumerate(lines):
         if found_lines[fib, i] == 0.:
