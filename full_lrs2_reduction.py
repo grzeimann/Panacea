@@ -785,7 +785,7 @@ def get_wavelength_from_arc(image, trace, lines, side):
 #        if np.min(v) < 5.:
 #            found_lines[fib, i] = loc[fib][np.argmin(v)]
 #            s.append([line['col1'], loc[fib][np.argmin(v)], pr[fib][np.argmin(v)]])
-#    mx = np.max([si[2] for si in s])
+    mx = np.max([si[2] for si in s])
     for si in s:    
         print(si[0], si[1], si[2]/mx)
     sys.exit(1)
