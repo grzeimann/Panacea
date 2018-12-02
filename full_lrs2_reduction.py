@@ -1357,9 +1357,9 @@ for info in [redinfo[0], redinfo[1]]:
         log.info('Getting MasterTwi for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         masterflt = get_mastertwi(twibase, amp, masterbias)
-        twipath = twi_path % (instrument, instrument, '00000*', instrument,
-                              ifuslot)
-        mastertwi = get_mastertwi(twibase, amp, masterbias)
+        #twipath = twi_path % (instrument, instrument, '00000*', instrument,
+        #                      ifuslot)
+        #mastertwi = get_mastertwi(twibase, amp, masterbias)
 
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
@@ -1374,7 +1374,6 @@ for info in [redinfo[0], redinfo[1]]:
                  (ifuslot, amp))
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
-        get_init_wave(mastertwi)
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
                                   specname)
         fits.PrimaryHDU(masterarc).writeto('wtf.fits', overwrite=True)
