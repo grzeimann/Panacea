@@ -762,7 +762,7 @@ def get_wavelength_from_arc(image, trace, lines, side):
             if np.abs(ER - MR) < 2. * EE:
                 found_lines[fib, l] = loc[fib][ind1]
                 ll = np.where(found_lines[fib] > 0.)[0][0]
-                lh = np.where(found_lines[fib] > 0.)[0][0]
+                lh = np.where(found_lines[fib] > 0.)[0][-1]
                 diff = [found_lines[fib, ll] - lines['col2'][ll],
                         found_lines[fib, lh] - lines['col2'][lh]]
                 m = ((diff[1] - diff[0]) /
