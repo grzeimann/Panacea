@@ -757,7 +757,7 @@ def get_wavelength_from_arc(image, trace, lines, side):
         for ind1 in np.where(v < 10.)[0]:
             MR = pr[fib][ind1] / pr[fib][ind]
             EE = MR * np.sqrt(1./ph[fib][ind1]**2 + 1./ph[fib][ind])
-            if np.abs(ER - MR) < 3. * EE:
+            if np.abs(ER - MR) < 5. * EE:
                 found_lines[fib, l] = loc[fib][ind1]
                 ll = np.where(found_lines[fib] > 0.)[0][0]
                 lh = np.where(found_lines[fib] > 0.)[0][-1]
@@ -1398,7 +1398,7 @@ for info in [blueinfo[0], blueinfo[1], redinfo[0], redinfo[1]]:
                                 ifuslot)
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
                                   specname)
-        fits.PrimaryHDU(masterarc).writeto('wtf.fits', overwrite=True)
+        fits.PrimaryHDU(masterarc).writeto('wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname)
