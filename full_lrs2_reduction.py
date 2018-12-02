@@ -1359,8 +1359,8 @@ for info in [redinfo[0], redinfo[1]]:
         if specname in ['red', 'farred']:
             if 'qth' in o.lower():
                 fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
-    twiflt_path = op.join(baseraw, twi_date,  '%s', fltobs, 'exp*',
-                          '%s', '2*_%sLL_flt.fits')
+    twiflt_path = op.join(baseraw, twi_date,  '%s', '*', 'exp*',
+                          '%s', '2*_%sLL_twi.fits')
     twibase = twiflt_path % (instrument, instrument, ifuslot)
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
@@ -1460,7 +1460,7 @@ for info in [redinfo[0], redinfo[1]]:
             big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
         else:
-            if args.object.lower() in obj.lower():
+            if args.object.lower() in obj[0].lower():
                 big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
             
