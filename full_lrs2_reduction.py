@@ -735,8 +735,7 @@ def get_wavelength_from_arc(image, trace, lines, side):
         ph.append(ps)
         pr.append(py)
 
-    for i, j, k in zip(loc[fib], ph[fib], pr[fib]):
-        print(i, j, k)
+
     found_lines = np.zeros((trace.shape[0], len(lines)))
     ls = np.argsort(lines['col3'])[::-1]
 
@@ -754,6 +753,7 @@ def get_wavelength_from_arc(image, trace, lines, side):
         guess = y[l]
         v = np.abs(guess - loc[fib])
         ER = lines['col3'][l] / lines['col3'][ls[0]]
+        print(l, ls[0], lines['col3'][l], lines['col3'][ls[0]])
         if np.min(v) < 5.:
             ind1 = np.argmin(v)
             MR = pr[fib][ind1] / pr[fib][ind]
