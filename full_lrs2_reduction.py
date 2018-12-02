@@ -773,7 +773,6 @@ def get_wavelength_from_arc(image, trace, lines, side):
         print(lines['col1'][ind], lines['col2'][ind], found_lines[fib][ind],
               lines['col3'][ind], s[ind])
 
-    sys.exit(1)
     for i, line in enumerate(lines):
         if found_lines[fib, i] == 0.:
             continue
@@ -1412,6 +1411,7 @@ for info in [blueinfo[0], redinfo[1]]:
                  (ifuslot, amp))
         bigW = get_bigW(amp, wave, trace, masterbias)
         package.append([wave, trace, bigW, masterbias, amppos, dead])
+    sys.exit(1)
     # Normalize the two amps and correct the flat
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
