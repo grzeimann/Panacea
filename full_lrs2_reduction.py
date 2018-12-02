@@ -15,6 +15,7 @@ import argparse as ap
 import requests
 import uuid
 
+from fiber_utils import calculate
 from datetime import datetime
 from astropy.io.votable import parse_single_table
 
@@ -85,6 +86,8 @@ sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*sci.fits')
 cmp_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_cmp.fits')
+twi_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
+                   '%s', '2*_%sLL_twi.fits')
 bias_path = op.join(baseraw, twi_date, '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
 
@@ -738,12 +741,17 @@ def get_wavelength_from_arc(image, trace, lines, side):
     m = (diff[1] - diff[0]) / (lines['col2'][-1] - lines['col2'][0])
     y = np.array(m * (lines['col2'] - lines['col2'][0]) +
                  diff[0] + lines['col2'])
+    
     # print(loc[fib], y, ph[fib])
+    s = []
     for i, line in enumerate(lines):
         col = y[i]
         v = np.abs(col - loc[fib])
         if np.min(v) < 5.:
             found_lines[fib, i] = loc[fib][np.argmin(v)]
+            s.append([line['col1'], loc[fib][np.argmin(v)], ph[fib][np.argmin(v)]])
+    print(s)
+    sys.exit(1)
     for i, line in enumerate(lines):
         if found_lines[fib, i] == 0.:
             continue
@@ -1349,10 +1357,14 @@ for info in [redinfo[0], redinfo[1]]:
         #####################
         log.info('Getting MasterTwi for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
+        masterflt = get_mastertwi(twibase, amp, masterbias)
+        twipath = twi_path % (instrument, instrument, '00000*', instrument,
+                              ifuslot)
         mastertwi = get_mastertwi(twibase, amp, masterbias)
+
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        trace, dead = get_trace(mastertwi, specid, ifuslot, ifuid, amp,
+        trace, dead = get_trace(masterflt, specid, ifuslot, ifuid, amp,
                                 twi_date)
         fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
 
@@ -1363,6 +1375,7 @@ for info in [redinfo[0], redinfo[1]]:
                  (ifuslot, amp))
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
+        get_init_wave(mastertwi)
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
                                   specname)
         fits.PrimaryHDU(masterarc).writeto('wtf.fits', overwrite=True)
