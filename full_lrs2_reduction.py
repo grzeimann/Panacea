@@ -1321,7 +1321,7 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 
 DIRNAME = get_script_path()
 
-for info in [redinfo[1], redinfo[1]]:
+for info in [blueinfo[1], redinfo[1]]:
     specinit, specname, multi, lims, amps, slims, arc_names = info
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
