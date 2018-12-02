@@ -767,12 +767,11 @@ def get_wavelength_from_arc(image, trace, lines, side):
                      (lines['col2'][lh] - lines['col2'][ll]))
                 y = np.array(m * (lines['col2'] - lines['col2'][ll]) +
                              diff[0] + lines['col2'])
-                s[l] = pr[fib][ind1]
+                s[l] = MR
     inds = np.where(found_lines[fib] > 0.)[0]
-    mx = np.max(s)
     for ind in inds:
         print(lines['col1'][ind], lines['col2'][ind], found_lines[fib][ind],
-              lines['col3'][ind], s[ind] / mx)
+              lines['col3'][ind], s[ind])
 
     sys.exit(1)
     for i, line in enumerate(lines):
