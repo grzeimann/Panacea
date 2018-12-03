@@ -1026,7 +1026,7 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname):
 
 def find_source(image, xgrid, ygrid):
     std = np.sqrt(biweight_midvariance(image))
-    daofind = DAOStarFinder(fwhm=4.0, threshold=5.*std)
+    daofind = DAOStarFinder(fwhm=4.0, threshold=5.*std, exclude_border=True)
     sources = daofind(image)
     print(sources)
     if len(sources) >= 1:
