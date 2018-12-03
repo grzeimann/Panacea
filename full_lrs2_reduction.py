@@ -797,7 +797,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
             m = np.abs(loc[j] - v)
             if np.min(m) < 2.:
                 found_lines[j, i] = loc[j][np.argmin(m)]
-    fits.PrimaryHDU(found_lines, 'fl_%s_%s.fits' % (side, amp), overwrite=True)
+    fits.PrimaryHDU(found_lines).writeto('fl_%s_%s.fits' % (side, amp), overwrite=True)
     for i, line in enumerate(lines):
         if np.sum(found_lines[:, i]) < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
