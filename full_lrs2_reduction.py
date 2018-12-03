@@ -940,11 +940,11 @@ def sky_subtraction(rect, error, ncomponents=25):
     y = np.median(rect, axis=1)
     y1 = np.sort(y)
     e = np.median(error, axis=1) / np.sqrt(2064) * 1.253
-    x = np.arange(y1[0], y1[-1], np.median(e) / 10)
-    cnt = x * 0.
+    x1 = np.arange(y1[0], y1[-1], np.median(e) / 10)
+    cnt = x1 * 0.
     for i, j in enumerate(x):
         cnt[i] = len(np.where(((y1-j) < 2*e) * ((y1-j) > -e))[0])
-    j = x[np.argmax(cnt)]
+    j = x1[np.argmax(cnt)]
     o = y > (j + 1. * e)
     print((~o).sum(), np.max(cnt))
     if (~o).sum() < ncomponents:
