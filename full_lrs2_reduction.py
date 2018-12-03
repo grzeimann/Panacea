@@ -944,8 +944,8 @@ def sky_subtraction(rect, error, ncomponents=25):
     cnt = x * 0.
     for i, j in enumerate(x):
         cnt[i] = len(np.where(((y1-j) < 2*e) * ((y1-j) > -e))[0])
-    j = x[np.argmax(cnt)] - 0.5 * e
-    o = y > j
+    j = x[np.argmax(cnt)]
+    o = y > (j + 3. * e)
     if (~o.sum()) < ncomponents:
         log.info('Not enough sky fibers for PCA analysis')
         sky = (np.percentile(rect[~o], 50, axis=0)[np.newaxis] *
