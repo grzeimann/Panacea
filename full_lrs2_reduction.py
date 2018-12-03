@@ -1069,7 +1069,7 @@ def get_mirror_illumination(fn=None):
                  (r, t, p, x, y))
         mirror_illum = float(os.popen('/home/00156/drory/illum_lib/hetillum -p'
                              ' -x "[%0.4f,%0.4f,%0.4f]" "[%0.4f,%0.4f]" 256' %
-                                      (r, t, p, x, y)).read().split('\n')[0])
+                                      (x, y, p, 0.042, 0.014)).read().split('\n')[0])
         area = mirror_illum * 51.4 * 1e4
     except:
         log.info('Using default mirror illumination value')
