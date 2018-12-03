@@ -1065,6 +1065,8 @@ def get_mirror_illumination(fn=None):
         F = fits.open(fn)
         names = ['RHO_STRT', 'THE_STRT', 'PHI_STRT', 'X_STRT', 'Y_STRT']
         r, t, p, x, y = [F[0].header[name] for name in names]
+        log.info('Rho, Theta, Phi, X, Y: %0.4f, %0.4f, %0.4f, %0.4f, %0.4f' %
+                 (r, t, p, x, y))
         mirror_illum = float(os.popen('/home/00156/drory/illum_lib/hetillum -p'
                              ' -x "[%0.4f,%0.4f,%0.4f]" "[%0.4f,%0.4f]" 256' %
                                       (r, t, p, x, y)).read().split('\n')[0])
