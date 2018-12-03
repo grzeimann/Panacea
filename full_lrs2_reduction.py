@@ -1323,6 +1323,10 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         for key in he.keys():
             if key in f1.header:
                 continue
+            if ('CCDSEC' in key) or ('DATASEC' in key):
+                continue
+            if ('BSCALE' in key) or ('BZERO' in key):
+                continue
             f1.header[key] = he[key]
         fits.HDUList([f1, f2, f3, f6, f4, fits.ImageHDU(calinfo[5]), f5,
                       fits.ImageHDU(X), fits.ImageHDU(calinfo[3]),
