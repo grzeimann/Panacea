@@ -907,6 +907,7 @@ def correct_ftf(rect, error):
     else:
         return rect, error
 
+
 def sky_subtraction(rect, error, ncomponents=25):
     def outlier(y, y1, oi):
         m = np.abs(y[oi] - y1[oi])
@@ -942,13 +943,14 @@ def sky_subtraction(rect, error, ncomponents=25):
     o[1:] += o[:-1]
     if flag:
         y1 = np.sort(y)
+        inds = np.argsort(y)
         e = np.median(error) / np.sqrt(2064) * 1.253
         x = np.arange(y1[0], y1[-1], e / 10)
         cnt = x * 0.
         for i, j in enumerate(x):
             cnt[i] = len(np.where(((y1-j) < 2*e) * ((y1-j) > -e))[0])
         j = x[np.argmax(cnt)]
-        sel = np.where(((y1-j) < 2*e) * ((y1-j) > -e))[0]
+        sel = inds[np.where(((y1-j) < 2*e) * ((y1-j) > -e))[0]]
         sky = (np.percentile(rect[sel], 50, axis=0)[np.newaxis] *
                np.ones((280, 1)))
         return sky
