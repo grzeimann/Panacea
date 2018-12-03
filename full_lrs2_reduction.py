@@ -941,7 +941,16 @@ def sky_subtraction(rect, error, ncomponents=25):
     o[:-1] += o[1:]
     o[1:] += o[:-1]
     if flag:
-        sky = np.percentile(rect, 5, axis=0)[np.newaxis] * np.ones((280, 1))
+        y1 = np.sort(y)
+        e = np.median(error) / np.sqrt(2064) * 1.253
+        x = np.arange(y1[0], y1[-1], e / 10)
+        cnt = x * 0.
+        for i, j in enumerate(x):
+            cnt[i] = len(np.where(((y1-j) < 2*e) * ((y1-j) > -e))[0])
+        j = x[np.argmax(cnt)]
+        sel = np.where(((y1-j) < 2*e) * ((y1-j) > -e))[0]
+        sky = (np.percentile(rect[sel], 50, axis=0)[np.newaxis] *
+               np.ones((280, 1)))
         return sky
     md = np.median(rect[~o], axis=0)
     msub = rect[~o] - md
