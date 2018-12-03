@@ -909,33 +909,6 @@ def correct_ftf(rect, error):
 
 
 def sky_subtraction(rect, error, ncomponents=25):
-    def outlier(y, y1, oi):
-        m = np.abs(y[oi] - y1[oi])
-        o = (y - y1) > 3. * np.median(m)
-        return o
-
-    def fit_sky_col(x, y):
-        o = y == 0.
-        low = np.percentile(y[~o], 16)
-        mid = np.percentile(y[~o], 50)
-        high = np.percentile(y[~o], 84)
-        flag = False
-        if (high - mid) > 2.0 * (mid - low):
-            y1 = np.ones(x[~o].shape) * np.percentile(y[~o], 5)
-            log.info('Object is too bright for regular sky subtraction.')
-            log.info('Subtracting the 5th percentile')
-            flag = True
-        else:
-            y1 = savgol_filter(y[~o], 31, 1)
-        I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
-        y1 = I(x)
-        for i in np.arange(3):
-            o += outlier(y, y1, ~o)
-            y1 = savgol_filter(y[~o], 51, 1)
-            I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
-            y1 = I(x)
-        return y1, o, flag
-
     x = np.arange(rect.shape[0])
     y = np.median(rect, axis=1)
     y1 = np.sort(y)
@@ -1370,8 +1343,8 @@ for info in [redinfo[0], redinfo[1]]:
         if specname in ['red', 'farred']:
             if 'qth' in o.lower():
                 fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
-    twiflt_path = op.join(baseraw, twi_date,  '%s', '*', 'exp*',
-                          '%s', '2*_%sLL_twi.fits')
+    twiflt_path = op.join(baseraw, twi_date,  '%s', fltobs, 'exp*',
+                          '%s', '2*_%sLL_flt.fits')
     twibase = twiflt_path % (instrument, instrument, ifuslot)
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
