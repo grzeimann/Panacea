@@ -170,10 +170,11 @@ def base_reduction(filename, get_header=False):
         ampname = a[0].header['AMPNAME']
     except:
         ampname = None
+    header = a[0].header
     a = orient_image(image, amp, ampname) * gain
     E = np.sqrt(rdnoise**2 + np.where(a > 0., a, 0.))
     if get_header:
-        return a, E, a[0].header
+        return a, E, header
     return a, E
 
 
