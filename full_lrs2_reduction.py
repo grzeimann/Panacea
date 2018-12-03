@@ -888,12 +888,12 @@ def correct_ftf(rect, error):
             log.info('Object is too bright for fiber to fiber correction.')
             flag = True
         else:
-            y1 = savgol_filter(y[~o], 31, 3)
+            y1 = savgol_filter(y[~o], 31, 1)
         I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
         y1 = I(x)
         for i in np.arange(3):
             o += outlier(y, y1, ~o)
-            y1 = savgol_filter(y[~o], 51, 3)
+            y1 = savgol_filter(y[~o], 51, 1)
             I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
             y1 = I(x)
         return y1, o, flag
@@ -925,12 +925,12 @@ def sky_subtraction(rect, error, ncomponents=25):
             log.info('Subtracting the 5th percentile')
             flag = True
         else:
-            y1 = savgol_filter(y[~o], 31, 3)
+            y1 = savgol_filter(y[~o], 31, 1)
         I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
         y1 = I(x)
         for i in np.arange(3):
             o += outlier(y, y1, ~o)
-            y1 = savgol_filter(y[~o], 51, 3)
+            y1 = savgol_filter(y[~o], 51, 1)
             I = interp1d(x[~o], y1, kind='quadratic', fill_value='extrapolate')
             y1 = I(x)
         return y1, o, flag
