@@ -50,6 +50,14 @@ parser.add_argument("-o", "--object",
                     help='''Object name, no input reduces all objects''',
                     type=str, default=None)
 
+parser.add_argument("-uf", "--use_flt",
+                    help='''Use FLT instead of Twi''',
+                    action="count", default=0)
+
+parser.add_argument("-cf", "--correct_ftf",
+                    help='''Correct fiber to fiber''',
+                    action="count", default=0)
+
 args = parser.parse_args(args=None)
 
 blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4645.], ['LL', 'LU'],
@@ -1258,7 +1266,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         e /= mini[0][1]
         e /= mini[0][2]
         e /= mini[0][3]
-        r, e = correct_ftf(r, e)
+        if args.correct_ftf:
+            r, e = correct_ftf(r, e)
         sky = sky_subtraction(r, e)
         sky[calinfo[-3][:, 1] == 1.] = 0.
         skysub = r - sky
@@ -1343,8 +1352,12 @@ for info in [redinfo[0], redinfo[1]]:
         if specname in ['red', 'farred']:
             if 'qth' in o.lower():
                 fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
-    twiflt_path = op.join(baseraw, twi_date,  '%s', fltobs, 'exp*',
-                          '%s', '2*_%sLL_flt.fits')
+    if args.useflat:
+        twiflt_path = op.join(baseraw, twi_date,  '%s', fltobs, 'exp*',
+                              '%s', '2*_%sLL_flt.fits')
+    else:
+        twiflt_path = op.join(baseraw, twi_date,  '%s', '*', 'exp*',
+                              '%s', '2*_%sLL_twi.fits')
     twibase = twiflt_path % (instrument, instrument, ifuslot)
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
