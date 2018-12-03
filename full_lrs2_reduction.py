@@ -151,7 +151,7 @@ def make_avg_spec(wave, spec, binsize=35, per=50):
     return nwave, nspec[nind]
 
 
-def base_reduction(filename):
+def base_reduction(filename, get_header=False):
     a = fits.open(filename)
     image = np.array(a[0].data, dtype=float)
     # overscan sub
@@ -172,6 +172,8 @@ def base_reduction(filename):
         ampname = None
     a = orient_image(image, amp, ampname) * gain
     E = np.sqrt(rdnoise**2 + np.where(a > 0., a, 0.))
+    if get_header:
+        return a, E, a[0].header
     return a, E
 
 
@@ -486,14 +488,15 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
     files2 = sorted(glob.glob(sci_path.replace('LL', amps[1])))
     
     xloc, yloc = (pos[:, 0], pos[:, 1])
-    array_list = []
+    array_list, hdr_list = ([], [])
     for filename1, filename2 in zip(files1, files2):
         log.info('Prepping sci %s' % filename1)
-        array_flt1, e1 = base_reduction(filename1)
+        array_flt1, e1, header = base_reduction(filename1, get_header=True)
         array_flt2, e2 = base_reduction(filename2)
         array_flt = np.vstack([array_flt1, array_flt2])
         array_flt[:] -= masterbias
         array_list.append(array_flt)
+        hdr_list.append(header)
     if len(array_list) > 1:
         sci_array = np.sum(array_list, axis=0)
     else:
@@ -556,7 +559,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         Flist.append(Fimage)
     return (np.array(array_list), np.array(spec_list), np.array(orig_list),
             np.array(clist, dtype=float), np.array(flist), np.array(Flist),
-            np.array(error_list))
+            np.array(error_list), hdr_list)
 
 
 def get_masterbias(zro_path, amp):
@@ -1240,7 +1243,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
     log.info('Extracting %s from %s' % (obj[0], bf))
     scifiles = sci_path % (instrument, instrument, sci_obs, '*',
                            instrument, ifuslot)
-    images, rect, spec, cos, fl, Fi, E = extract_sci(scifiles, amps, calinfo[2],
+    images, rect, spec, cos, fl, Fi, E, header = extract_sci(scifiles, amps, calinfo[2],
                                               calinfo[1], calinfo[0], calinfo[3],
                                               calinfo[4], calinfo[5])
     cnt = 1
@@ -1251,7 +1254,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             np.interp(wave_0, T['wave'], T['x_0']))
     yoff = (np.interp(commonwave, T['wave'], T['y_0']) -
             np.interp(wave_0, T['wave'], T['y_0']))
-    for im, r, s, c, fli, Fii, e in zip(images, rect, spec, cos, fl, Fi, E):
+    for im, r, s, c, fli, Fii, e, he in zip(images, rect, spec, cos, fl, Fi, E, header):
         fn = (sci_path % (instrument, instrument, sci_obs,
                           '%02d' % cnt, instrument, ifuslot))
         fn = glob.glob(fn)
@@ -1316,7 +1319,10 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         f3 = create_header_objection(commonwave, skysub)
         f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
         f6 = create_header_objection(commonwave, e)
-
+        for key in he.keys():
+            if key in f1.header:
+                continue
+            f1.header[key] = he[key]
         fits.HDUList([f1, f2, f3, f6, f4, fits.ImageHDU(calinfo[5]), f5,
                       fits.ImageHDU(X), fits.ImageHDU(calinfo[3]),
                       fits.ImageHDU(im), fits.ImageHDU(fli), fits.ImageHDU(Fii),
