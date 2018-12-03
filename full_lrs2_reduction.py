@@ -50,7 +50,7 @@ parser.add_argument("-o", "--object",
                     help='''Object name, no input reduces all objects''',
                     type=str, default=None)
 
-parser.add_argument("-uf", "--use_flt",
+parser.add_argument("-uf", "--use_flat",
                     help='''Use FLT instead of Twi''',
                     action="count", default=0)
 
