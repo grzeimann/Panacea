@@ -1352,7 +1352,7 @@ for info in [redinfo[0], redinfo[1]]:
         if specname in ['red', 'farred']:
             if 'qth' in o.lower():
                 fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
-    if args.useflat:
+    if args.use_flat:
         twiflt_path = op.join(baseraw, twi_date,  '%s', fltobs, 'exp*',
                               '%s', '2*_%sLL_flt.fits')
     else:
