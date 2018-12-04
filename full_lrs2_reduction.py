@@ -1440,7 +1440,7 @@ for info in [blueinfo[0], blueinfo[1]]:
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
                    for fn in basefiles]
     objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
-
+    print(objects)
     response = None
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
         if check_if_standard(obj[0]) and (ifuslot in obj[0]):
