@@ -1178,7 +1178,8 @@ def check_if_standard(objname):
                       'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
                       'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
                       'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
-                      'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4']
+                      'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4',
+                      'BD+40_4032']
     for standard in standard_names:
         if standard.lower() in objname.lower():
             return True
@@ -1225,7 +1226,6 @@ def get_response(objname, commonwave, spec, specname):
                       'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4',
                       'BD+40_4032']
     for standard in standard_names:
-        print(standard.lower(), objname.lower())
         if standard.lower() in objname.lower():
             filename = op.join('/work/03946/hetdex/maverick/virus_config/'
                                'standards',
