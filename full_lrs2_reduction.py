@@ -1225,6 +1225,7 @@ def get_response(objname, commonwave, spec, specname):
                       'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4',
                       'BD+40_4032']
     for standard in standard_names:
+        print(standard.lower(), objname.lower())
         if standard.lower() in objname.lower():
             filename = op.join('/work/03946/hetdex/maverick/virus_config/'
                                'standards',
@@ -1440,7 +1441,6 @@ for info in [blueinfo[0], blueinfo[1]]:
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
                    for fn in basefiles]
     objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
-    print(objects)
     response = None
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
         if check_if_standard(obj[0]) and (ifuslot in obj[0]):
