@@ -932,7 +932,7 @@ def sky_subtraction(rect, error, ncomponents=25):
     j = x1[np.argmax(cnt)]
     o = y > (j + 1. * e)
     print((~o).sum(), np.max(cnt))
-    if (~o).sum() < ncomponents:
+    if (~o).sum() < 2.*ncomponents:
         log.info('Not enough sky fibers for PCA analysis')
         sky = (np.percentile(rect[~o], 50, axis=0)[np.newaxis] *
                np.ones((280, 1)))
@@ -1283,7 +1283,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             sky *= response
             skysub *= response
         X = np.array([T['wave'], T['x_0'], T['y_0']])
-        for S, name in zip([sky, skysub], ['sky', 'skysub']):
+        for S, name in zip([r, sky, skysub], ['obs', 'sky', 'skysub']):
             outname = ('%s_%s_%s_%s_%s_cube.fits' % (args.date, sci_obs,
                        'exp%02d' % cnt, specname, name))
             zcube, zimage, xgrid, ygrid = make_frame(calinfo[5][:, 0],
