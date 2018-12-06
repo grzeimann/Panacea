@@ -1355,10 +1355,17 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             if ('BSCALE' in key) or ('BZERO' in key):
                 continue
             f1.header[key] = he[key]
-        fits.HDUList([f1, f2, f3, f6, f4, fits.ImageHDU(calinfo[5]), f5,
-                      fits.ImageHDU(X), fits.ImageHDU(calinfo[3]),
-                      fits.ImageHDU(im), fits.ImageHDU(fli), fits.ImageHDU(Fii),
-                      fits.ImageHDU(c), fits.ImageHDU(s)]).writeto(outname, overwrite=True)
+        names = ['observed_spectra', 'sky_spectra', 'skysub_spectra',
+                 'error_spectra', 'collapsed_image', 'fiber_positions',
+                 'extracted_spectrum', 'adr', 'bigw', 'image',
+                 'flattened_image', 'trace', 'cosmics', 'unrectified_spectra']
+        flist = [f1, f2, f3, f6, f4, fits.ImageHDU(calinfo[5]), f5,
+                 fits.ImageHDU(X), fits.ImageHDU(calinfo[3]),
+                 fits.ImageHDU(im), fits.ImageHDU(fli), fits.ImageHDU(Fii),
+                 fits.ImageHDU(c), fits.ImageHDU(s)]
+        for fl, name in zip(flist, names):
+            fl.header['EXTNAME'] = name
+        fits.HDUList().writeto(outname, overwrite=True)
         if standard:
             return get_response(obj[0], commonwave, skysubspec, specname)
 
