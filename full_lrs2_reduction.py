@@ -46,6 +46,10 @@ parser.add_argument("-d", "--date",
                     help='''Date for reduction''',
                     type=str, default='20181108')
 
+parser.add_argument("-s", "--sides",
+                    help='''"uv,orange,red,farred"''',
+                    type=str, default="uv,orange,red,farred")
+
 parser.add_argument("-o", "--object",
                     help='''Object name, no input reduces all objects''',
                     type=str, default=None)
@@ -60,6 +64,8 @@ parser.add_argument("-cf", "--correct_ftf",
 
 args = parser.parse_args(args=None)
 
+args.sides = [x.replace(' ', '') for x in args.sides.split(',')]
+
 blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4645.], ['LL', 'LU'],
              [4350., 4375.], ['hg_b', 'cd-a_b', 'fear_r', 'cd_b']],
             ['BR', 'orange', '503_056_7001',
@@ -70,6 +76,18 @@ redinfo = [['RL', 'red', '502_066_7002', [6450., 8400.], ['LL', 'LU'],
            ['RR', 'farred', '502_066_7002',
             [8275., 10500.], ['RU', 'RL'], [9280., 9530.],
             ['hg_r', 'cd-a_b', 'fear_r', 'cd_b']]]
+
+listinfo = []
+for side in args.sides:
+    if side.lower() == 'uv':
+        listinfo.append(blueinfo[0])
+    if side.lower() == 'orange':
+        listinfo.append(blueinfo[1])
+    if side.lower() == 'red':
+        listinfo.append(redinfo[0])
+    if side.lower() == 'farred':
+        listinfo.append(redinfo[1])
+
 
 fplane_file = '/work/03730/gregz/maverick/fplane.txt'
 twi_date = args.date
@@ -1377,7 +1395,7 @@ allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
 
 DIRNAME = get_script_path()
 
-for info in [blueinfo[0], blueinfo[1]]:
+for info in listinfo:
     specinit, specname, multi, lims, amps, slims, arc_names = info
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
                                    specname), format='ascii')
