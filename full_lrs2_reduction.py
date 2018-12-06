@@ -1001,7 +1001,7 @@ def make_frame(xloc, yloc, data, wave, dw, Dx, Dy, wstart=5700.,
     return zgrid, zimage, xgrid, ygrid
 
 
-def write_cube(wave, xgrid, ygrid, zgrid, outname):
+def write_cube(wave, xgrid, ygrid, zgrid, outname, he):
     hdu = fits.PrimaryHDU(np.array(zgrid, dtype='float32'))
     hdu.header['CRVAL1'] = xgrid[0, 0]
     hdu.header['CRVAL2'] = ygrid[0, 0]
@@ -1015,6 +1015,14 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname):
     hdu.header['CDELT1'] = xgrid[0, 1] - xgrid[0, 0]
     hdu.header['CDELT2'] = ygrid[1, 0] - ygrid[0, 0]
     hdu.header['CDELT3'] = wave[1] - wave[0]
+    for key in he.keys():
+        if key in hdu.header:
+            continue
+        if ('CCDSEC' in key) or ('DATASEC' in key):
+            continue
+        if ('BSCALE' in key) or ('BZERO' in key):
+            continue
+        hdu.header[key] = he[key]
     hdu.writeto(outname, overwrite=True)
 
 
@@ -1258,6 +1266,23 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
     yoff = (np.interp(commonwave, T['wave'], T['y_0']) -
             np.interp(wave_0, T['wave'], T['y_0']))
     for im, r, s, c, fli, Fii, e, he in zip(images, rect, spec, cos, fl, Fi, E, header):
+        
+        PA = float(he['PARANGLE'])
+        RA = float(he['TRAJRA'])
+        DEC = float(he['TRAJDEC'])
+        log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
+        A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
+        ra, dec = A.get_ifupos_ra_dec(ifuslot, calinfo[5][:, 0],
+                                      calinfo[5][:, 1])
+
+        fpx = A.fplane.by_ifuslot(ifuslot).y + calinfo[5][:, 0]
+        fpy = A.fplane.by_ifuslot(ifuslot).x + calinfo[5][:, 1]
+        pos = np.zeros((len(calinfo[5]), 6))
+        pos[:, 0:2] = calinfo[5]
+        pos[:, 2] = fpx
+        pos[:, 3] = fpy
+        pos[:, 4] = ra
+        pos[:, 5] = dec
         fn = (sci_path % (instrument, instrument, sci_obs,
                           '%02d' % cnt, instrument, ifuslot))
         fn = glob.glob(fn)
@@ -1293,7 +1318,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                                                      xoff, yoff,
                                                      wstart=wave_0-50.,
                                                      wend=wave_0+50.)
-            write_cube(commonwave, xgrid, ygrid, zcube, outname)
+            write_cube(commonwave, xgrid, ygrid, zcube, outname, he)
         loc = find_source(zimage, xgrid, ygrid)
         if loc is not None:
             log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
@@ -1472,25 +1497,3 @@ for info in [blueinfo[0], blueinfo[1]]:
             if args.object.lower() in obj[0].lower():
                 big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
-            
-
-#        header = fits.open(glob.glob(sci_path % (instrument, instrument, sci_obs, '01',
-#                                         instrument,
-#                                         ifuslots[0]))[0])[0].header
-#        PA = float(header['PARANGLE'])
-#        RA = float(header['TRAJRA'])
-#        DEC = float(header['TRAJDEC'])
-#        log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
-#        A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
-#        for i in np.arange(nexp):
-#            log.info('Getting RA, Dec for exposure, %i, ifuslot, %s, and amp,'
-#                     ' %s' % (i+1, ifuslot, amp))
-#            ra, dec = A.get_ifupos_ra_dec(ifuslot,
-#                                          amppos[:, 0] + dither_pattern[i, 0],
-#                                          amppos[:, 1] + dither_pattern[i, 1])
-#            allra.append(ra)
-#            alldec.append(dec)
-#            allx.append(A.fplane.by_ifuslot(ifuslot).y + amppos[:, 0] +
-#                        dither_pattern[i, 0])
-#            ally.append(A.fplane.by_ifuslot(ifuslot).x + amppos[:, 1] +
-#                        dither_pattern[i, 1])
