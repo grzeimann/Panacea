@@ -1348,7 +1348,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         for key in he.keys():
             if key in f1.header:
                 continue
-            if ('CCDSEC' in key) or ('DATASEC' in key):
+            if 'SEC' in key:
                 continue
             if ('BSCALE' in key) or ('BZERO' in key):
                 continue
