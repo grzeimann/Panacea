@@ -21,7 +21,8 @@ from astropy.io.votable import parse_single_table
 from astropy.io import fits
 from astropy.table import Table
 from utils import biweight_location
-from scipy.signal import savgol_filter, medfilt2d
+from scipy.signal import savgol_filter
+from distutils.dir_util import mkpath
 from scipy.ndimage.filters import percentile_filter
 from scipy.interpolate import interp1d, interp2d, griddata
 from input_utils import setup_logging
@@ -29,7 +30,6 @@ from astrometry import Astrometry
 from astropy.stats import biweight_midvariance
 from photutils import DAOStarFinder
 from astropy.modeling.models import Moffat2D
-from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
 from sklearn.decomposition import PCA
 
 #try:
@@ -1076,17 +1076,6 @@ def get_mirror_illumination(fn=None):
     except:
         log.info('Using default mirror illumination value')
         area = 51.4 * 1e4
-#    if hetpupil_installed:
-#        log.info('Using HetpupilModel from pyhetdex')
-#        try:
-#            mirror_illum = HetpupilModel([fn], normalize=False)
-#            area = mirror_illum.fill_factor[0] * 55. * 1e4
-#        except:
-#            log.info('Using default mirror illumination value')
-#            area = 50. * 1e4
-#    else:
-#        log.info('Using default mirror illumination value')
-#        area = 50. * 1e4
     log.info('Mirror illumination: %0.2f m^2' % (area/1e4))
     return area
 
@@ -1267,6 +1256,14 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             np.interp(wave_0, T['wave'], T['y_0']))
     for im, r, s, c, fli, Fii, e, he in zip(images, rect, spec, cos, fl, Fi, E, header):
         
+        try:
+            basename = 'LRS2/' + he['QPROG']
+        except:
+            if check_if_standard(obj[0]) and (ifuslot in obj[0]):
+                basename = 'LRS2/STANDARDS'
+            else:
+                basename = 'LRS2/ORPHANS'
+        mkpath(basename)
         PA = float(he['PARANGLE'])
         RA = float(he['TRAJRA'])
         DEC = float(he['TRAJDEC'])
@@ -1311,6 +1308,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         for S, name in zip([r, sky, skysub], ['obs', 'sky', 'skysub']):
             outname = ('%s_%s_%s_%s_%s_cube.fits' % (args.date, sci_obs,
                        'exp%02d' % cnt, specname, name))
+            outname = op.join(basename, outname)
             zcube, zimage, xgrid, ygrid = make_frame(calinfo[5][:, 0],
                                                      calinfo[5][:, 1], S,
                                                      commonwave,
@@ -1365,7 +1363,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                  fits.ImageHDU(c), fits.ImageHDU(s)]
         for fl, name in zip(flist, names):
             fl.header['EXTNAME'] = name
-        fits.HDUList().writeto(outname, overwrite=True)
+        outname = op.join(basename, outname)
+        fits.HDUList(fl).writeto(outname, overwrite=True)
         if standard:
             return get_response(obj[0], commonwave, skysubspec, specname)
 
@@ -1494,7 +1493,10 @@ for info in [blueinfo[0], blueinfo[1]]:
         names.append('response')
     for fi, n in zip(f, names):
         fi.header['EXTNAME'] = n
-    fits.HDUList(f).writeto('cal_%s_%s.fits' % (args.date, specname),
+    basename = 'LRS2/CALS'
+    mkpath(basename)
+    fits.HDUList(f).writeto(op.join(basename,
+                            'cal_%s_%s.fits' % (args.date, specname)),
                             overwrite=True)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
         if args.object is None:
