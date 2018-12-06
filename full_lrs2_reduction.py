@@ -1364,7 +1364,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         for fl, name in zip(flist, names):
             fl.header['EXTNAME'] = name
         outname = op.join(basename, outname)
-        fits.HDUList(fl).writeto(outname, overwrite=True)
+        fits.HDUList(flist).writeto(outname, overwrite=True)
         if standard:
             return get_response(obj[0], commonwave, skysubspec, specname)
 
