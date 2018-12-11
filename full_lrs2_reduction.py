@@ -552,7 +552,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
                 w[i] = 1.
                 coV[i] = np.interp(array_wave[fiber], commonwave, w)
             error_interp = np.sqrt((coV * error[fiber]**2).sum(axis=1))
-            sel = error[fiber] = 0.
+            sel = error[fiber] == 0.
             if sel.sum() > 0.:
                 nsel = coV[:, sel].sum(axis=1) > 0.
                 error_interp[nsel] = 0.
@@ -1401,18 +1401,24 @@ for info in listinfo:
     commonwave = np.linspace(lims[0], lims[1], 2064)
     specid, ifuslot, ifuid = multi.split('_')
     package = []
-    flt_check_path = op.join(baseraw, args.date,  'lrs2', 'lrs20000*', 'exp01',
-                             'lrs2', '2*_056LL_flt.fits')
-    flt_files = sorted(glob.glob(flt_check_path))
-    for fn in flt_files:
-        o = fits.open(fn)[0].header['OBJECT']
-        if specname in ['uv', 'orange']:
-            if 'ldls' in o.lower():
-                fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
-        o = fits.open(fn)[0].header['OBJECT']
-        if specname in ['red', 'farred']:
-            if 'qth' in o.lower():
-                fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
+    found = False
+    while not found:
+        found = True
+        flt_check_path = op.join(baseraw, args.date,  'lrs2', 'lrs20000*', 'exp01',
+                                 'lrs2', '2*_056LL_flt.fits')
+        flt_files = sorted(glob.glob(flt_check_path))
+        for fn in flt_files:
+            o = fits.open(fn)[0].header['OBJECT']
+            if specname in ['uv', 'orange']:
+                if 'ldls' in o.lower():
+                    fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
+                    found = True
+            o = fits.open(fn)[0].header['OBJECT']
+            if specname in ['red', 'farred']:
+                if 'qth' in o.lower():
+                    fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
+                    found = True
+        
     if args.use_flat:
         twiflt_path = op.join(baseraw, twi_date,  '%s', fltobs, 'exp*',
                               '%s', '2*_%sLL_flt.fits')
