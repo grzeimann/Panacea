@@ -32,13 +32,6 @@ from photutils import DAOStarFinder
 from astropy.modeling.models import Moffat2D
 from sklearn.decomposition import PCA
 
-#try:
-#    from pyhetdex.het.telescope import HetpupilModel
-#    hetpupil_installed = True
-#except ImportError:
-#    print('Cannot find HETpupilModel.  Please check pyhetdex installation.')
-#    print('For now, using default 50m**2 for mirror illumination')
-#    hetpupil_installed = False
 
 parser = ap.ArgumentParser(add_help=True)
 
@@ -475,7 +468,7 @@ def get_trace_shift(sci_array, flat, array_trace, Yx):
     return shifts
 
 
-def modify_spectrum(spectrum, w, xloc, yloc):
+def modify_spectrum(spectrum, error, w, xloc, yloc):
     for i in np.arange(spectrum.shape[0]):
         sel = spectrum[i] == 0.
         I = interp1d(w[i][~sel], spectrum[i][~sel], kind='quadratic',
@@ -483,29 +476,20 @@ def modify_spectrum(spectrum, w, xloc, yloc):
         dw = np.diff(w[i])
         dw = np.hstack([dw[0], dw])
         spectrum[i] = I(w[i]) / dw
-    return spectrum
-#    norm = np.zeros((spectrum.shape[0],))
-#    bins = np.arange(w.min(), w.max(), 40)
-#    x = bins + 20.
-#    Z = np.zeros((spectrum.shape[0], len(bins)))
-#    for j, bini in enumerate(bins):
-#        for i in np.arange(spectrum.shape[0]):
-#            sel = np.where((w[i] > bini) * (w[i] < bini + 100))[0]
-#            norm[i] = np.mean(spectrum[i][sel])
-#        smooth = norm / np.mean(norm)
-#        Z[:, j] = smooth
-#    ftf = spectrum * 0.
-#    for i in np.arange(spectrum.shape[0]):
-#        I = interp1d(x, Z[i, :], kind='quadratic', fill_value='extrapolate')
-#        ftf[i] = I(w[i])
-#    return spectrum / ftf
+        error[i] /= dw
+    bad = error == 0.
+    for i in np.arange(1, 3):
+        bad[:, :-i] += bad[:, i:]
+        bad[:, i:] += bad[:, :-i]
+    error[bad] = 0.
+    return spectrum, error
 
 
 def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
                 masterbias, pos):
     files1 = sorted(glob.glob(sci_path.replace('LL', amps[0])))
     files2 = sorted(glob.glob(sci_path.replace('LL', amps[1])))
-    
+
     xloc, yloc = (pos[:, 0], pos[:, 1])
     array_list, hdr_list = ([], [])
     for filename1, filename2 in zip(files1, files2):
@@ -555,7 +539,8 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         log.info('Number of 0.0 pixels in spectra: %i' %
                  (spectrum == 0.0).sum())
         speclist, errorlist = ([], [])
-        spectrum = modify_spectrum(spectrum, array_wave, xloc, yloc)
+        spectrum, error = modify_spectrum(spectrum, error, array_wave, xloc,
+                                          yloc)
         log.info('Number of 0.0 pixels in spectra: %i' %
                  (spectrum == 0.0).sum())
         for fiber in np.arange(array_wave.shape[0]):
@@ -567,6 +552,10 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
                 w[i] = 1.
                 coV[i] = np.interp(array_wave[fiber], commonwave, w)
             error_interp = np.sqrt((coV * error[fiber]**2).sum(axis=1))
+            sel = error[fiber] = 0.
+            if sel.sum() > 0.:
+                nsel = coV[:, sel].sum(axis=1) > 0.
+                error_interp[nsel] = 0.
             speclist.append(I(commonwave))
             errorlist.append(error_interp)
         log.info('Finished rectifying spectra')
@@ -939,6 +928,15 @@ def correct_ftf(rect, error):
 
 
 def sky_subtraction(rect, error, ncomponents=25):
+    def cost(factor, x, spectrum, model, error, contsel, peaksel, thresh=6.):
+        skysub = spectrum - factor * model
+        cont = np.interp(x, x[contsel], skysub[contsel])
+        skysub1 = skysub - cont
+        A = np.array(peaksel * 0., dtype=bool)
+        A[np.where(peaksel)[0]] = True
+        return 1. / (np.sum(A) - 1.) * np.sum(skysub1[A]**2 / error[A]**2)
+
+    sel = np.median(rect, axis=1) != 0.
     x = np.arange(rect.shape[0])
     y = np.median(rect, axis=1)
     y1 = np.sort(y)
@@ -949,23 +947,30 @@ def sky_subtraction(rect, error, ncomponents=25):
         cnt[i] = len(np.where(((y1-j) < 2*e) * ((y1-j) > -e))[0])
     j = x1[np.argmax(cnt)]
     o = y > (j + 1. * e)
-    print((~o).sum(), np.max(cnt))
-    if (~o).sum() < 2.*ncomponents:
-        log.info('Not enough sky fibers for PCA analysis')
-        sky = (np.percentile(rect[~o], 50, axis=0)[np.newaxis] *
-               np.ones((280, 1)))
-        return sky
-    md = np.median(rect[~o], axis=0)
-    msub = rect[~o] - md
-    pca = PCA(n_components=ncomponents)
-    H = pca.fit_transform(msub.swapaxes(0, 1))
-    res = rect * 0.
-    for s in np.arange(rect.shape[0]):
-        sol = np.linalg.lstsq(H, rect[s] - md)[0]
-        res[s] = np.dot(H, sol)
-    m = np.interp(x, x[~o], np.median(rect[~o] - md - res[~o], axis=1))
-    sky = md + res + m[:, np.newaxis]
-    return sky
+    good = (~o) * sel
+    init = np.percentile(rect[good], 50, axis=0)
+    peaks = init > np.percentile(init, 85)
+    df = np.diff(init)
+    df = np.hstack([df[0], df])
+    cont = np.abs(df) < np.percentile(np.abs(df), 25)
+    cont = cont * (~peaks)
+    fac = rect[:, 50] * 0.
+    for fib in np.arange(len(fac)):
+        xi = np.arange(0.5, 2.0, 0.01)
+        cv = xi * 0.
+        for i, j in enumerate(xi):
+            gp = error[fib] != 0.
+            if gp.sum() > 0.:
+                cv[i] = cost(j, np.arange(2064), rect[fib], init, error[fib],
+                             cont*gp, peaks*gp)
+        if np.min(cv) < 5.:
+            fac[fib] = xi[np.argmin(cv)]
+    fac = np.interp(np.arange(280), np.arange(280)[fac>0.], fac[fac>0.])
+    fac[y == 0.] = 0.
+    ymod = robust_polyfit(np.arange(280), fac, order=3)
+    ymod[y == 0.] = 0.
+    sky = init[np.newaxis] * ymod[:, np.newaxis]
+    msub = rect[good] - sky[good]
 
 
 def correct_fiber_to_fiber(data, xloc, yloc, seeing=1.5):
