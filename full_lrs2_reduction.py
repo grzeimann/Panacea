@@ -939,16 +939,10 @@ def sky_subtraction(rect, error, ncomponents=25):
     sel = np.median(rect, axis=1) != 0.
     x = np.arange(rect.shape[0])
     y = np.median(rect, axis=1)
-    y1 = np.sort(y)
-    e = np.median(error, axis=1) / np.sqrt(2064) * 1.253
-    x1 = np.arange(y1[0], y1[-1], np.median(e) / 10)
-    cnt = x1 * 0.
-    for i, j in enumerate(x1):
-        cnt[i] = len(np.where(((y1-j) < 2*e) * ((y1-j) > -e))[0])
-    j = x1[np.argmax(cnt)]
-    o = y > (j + 1. * e)
-    good = (~o) * sel
-    init = np.percentile(rect[good], 50, axis=0)
+    sel = y != 0.
+    v = np.percentile(y[sel], 5)
+    init_sel = sel * (y < v)
+    init = np.percentile(rect[init_sel], 50, axis=0)
     peaks = init > np.percentile(init, 85)
     df = np.diff(init)
     df = np.hstack([df[0], df])
@@ -970,7 +964,7 @@ def sky_subtraction(rect, error, ncomponents=25):
     ymod = robust_polyfit(np.arange(280), fac, order=3)
     ymod[y == 0.] = 0.
     sky = init[np.newaxis] * ymod[:, np.newaxis]
-    msub = rect[good] - sky[good]
+    return sky
 
 
 def correct_fiber_to_fiber(data, xloc, yloc, seeing=1.5):
