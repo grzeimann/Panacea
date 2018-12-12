@@ -15,7 +15,7 @@ import argparse as ap
 import requests
 import uuid
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from astropy.io.votable import parse_single_table
 
 from astropy.io import fits
@@ -1385,6 +1385,17 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             return get_response(obj[0], commonwave, skysubspec, specname)
 
 
+def get_cal_path(pathname, date):
+    datec = date
+    daten = date
+    while len(glob.glob(pathname)) == 0:
+        datec_ = datetime(int(datec[:4]), int(datec[4:6]), int(datec[6:]))
+        daten_ = datec_ - timedelta(days=1)
+        daten = '%04d%02d%02d' % (daten_.year, daten_.month, daten_.day)
+        pathname = pathname.replace(datec, daten)
+    return pathname, daten
+
+
 # LRS2-R
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
@@ -1400,30 +1411,28 @@ for info in listinfo:
     commonwave = np.linspace(lims[0], lims[1], 2064)
     specid, ifuslot, ifuid = multi.split('_')
     package = []
-    found = False
-    while not found:
-        found = True
-        flt_check_path = op.join(baseraw, args.date,  'lrs2', 'lrs20000*', 'exp01',
-                                 'lrs2', '2*_056LL_flt.fits')
+    if args.use_flat:
+        flt_check_path = op.join(baseraw, args.date,  'lrs2', 'lrs20000*',
+                                 'exp01', 'lrs2', '2*_056LL_flt.fits')
+        flt_check_path, newdate = get_cal_path(flt_check_path, args.date)
         flt_files = sorted(glob.glob(flt_check_path))
         for fn in flt_files:
             o = fits.open(fn)[0].header['OBJECT']
             if specname in ['uv', 'orange']:
                 if 'ldls' in o.lower():
                     fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
-                    found = True
             o = fits.open(fn)[0].header['OBJECT']
             if specname in ['red', 'farred']:
                 if 'qth' in o.lower():
                     fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
-                    found = True
-        
-    if args.use_flat:
-        twiflt_path = op.join(baseraw, twi_date,  '%s', fltobs, 'exp*',
+        twiflt_path = op.join(baseraw, newdate,  '%s', fltobs, 'exp*',
                               '%s', '2*_%sLL_flt.fits')
     else:
         twiflt_path = op.join(baseraw, twi_date,  '%s', '*', 'exp*',
                               '%s', '2*_%sLL_twi.fits')
+        twiflt_path, newdate = get_cal_path(twiflt_path, args.date)
+        if newdate != args.date:
+            log.info('Found twi files on %s and using them for %s' % (newdate, args.date))
     twibase = twiflt_path % (instrument, instrument, ifuslot)
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
@@ -1434,6 +1443,9 @@ for info in listinfo:
                  (ifuslot, amp))
         zro_path = bias_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
+        zro_path, newdate = get_cal_path(zro_path, args.date)
+        if newdate != args.date:
+            log.info('Found bias files on %s and using them for %s' % (newdate, args.date))
         masterbias = get_masterbias(zro_path, amp)
 
         #####################
@@ -1441,10 +1453,11 @@ for info in listinfo:
         #####################
         log.info('Getting MasterFlat for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
+        twibase, newdate = get_cal_path(twibase, args.date)
+
+        if newdate != args.date:
+            log.info('Found trace files on %s and using them for %s' % (newdate, args.date))
         masterflt = get_mastertwi(twibase, amp, masterbias)
-        #twipath = twi_path % (instrument, instrument, '00000*', instrument,
-        #                      ifuslot)
-        #mastertwi = get_mastertwi(twibase, amp, masterbias)
 
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
@@ -1459,6 +1472,9 @@ for info in listinfo:
                  (ifuslot, amp))
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
+        lamp_path, newdate = get_cal_path(lamp_path, args.date)
+        if newdate != args.date:
+            log.info('Found lamp files on %s and using them for %s' % (newdate, args.date))
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
                                   specname)
         fits.PrimaryHDU(masterarc).writeto('wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
