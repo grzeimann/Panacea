@@ -937,7 +937,6 @@ def sky_subtraction(rect, error, ncomponents=25):
         return 1. / (np.sum(A) - 1.) * np.sum(skysub1[A]**2 / error[A]**2)
 
     sel = np.median(rect, axis=1) != 0.
-    x = np.arange(rect.shape[0])
     y = np.median(rect, axis=1)
     sel = y != 0.
     v = np.percentile(y[sel], 5)
@@ -959,7 +958,7 @@ def sky_subtraction(rect, error, ncomponents=25):
                              cont*gp, peaks*gp)
         if np.min(cv) < 5.:
             fac[fib] = xi[np.argmin(cv)]
-    fac = np.interp(np.arange(280), np.arange(280)[fac>0.], fac[fac>0.])
+    fac = np.interp(np.arange(280), np.arange(280)[fac > 0.], fac[fac > 0.])
     fac[y == 0.] = 0.
     ymod = robust_polyfit(np.arange(280), fac, order=3)
     ymod[y == 0.] = 0.
