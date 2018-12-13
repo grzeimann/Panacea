@@ -326,6 +326,8 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
     flat = array_flt / modelimage
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
+    fits.HDUList([fits.PrimaryHDU(array_flt), fits.ImageHDU(modelimage),
+                     fits.ImageHDU(flat)]).writeto('flat_example_%s.fits' % specname, overwrite=True)
     return flat
 
 
