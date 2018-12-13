@@ -1396,11 +1396,16 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
 def get_cal_path(pathname, date):
     datec = date
     daten = date
+    cnt = 0
     while len(glob.glob(pathname)) == 0:
         datec_ = datetime(int(datec[:4]), int(datec[4:6]), int(datec[6:]))
         daten_ = datec_ - timedelta(days=1)
         daten = '%04d%02d%02d' % (daten_.year, daten_.month, daten_.day)
         pathname = pathname.replace(datec, daten)
+        cnt += 1
+        if cnt > 10:
+            log.error('SHIT!!!')
+            break
     return pathname, daten
 
 
