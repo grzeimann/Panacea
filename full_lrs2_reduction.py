@@ -1285,18 +1285,22 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         RA = float(he['TRAJRA'])
         DEC = float(he['TRAJDEC'])
         log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
-        A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
-        ra, dec = A.get_ifupos_ra_dec(ifuslot, calinfo[5][:, 0],
-                                      calinfo[5][:, 1])
-
-        fpx = A.fplane.by_ifuslot(ifuslot).y + calinfo[5][:, 0]
-        fpy = A.fplane.by_ifuslot(ifuslot).x + calinfo[5][:, 1]
         pos = np.zeros((len(calinfo[5]), 6))
         pos[:, 0:2] = calinfo[5]
-        pos[:, 2] = fpx
-        pos[:, 3] = fpy
-        pos[:, 4] = ra
-        pos[:, 5] = dec
+        try:
+            A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
+            ra, dec = A.get_ifupos_ra_dec(ifuslot, calinfo[5][:, 0],
+                                          calinfo[5][:, 1])
+
+            fpx = A.fplane.by_ifuslot(ifuslot).y + calinfo[5][:, 0]
+            fpy = A.fplane.by_ifuslot(ifuslot).x + calinfo[5][:, 1]
+
+            pos[:, 2] = fpx
+            pos[:, 3] = fpy
+            pos[:, 4] = ra
+            pos[:, 5] = dec
+        except:
+            log.warning('Astrometry Issue')
         fn = (sci_path % (instrument, instrument, sci_obs,
                           '%02d' % cnt, instrument, ifuslot))
         fn = glob.glob(fn)
@@ -1374,7 +1378,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                  'error_spectra', 'collapsed_image', 'fiber_positions',
                  'extracted_spectrum', 'adr', 'bigw', 'image',
                  'flattened_image', 'trace', 'cosmics', 'unrectified_spectra']
-        flist = [f1, f2, f3, f6, f4, fits.ImageHDU(calinfo[5]), f5,
+        flist = [f1, f2, f3, f6, f4, fits.ImageHDU(pos), f5,
                  fits.ImageHDU(X), fits.ImageHDU(calinfo[3]),
                  fits.ImageHDU(im), fits.ImageHDU(fli), fits.ImageHDU(Fii),
                  fits.ImageHDU(c), fits.ImageHDU(s)]
