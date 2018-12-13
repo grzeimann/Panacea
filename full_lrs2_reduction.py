@@ -1398,7 +1398,7 @@ def get_cal_path(pathname, date):
     daten = date
     cnt = 0
     while len(glob.glob(pathname)) == 0:
-        datec_ = datetime(int(datec[:4]), int(datec[4:6]), int(datec[6:]))
+        datec_ = datetime(int(daten[:4]), int(daten[4:6]), int(daten[6:]))
         daten_ = datec_ - timedelta(days=1)
         daten = '%04d%02d%02d' % (daten_.year, daten_.month, daten_.day)
         pathname = pathname.replace(datec, daten)
@@ -1444,7 +1444,8 @@ for info in listinfo:
     else:
         twiflt_path = op.join(baseraw, args.date,  '%s', '*', 'exp*',
                               '%s', '2*_%sLL_twi.fits')
-        twiflt_path, newdate = get_cal_path(twiflt_path, args.date)
+        twibase = twiflt_path % (instrument, instrument, ifuslot)
+        twiflt_path, newdate = get_cal_path(twibase, args.date)
         if newdate != args.date:
             log.info('Found twi files on %s and using them for %s' % (newdate, args.date))
     twibase = twiflt_path % (instrument, instrument, ifuslot)
