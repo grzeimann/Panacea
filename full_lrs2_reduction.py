@@ -464,7 +464,7 @@ def get_trace_shift(sci_array, flat, array_trace, Yx):
                  flat[inds[0, i, sel], x[sel]])))
         FlatTrace[i, sel] = xmax
     mid = Trace.shape[1] / 2
-    shifts = np.nanmedian((FlatTrace - Trace)[mid-200:mid+200], axis=1)
+    shifts = np.nanmedian((FlatTrace - Trace)[:, mid-200:mid+200], axis=1)
     shifts = np.polyval(np.polyfit(np.nanmedian(FlatTrace, axis=1), shifts, 2),
                         Yx)
     return shifts
