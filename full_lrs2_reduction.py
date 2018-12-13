@@ -1403,6 +1403,7 @@ def get_cal_path(pathname, date):
         daten = '%04d%02d%02d' % (daten_.year, daten_.month, daten_.day)
         pathname = pathname.replace(datec, daten)
         cnt += 1
+        log.info(pathname)
         if cnt > 10:
             log.error('SHIT!!!')
             break
@@ -1441,7 +1442,7 @@ for info in listinfo:
         twiflt_path = op.join(baseraw, newdate,  '%s', fltobs, 'exp*',
                               '%s', '2*_%sLL_flt.fits')
     else:
-        twiflt_path = op.join(baseraw, twi_date,  '%s', '*', 'exp*',
+        twiflt_path = op.join(baseraw, args.date,  '%s', '*', 'exp*',
                               '%s', '2*_%sLL_twi.fits')
         twiflt_path, newdate = get_cal_path(twiflt_path, args.date)
         if newdate != args.date:
