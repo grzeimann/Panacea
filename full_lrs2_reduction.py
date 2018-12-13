@@ -31,6 +31,7 @@ from astropy.stats import biweight_midvariance
 from photutils import DAOStarFinder
 from astropy.modeling.models import Moffat2D
 from sklearn.decomposition import PCA
+from astropy.convolution import Gaussian1DKernel, convolve
 
 
 parser = ap.ArgumentParser(add_help=True)
@@ -97,7 +98,7 @@ baseraw = '/work/03946/hetdex/maverick'
 
 
 sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
-                   '%s', '2*_%sLL*sci.fits')
+                   '%s', '2*_%sLL*[sci,twi].fits')
 cmp_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_cmp.fits')
 twi_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
