@@ -34,6 +34,8 @@ from sklearn.decomposition import PCA
 from astropy.convolution import Gaussian1DKernel, convolve
 
 
+log = setup_logging('panacea_quicklook')
+
 parser = ap.ArgumentParser(add_help=True)
 
 parser.add_argument("-d", "--date",
@@ -56,7 +58,32 @@ parser.add_argument("-cf", "--correct_ftf",
                     help='''Correct fiber to fiber''',
                     action="count", default=0)
 
+parser.add_argument("-cw", "--central_wave",
+                    help='''Central Wavelength for collapsed Frame''',
+                    type=float, default=None)
+
+parser.add_argument("-wb", "--wavelength_bin",
+                    help='''Wavelength Bin to collapse over (+/- bin size)''',
+                    type=float, default=10.)
+
+parser.add_argument("-sx", "--source_x",
+                    help='''Source's x position at the central_wave''',
+                    type=float, default=None)
+
+parser.add_argument("-sy", "--source_y",
+                    help='''Source's y position at the central_wave''',
+                    type=float, default=None)
+
 args = parser.parse_args(args=None)
+
+for i in ['source_x', 'source_y']:
+    for j in ['source_x', 'source_y', 'central_wave']:
+        if i == j:
+            continue
+        if getattr(args, i) is not None:
+            if getattr(args, j) is None:
+                log.error('%s was set but not %s.' % (i, j))
+                sys.exit(1)
 
 args.sides = [x.replace(' ', '') for x in args.sides.split(',')]
 
@@ -92,7 +119,6 @@ instrument = 'lrs2'
 
 dither_pattern = np.zeros((50, 2))
 
-log = setup_logging('panacea_quicklook')
 
 baseraw = '/work/03946/hetdex/maverick'
 
@@ -473,12 +499,12 @@ def get_trace_shift(sci_array, flat, array_trace, Yx):
 
 
 def modify_spectrum(spectrum, error, w, xloc, yloc):
+    dw = np.median(np.diff(w, axis=1), axis=0)
+    dw = np.hstack([dw[0], dw])
     for i in np.arange(spectrum.shape[0]):
         sel = spectrum[i] == 0.
         I = interp1d(w[i][~sel], spectrum[i][~sel], kind='quadratic',
                      fill_value='extrapolate')
-        dw = np.diff(w[i])
-        dw = np.hstack([dw[0], dw])
         spectrum[i] = I(w[i]) / dw
         error[i] /= dw
     bad = error == 0.
@@ -931,7 +957,7 @@ def correct_ftf(rect, error):
         return rect, error
 
 
-def sky_subtraction(rect, error, ncomponents=25):
+def sky_subtraction(rect, error):
     def cost(factor, x, spectrum, model, error, contsel, peaksel, thresh=6.):
         skysub = spectrum - factor * model
         cont = np.interp(x, x[contsel], skysub[contsel])
@@ -968,31 +994,6 @@ def sky_subtraction(rect, error, ncomponents=25):
     ymod[y == 0.] = 0.
     sky = init[np.newaxis] * ymod[:, np.newaxis]
     return sky
-
-
-def correct_fiber_to_fiber(data, xloc, yloc, seeing=1.5):
-    D = np.sqrt((xloc[:, np.newaxis] - xloc)**2 +
-                (yloc[:, np.newaxis] - yloc)**2)
-    W = np.exp(-0.5 / (seeing/2.35)**2 * D**2)
-
-    def outlier(y, y1, oi):
-        m = np.abs(y[oi] - y1[oi])
-        o = (y - y1) > 3. * np.median(m)
-        return o
-
-    o = data == 0.
-    low = np.percentile(data[~o], 16)
-    mid = np.percentile(data[~o], 50)
-    high = np.percentile(data[~o], 84)
-    if (high - mid) > 2.0 * (mid - low):
-        log.info('Source is too bright to correct fiber to fiber')
-        return np.ones(data.shape)
-    smooth = (data[~o, np.newaxis] * W[~o]).sum(axis=0) / W[~o].sum(axis=0)
-    o = outlier(data, smooth, data > 0.)
-    for i in np.arange(3):
-        smooth = (data[~o, np.newaxis] * W[~o]).sum(axis=0) / W[~o].sum(axis=0)
-        o = outlier(data, smooth, ~o)
-    return smooth
 
 
 def make_frame(xloc, yloc, data, wave, dw, Dx, Dy, wstart=5700.,
@@ -1267,15 +1268,21 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                                               calinfo[1], calinfo[0], calinfo[3],
                                               calinfo[4], calinfo[5])
     cnt = 1
-    wave_0 = np.mean(commonwave)
+    if args.central_wave is None:
+        wave_0 = np.mean(commonwave)
+        wb = 50.
+    else:
+        wave_0 = args.central_wave
+        wb = args.wavelength_bin
     darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % specinit)
     T = Table.read(darfile, format='ascii.fixed_width_two_line')
     xoff = (np.interp(commonwave, T['wave'], T['x_0']) -
             np.interp(wave_0, T['wave'], T['x_0']))
     yoff = (np.interp(commonwave, T['wave'], T['y_0']) -
             np.interp(wave_0, T['wave'], T['y_0']))
-    for im, r, s, c, fli, Fii, e, he in zip(images, rect, spec, cos, fl, Fi, E, header):
-        
+    for im, r, s, c, fli, Fii, e, he in zip(images, rect, spec, cos,
+                                            fl, Fi, E, header):
+
         try:
             basename = 'LRS2/' + he['QPROG']
         except:
@@ -1333,36 +1340,45 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             outname = ('%s_%s_%s_%s_%s_cube.fits' % (args.date, sci_obs,
                        'exp%02d' % cnt, specname, name))
             outname = op.join(basename, outname)
+            
             zcube, zimage, xgrid, ygrid = make_frame(calinfo[5][:, 0],
                                                      calinfo[5][:, 1], S,
                                                      commonwave,
                                                      T['wave'],
                                                      xoff, yoff,
-                                                     wstart=wave_0-50.,
-                                                     wend=wave_0+50.)
+                                                     wstart=wave_0-wb,
+                                                     wend=wave_0+wb)
             write_cube(commonwave, xgrid, ygrid, zcube, outname, he)
-        loc = find_source(zimage, xgrid, ygrid)
+
+        if (args.source_x is None) or standard:
+            loc = find_source(zimage, xgrid, ygrid)
+        else:
+            loc = [args.source_x, args.source_y]
         if loc is not None:
             log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
-            skyspec, errorskyspec = extract_source(sky, loc[0], loc[1], xoff, yoff,
-                                     commonwave, calinfo[5][:, 0],
-                                     calinfo[5][:, 1], e)
-            skysubspec, errorskysubspec = extract_source(skysub, loc[0], loc[1], xoff, yoff,
-                                        commonwave, calinfo[5][:, 0],
-                                        calinfo[5][:, 1], e)
+            skyspec, errorskyspec = extract_source(sky, loc[0], loc[1], xoff,
+                                                   yoff, commonwave,
+                                                   calinfo[5][:, 0],
+                                                   calinfo[5][:, 1], e)
+            skysubspec, errorskysubspec = extract_source(skysub, loc[0],
+                                                         loc[1], xoff, yoff,
+                                                         commonwave,
+                                                         calinfo[5][:, 0],
+                                                         calinfo[5][:, 1], e)
         else:
             skyspec = commonwave * 0.
             skysubspec = commonwave * 0.
             errorskyspec = commonwave * 0.
             errorskysubspec = commonwave * 0.
         if response is not None:
-            f5 = fits.ImageHDU(np.vstack([commonwave, skysubspec, skyspec,
-                                          errorskysubspec, errorskyspec, response]))
+            f5 = np.vstack([commonwave, skysubspec, skyspec,
+                            errorskysubspec, errorskyspec,
+                            response])
         else:
-            f5 = fits.ImageHDU(np.vstack([commonwave, skysubspec, skyspec,
-                                          errorskysubspec, errorskyspec]))
-        outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
-                                            'exp%02d' % cnt, specname))
+            f5 = np.vstack([commonwave, skysubspec, skyspec,
+                            errorskysubspec, errorskyspec,
+                            np.ones(commonwave.shape)])
+        
         cnt += 1
         f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
         f2 = create_header_objection(commonwave, sky)
@@ -1381,14 +1397,41 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                  'error_spectra', 'collapsed_image', 'fiber_positions',
                  'extracted_spectrum', 'adr', 'bigw', 'image',
                  'flattened_image', 'trace', 'cosmics', 'unrectified_spectra']
-        flist = [f1, f2, f3, f6, f4, fits.ImageHDU(pos), f5,
+        flist = [f1, f2, f3, f6, f4, fits.ImageHDU(pos), fits.ImageHDU(f5),
                  fits.ImageHDU(X), fits.ImageHDU(calinfo[3]),
                  fits.ImageHDU(im), fits.ImageHDU(fli), fits.ImageHDU(Fii),
                  fits.ImageHDU(c), fits.ImageHDU(s)]
         for fl, name in zip(flist, names):
             fl.header['EXTNAME'] = name
+        outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
+                                            'exp%02d' % cnt, specname))
         outname = op.join(basename, outname)
         fits.HDUList(flist).writeto(outname, overwrite=True)
+        outname = ('%s_%s_%s_%s_%s.fits' % ('spectrum', args.date, sci_obs,
+                                            'exp%02d' % cnt, specname))
+        outname = op.join(basename, outname)
+        f1 = fits.PrimaryHDU(f5)
+        for key in he.keys():
+            if key in f1.header:
+                continue
+            if 'SEC' in key:
+                continue
+            if ('BSCALE' in key) or ('BZERO' in key):
+                continue
+            f1.header[key] = he[key]
+        names = ['wavelength', 'F_lambda', 'e_F_lambda', 'Sky_lambda',
+                 'e_Sky_lambda', 'response']
+        f1.header['DWAVE'] = commonwave[1] - commonwave[0]
+        f1.header['WAVE0'] = commonwave[0]
+        f1.header['WAVESOL'] = 'WAVE0 + DWAVE * linspace(0, NAXIS1)'
+        f1.header['WAVEUNIT'] = 'A'
+        if response is not None:
+            f1.header['FLUXUNIT'] = 'ergs/s/cm2/A'
+        else:
+            f1.header['FLUXUNIT'] = 'e-/s/cm2/A'
+        for i, name in enumerate(names):
+            f1.header['ROW%i' % (i+1)] = name
+        f1.writeto(outname, overwrite=True)
         if standard:
             return get_response(obj[0], commonwave, skysubspec, specname)
 
