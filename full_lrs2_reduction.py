@@ -1379,7 +1379,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                             errorskysubspec, errorskyspec,
                             np.ones(commonwave.shape)])
         
-        cnt += 1
+        
         f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
         f2 = create_header_objection(commonwave, sky)
         f3 = create_header_objection(commonwave, skysub)
@@ -1432,6 +1432,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         for i, name in enumerate(names):
             f1.header['ROW%i' % (i+1)] = name
         f1.writeto(outname, overwrite=True)
+        cnt += 1
         if standard:
             return get_response(obj[0], commonwave, skysubspec, specname)
 
