@@ -666,15 +666,27 @@ class Amplifier:
                                        self.trimsec[0]:self.trimsec[1]]
             self.trimmed = True
       
-      
+    def get_closest_date(self, path, name):
+        fn = sorted(glob.glob(op.join(path, '*', name)))
+        dates = [op.basename(op.dirname(f)) for f in fn]
+        timediff = np.zeros((len(dates),))
+        for i, date in enumerate(dates):
+            d = datetime(int(date[:4]), int(date[4:6]),
+                         int(date[6:]))
+            timediff[i] = (self.date - d).days
+        sel = np.where(timediff>0)[0]
+        ind = sel[np.argmin(timediff[sel])]
+        return op.join(path, dates[ind], name)
+     
     def subtract_dark(self):
         if self.dark_mult>0.0:
             self.log.info('Subtracting dark with multiplication %0.2f for %s' 
                       %(self.dark_mult, self.basename))
-            darkimage = np.array(fits.open(op.join(self.darkpath, 
-                                                'masterdark_%s_%s.fits' 
-                                            %(self.specid, self.amp)))[0].data, 
-                              dtype=float)
+            darkpath = self.get_closest_date(self.darkpath,
+                                             'masterdark_%s_%s.fits' %
+                                             (self.specid, self.amp))
+            darkimage = np.array(fits.open(darkpath)[0].data, 
+                                 dtype=float)
             self.image[:] = self.image - self.dark_mult * darkimage
             # error in ADU calculation
             self.error[:] = np.sqrt(self.error**2 
@@ -686,10 +698,11 @@ class Amplifier:
             self.log.info('Subtracting bias frame from folder: %s' % self.biaspath)
             self.log.info('Subtracting bias with multiplication %0.2f for %s' 
                       %(self.bias_mult, self.basename))
-            biasimage = np.array(fits.open(op.join(self.biaspath, 
-                                                'masterbias_%s_%s.fits' 
-                                            %(self.specid, self.amp)))[0].data, 
-                              dtype=float)
+            biaspath = self.get_closest_date(self.biaspath,
+                                             'masterbias_%s_%s.fits' %
+                                             (self.specid, self.amp))
+            biasimage = np.array(fits.open(biaspath)[0].data, 
+                                 dtype=float)
             self.image[:] = self.image - self.bias_mult * biasimage
             #self.error[:] = np.sqrt(self.error**2 + self.gain*self.bias_mult*biasimage)
             
@@ -709,10 +722,11 @@ class Amplifier:
     def divide_pixelflat(self):
         if self.use_pixelflat:
             self.log.info('Dividing pixelflat for %s' % self.basename)
-            pixelflat = np.array(fits.open(op.join(self.pixflatpath,
-                                                   'pixelflat_cam%s_%s.fits' 
-                                            %(self.specid, self.amp)))[0].data,
-                                  dtype=float)
+            pixelpath = self.get_closest_date(self.pixflatpath,
+                                              'pixelflat_cam%s_%s.fits' %
+                                              (self.specid, self.amp))
+            pixelflat = np.array(fits.open(pixelpath)[0].data,
+                                 dtype=float)
             self.image[:] = np.where(pixelflat > 1e-1, self.image / pixelflat, 
                                      0.0)
             self.error[pixelflat<=0.0] = -1.0
