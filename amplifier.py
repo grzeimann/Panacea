@@ -674,7 +674,7 @@ class Amplifier:
             d = datetime(int(date[:4]), int(date[4:6]),
                          int(date[6:]))
             timediff[i] = (self.date - d).days
-        sel = np.where(timediff>0)[0]
+        sel = np.where(timediff>=0)[0]
         ind = sel[np.argmin(timediff[sel])]
         return op.join(path, dates[ind], name)
      
