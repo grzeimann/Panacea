@@ -17,6 +17,7 @@ import uuid
 
 from datetime import datetime, timedelta
 from astropy.io.votable import parse_single_table
+from fiber_utils import bspline_x0
 
 from astropy.io import fits
 from astropy.table import Table
@@ -346,7 +347,10 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
         model = I(array_wave[fiber])
         ftf[fiber] = savgol_filter(spectrum[fiber] / model, 151, 1)
     nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41,
-                             per=95)
+                             per=50)
+    B, c = bspline_x0(nw1, nknots=int(spectrum.shape[1]))
+    sol = np.linalg.lstsq(c, ns1)[0]
+    ns1 = np.dot(c, sol)
     I = interp1d(nw1, ns1, kind='quadratic', fill_value='extrapolate')
     modelimage = I(bigW)
     flat = array_flt / modelimage
