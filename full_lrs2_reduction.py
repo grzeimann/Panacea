@@ -1017,7 +1017,7 @@ def sky_subtraction(rect, error):
     return sky + res
 
 
-def make_frame(xloc, yloc, data, wave, dw, Dx, Dy, wstart=5700.,
+def make_frame(xloc, yloc, data, error, wave, dw, Dx, Dy, wstart=5700.,
                wend=5800., scale=0.4, seeing_fac=1.3):
     seeing = seeing_fac * scale
     a, b = data.shape
@@ -1029,7 +1029,7 @@ def make_frame(xloc, yloc, data, wave, dw, Dx, Dy, wstart=5700.,
     zgrid = np.zeros((b,)+xgrid.shape)
     area = 3. / 4. * np.sqrt(3.) * 0.59**2
     for k in np.arange(b):
-        sel = np.isfinite(data[:, k])
+        sel = np.isfinite(data[:, k]) * (error[:, k] != 0.)
         D = np.sqrt((xloc[:, np.newaxis, np.newaxis] - Dx[k] - xgrid)**2 +
                     (yloc[:, np.newaxis, np.newaxis] - Dy[k] - ygrid)**2)
         W = np.exp(-0.5 / (seeing/2.35)**2 * D**2)
@@ -1363,7 +1363,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             outname = op.join(basename, outname)
             
             zcube, zimage, xgrid, ygrid = make_frame(calinfo[5][:, 0],
-                                                     calinfo[5][:, 1], S,
+                                                     calinfo[5][:, 1], S, e,
                                                      commonwave,
                                                      T['wave'],
                                                      xoff, yoff,
