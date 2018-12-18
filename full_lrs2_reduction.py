@@ -891,7 +891,7 @@ def get_objects(basefiles, attrs, full=False):
         for att in attrs:
             s[-1].append(F[0].header[att])
         if full:
-            area = get_mirror_illumination_guider(fn)
+            area = get_mirror_illumination_guider(fn, s[-1][1])
             throughput = get_throughput(fn, s[-1][1])
             s[-1].append(area)
             s[-1].append(throughput)
