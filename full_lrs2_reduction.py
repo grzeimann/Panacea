@@ -891,7 +891,7 @@ def get_objects(basefiles, attrs, full=False):
         for att in attrs:
             s[-1].append(F[0].header[att])
         if full:
-            area = get_mirror_illumination(fn)
+            area = get_mirror_illumination_guider(fn)
             throughput = get_throughput(fn, s[-1][1])
             s[-1].append(area)
             s[-1].append(throughput)
@@ -1103,7 +1103,7 @@ def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
     return spec, serror
 
 
-def get_mirror_illumination(fn=None):
+def get_mirror_illumination(fn=None, default=51.4e4):
     ''' Use hetillum from illum_lib to calculate mirror illumination (cm^2) '''
     log.info('Getting mirror illumination')
     try:
@@ -1115,10 +1115,10 @@ def get_mirror_illumination(fn=None):
         mirror_illum = float(os.popen('/home/00156/drory/illum_lib/hetillum -p'
                              ' -x "[%0.4f,%0.4f,%0.4f]" "[%0.4f,%0.4f]" 256' %
                                       (x, y, p, 0.042, 0.014)).read().split('\n')[0])
-        area = mirror_illum * 51.4 * 1e4
+        area = mirror_illum * default
     except:
         log.info('Using default mirror illumination value')
-        area = 51.4 * 1e4
+        area = default
     log.info('Mirror illumination: %0.2f m^2' % (area/1e4))
     return area
 
@@ -1150,6 +1150,43 @@ def panstarrs_query(ra_deg, dec_deg, rad_deg, mindet=1,
     data = parse_single_table(name)
     os.remove(name)
     return data.to_table(use_names_over_ids=True)
+
+
+def get_mirror_illumination_guider(fn, exptime,
+                                   path='/work/03946/hetdex/maverick'):
+    M = []
+    path = op.join(path, args.date)
+    f = op.basename(fn)
+    DT = f.split('_')[0]
+    y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8], DT[9:11],
+                         DT[11:13], DT[13:15]]]
+    d0 = datetime(y, m, d, h, mi, s)
+    for gp in ['gc1', 'gc2']:
+        tarfolder = op.join(path, gp, '%s.tar' % gp)
+        T = tarfile.open(tarfolder, 'r')
+        init_list = sorted([name for name in T.getnames()
+                            if name[-5:] == '.fits'])
+
+        final_list = []
+        for t in init_list:
+            DT = t.split('_')[0]
+            y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8],
+                                 DT[9:11], DT[11:13], DT[13:15]]]
+            d = datetime(y, m, d, h, mi, s)
+            p = (d - d0).seconds
+            if (p > -10.) * (p < exptime+10.):
+                final_list.append(t)
+        for fn in final_list:
+            fobj = T.extractfile(T.getmember(fn))
+            M.append(get_mirror_illumination(fobj))
+    M = np.array(M)
+    sel = M != 51.4e4
+    if sel.sum() > 0.:
+        area = np.mean(M[sel])
+    else:
+        area = 51.4e4
+    log.info('Final Mirror illumination: %0.2f m^2' % (area/1e4))
+    return area
 
 
 def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
