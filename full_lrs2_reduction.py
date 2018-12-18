@@ -1085,7 +1085,7 @@ def find_source(image, xgrid, ygrid):
 
 
 def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
-                   seeing=1.5):
+                   seeing=1.5, aper=2.):
     gamma = seeing / (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
     PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=3.5, gamma=gamma)
     spec = wave * 0.
@@ -1097,7 +1097,7 @@ def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
         PSF.y_0.value = y
         W = PSF(xloc, yloc)
         W /= W.sum()
-        M = error[:, i] != 0.
+        M = (error[:, i] != 0.) * (np.sqrt((xloc-x)**2 + (yloc-y)**2) < aper)
         spec[i] = (data[:, i] * W * M).sum() / (M * W**2).sum()
         serror[i] = np.sqrt((error[:, i]**2 * W * M).sum() / (M * W**2).sum())
     return spec, serror
@@ -1161,7 +1161,7 @@ def get_mirror_illumination_guider(fn, exptime,
     y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8], DT[9:11],
                          DT[11:13], DT[13:15]]]
     d0 = datetime(y, m, d, h, mi, s)
-    for gp in ['gc1', 'gc2']:
+    for gp in ['gc1']:
         tarfolder = op.join(path, gp, '%s.tar' % gp)
         T = tarfile.open(tarfolder, 'r')
         init_list = sorted([name for name in T.getnames()
