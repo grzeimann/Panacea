@@ -1097,8 +1097,9 @@ def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
         PSF.y_0.value = y
         W = PSF(xloc, yloc)
         W /= W.sum()
-        spec[i] = (data[:, i] * W).sum() / (W**2).sum()
-        serror[i] = np.sqrt((error[:, i]**2 * W).sum() / (W**2).sum())
+        M = error[:, i] != 0.
+        spec[i] = (data[:, i] * W * M).sum() / (M * W**2).sum()
+        serror[i] = np.sqrt((error[:, i]**2 * W * M).sum() / (M * W**2).sum())
     return spec, serror
 
 
