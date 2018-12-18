@@ -962,42 +962,59 @@ def correct_ftf(rect, error):
 
 
 def sky_subtraction(rect, error):
-    def cost(factor, x, spectrum, model, error, contsel, peaksel, thresh=6.):
-        skysub = spectrum - factor * model
-        cont = np.interp(x, x[contsel], skysub[contsel])
-        skysub1 = skysub - cont
-        A = np.array(peaksel * 0., dtype=bool)
-        A[np.where(peaksel)[0]] = True
-        return 1. / (np.sum(A) - 1.) * np.sum(skysub1[A]**2 / error[A]**2)
-
-    sel = np.median(rect, axis=1) != 0.
     y = np.median(rect, axis=1)
-    sel = y != 0.
-    v = np.percentile(y[sel], 5)
-    init_sel = sel * (y < v)
+    selg = y != 0.
+    v = np.percentile(y[selg], 5)
+    init_sel = selg * (y < v)
     init = np.percentile(rect[init_sel], 50, axis=0)
-    peaks = init > np.percentile(init, 85)
     df = np.diff(init)
     df = np.hstack([df[0], df])
     cont = np.abs(df) < np.percentile(np.abs(df), 25)
+    G = Gaussian1DKernel(15)
+    tempy = init * 1.
+    tempy[~cont] = np.nan
+    smooth_back = convolve(tempy, G, nan_treatment='interpolate',
+                           preserve_nan=False)
+    init_error = (np.percentile(error[init_sel], 50, axis=0) *
+                  1.253 / np.sqrt(init_sel.sum()))
+    peaks = (init - smooth_back) > 5. * init_error
     cont = cont * (~peaks)
-    fac = rect[:, 50] * 0.
-    for fib in np.arange(len(fac)):
-        xi = np.arange(0.5, 2.0, 0.01)
-        cv = xi * 0.
-        for i, j in enumerate(xi):
-            gp = error[fib] != 0.
-            if gp.sum() > 0.:
-                cv[i] = cost(j, np.arange(2064), rect[fib], init, error[fib],
-                             cont*gp, peaks*gp)
-        if np.min(cv) < 5.:
-            fac[fib] = xi[np.argmin(cv)]
-    fac = np.interp(np.arange(280), np.arange(280)[fac > 0.], fac[fac > 0.])
-    fac[y == 0.] = 0.
-    ymod = robust_polyfit(np.arange(280), fac, order=3)
-    ymod[y == 0.] = 0.
-    sky = init[np.newaxis] * ymod[:, np.newaxis]
-    return sky
+    fac = np.ones((rect.shape[0],))
+    if peaks.sum() > 50:
+        for i in np.arange(rect.shape[0]):
+            tempy = rect[i] * 1.
+            tempy[~cont] = np.nan
+            continuum = convolve(tempy, G, nan_treatment='interpolate',
+                                 preserve_nan=False)
+            sel = peaks * (error[i] != 0.) * np.isfinite(smooth_back)
+            sel[:200] = False
+            sel[-200:] = False
+            xi = np.arange(0.7, 1.3, 0.001)
+            chi2 = 0. * xi
+            for k, j in enumerate(xi):
+                y = (rect[i] - continuum) - j * (init - smooth_back)
+                chi2[k] = (1. / np.sum(sel) *
+                           np.sum(y[sel]**2 / error[i][sel]**2))
+            fac[i] = xi[np.argmin(chi2)]
+    sky = init * fac[:, np.newaxis]
+    sky[~selg] = 0.
+    res = 0. * sky
+    skysub = rect - sky
+    for j in np.arange(rect.shape[1]):
+        E = error[:, j] * 1.
+        E[E == 0.] = 1e9
+        W = 1. / E**2
+        W = np.sqrt(np.diag(W))
+        A = fac[:, np.newaxis]
+        B = skysub[:, j]
+        Aw = np.dot(W, A)
+        Bw = np.dot(B, W)
+        sol = np.linalg.lstsq(Aw, Bw)[0]
+        sg = np.sign(sol)
+        V = [np.abs(sol), 0.5 * np.median(E)]
+        mult = V[np.argmin(V)] * sg
+        res[:, j] = mult
+    return sky + res
 
 
 def make_frame(xloc, yloc, data, wave, dw, Dx, Dy, wstart=5700.,
