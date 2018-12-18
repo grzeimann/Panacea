@@ -1039,7 +1039,7 @@ def make_frame(xloc, yloc, data, error, wave, dw, Dx, Dy, wstart=5700.,
     wi = np.searchsorted(wave, wstart, side='left')
     we = np.searchsorted(wave, wend, side='right')
 
-    zimage = biweight_location(zgrid[wi:we+1], axis=(0,))
+    zimage = np.median(zgrid[wi:we+1], axis=(0,))
     return zgrid, zimage, xgrid, ygrid
 
 
