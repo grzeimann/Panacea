@@ -31,6 +31,7 @@ from astrometry import Astrometry
 from astropy.stats import biweight_midvariance
 from photutils import DAOStarFinder
 from astropy.modeling.models import Moffat2D
+from astropy.modeling.fitting import LevMarLSQFitter
 from sklearn.decomposition import PCA
 from astropy.convolution import Gaussian1DKernel, convolve
 
@@ -1068,7 +1069,7 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname, he):
     hdu.writeto(outname, overwrite=True)
 
 
-def find_source(image, xgrid, ygrid):
+def find_source(image, xgrid, ygrid, dimage, dx, dy):
     std = np.sqrt(biweight_midvariance(image))
     daofind = DAOStarFinder(fwhm=4.0, threshold=5.*std, exclude_border=True)
     sources = daofind(image)
@@ -1079,7 +1080,15 @@ def find_source(image, xgrid, ygrid):
         yg = np.unique(ygrid)
         xc = np.interp(sources[ind]['xcentroid'], np.arange(len(xg)), xg)
         yc = np.interp(sources[ind]['ycentroid'], np.arange(len(yg)), yg)
-        return xc, yc
+        gamma = 1.5 / (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
+        PSF = Moffat2D(amplitude=sources[ind]['peak'], x_0=xc, y_0=yc,
+                       alpha=3.5, gamma=gamma)
+        PSF.alpha.fixed = True
+        fitter = LevMarLSQFitter()
+        fit = fitter(PSF, dx, dy, dimage)
+        log.info('Initial source x, y: %0.2f, %0.2f' % (xc, yc))
+        log.info('Final source x, y: %0.2f, %0.2f' % (fit.x_0, fit.y_0))
+        return fit.x_0, fit.y_0, fit.gamma * (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
     else:
         return None
 
@@ -1410,20 +1419,30 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             write_cube(commonwave, xgrid, ygrid, zcube, outname, he)
 
         if (args.source_x is None) or standard:
-            loc = find_source(zimage, xgrid, ygrid)
+            wi = np.searchsorted(commonwave, wave_0-wb, side='left')
+            we = np.searchsorted(commonwave, wave_0+wb, side='right')
+            dimage = np.median(r[wi:we+1], axis=(0,))
+            loc = find_source(zimage, xgrid, ygrid, dimage,
+                              calinfo[5][:, 0], calinfo[5][:, 1])
+            log.info('Source seeing initially found to be: %0.2f' % loc[2])
+            loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
         else:
-            loc = [args.source_x, args.source_y]
+            loc = [args.source_x, args.source_y, 1.5]
         if loc is not None:
             log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
             skyspec, errorskyspec = extract_source(sky, loc[0], loc[1], xoff,
                                                    yoff, commonwave,
                                                    calinfo[5][:, 0],
-                                                   calinfo[5][:, 1], e)
+                                                   calinfo[5][:, 1], e,
+                                                   seeing=loc[2],
+                                                   aper=loc[2]*1.2)
             skysubspec, errorskysubspec = extract_source(skysub, loc[0],
                                                          loc[1], xoff, yoff,
                                                          commonwave,
                                                          calinfo[5][:, 0],
-                                                         calinfo[5][:, 1], e)
+                                                         calinfo[5][:, 1], e,
+                                                         seeing=loc[2],
+                                                         aper=loc[2]*1.2)
         else:
             skyspec = commonwave * 0.
             skysubspec = commonwave * 0.
