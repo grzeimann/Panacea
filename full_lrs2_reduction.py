@@ -1424,6 +1424,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             dimage = np.median(r[:, wi:we+1], axis=(1,))
             loc = find_source(zimage, xgrid, ygrid, dimage,
                               calinfo[5][:, 0], calinfo[5][:, 1])
+            loc = list(loc)
             log.info('Source seeing initially found to be: %0.2f' % loc[2])
             loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
         else:
