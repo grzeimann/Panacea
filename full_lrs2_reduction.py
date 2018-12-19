@@ -1662,7 +1662,12 @@ for info in listinfo:
         names = glob.glob(basename, 'cal*%s.fits' % specname)
         responses = []
         for name in names:
-            responses.append(fits.open(name)['response'].data[1]*1.)
+            try:
+                temp = fits.open(name)['response'].data[1] * 1.
+            except:
+                temp = 0. * commonwave
+            if (temp != 0.).sum() > 500:
+                responses.append(temp)
         responses = np.array(responses)
         norm = np.median(responses, axis=1)
         avg = np.median(responses / norm[:, np.newaxis], axis=0)
