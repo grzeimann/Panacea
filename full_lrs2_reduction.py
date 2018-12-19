@@ -29,11 +29,10 @@ from scipy.interpolate import interp1d, interp2d, griddata
 from input_utils import setup_logging
 from astrometry import Astrometry
 from astropy.stats import biweight_midvariance
-from photutils import DAOStarFinder
 from astropy.modeling.models import Moffat2D
 from astropy.modeling.fitting import LevMarLSQFitter
 from sklearn.decomposition import PCA
-from astropy.convolution import Gaussian1DKernel, convolve
+from astropy.convolution import Gaussian1DKernel, Gaussian2DKernel, convolve
 
 
 log = setup_logging('panacea_quicklook')
@@ -1070,19 +1069,17 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname, he):
     hdu.writeto(outname, overwrite=True)
 
 
-def find_source(image, xgrid, ygrid, dimage, dx, dy):
-    std = np.sqrt(biweight_midvariance(image))
-    daofind = DAOStarFinder(fwhm=4.0, threshold=5.*std, exclude_border=True)
-    sources = daofind(image)
-    print(sources)
-    if len(sources) >= 1:
-        ind = np.argmax(sources['flux'])
-        xg = np.unique(xgrid)
-        yg = np.unique(ygrid)
-        xc = np.interp(sources[ind]['xcentroid'], np.arange(len(xg)), xg)
-        yc = np.interp(sources[ind]['ycentroid'], np.arange(len(yg)), yg)
+def find_source(image, xgrid, ygrid, dimage, dx, dy):    
+    G = Gaussian2DKernel(2.5)
+    c = convolve(image, G)
+    std = np.sqrt(biweight_midvariance(c))
+    peak = np.max(c) 
+    sn = peak / std
+    if sn > 3.:
+        xc = xgrid.ravel()[np.argmax(c)]
+        yc = ygrid.ravel()[np.argmax(c)]
         gamma = 1.5 / (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
-        PSF = Moffat2D(amplitude=sources[ind]['peak'], x_0=xc, y_0=yc,
+        PSF = Moffat2D(amplitude=peak, x_0=xc, y_0=yc,
                        alpha=3.5, gamma=gamma)
         PSF.alpha.fixed = True
         fitter = LevMarLSQFitter()
