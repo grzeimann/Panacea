@@ -990,13 +990,14 @@ def sky_subtraction(rect, error):
             sel = peaks * (error[i] != 0.) * np.isfinite(smooth_back)
             sel[:200] = False
             sel[-200:] = False
-            xi = np.arange(0.7, 1.3, 0.001)
-            chi2 = 0. * xi
-            for k, j in enumerate(xi):
-                y = (rect[i] - continuum) - j * (init - smooth_back)
-                chi2[k] = (1. / np.sum(sel) *
-                           np.sum(y[sel]**2 / error[i][sel]**2))
-            fac[i] = xi[np.argmin(chi2)]
+            if sel.sum() > 20.:
+                xi = np.arange(0.7, 1.3, 0.001)
+                chi2 = 0. * xi
+                for k, j in enumerate(xi):
+                    y = (rect[i] - continuum) - j * (init - smooth_back)
+                    chi2[k] = (1. / np.sum(sel) *
+                               np.sum(y[sel]**2 / error[i][sel]**2))
+                fac[i] = xi[np.argmin(chi2)]
     sky = init * fac[:, np.newaxis]
     sky[~selg] = 0.
     res = 0. * sky
@@ -1659,7 +1660,7 @@ for info in listinfo:
     if response is None:
         log.info('Getting average response')
         basename = 'LRS2/CALS'
-        names = glob.glob(basename, 'cal*%s.fits' % specname)
+        names = glob.glob(op.join(basename, 'cal*%s.fits' % specname))
         responses = []
         for name in names:
             try:
