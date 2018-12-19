@@ -1424,9 +1424,10 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             dimage = np.median(skysub[:, wi:we+1], axis=(1,))
             loc = find_source(zimage, xgrid, ygrid, dimage,
                               calinfo[5][:, 0], calinfo[5][:, 1])
-            loc = list(loc)
-            log.info('Source seeing initially found to be: %0.2f' % loc[2])
-            loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
+            if loc is not None:
+                loc = list(loc)
+                log.info('Source seeing initially found to be: %0.2f' % loc[2])
+                loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
         else:
             loc = [args.source_x, args.source_y, 1.5]
         if loc is not None:
@@ -1512,7 +1513,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             f1.header['ROW%i' % (i+1)] = name
         f1.writeto(outname, overwrite=True)
         cnt += 1
-        if standard:
+        if standard and ((skysubspec != 0.).sum() > 500):
             return get_response(obj[0], commonwave, skysubspec, specname)
 
 
@@ -1655,6 +1656,18 @@ for info in listinfo:
             response = big_reduction(obj, bf, instrument, sci_obs, calinfo,
                                      amps, commonwave, ifuslot, specname,
                                      standard=True)
+    if response is None:
+        log.info('Getting average response')
+        basename = 'LRS2/CALS'
+        names = glob.glob(basename, 'cal*%s.fits' % specname)
+        responses = []
+        for name in names:
+            responses.append(fits.open(name)['response'].data[1]*1.)
+        responses = np.array(responses)
+        norm = np.median(responses, axis=1)
+        avg = np.median(responses / norm[:, np.newaxis], axis=0)
+        response = avg * np.median(norm)
+
     f = []
     names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias', 'xypos',
              'dead', 'flatspec', 'bigF']
