@@ -1087,8 +1087,8 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy):
         fitter = LevMarLSQFitter()
         fit = fitter(PSF, dx, dy, dimage)
         log.info('Initial source x, y: %0.2f, %0.2f' % (xc, yc))
-        log.info('Final source x, y: %0.2f, %0.2f' % (fit.x_0, fit.y_0))
-        return fit.x_0, fit.y_0, fit.gamma * (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
+        log.info('Final source x, y: %0.2f, %0.2f' % (fit.x_0.value, fit.y_0.value))
+        return fit.x_0.value, fit.y_0.value, fit.gamma.value * (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
     else:
         return None
 
