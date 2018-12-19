@@ -1421,7 +1421,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         if (args.source_x is None) or standard:
             wi = np.searchsorted(commonwave, wave_0-wb, side='left')
             we = np.searchsorted(commonwave, wave_0+wb, side='right')
-            dimage = np.median(r[:, wi:we+1], axis=(1,))
+            dimage = np.median(skysub[:, wi:we+1], axis=(1,))
             loc = find_source(zimage, xgrid, ygrid, dimage,
                               calinfo[5][:, 0], calinfo[5][:, 1])
             loc = list(loc)
