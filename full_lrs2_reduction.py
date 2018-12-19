@@ -1073,11 +1073,11 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy):
     G = Gaussian2DKernel(2.5)
     c = convolve(image, G)
     std = np.sqrt(biweight_midvariance(c))
-    peak = np.max(c) 
+    peak = np.max(c[3:-3, 3:-3]) 
     sn = peak / std
     if sn > 3.:
-        xc = xgrid.ravel()[np.argmax(c)]
-        yc = ygrid.ravel()[np.argmax(c)]
+        xc = xgrid[3:-3, 3:-3].ravel()[np.argmax(c[3:-3, 3:-3])]
+        yc = ygrid[3:-3, 3:-3].ravel()[np.argmax(c[3:-3, 3:-3])]
         gamma = 1.5 / (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
         PSF = Moffat2D(amplitude=peak, x_0=xc, y_0=yc,
                        alpha=3.5, gamma=gamma)
