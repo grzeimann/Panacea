@@ -1,12 +1,10 @@
 # Panacea v1.0 (Automatic LRS2 Pipeline)
 This package the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope. Every morning the pipeline reduces data taken the previous night.  Below we discuss the algorithms and products of Panacea, how to access your data reductions, and how to run the pipeline yourself with varying options. All of the data reduction products live on the Texas Advanced Computing Center (TACC).  We start with the instructions to log on to TACC, and where you reductions are placed.
 
-## Getting Started with LRS2
-
-### Working on TACC 
+## Working on TACC 
 The reductions are designed to be run on TACC where a copy of the raw data lives.  We will describe how to get started on TACC,  where the automatic reduction products live, how to run the code yourself, and the products that are produced.
 
-#### Signing up for an account
+### Signing up for an account
 https://portal.tacc.utexas.edu/
 <p align="center">
   <img src="images/tacc_create_account.png" width="650"/>
@@ -17,7 +15,7 @@ After creating an accounting using the link above, please send Matthew Shetrone 
 ssh -Y USERNAME@maverick.tacc.utexas.edu
 ```
 
-#### HOW TO GET YOUR DATA
+## How to get your data
 The reduction pipeline run each morning puts your data products in the following path:
 /work/03946/hetdex/maverick/LRS2/PROGRAM-ID
 
@@ -32,7 +30,7 @@ you may just a single product or a single night.  Below is an example, which gra
 scp -r username@maverick.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID/spec*20190105*.fits .
 ```
 
-### Data Products
+## Data Products
 The primary data product are multi*{uv,orange,red,farred}.fits files for each channel that was reduced.  
 The reductions reside in your "reductions/" folder at the same directory level that the "sbatch r*" commands were run.  
 Within the "reductions/" directory are dates of the data reduced.  An example folder structure is:
