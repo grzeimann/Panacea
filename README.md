@@ -17,8 +17,9 @@ ssh -Y USERNAME@maverick.tacc.utexas.edu
 
 ## How to get your data
 The reduction pipeline run each morning puts your data products in the following path:
+```
 /work/03946/hetdex/maverick/LRS2/PROGRAM-ID
-
+```
 where PROGRAM-ID, is your program number, for example HET19-1-999.  To get all of the current reductions for your program, simply:
 ```
 scp -r username@maverick.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID .
