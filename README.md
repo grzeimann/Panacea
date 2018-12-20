@@ -1,6 +1,9 @@
-# Panacea 
-This package is intended to be the base reduction pipeline for VIRUS and LRS2 at the Hobby Eberly Telescope.  
-Instructions for installation and use at the Texas Advanced Computing Center (TACC) are below.
+# Panacea V1.0 (Automatic LRS2 Pipeline)
+This package the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope.  
+Every morning the pipeline reduces data taken the previous night.  Below we discuss the algorithms and products
+of Panacea, how to access your data reductions, and how to run the pipeline yourself with varying options.
+All of the data reduction products live on the Texas Advanced Computing Center (TACC).  We start with the instructions
+to log on to TACC, and where you reductions are placed.
 
 ## Getting Started with LRS2
 
