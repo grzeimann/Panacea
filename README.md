@@ -1,15 +1,10 @@
 # Panacea v1.0 (Automatic LRS2 Pipeline)
-This package the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope.  
-Every morning the pipeline reduces data taken the previous night.  Below we discuss the algorithms and products
-of Panacea, how to access your data reductions, and how to run the pipeline yourself with varying options.
-All of the data reduction products live on the Texas Advanced Computing Center (TACC).  We start with the instructions
-to log on to TACC, and where you reductions are placed.
+This package the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope. Every morning the pipeline reduces data taken the previous night.  Below we discuss the algorithms and products of Panacea, how to access your data reductions, and how to run the pipeline yourself with varying options. All of the data reduction products live on the Texas Advanced Computing Center (TACC).  We start with the instructions to log on to TACC, and where you reductions are placed.
 
 ## Getting Started with LRS2
 
 ### Working on TACC 
-The reductions are designed to be run on TACC where a copy of the raw data lives.  We will describe how to get started on TACC, 
-where the automatic reduction products live, how to run the code yourself, and the products that are produced.
+The reductions are designed to be run on TACC where a copy of the raw data lives.  We will describe how to get started on TACC,  where the automatic reduction products live, how to run the code yourself, and the products that are produced.
 
 #### Signing up for an account
 https://portal.tacc.utexas.edu/
@@ -17,8 +12,7 @@ https://portal.tacc.utexas.edu/
   <img src="images/tacc_create_account.png" width="650"/>
 </p>
 
-After creating an accounting using the link above, please send Matthew Shetrone <shetrone@astro.as.utexas.edu> your 
-TACC username and he will add you to the HET group.  When that step is complete, you can ssh into TACC using:
+After creating an accounting using the link above, please send Matthew Shetrone <shetrone@astro.as.utexas.edu> your TACC username and he will add you to the HET group.  When that step is complete, you can ssh into TACC using:
 ```
 ssh -Y USERNAME@maverick.tacc.utexas.edu
 ```
