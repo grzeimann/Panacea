@@ -1409,7 +1409,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         e /= mini[0][3]
         if args.correct_ftf:
             r, e = correct_ftf(r, e)
-        sky = sky_subtraction(r, e)
+        sky = sky_subtraction(r, e, pos[:, 0], pos[:, 1])
         sky[calinfo[-3][:, 1] == 1.] = 0.
         skysub = r - sky
         if response is not None:
