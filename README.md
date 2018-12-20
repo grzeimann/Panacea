@@ -1,4 +1,4 @@
-# Panacea V1.0 (Automatic LRS2 Pipeline)
+# Panacea v1.0 (Automatic LRS2 Pipeline)
 This package the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope.  
 Every morning the pipeline reduces data taken the previous night.  Below we discuss the algorithms and products
 of Panacea, how to access your data reductions, and how to run the pipeline yourself with varying options.
@@ -9,7 +9,7 @@ to log on to TACC, and where you reductions are placed.
 
 ### Working on TACC 
 The reductions are designed to be run on TACC where a copy of the raw data lives.  We will describe how to get started on TACC, 
-acquire the reduction code, run the code, and the products that are produced.
+where the automatic reduction products live, how to run the code yourself, and the products that are produced.
 
 #### Signing up for an account
 https://portal.tacc.utexas.edu/
@@ -23,85 +23,20 @@ TACC username and he will add you to the HET group.  When that step is complete,
 ssh -Y USERNAME@maverick.tacc.utexas.edu
 ```
 
-#### Setting up your Python environment
-To begin on TACC, point to the common python environment. In your home "~/.bashrc" file, add the following line at the bottom:
-```
-export PATH=”/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bin:$PATH”
-```
+#### How to get your data
+The reduction pipeline run each morning puts your data products in the following path:
+/work/03946/hetdex/maverick/LRS2/PROGRAM-ID
 
-#### Getting Panacea
-Then move to your work directory and clone Panacea: 
+where PROGRAM-ID, is your program number, for example HET19-1-999.  To get all of the current reductions for your program, simply:
 ```
-cdw
-git clone https://github.com/grzeimann/Panacea.git
+scp -r username@maverick.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID .
 ```
-
-#### Preparing the reductions
-The next step is to generate the necessary set of scripts for your target. 
-Panacea reduces the blue and red sides of LRS2 separately, and thus the scripts for reductions are generated on a per side basis. 
-For a given target name and side of the LRS2 spectrograph, "build_panacea_call.py" finds all observations for that target over a given date range.  For example:
-
+You merely have to use your "username" and your "PROGRAM-ID" and you can copy over your products.  Now, the data reduction products are
+extensive, that is to say they for every Mb of raw data there is 24 Mb of reduced data.  Without going into the data products yet,
+you may just a single product or a single night.  Below is an example, which grabs all spectra within your program for a given data:
 ```
-python Panacea/build_panacea_call.py --start_date 20180515 --date_length 1 --rootdir /work/03946/hetdex/maverick --instrument lrs2 --side blue --target "bd*"
+scp -r username@maverick.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID/spec*20190105*.fits .
 ```
-
-The target name should be a "regular expression" in a unix search.  All searches are done in lower case alphanumerics
-to avoid mismatches in upper and lower case naming.
-
-The following scripts are generated from that call and printed to screen:
-```
-sbatch rtwi_blue_1.slurm
-sbatch rsci_blue_1.slurm
-sbatch rstd_blue_1.slurm
-sbatch rresponse_blue_1.slurm
-sbatch rcom_blue_1.slurm
-```
-
-At this step, it is easiest to create a new terminal on TACC to preserve these commands in your current window, and in the new 
-terminal window you can run these scripts as described in detail below.
-
-#### Running calibrations
-We must first reduce the twilight frames from which the trace, fiber profile, wavelength solution, and fiber normalization are derived.
-To begin, run all of the "rtwi_*.slurm" by simply copying and pasting the printed commands like "sbatch rtwi_blue_1.slurm" and hit enter.
-If many "rtwi_*.slurm" commands are printed to the screen from the "python Panacea/build_panacea_commands.py" then copy them all
-and hit enter. For example:
-```
-sbatch rtwi_blue_1.slurm
-sbatch rtwi_blue_2.slurm
-sbatch rtwi_blue_3.slurm
-```
-
-All of the "rtwi*" scripts can be run simultaneously and take roughly 30 minutes.  You can check on the progress by using the command:
-```
-squeue | grep USERNAME
-```
-Where you put your username for USERNAME.  The log of what is running or did run is in the file "reduction.oXXXXXX" 
-where XXXXXX is the 6 job number, which is printed out at the end of the command "sbatch rtwi_*.slurm".  
-
-After the job has finished, in other words is no longer in the squeue, you can run both the science and standard star reductions.
-
-#### Running basic reductions for science and standard star frames
-Next, simply copy the "rsci*.slurm" commands to the terminal window and hit enter:
-```
-sbatch rsci_blue_1.slurm
-```
-
-Note, if you may have more than one rsci*.slurmfile generated you may run all of them in quick succession.  For example:
-```
-sbatch rsci_blue_1.slurm
-sbatch rsci_blue_2.slurm
-sbatch rsci_blue_3.slurm
-```
-
-#### Combine amplifier reductions
-We have reduced each amplifier individually, but each channel in LRS2 has two amplifiers, so we now must combine them.
-
-To do so, run:
-```
-sbatch rcom_blue_1.slurm 
-```
-Again, do this for all commands generated by the initial "python Panacea/build_panacea_call.py".  
-Now you are ready to look at the data products from the reduction.  
 
 ### Data Products
 The primary data product are multi*{uv,orange,red,farred}.fits files for each channel that was reduced.  
@@ -132,6 +67,25 @@ If a continuum source was automatically detected by the reduction program anothe
 spectrum*{uv,orange,red,farred}.fits.  These fits files include 4 rows, which are (in ascending order):
 wavelength (A), spectrum (ergs/s/cm^2/A), spectrum error (ergs/s/cm^2/A), and sky spectrum (ergs/s/cm^2/A).  
 
+### Running the reductions yourself
+This section covers how to run your own reductions with modifications to achieve specific science objectives.
+
+#### Setting up your Python environment
+To begin on TACC, point to the common python environment. In your home "~/.bashrc" file, add the following line at the bottom:
+```
+export PATH=”/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bin:$PATH”
+```
+
+#### Getting Panacea
+Then move to your work directory and clone Panacea: 
+```
+cdw
+git clone https://github.com/grzeimann/Panacea.git
+```
+
+
+#### Preparing the reductions
+
 ## Code Description
 Panacea is a general integral field unit (IFU) spectroscopic reduction tool tailored specifically for the Hobby Eberly Telescope (HET).
 The code is primarily used for reducing science data from the LRS2 and VIRUS spectrographs.  
@@ -143,14 +97,6 @@ The LRS2 instrument has two spectrographs each with two arms (LRS2-B: UV and Ora
 <p align="center">
   <img src="images/lrs2_mapping_visual.png" width="850"/>
 </p>
-
-### VIRUS Layout
-<p align="center">
-  <img src="images/spectrograph_layout_useful_visual_1.png" width="850"/> 
-  <img src="images/spectrograph_layout_useful_visual_2.png" width="850"/>
-</p>
-
-[//]: # (Include a more in depth discussion guided by Phillip to justify row by row overscan subtraction)
 
 ### Bias Subtraction
 The first step in Panacea's reduction is to measure the bias pedestal in the overscan region for each amplifier.  We subtract the pedestal row by row, excluding the first column in the overscan region using the remaining 31 or 63 pixels (2x1 or 1x1 binning, respectively) in a given row.  After the bias pedestal is removed, there remains a bias structure and excess charge that still needs to be removed. Each night, twenty bias exposures are taken, which are insufficient to accurately measure the low-level structure, so we use 100 consecutive frames over 5-6 nights, which is a compromise between sufficient statitics and minimal evolution of the structure from the passage of time.  The evolution of the bias structure depends on temperature control and the intricacies of each amplifier's controller. 
