@@ -29,7 +29,7 @@ from scipy.interpolate import interp1d, interp2d, griddata
 from input_utils import setup_logging
 from astrometry import Astrometry
 from astropy.stats import biweight_midvariance
-from astropy.modeling.models import Moffat2D
+from astropy.modeling.models import Moffat2D, Polynomial2D
 from astropy.modeling.fitting import LevMarLSQFitter
 from sklearn.decomposition import PCA
 from astropy.convolution import Gaussian1DKernel, Gaussian2DKernel, convolve
@@ -961,7 +961,7 @@ def correct_ftf(rect, error):
         return rect, error
 
 
-def sky_subtraction(rect, error):
+def sky_subtraction(rect, error, xloc, yloc):
     y = np.median(rect, axis=1)
     selg = y != 0.
     v = np.percentile(y[selg], 5)
@@ -974,30 +974,42 @@ def sky_subtraction(rect, error):
     tempy = init * 1.
     tempy[~cont] = np.nan
     smooth_back = convolve(tempy, G, nan_treatment='interpolate',
-                           preserve_nan=False)
-    init_error = (np.percentile(error[init_sel], 50, axis=0) *
-                  1.253 / np.sqrt(init_sel.sum()))
-    peaks = (init - smooth_back) > 5. * init_error
-    cont = cont * (~peaks)
-    fac = np.ones((rect.shape[0],))
-    if peaks.sum() > 50:
-        for i in np.arange(rect.shape[0]):
-            tempy = rect[i] * 1.
-            tempy[~cont] = np.nan
-            continuum = convolve(tempy, G, nan_treatment='interpolate',
-                                 preserve_nan=False)
-            sel = peaks * (error[i] != 0.) * np.isfinite(smooth_back)
-            sel[:200] = False
-            sel[-200:] = False
-            if sel.sum() > 20.:
-                xi = np.arange(0.7, 1.3, 0.001)
-                chi2 = 0. * xi
-                for k, j in enumerate(xi):
-                    y = (rect[i] - continuum) - j * (init - smooth_back)
-                    chi2[k] = (1. / np.sum(sel) *
-                               np.sum(y[sel]**2 / error[i][sel]**2))
-                fac[i] = xi[np.argmin(chi2)]
-    sky = init * fac[:, np.newaxis]
+                               preserve_nan=False)
+    peak_loc, sn, v = find_peaks(init - smooth_back, thresh = 3)
+    locs = np.round(peak_loc).astype(int)
+    locs = np.sort(np.hstack([locs-2, locs-1, locs, locs+1, locs+2]))
+    locs = locs[np.where(locs>=0)[0]]
+    locs = locs[np.where(locs<2064)[0]]
+    facs = np.arange(0.7, 1.3, 0.01)
+    cnt = facs * 0.
+    sol = np.ones((280,))
+    for k in np.arange(280):
+        good = np.zeros(rect[k].shape, dtype=bool)
+        good[locs] = True
+        good[error[k] == 0.] = False
+        if good.sum() > 50.:
+            for j, i in enumerate(facs):
+                cnt[j] = (((rect[k] - i * init) * init)[good]).sum()
+            ind = np.argsort(cnt)
+            sol[k] = np.interp(0., cnt[ind], facs[ind])
+    sol[np.abs(sol - 1.3) < 0.01] = 1.
+    n1 = np.median(sol[:140])
+    n2 = np.median(sol[140:])
+    nsol = sol * 1.
+    nsol[:140] = sol[:140] / n1
+    nsol[140:] = sol[140:] / n2
+    fitter = LevMarLSQFitter()
+    P = Polynomial2D(2)
+    good = nsol != 0.
+    fit = fitter(P, xloc[good], yloc[good], nsol[good])
+    off = np.abs(sol - fit(xloc, yloc))
+    mad = np.median(off)
+    good = (nsol != 0.) * (off < 2. * mad)
+    fit = fitter(P, xloc[good], yloc[good], nsol[good])
+    model = fit(xloc, yloc)
+    model[:140] *= n1
+    model[140:] *= n2
+    sky = init * model[:, np.newaxis]
     sky[~selg] = 0.
     res = 0. * sky
     skysub = rect - sky
@@ -1006,7 +1018,7 @@ def sky_subtraction(rect, error):
         E[E == 0.] = 1e9
         W = 1. / E**2
         W = np.sqrt(np.diag(W))
-        A = fac[:, np.newaxis]
+        A = model[:, np.newaxis]
         B = skysub[:, j]
         Aw = np.dot(W, A)
         Bw = np.dot(B, W)
@@ -1097,6 +1109,8 @@ def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
     PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=3.5, gamma=gamma)
     spec = wave * 0.
     serror = wave * 0.
+    weights = data * 0.
+    mask = data * 0.
     for i in np.arange(len(wave)):
         x = xc + xoff[i]
         y = yc + yoff[i]
@@ -1105,9 +1119,11 @@ def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
         W = PSF(xloc, yloc)
         W /= W.sum()
         M = (error[:, i] != 0.) * (np.sqrt((xloc-x)**2 + (yloc-y)**2) < aper)
+        weights[:, i] = W
+        mask[:, i] = M
         spec[i] = (data[:, i] * W * M).sum() / (M * W**2).sum()
         serror[i] = np.sqrt((error[:, i]**2 * W * M).sum() / (M * W**2).sum())
-    return spec, serror
+    return spec, serror, weights, mask
 
 
 def get_mirror_illumination(fn=None, default=51.4e4):
@@ -1430,13 +1446,13 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             loc = [args.source_x, args.source_y, 1.5]
         if loc is not None:
             log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
-            skyspec, errorskyspec = extract_source(sky, loc[0], loc[1], xoff,
+            skyspec, errorskyspec, w, m = extract_source(sky, loc[0], loc[1], xoff,
                                                    yoff, commonwave,
                                                    calinfo[5][:, 0],
                                                    calinfo[5][:, 1], e,
                                                    seeing=loc[2],
                                                    aper=loc[2]*1.2)
-            skysubspec, errorskysubspec = extract_source(skysub, loc[0],
+            skysubspec, errorskysubspec, w, m = extract_source(skysub, loc[0],
                                                          loc[1], xoff, yoff,
                                                          commonwave,
                                                          calinfo[5][:, 0],
