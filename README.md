@@ -17,7 +17,7 @@ After creating an accounting using the link above, please send Matthew Shetrone 
 ssh -Y USERNAME@maverick.tacc.utexas.edu
 ```
 
-#### How to get your data
+#### HOW TO GET YOUR DATA
 The reduction pipeline run each morning puts your data products in the following path:
 /work/03946/hetdex/maverick/LRS2/PROGRAM-ID
 
