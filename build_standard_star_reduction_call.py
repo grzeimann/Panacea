@@ -26,14 +26,9 @@ standard_call = []
 basecall = ('python /work/03730/gregz/maverick/Panacea/full_lrs2_reduction.py '
             '-d %s -s %s -ssd %s -sso %s -t %s')
 for _object in object_table:
-    if len(_object) == 3:
-        filename = _object[0]
-        objectname = _object[1]
-        exptime = float(_object[2])
-    else:
-        filename = _object[0]
-        exptime = float(_object[-1])
-        objectname = ''
+    filename = _object[0]
+    objectname = _object[1]
+    exptime = float(_object[2])
     for standard in standard_names:
         if objectname.lower() in standard.lower():
             obsid = op.basename(op.dirname(op.dirname(op.dirname(filename)))).split('lrs2')[1]
