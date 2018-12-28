@@ -41,8 +41,6 @@ for _object in object_table:
             standard_call.append(basecall %
                                  (date, '"uv,orange"', date, obsid, objectname))
 
-print(standard_call)
-sys.exit(1)
 for f, basename in zip([standard_call], ['rstan']):
     chunks = np.array_split(f, len(f) / 20 + 1)
     for j, chunk in enumerate(chunks):
