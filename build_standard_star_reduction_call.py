@@ -24,7 +24,7 @@ objects = []
 dates = []
 standard_call = []
 basecall = ('python /work/03730/gregz/maverick/Panacea/full_lrs2_reduction.py '
-            '-d %s -s %s -ssd %s -sso %s -t %s')
+            '-d %s -s %s -ssd %s -sso %s -o %s')
 slot = sys.argv[2]
 for _object in object_table:
     if slot not in _object[1]:
