@@ -1401,8 +1401,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             pos[:, 5] = dec
         except:
             log.warning('Astrometry Issue')
-        fn = (sci_path % (instrument, instrument, sci_obs,
-                          '%02d' % cnt, instrument, ifuslot))
+        fn = bf.replace('exp01', 'exp%02d' % cnt)
         fn = glob.glob(fn)
         mini = get_objects(fn, ['OBJECT', 'EXPTIME'], full=True)
         log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
