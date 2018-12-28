@@ -45,7 +45,7 @@ for f, basename in zip([standard_call], ['rstan']):
     chunks = np.array_split(f, len(f) / 20 + 1)
     for j, chunk in enumerate(chunks):
         n = len(chunk)
-        name = basename+'_%s_%i' % (args.side, j+1)
+        name = basename+'_%s_%i' % (slot, j+1)
         f = open(name+'.slurm', 'w')
         s = slurmfile.slurmstring % (n, '%j', name)
         f.write(s)
