@@ -39,7 +39,7 @@ for _object in object_table:
             obsid = op.basename(op.dirname(op.dirname(op.dirname(filename)))).split('lrs2')[1]
             date = op.basename(op.dirname(op.dirname(op.dirname(op.dirname(op.dirname(filename))))))
             standard_call.append(basecall %
-                                 (date, '%s', date, obsid, objectname))
+                                 (date, '"uv,orange"', date, obsid, objectname))
 
 print(standard_call)
 sys.exit(1)
