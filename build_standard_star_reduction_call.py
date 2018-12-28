@@ -28,7 +28,10 @@ basecall = ('python /work/03730/gregz/maverick/Panacea/full_lrs2_reduction.py '
 for _object in object_table:
     filename = _object[0]
     objectname = _object[1].split('_')[0]
-    ifuslot = _object[1].split('_')[1]
+    if len(_object[1].split('_')) > 1:
+        ifuslot = _object[1].split('_')[1]
+    else:
+        ifuslot = None
     exptime = float(_object[2])
     for standard in standard_names:
         if objectname.lower() in standard.lower():
