@@ -29,6 +29,7 @@ for _object in object_table:
     filename = _object[0]
     objectname = _object[1]
     exptime = float(_object[2])
+    print(objectname)
     for standard in standard_names:
         if objectname.lower() in standard.lower():
             obsid = op.basename(op.dirname(op.dirname(op.dirname(filename)))).split('lrs2')[1]
