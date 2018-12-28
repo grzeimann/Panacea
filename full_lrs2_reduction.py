@@ -88,7 +88,7 @@ parser.add_argument("-ssd", "--standard_star_date",
                     example: 20181101''',
                     type=str, default=None)
 
-parser.add_argument("-ssn", "--standard_star_obsid",
+parser.add_argument("-sso", "--standard_star_obsid",
                     help='''Standard Star ObsID for response function,
                     example: 0000012''',
                     type=str, default=None)
@@ -491,6 +491,7 @@ def weighted_extraction(image, error, flat, trace):
 
 
 def get_trace_shift(sci_array, flat, array_trace, Yx):
+    print(sci_array.shape)
     YM, XM = np.indices(flat.shape)
     inds = np.zeros((3, array_trace.shape[0], array_trace.shape[1]))
     XN = np.round(array_trace)
