@@ -491,7 +491,6 @@ def weighted_extraction(image, error, flat, trace):
 
 
 def get_trace_shift(sci_array, flat, array_trace, Yx):
-    print(sci_array.shape)
     YM, XM = np.indices(flat.shape)
     inds = np.zeros((3, array_trace.shape[0], array_trace.shape[1]))
     XN = np.round(array_trace)
@@ -1354,8 +1353,7 @@ def get_response(objname, commonwave, spec, specname):
 def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                   ifuslot, specname, standard=False, response=None):
     log.info('Extracting %s from %s' % (obj[0], bf))
-    scifiles = sci_path % (instrument, instrument, sci_obs, '*',
-                           instrument, ifuslot)
+    scifiles = bf.replace('exp01', 'exp*')
     images, rect, spec, cos, fl, Fi, E, header = extract_sci(scifiles, amps, calinfo[2],
                                               calinfo[1], calinfo[0], calinfo[3],
                                               calinfo[4], calinfo[5])
