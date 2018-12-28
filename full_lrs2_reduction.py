@@ -1024,7 +1024,7 @@ def sky_subtraction(rect, error, xloc, yloc):
     fitter = LevMarLSQFitter()
     P = Polynomial2D(2)
     good = nsol != 0.
-    print(len(good), sol)
+    print(good.sum(), nsol)
     fit = fitter(P, xloc[good], yloc[good], nsol[good])
     off = np.abs(sol - fit(xloc, yloc))
     mad = np.median(off)
