@@ -35,6 +35,14 @@ from sklearn.decomposition import PCA
 from astropy.convolution import Gaussian1DKernel, Gaussian2DKernel, convolve
 
 
+standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B', 'FEIGE_25',
+                  'HILTNER_600', 'G193-74', 'PG0823+546', 'HD_84937',
+                  'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
+                  'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
+                  'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
+                  'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4',
+                  'BD+40_4032']
+
 log = setup_logging('panacea_quicklook')
 
 parser = ap.ArgumentParser(add_help=True)
@@ -75,7 +83,22 @@ parser.add_argument("-sy", "--source_y",
                     help='''Source's y position at the central_wave''',
                     type=float, default=None)
 
+parser.add_argument("-ssd", "--standard_star_date",
+                    help='''Standard Star Date for response function,
+                    example: 20181101''',
+                    type=str, default=None)
+
+parser.add_argument("-ssn", "--standard_star_obsid",
+                    help='''Standard Star ObsID for response function,
+                    example: 0000012''',
+                    type=str, default=None)
+
 args = parser.parse_args(args=None)
+
+if args.standard_star_obsid is not None:
+    args.standard_star_obsid = '%07d' % int(args.standard_star_obsid)
+    if args.standard_star_date is None:
+        log.error('Please include --standard_star_date DATE with call.')
 
 for i in ['source_x', 'source_y']:
     for j in ['source_x', 'source_y', 'central_wave']:
@@ -1273,13 +1296,6 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
 
 
 def check_if_standard(objname):
-    standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B', 'FEIGE_25',
-                      'HILTNER_600', 'G193-74', 'PG0823+546', 'HD_84937',
-                      'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
-                      'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
-                      'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
-                      'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4',
-                      'BD+40_4032']
     for standard in standard_names:
         if standard.lower() in objname.lower():
             return True
@@ -1318,13 +1334,6 @@ def fit_response_cont(wv, sky, skip=5, fil_len=95, func=np.array):
 
 
 def get_response(objname, commonwave, spec, specname):
-    standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B', 'FEIGE_25',
-                      'HILTNER_600', 'G193-74', 'PG0823+546', 'HD_84937',
-                      'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
-                      'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
-                      'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
-                      'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4',
-                      'BD+40_4032']
     for standard in standard_names:
         if standard.lower() in objname.lower():
             filename = op.join('/work/03946/hetdex/maverick/virus_config/'
@@ -1472,8 +1481,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             f5 = np.vstack([commonwave, skysubspec, skyspec,
                             errorskysubspec, errorskyspec,
                             np.ones(commonwave.shape)])
-        
-        
+
         f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
         f2 = create_header_objection(commonwave, sky)
         f3 = create_header_objection(commonwave, skysub)
@@ -1658,18 +1666,28 @@ for info in listinfo:
     #####################
     # SCIENCE REDUCTION #
     #####################
+    response = None
+    if args.standard_star_obsid is not None:
+        log.info('Using standard star on %s, obs %s' % (args.standard_star_date,
+                                                        args.standard_star_obsid))
+        basefiles = sorted(glob.glob(
+                           sci_path.replace(args.date, args.standard_star_date)
+                           % (instrument, instrument, args.standard_star_obsid,
+                              '01', instrument, ifuslot)))
+        all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
+                       for fn in basefiles]
+        objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
+        for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
+            if check_if_standard(obj[0]) and (ifuslot in obj[0]):
+                log.info('Getting Response Function from %s' % obj[0])
+                response = big_reduction(obj, bf, instrument, sci_obs, calinfo,
+                                         amps, commonwave, ifuslot, specname,
+                                         standard=True)
     basefiles = sorted(glob.glob(sci_path % (instrument, instrument, '0000*',
                                              '01', instrument, ifuslot)))
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
                    for fn in basefiles]
     objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
-    response = None
-    for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-        if check_if_standard(obj[0]) and (ifuslot in obj[0]):
-            log.info('Getting Response Function from %s' % obj[0])
-            response = big_reduction(obj, bf, instrument, sci_obs, calinfo,
-                                     amps, commonwave, ifuslot, specname,
-                                     standard=True)
     if response is None:
         log.info('Getting average response')
         basename = 'LRS2/CALS'
