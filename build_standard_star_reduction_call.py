@@ -25,13 +25,12 @@ dates = []
 standard_call = []
 basecall = ('python /work/03730/gregz/maverick/Panacea/full_lrs2_reduction.py '
             '-d %s -s %s -ssd %s -sso %s -t %s')
+slot = sys.argv[2]
 for _object in object_table:
+    if slot not in _object[1]:
+        continue
     filename = _object[0]
-    objectname = _object[1].split('_')[0]
-    if len(_object[1].split('_')) > 1:
-        ifuslot = _object[1].split('_')[1]
-    else:
-        ifuslot = None
+    objectname = _object[1].split('_%s' % slot)[0]
     exptime = float(_object[2])
     if objectname == '':
         continue
