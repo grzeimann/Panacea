@@ -33,6 +33,8 @@ for _object in object_table:
     else:
         ifuslot = None
     exptime = float(_object[2])
+    if objectname == '':
+        continue
     for standard in standard_names:
         if objectname.lower() in standard.lower():
             obsid = op.basename(op.dirname(op.dirname(op.dirname(filename)))).split('lrs2')[1]
