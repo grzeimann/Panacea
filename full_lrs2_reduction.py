@@ -41,7 +41,7 @@ standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B', 'FEIGE_25',
                   'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
                   'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
                   'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4',
-                  'BD+40_4032']
+                  'BD+40_4032', 'HILTNER_102']
 
 log = setup_logging('panacea_quicklook')
 
@@ -357,8 +357,8 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
     plaw, norm = get_powerlaw(array_flt, array_trace, spectrum)
     array_flt[:] -= plaw
     array_flt[:] = np.where(array_flt < 0., 0., array_flt)
-    fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
-    fits.PrimaryHDU(array_flt).writeto('test_spec_%s.fits' % specname, overwrite=True)
+    #fits.PrimaryHDU(plaw).writeto('test_plaw_%s.fits' % specname, overwrite=True)
+    #fits.PrimaryHDU(array_flt).writeto('test_spec_%s.fits' % specname, overwrite=True)
     smooth = savgol_filter(spectrum, 315, 1, axis=1)
     avg = biweight_location(smooth, axis=(0,))
     norm = biweight_location(smooth / avg, axis=(1,))
@@ -379,8 +379,8 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
     flat = array_flt / modelimage
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0
-    fits.HDUList([fits.PrimaryHDU(array_flt), fits.ImageHDU(modelimage),
-                     fits.ImageHDU(flat)]).writeto('flat_example_%s.fits' % specname, overwrite=True)
+    #fits.HDUList([fits.PrimaryHDU(array_flt), fits.ImageHDU(modelimage),
+    #                 fits.ImageHDU(flat)]).writeto('flat_example_%s.fits' % specname, overwrite=True)
     return flat
 
 
@@ -873,7 +873,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
             m = np.abs(loc[j] - v)
             if np.min(m) < 2.:
                 found_lines[j, i] = loc[j][np.argmin(m)]
-    fits.PrimaryHDU(found_lines).writeto('fl_%s_%s.fits' % (side, amp), overwrite=True)
+    #fits.PrimaryHDU(found_lines).writeto('fl_%s_%s.fits' % (side, amp), overwrite=True)
     for i, line in enumerate(lines):
         if np.sum(found_lines[:, i]) < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
@@ -1622,7 +1622,7 @@ for info in listinfo:
                  (ifuslot, amp))
         trace, dead = get_trace(masterflt, specid, ifuslot, ifuid, amp,
                                 twi_date)
-        fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
+        #fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
 
         ##########################
         # MASTERARC [WAVELENGTH] #
@@ -1636,11 +1636,11 @@ for info in listinfo:
             log.info('Found lamp files on %s and using them for %s' % (newdate, args.date))
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
                                   specname)
-        fits.PrimaryHDU(masterarc).writeto('wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
+        #fits.PrimaryHDU(masterarc).writeto('wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname, amp)
-        fits.PrimaryHDU(wave).writeto('test_wave.fits', overwrite=True)
+        #fits.PrimaryHDU(wave).writeto('test_wave.fits', overwrite=True)
 
         #################################
         # TWILIGHT FLAT [FIBER PROFILE] #
