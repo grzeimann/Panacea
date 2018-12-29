@@ -1472,13 +1472,14 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 loc = list(loc)
                 log.info('Source seeing initially found to be: %0.2f' % loc[2])
                 loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
-        elif standard:
+        else:
+            loc = [args.source_x, args.source_y, 1.5]
+        if check_if_standard(obj[0]) and (ifuslot in obj[0]):
             loc = [0., 0., 0.]
             D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
                                          calinfo[5][:, 1])
             loc[0], loc[1], loc[2], xoff, yoff = D
-        else:
-            loc = [args.source_x, args.source_y, 1.5]
+            log.info('Source seeing refined to be: %0.2f' % loc[2])
         if loc is not None:
             log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
             skyspec, errorskyspec, w, m = extract_source(sky, loc[0], loc[1], xoff,
