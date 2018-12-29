@@ -1126,6 +1126,29 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy):
         return None
 
 
+def get_standard_star_params(data, commonwave, dx, dy):
+    PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=3.5, gamma=1.5)
+    PSF.alpha.fixed = True
+    fitter = LevMarLSQFitter()
+    wchunk = np.array([np.mean(chunk)
+                       for chunk in np.array_split(commonwave, 11)])
+    dchunk = np.array_split(data, 11, axis=1)
+    xc = wchunk * 0.
+    yc = wchunk * 0.
+    gc = wchunk * 0.
+    fit = fitter(PSF, dx, dy, np.median(dchunk[5], axis=1))
+    for i, chunk in enumerate(dchunk):
+        fit = fitter(PSF, dx, dy, np.median(chunk, axis=1))
+        xc[i] = fit.x_0.value * 1.
+        yc[i] = fit.y_0.value * 1.
+        gc[i] = fit.gamma.value * 1.
+    xoff = np.polyval(np.polyfit(wchunk, xc, 2), commonwave)
+    yoff = np.polyval(np.polyfit(wchunk, yc, 2), commonwave)
+    gamma = np.mean(gc)
+    seeing = gamma * (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
+    return xc[5], yc[5], seeing, xoff, yoff
+
+
 def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
                    seeing=1.5, aper=2.):
     gamma = seeing / (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
@@ -1439,7 +1462,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                                                      wend=wave_0+wb)
             write_cube(commonwave, xgrid, ygrid, zcube, outname, he)
 
-        if (args.source_x is None) or standard:
+        if (args.source_x is None) and (not standard):
             wi = np.searchsorted(commonwave, wave_0-wb, side='left')
             we = np.searchsorted(commonwave, wave_0+wb, side='right')
             dimage = np.median(skysub[:, wi:we+1], axis=(1,))
@@ -1449,6 +1472,11 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 loc = list(loc)
                 log.info('Source seeing initially found to be: %0.2f' % loc[2])
                 loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
+        elif standard:
+            loc = [0., 0., 0.]
+            D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
+                                         calinfo[5][:, 1])
+            loc[0], loc[1], loc[2], xoff, yoff = D
         else:
             loc = [args.source_x, args.source_y, 1.5]
         if loc is not None:
@@ -1474,10 +1502,12 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         if response is not None:
             f5 = np.vstack([commonwave, skysubspec, skyspec,
                             errorskysubspec, errorskyspec,
-                            response])
+                            response, xoff, yoff])
         else:
             f5 = np.vstack([commonwave, skysubspec, skyspec,
                             errorskysubspec, errorskyspec,
+                            np.ones(commonwave.shape),
+                            np.ones(commonwave.shape),
                             np.ones(commonwave.shape)])
 
         f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
@@ -1520,11 +1550,15 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 continue
             f1.header[key] = he[key]
         names = ['wavelength', 'F_lambda', 'e_F_lambda', 'Sky_lambda',
-                 'e_Sky_lambda', 'response']
+                 'e_Sky_lambda', 'response', 'x_adr', 'y_adr']
         f1.header['DWAVE'] = commonwave[1] - commonwave[0]
         f1.header['WAVE0'] = commonwave[0]
         f1.header['WAVESOL'] = 'WAVE0 + DWAVE * linspace(0, NAXIS1)'
         f1.header['WAVEUNIT'] = 'A'
+        if loc is not None:
+            f1.header['SOURCEX'] = loc[0]
+            f1.header['SOURCEY'] = loc[1]
+            f1.header['SEEING'] = loc[2]
         if response is not None:
             f1.header['FLUXUNIT'] = 'ergs/s/cm2/A'
         else:
