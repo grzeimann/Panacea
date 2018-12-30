@@ -1146,7 +1146,7 @@ def get_standard_star_params(data, commonwave, dx, dy):
     yoff = np.polyval(np.polyfit(wchunk, yc, 2), commonwave)
     gamma = np.mean(gc)
     seeing = gamma * (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
-    return xc[5], yc[5], seeing, xoff, yoff
+    return xc[5], yc[5], seeing, xoff - xc[5], yoff - yc[5]
 
 
 def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
