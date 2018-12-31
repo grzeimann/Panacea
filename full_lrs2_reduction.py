@@ -1530,6 +1530,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
 #                loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
 #        else:
 #            loc = [args.source_x, args.source_y, 1.5]
+        loc = None
         if check_if_standard(obj[0]) and (ifuslot in obj[0]):
             loc = [0., 0., 0.]
             D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
