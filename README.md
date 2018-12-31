@@ -32,12 +32,15 @@ scp -r username@maverick.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRA
 ```
 
 ## Data Products
-The primary data product are multi*{uv,orange,red,farred}.fits files for each channel that was reduced.  
-The reductions reside in your "reductions/" folder at the same directory level that the "sbatch r*" commands were run.  
-Within the "reductions/" directory are dates of the data reduced.  An example folder structure is:
-
+There are three main data products: spectrum*.fits, multi*.fits, and *cube*.fits.  The first product, spectrum*.fits, 
+is produced for all exposures and all channels.  Within the fits image, lie rows corresponding to different attributes. 
 ```
-reductions/20180413/lrs2/lrs20000005/exp01/lrs2/multi_503_056_7001_orange.fits
+row1: wavelength
+row2: extracted object spectrum (f_lambda: ergs/s/cm^2/A)
+row3: extracted sky spectrum from same aperture and weighting as object (s_lambda: ergs/s/cm^2/A)
+row4: error for extracted object spectrum (e_f_lambda: ergs/s/cm^2/A)
+row5: error for extracted sky spectrum (e_s_lambda: ergs/s/cm^2/A)
+row6: response function (ergs / e-)
 ```
 
 The multi*{uv,orange,red,farred}.fits are multi-extension fits files and contain the following attributes:
@@ -56,9 +59,7 @@ skysub: sky-subtracted spectra for each fiber (e-) with fiber normalizations tak
 trace: location (in y) of each fiber as a function of CCD column
 ```
 
-If a continuum source was automatically detected by the reduction program another product is created:
-spectrum*{uv,orange,red,farred}.fits.  These fits files include 4 rows, which are (in ascending order):
-wavelength (A), spectrum (ergs/s/cm^2/A), spectrum error (ergs/s/cm^2/A), and sky spectrum (ergs/s/cm^2/A).  
+ 
 
 ### Running the reductions yourself
 This section covers how to run your own reductions with modifications to achieve specific science objectives.
