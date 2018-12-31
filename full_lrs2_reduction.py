@@ -1220,7 +1220,7 @@ def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
         W = PSF(xloc, yloc)
         S = PSF(bigX, bigY).sum()
         W /= S
-        M = (error[:, i] != 0.) * (np.sqrt((xloc-x)**2 + (yloc-y)**2) < seeing*1.3)
+        M = (error[:, i] != 0.) * (np.sqrt((xloc-x)**2 + (yloc-y)**2) < seeing*2.5)
         weights[:, i] = W
         mask[:, i] = M
         spec[i] = (data[:, i] * W * M).sum() / (M * W**2).sum()
@@ -1537,6 +1537,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                                          calinfo[5][:, 1])
             loc[0], loc[1], xstd, ystd, xoff, yoff = D
             seeing = np.mean(np.sqrt(xstd*ystd))
+            loc[2] = seeing
             log.info('Source seeing refined to be: %0.2f' % seeing)
         if loc is not None:
             log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
@@ -1606,7 +1607,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             if ('BSCALE' in key) or ('BZERO' in key):
                 continue
             f1.header[key] = he[key]
-        names = ['wavelength', 'F_lambda', 'e_F_lambda', 'Sky_lambda',
+        names = ['wavelength', 'F_lambda', 'Sky_lambda', 'e_F_lambda',
                  'e_Sky_lambda', 'response', 'x_adr', 'y_adr']
         f1.header['DWAVE'] = commonwave[1] - commonwave[0]
         f1.header['WAVE0'] = commonwave[0]
