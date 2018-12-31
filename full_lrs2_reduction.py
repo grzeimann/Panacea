@@ -1216,6 +1216,7 @@ def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
         PSF.y_mean.value = y
         PSF.x_stddev = xstd[i]
         PSF.y_stddev = ystd[i]
+        seeing = np.sqrt(ystd[i]*xstd[i])
         W = PSF(xloc, yloc)
         S = PSF(bigX, bigY).sum()
         W /= S
