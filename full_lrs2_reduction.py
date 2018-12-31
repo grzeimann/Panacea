@@ -29,7 +29,7 @@ from scipy.interpolate import interp1d, interp2d, griddata
 from input_utils import setup_logging
 from astrometry import Astrometry
 from astropy.stats import biweight_midvariance
-from astropy.modeling.models import Moffat2D, Polynomial2D
+from astropy.modeling.models import Moffat2D, Polynomial2D, Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
 from sklearn.decomposition import PCA
 from astropy.convolution import Gaussian1DKernel, Gaussian2DKernel, convolve
@@ -1126,45 +1126,100 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy):
         return None
 
 
-def get_standard_star_params(data, commonwave, dx, dy):
-    PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=3.5, gamma=1.5)
-    PSF.alpha.fixed = True
+def get_standard_star_params(data, commonwave, xloc, yloc):
+    G = Gaussian2D()
     fitter = LevMarLSQFitter()
     wchunk = np.array([np.mean(chunk)
                        for chunk in np.array_split(commonwave, 11)])
-    dchunk = np.array_split(data, 11, axis=1)
-    xc = wchunk * 0.
-    yc = wchunk * 0.
-    gc = wchunk * 0.
-    fit = fitter(PSF, dx, dy, np.median(dchunk[5], axis=1))
-    for i, chunk in enumerate(dchunk):
-        fit = fitter(PSF, dx, dy, np.median(chunk, axis=1))
-        xc[i] = fit.x_0.value * 1.
-        yc[i] = fit.y_0.value * 1.
-        gc[i] = fit.gamma.value * 1.
-    xoff = np.polyval(np.polyfit(wchunk[1:-1], xc[1:-1], 2), commonwave)
-    yoff = np.polyval(np.polyfit(wchunk[1:-1], yc[1:-1], 2), commonwave)
-    gamma = np.mean(np.abs(gc))
-    seeing = gamma * (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
-    return xc[5], yc[5], seeing, xoff - xc[5], yoff - yc[5]
+    dchunk = [np.median(chunk, axis=1)
+              for chunk in np.array_split(data, 11, axis=1)]
+    xc, yc, xs, ys = [i * wchunk for i in [0., 0., 0., 0.]]
+    for i in np.arange(11):
+        y = dchunk[i]
+        ind = np.argmax(y)
+        dist = np.sqrt((xloc - xloc[ind])**2 + (yloc - yloc[ind])**2)
+        inds = dist < 3.
+        x_centroid = np.sum(y[inds] * xloc[inds]) / np.sum(y[inds])
+        y_centroid = np.sum(y[inds] * yloc[inds]) / np.sum(y[inds])
+        G.amplitude.value = y[ind]
+        G.x_mean.value = x_centroid
+        G.y_mean.value = y_centroid
+        fit = fitter(G, xloc[inds], yloc[inds], y[inds])
+        xc[i] = fit.x_mean.value * 1.
+        yc[i] = fit.y_mean.value * 1.
+        xs[i] = fit.x_stddev.value * 1.
+        ys[i] = fit.y_stddev.value * 1.
+    xoff = np.polyval(np.polyfit(wchunk, xc, 2), commonwave)
+    yoff = np.polyval(np.polyfit(wchunk, yc, 2), commonwave)
+    xstd = np.polyval(np.polyfit(wchunk, xs, 2), commonwave)
+    ystd = np.polyval(np.polyfit(wchunk, ys, 2), commonwave)
+    N = len(commonwave)
+    return xoff[N/2], yoff[N/2], xstd, ystd, xoff - xoff[N/2], yoff - yoff[N/2]
+
+
+def get_bigarray(xloc, yloc):
+    BigX = [xloc]
+    BigY = [yloc]
+    uy = np.unique(yloc)
+    dy = np.mean(np.diff(uy))
+    for i in np.arange(1, 10):
+        ny = dy + np.max(np.hstack(BigY))
+        x = np.hstack(BigX)[np.where(uy[-2] == np.hstack(BigY))[0]]
+        y = ny * np.ones(x.shape)
+        BigY.append(y)
+        BigX.append(x)
+        uy = np.unique(np.hstack(BigY))
+        ny = -dy + np.min(np.hstack(BigY))
+        x = np.hstack(BigX)[np.where(uy[1] == np.hstack(BigY))[0]]
+        y = ny * np.ones(x.shape) 
+        BigY.append(y)
+        BigX.append(x)
+        uy = np.unique(np.hstack(BigY))
+    BigX = np.hstack(BigX)
+    BigY = np.hstack(BigY)
+    uy = np.unique(BigY)
+    NX, NY = ([BigX], [BigY])
+    for i in uy:
+        sel = np.where(i == BigY)[0]
+        dx = np.abs(np.mean(np.diff(BigX[sel])))
+        xn = np.min(BigX[sel]) - np.arange(1, 10)*dx
+        xn2 = np.max(BigX[sel]) + np.arange(1, 10)*dx
+        yn = i * np.ones(xn.shape)
+        yn2 = i * np.ones(xn2.shape)
+        NX.append(xn)
+        NX.append(xn2)
+        NY.append(yn)
+        NY.append(yn2)
+    BigX = np.hstack(NX)
+    BigY = np.hstack(NY)
+    M = np.zeros(BigX.shape, dtype=bool)
+    inds = np.zeros(xloc.shape, dtype=int)
+    for i in np.arange(len(xloc)):
+        ind = np.where((xloc[i] == BigX) * (yloc[i] == BigY))[0]
+        M[ind] = True
+        inds[i] = ind
+    return BigX, BigY
 
 
 def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
-                   seeing=1.5, aper=2.):
-    gamma = seeing / (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
-    PSF = Moffat2D(amplitude=1., x_0=0., y_0=0., alpha=3.5, gamma=gamma)
+                   xstd, ystd):
+    PSF = Gaussian2D()
     spec = wave * 0.
     serror = wave * 0.
     weights = data * 0.
     mask = data * 0.
+    bigX, bigY = get_bigarray(xloc, yloc)
     for i in np.arange(len(wave)):
         x = xc + xoff[i]
         y = yc + yoff[i]
-        PSF.x_0.value = x
-        PSF.y_0.value = y
+        PSF.x_mean.value = x
+        PSF.y_mean.value = y
+        PSF.x_stddev = xstd[i]
+        PSF.y_stddev = ystd[i]
         W = PSF(xloc, yloc)
-        W /= W.sum()
-        M = (error[:, i] != 0.) * (np.sqrt((xloc-x)**2 + (yloc-y)**2) < aper)
+        S = PSF(bigX, bigY).sum()
+        W /= S
+        M = (error[:, i] != 0.) * (np.sqrt((xloc-x)**2 + (yloc-y)**2) < seeing*1.3)
         weights[:, i] = W
         mask[:, i] = M
         spec[i] = (data[:, i] * W * M).sum() / (M * W**2).sum()
@@ -1462,39 +1517,38 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                                                      wend=wave_0+wb)
             write_cube(commonwave, xgrid, ygrid, zcube, outname, he)
 
-        if (args.source_x is None) and (not standard):
-            wi = np.searchsorted(commonwave, wave_0-wb, side='left')
-            we = np.searchsorted(commonwave, wave_0+wb, side='right')
-            dimage = np.median(skysub[:, wi:we+1], axis=(1,))
-            loc = find_source(zimage, xgrid, ygrid, dimage,
-                              calinfo[5][:, 0], calinfo[5][:, 1])
-            if loc is not None:
-                loc = list(loc)
-                log.info('Source seeing initially found to be: %0.2f' % loc[2])
-                loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
-        else:
-            loc = [args.source_x, args.source_y, 1.5]
+#        if (args.source_x is None) and (not standard):
+#            wi = np.searchsorted(commonwave, wave_0-wb, side='left')
+#            we = np.searchsorted(commonwave, wave_0+wb, side='right')
+#            dimage = np.median(skysub[:, wi:we+1], axis=(1,))
+#            loc = find_source(zimage, xgrid, ygrid, dimage,
+#                              calinfo[5][:, 0], calinfo[5][:, 1])
+#            if loc is not None:
+#                loc = list(loc)
+#                log.info('Source seeing initially found to be: %0.2f' % loc[2])
+#                loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
+#        else:
+#            loc = [args.source_x, args.source_y, 1.5]
         if check_if_standard(obj[0]) and (ifuslot in obj[0]):
             loc = [0., 0., 0.]
             D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
                                          calinfo[5][:, 1])
-            loc[0], loc[1], loc[2], xoff, yoff = D
-            log.info('Source seeing refined to be: %0.2f' % loc[2])
+            loc[0], loc[1], xstd, ystd, xoff, yoff = D
+            seeing = np.mean(np.sqrt(xstd*ystd))
+            log.info('Source seeing refined to be: %0.2f' % seeing)
         if loc is not None:
             log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
             skyspec, errorskyspec, w, m = extract_source(sky, loc[0], loc[1], xoff,
                                                    yoff, commonwave,
                                                    calinfo[5][:, 0],
                                                    calinfo[5][:, 1], e,
-                                                   seeing=loc[2],
-                                                   aper=loc[2]*1.2)
+                                                   xstd, ystd)
             skysubspec, errorskysubspec, w, m = extract_source(skysub, loc[0],
                                                          loc[1], xoff, yoff,
                                                          commonwave,
                                                          calinfo[5][:, 0],
                                                          calinfo[5][:, 1], e,
-                                                         seeing=loc[2],
-                                                         aper=loc[2]*1.2)
+                                                         xstd, ystd)
         else:
             skyspec = commonwave * 0.
             skysubspec = commonwave * 0.
