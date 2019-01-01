@@ -110,7 +110,6 @@ The quality of the bias subtraction is demonstrated in two ways: subtracting con
 ## Authors
 
 * Greg Zeimann, UT Austin
-* Karl Gebhardt, UT Austin
 
 ## NOTE
 * COPYRIGHTS from astropy, free software foundation were used
