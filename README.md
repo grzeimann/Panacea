@@ -1,3 +1,4 @@
+(NOTE: This is still in progress and will finish Jan/4/2019)
 # Panacea v1.0 (Automatic LRS2 Pipeline)
 This package the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope. Every morning the pipeline reduces data taken the previous night.  Below we discuss the algorithms and products of Panacea, how to access your data reductions, and how to run the pipeline yourself with varying options. All of the data reduction products live on the Texas Advanced Computing Center (TACC).  We start with the instructions to log on to TACC, and where you reductions are placed.
 
@@ -46,20 +47,20 @@ row6: response function (ergs / e-)
 The multi*{uv,orange,red,farred}.fits are multi-extension fits files and contain the following attributes:
 
 ```
-Rectified Spectra:
-Rectified Sky Model:
-Rectified Sky Subtracted Spectra:
-Rectified Error Frame:
-Collapsed image:
-Positions (IFU, Focal, Sky):
-Extracted Spectra and Response:
-ADR:
-CCD Wavelength:
-Image:
-Flat Fielded image:
-Central Trace Pixels:
-Cosmics:
-Unrectified Spectra:
+Rectified Spectra: flux calibrated spectrum (object + sky) for each fiber
+Rectified Sky Model:flux calibrated sky spectrum for each fiber
+Rectified Sky Subtracted Spectra: flux calibrated sky subtracted spectrum for each fiber
+Rectified Error Frame: flux calibrated error spectrum for each fiber
+Collapsed image: a collapsed frame for visualization of the source(s)
+Positions (IFU, Focal, Sky): ifu x and y positions, focal x and y position, and ra and dec
+Extracted Spectra and Response: This is identical to the spectrum*.fits extension above
+ADR: The atmospheric differential refraction as a function of wavelength.  The columns are wavelength, x_adr, y_adr
+CCD Wavelength: The wavelength of each pixel in the 2d frame
+Image: the initial reduction of the 2d raw frame.
+Flat Fielded image: same as the image frame above but divided by the flat field (fiber profile and fiber to fiber normalization)
+Central Trace Pixels: location of the pixels for each fiber (central two pixels)
+Cosmics: identified cosmics in the central four pixels of the trace
+Unrectified Spectra: Unrectified, uncalibrated spectra for each fiber
 ```
 
 ### Running the reductions yourself
