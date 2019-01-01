@@ -1104,29 +1104,23 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname, he):
     hdu.writeto(outname, overwrite=True)
 
 
-def find_source(image, xgrid, ygrid, dimage, dx, dy):    
+def find_source(image, xgrid, ygrid, dimage, dx, dy, skysub, commonwave):    
     G = Gaussian2DKernel(2.5)
     c = convolve(image, G)
     std = np.sqrt(biweight_midvariance(c))
     peak = np.max(c[3:-3, 3:-3]) 
     sn = peak / std
     if sn > 20.:
-        xc = xgrid[3:-3, 3:-3].ravel()[np.argmax(c[3:-3, 3:-3])]
-        yc = ygrid[3:-3, 3:-3].ravel()[np.argmax(c[3:-3, 3:-3])]
-        PSF = Gaussian2D(amplitude=peak, x_mean=xc, y_mean=yc)
-        fitter = LevMarLSQFitter()
-        #PSF.x_stddev.bounds = (0.8 / 2.35, 4.0 / 2.35)
-        #PSF.y_stddev.bounds = (0.8 / 2.35, 4.0 / 2.35)
-        fit = fitter(PSF, dx, dy, dimage)
-        log.info('Source found at s/n: %0.2f' % sn)
-        log.info('Initial source x, y: %0.2f, %0.2f' % (xc, yc))
-        log.info('Final source x, y: %0.2f, %0.2f' % (fit.x_mean.value, fit.y_mean.value))
-        return fit.x_mean.value, fit.y_mean.value, fit.x_stddev.value, fit.y_stddev.value
+        D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
+                                         calinfo[5][:, 1])
+        xc, yc, xstd, ystd, xoff, yoff = D
+        return xc, yc, xstd, ystd
     if sn > 5.:
         loc = np.argmax(dimage)
+        X = np.ones(commonwave.shape)
         log.info('Source found at s/n: %0.2f' % sn)
         log.info('Low s/n source at x, y: %0.2f, %0.2f' % (dx[loc], dy[loc]))
-        return dx[loc], dy[loc], 0.8, 0.8
+        return dx[loc], dy[loc], 0.8*X, 0.8*X
     else:
         log.info('No Source found, s/n too low: %0.2f' % sn)
         return None
@@ -1143,6 +1137,9 @@ def get_standard_star_params(data, commonwave, xloc, yloc):
     for i in np.arange(11):
         y = dchunk[i]
         ind = np.argmax(y)
+        sn = y[ind] / np.sqrt(biweight_midvariance(y))
+        if sn < 8.:
+            continue
         dist = np.sqrt((xloc - xloc[ind])**2 + (yloc - yloc[ind])**2)
         inds = dist < 3.
         x_centroid = np.sum(y[inds] * xloc[inds]) / np.sum(y[inds])
@@ -1155,10 +1152,11 @@ def get_standard_star_params(data, commonwave, xloc, yloc):
         yc[i] = fit.y_mean.value * 1.
         xs[i] = fit.x_stddev.value * 1.
         ys[i] = fit.y_stddev.value * 1.
-    xoff = np.polyval(np.polyfit(wchunk, xc, 2), commonwave)
-    yoff = np.polyval(np.polyfit(wchunk, yc, 2), commonwave)
-    xstd = np.polyval(np.polyfit(wchunk, xs, 2), commonwave)
-    ystd = np.polyval(np.polyfit(wchunk, ys, 2), commonwave)
+    sel = xs > 0.
+    xoff = np.polyval(np.polyfit(wchunk[sel], xc[sel], 2), commonwave)
+    yoff = np.polyval(np.polyfit(wchunk[sel], yc[sel], 2), commonwave)
+    xstd = np.polyval(np.polyfit(wchunk[sel], xs[sel], 2), commonwave)
+    ystd = np.polyval(np.polyfit(wchunk[sel], ys[sel], 2), commonwave)
     N = len(commonwave)
     return xoff[N/2], yoff[N/2], xstd, ystd, xoff - xoff[N/2], yoff - yoff[N/2]
 
@@ -1525,35 +1523,26 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                                                      wstart=wave_0-wb,
                                                      wend=wave_0+wb)
             write_cube(commonwave, xgrid, ygrid, zcube, outname, he)
-        isstandard = check_if_standard(obj[0]) and (ifuslot in obj[0])
         loc = None
-        if (args.source_x is None) and (not isstandard):
+        if args.source_x is None:
             wi = np.searchsorted(commonwave, wave_0-wb, side='left')
             we = np.searchsorted(commonwave, wave_0+wb, side='right')
             dimage = np.median(skysub[:, wi:we+1], axis=(1,))
             loc1 = find_source(zimage, xgrid, ygrid, dimage,
-                              calinfo[5][:, 0], calinfo[5][:, 1])
+                               calinfo[5][:, 0], calinfo[5][:, 1],
+                               skysub, commonwave)
             if loc1 is not None:
                 loc = [0., 0., 0.]
                 loc[0] = loc1[0]
-                loc[1] = loc1[1]
-                loc[2] = 2.35 * np.sqrt(loc1[2]*loc1[3])
-                xstd = np.ones(commonwave.shape) * loc1[2]
-                ystd = np.ones(commonwave.shape) * loc1[3]
+                loc[1] = loc1[1]                
+                loc[2] = 2.35 * np.mean(np.sqrt(loc1[2]*loc1[3]))
                 log.info('Source seeing initially found to be: %0.2f' % loc[2])
                 loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
         if args.source_x is not None:
             loc = [args.source_x, args.source_y, 1.5]
             xstd = np.ones(commonwave.shape) * 1.5
             ystd = np.ones(commonwave.shape) * 1.5
-        if isstandard:
-            loc = [0., 0., 0.]
-            D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
-                                         calinfo[5][:, 1])
-            loc[0], loc[1], xstd, ystd, xoff, yoff = D
-            seeing = 2.35 * np.mean(np.sqrt(xstd*ystd))
-            loc[2] = seeing
-            log.info('Source seeing refined to be: %0.2f' % seeing)
+            
         if loc is not None:
             log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
             skyspec, errorskyspec, w, m = extract_source(sky, loc[0], loc[1], xoff,
