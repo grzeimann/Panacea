@@ -1115,8 +1115,8 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy):
         yc = ygrid[3:-3, 3:-3].ravel()[np.argmax(c[3:-3, 3:-3])]
         PSF = Gaussian2D(amplitude=peak, x_mean=xc, y_mean=yc)
         fitter = LevMarLSQFitter()
-        PSF.x_stddev.bounds = (0.8 / 2.35, 4.0 / 2.35)
-        PSF.y_stddev.bounds = (0.8 / 2.35, 4.0 / 2.35)
+        #PSF.x_stddev.bounds = (0.8 / 2.35, 4.0 / 2.35)
+        #PSF.y_stddev.bounds = (0.8 / 2.35, 4.0 / 2.35)
         fit = fitter(PSF, dx, dy, dimage)
         log.info('Initial source x, y: %0.2f, %0.2f' % (xc, yc))
         log.info('Final source x, y: %0.2f, %0.2f' % (fit.x_mean.value, fit.y_mean.value))
