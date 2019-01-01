@@ -1113,9 +1113,10 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy, skysub, commonwave):
     if sn > 20.:
         D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
                                          calinfo[5][:, 1])
-        log.info('Source found at s/n: %0.2f' % sn)
-        log.info('Low s/n source at x, y: %0.2f, %0.2f' % (dx[loc], dy[loc]))
+        
         xc, yc, xstd, ystd, xoff, yoff = D
+        log.info('Source found at s/n: %0.2f' % sn)
+        log.info('Low s/n source at x, y: %0.2f, %0.2f' % (xc, yc))
         return xc, yc, xstd, ystd
     if sn > 5.:
         loc = np.argmax(dimage)
@@ -1538,6 +1539,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 loc[0] = loc1[0]
                 loc[1] = loc1[1]                
                 loc[2] = 2.35 * np.mean(np.sqrt(loc1[2]*loc1[3]))
+                xstd = loc1[2]
+                ystd = loc1[3]
                 log.info('Source seeing initially found to be: %0.2f' % loc[2])
                 loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
         if args.source_x is not None:
