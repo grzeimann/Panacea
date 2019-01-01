@@ -1527,6 +1527,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             loc1 = find_source(zimage, xgrid, ygrid, dimage,
                               calinfo[5][:, 0], calinfo[5][:, 1])
             if loc1 is not None:
+                loc = [0., 0., 0.]
                 loc[0] = loc1[0]
                 loc[1] = loc1[1]
                 loc[2] = 2.35 * np.sqrt(loc1[2]*loc1[3])
