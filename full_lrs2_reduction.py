@@ -35,7 +35,7 @@ from sklearn.decomposition import PCA
 from astropy.convolution import Gaussian1DKernel, Gaussian2DKernel, convolve
 
 
-standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B', 'FEIGE_25',
+standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
                   'HILTNER_600', 'G193-74', 'PG0823+546', 'HD_84937',
                   'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
                   'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
@@ -1113,15 +1113,14 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy):
     if sn > 3.:
         xc = xgrid[3:-3, 3:-3].ravel()[np.argmax(c[3:-3, 3:-3])]
         yc = ygrid[3:-3, 3:-3].ravel()[np.argmax(c[3:-3, 3:-3])]
-        gamma = 1.5 / (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
-        PSF = Moffat2D(amplitude=peak, x_0=xc, y_0=yc,
-                       alpha=3.5, gamma=gamma)
-        PSF.alpha.fixed = True
+        PSF = Gaussian2D(amplitude=peak, x_mean=xc, y_mean=yc)
         fitter = LevMarLSQFitter()
+        PSF.x_stddev.bounds = (0.8 / 2.35, 4.0 / 2.35)
+        PSF.y_stddev.bounds = (0.8 / 2.35, 4.0 / 2.35)
         fit = fitter(PSF, dx, dy, dimage)
         log.info('Initial source x, y: %0.2f, %0.2f' % (xc, yc))
-        log.info('Final source x, y: %0.2f, %0.2f' % (fit.x_0.value, fit.y_0.value))
-        return fit.x_0.value, fit.y_0.value, fit.gamma.value * (np.sqrt(2**(1 / 3.5) - 1.) * 2.)
+        log.info('Final source x, y: %0.2f, %0.2f' % (fit.x_mean.value, fit.y_mean.value))
+        return fit.x_mean.value, fit.y_mean.value, fit.x_stddev.value, fit.y_stddev.value
     else:
         return None
 
@@ -1286,24 +1285,26 @@ def get_mirror_illumination_guider(fn, exptime,
     y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8], DT[9:11],
                          DT[11:13], DT[13:15]]]
     d0 = datetime(y, m, d, h, mi, s)
-    for gp in ['gc1']:
-        tarfolder = op.join(path, gp, '%s.tar' % gp)
-        T = tarfile.open(tarfolder, 'r')
-        init_list = sorted([name for name in T.getnames()
-                            if name[-5:] == '.fits'])
-
-        final_list = []
-        for t in init_list:
-            DT = t.split('_')[0]
-            y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8],
-                                 DT[9:11], DT[11:13], DT[13:15]]]
-            d = datetime(y, m, d, h, mi, s)
-            p = (d - d0).seconds
-            if (p > -10.) * (p < exptime+10.):
-                final_list.append(t)
-        for fn in final_list:
-            fobj = T.extractfile(T.getmember(fn))
-            M.append(get_mirror_illumination(fobj))
+    tarfolder = op.join(path, 'gc1', 'gc1.tar')
+    if not op.exists(tarfolder):
+        area = 51.4e4
+        log.info('Using default mirror illumination: %0.2f m^2' % (area/1e4))
+        return area
+    T = tarfile.open(tarfolder, 'r')
+    init_list = sorted([name for name in T.getnames()
+                        if name[-5:] == '.fits'])
+    final_list = []
+    for t in init_list:
+        DT = t.split('_')[0]
+        y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8],
+                             DT[9:11], DT[11:13], DT[13:15]]]
+        d = datetime(y, m, d, h, mi, s)
+        p = (d - d0).seconds
+        if (p > -10.) * (p < exptime+10.):
+            final_list.append(t)
+    for fn in final_list:
+        fobj = T.extractfile(T.getmember(fn))
+        M.append(get_mirror_illumination(fobj))
     M = np.array(M)
     sel = M != 51.4e4
     if sel.sum() > 0.:
@@ -1517,26 +1518,33 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                                                      wstart=wave_0-wb,
                                                      wend=wave_0+wb)
             write_cube(commonwave, xgrid, ygrid, zcube, outname, he)
-
-#        if (args.source_x is None) and (not standard):
-#            wi = np.searchsorted(commonwave, wave_0-wb, side='left')
-#            we = np.searchsorted(commonwave, wave_0+wb, side='right')
-#            dimage = np.median(skysub[:, wi:we+1], axis=(1,))
-#            loc = find_source(zimage, xgrid, ygrid, dimage,
-#                              calinfo[5][:, 0], calinfo[5][:, 1])
-#            if loc is not None:
-#                loc = list(loc)
-#                log.info('Source seeing initially found to be: %0.2f' % loc[2])
-#                loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
-#        else:
-#            loc = [args.source_x, args.source_y, 1.5]
-        loc = None
-        if check_if_standard(obj[0]) and (ifuslot in obj[0]):
+        isstandard = check_if_standard(obj[0]) and (ifuslot in obj[0])
+        if (args.source_x is None) and (not isstandard):
+            wi = np.searchsorted(commonwave, wave_0-wb, side='left')
+            we = np.searchsorted(commonwave, wave_0+wb, side='right')
+            dimage = np.median(skysub[:, wi:we+1], axis=(1,))
+            loc = None
+            loc1 = find_source(zimage, xgrid, ygrid, dimage,
+                              calinfo[5][:, 0], calinfo[5][:, 1])
+            if loc1 is not None:
+                loc[0] = loc1[0]
+                loc[1] = loc1[1]
+                loc[2] = 2.35 * np.sqrt(loc1[2]*loc1[3])
+                xstd = np.ones(commonwave.shape) * loc1[2]
+                ystd = np.ones(commonwave.shape) * loc1[3]
+                log.info('Source seeing initially found to be: %0.2f' % loc[2])
+                loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
+        if args.source_x is not None:
+            loc = [args.source_x, args.source_y, 1.5]
+            xstd = np.ones(commonwave.shape) * 1.5
+            ystd = np.ones(commonwave.shape) * 1.5
+        if isstandard:
+            loc = None
             loc = [0., 0., 0.]
             D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
                                          calinfo[5][:, 1])
             loc[0], loc[1], xstd, ystd, xoff, yoff = D
-            seeing = np.mean(np.sqrt(xstd*ystd))
+            seeing = 2.35 * np.mean(np.sqrt(xstd*ystd))
             loc[2] = seeing
             log.info('Source seeing refined to be: %0.2f' % seeing)
         if loc is not None:
