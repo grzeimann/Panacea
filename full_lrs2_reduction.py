@@ -1799,9 +1799,9 @@ for info in listinfo:
             if (temp != 0.).sum() > 500:
                 responses.append(temp)
         responses = np.array(responses)
-        norm = np.median(responses, axis=1)
-        avg = np.median(responses / norm[:, np.newaxis], axis=0)
-        response = avg * np.median(norm)
+        norm = np.nanmedian(responses, axis=1)
+        avg = np.nanmedian(responses / norm[:, np.newaxis], axis=0)
+        response = avg * np.nanmedian(norm)
 
     f = []
     names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias', 'xypos',
