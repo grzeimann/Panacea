@@ -1110,7 +1110,7 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy):
     std = np.sqrt(biweight_midvariance(c))
     peak = np.max(c[3:-3, 3:-3]) 
     sn = peak / std
-    if sn > 3.:
+    if sn > 20.:
         xc = xgrid[3:-3, 3:-3].ravel()[np.argmax(c[3:-3, 3:-3])]
         yc = ygrid[3:-3, 3:-3].ravel()[np.argmax(c[3:-3, 3:-3])]
         PSF = Gaussian2D(amplitude=peak, x_mean=xc, y_mean=yc)
@@ -1118,9 +1118,16 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy):
         #PSF.x_stddev.bounds = (0.8 / 2.35, 4.0 / 2.35)
         #PSF.y_stddev.bounds = (0.8 / 2.35, 4.0 / 2.35)
         fit = fitter(PSF, dx, dy, dimage)
+        log.info('Source found at s/n: %0.2f' % sn)
         log.info('Initial source x, y: %0.2f, %0.2f' % (xc, yc))
         log.info('Final source x, y: %0.2f, %0.2f' % (fit.x_mean.value, fit.y_mean.value))
         return fit.x_mean.value, fit.y_mean.value, fit.x_stddev.value, fit.y_stddev.value
+    if sn > 5.:
+        loc = np.argmax(dimage)
+        log.info('Source found at s/n: %0.2f' % sn)
+        log.info('Low s/n source at x, y: %0.2f, %0.2f' % (dx[loc], dy[loc]))
+        return dx[loc], dy[loc], 0.8, 0.8
+        
     else:
         return None
 
