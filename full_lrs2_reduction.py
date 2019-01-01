@@ -1113,6 +1113,8 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy, skysub, commonwave):
     if sn > 20.:
         D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
                                          calinfo[5][:, 1])
+        log.info('Source found at s/n: %0.2f' % sn)
+        log.info('Low s/n source at x, y: %0.2f, %0.2f' % (dx[loc], dy[loc]))
         xc, yc, xstd, ystd, xoff, yoff = D
         return xc, yc, xstd, ystd
     if sn > 5.:
