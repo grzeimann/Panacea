@@ -1127,8 +1127,8 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy):
         log.info('Source found at s/n: %0.2f' % sn)
         log.info('Low s/n source at x, y: %0.2f, %0.2f' % (dx[loc], dy[loc]))
         return dx[loc], dy[loc], 0.8, 0.8
-        
     else:
+        log.info('No Source found, s/n too low: %0.2f' % sn)
         return None
 
 
