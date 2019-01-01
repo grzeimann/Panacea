@@ -46,20 +46,21 @@ row6: response function (ergs / e-)
 The multi*{uv,orange,red,farred}.fits are multi-extension fits files and contain the following attributes:
 
 ```
-image: 2d image (bias-subtracted, dark-subtracted, gain multiplied, trimmed, and oriented)
-error: 2d error frame for the associated image
-ifupos: x, y positions of the fibers with respect to ifu center (")
-skypos: ra, dec positions of the fibers (if the same as x and y then no astrometric solution was applied)
-wave: wavelength for each fiber as a function of CCD column
-twi: extracted twilight spectra for the associated twilight frame used for calibration
-ftf: fiber normalizations as a function of CCD column (these are to be divided to normalize fibers)
-spectrum: extracted 1d spectra for each fiber (e-) as a function of CCD column
-sky: sky model for each fiber as a function of CCD column
-skysub: sky-subtracted spectra for each fiber (e-) with fiber normalizations taken into account
-trace: location (in y) of each fiber as a function of CCD column
+Rectified Spectra:
+Rectified Sky Model:
+Rectified Sky Subtracted Spectra:
+Rectified Error Frame:
+Collapsed image:
+Positions (IFU, Focal, Sky):
+Extracted Spectra and Response:
+ADR:
+CCD Wavelength:
+Image:
+Flat Fielded image:
+Central Trace Pixels:
+Cosmics:
+Unrectified Spectra:
 ```
-
- 
 
 ### Running the reductions yourself
 This section covers how to run your own reductions with modifications to achieve specific science objectives.
