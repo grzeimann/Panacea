@@ -1519,11 +1519,11 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                                                      wend=wave_0+wb)
             write_cube(commonwave, xgrid, ygrid, zcube, outname, he)
         isstandard = check_if_standard(obj[0]) and (ifuslot in obj[0])
+        loc = None
         if (args.source_x is None) and (not isstandard):
             wi = np.searchsorted(commonwave, wave_0-wb, side='left')
             we = np.searchsorted(commonwave, wave_0+wb, side='right')
             dimage = np.median(skysub[:, wi:we+1], axis=(1,))
-            loc = None
             loc1 = find_source(zimage, xgrid, ygrid, dimage,
                               calinfo[5][:, 0], calinfo[5][:, 1])
             if loc1 is not None:
@@ -1540,7 +1540,6 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             xstd = np.ones(commonwave.shape) * 1.5
             ystd = np.ones(commonwave.shape) * 1.5
         if isstandard:
-            loc = None
             loc = [0., 0., 0.]
             D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
                                          calinfo[5][:, 1])
