@@ -1790,19 +1790,9 @@ for info in listinfo:
     if response is None:
         log.info('Getting average response')
         basename = 'LRS2/CALS'
-        names = glob.glob(op.join(basename, 'cal*%s.fits' % specname))
-        responses = []
-        for name in names:
-            try:
-                temp = fits.open(name)['response'].data[1] * 1.
-            except:
-                temp = 0. * commonwave
-            if (temp != 0.).sum() > 500:
-                responses.append(temp)
-        responses = np.array(responses)
-        norm = np.nanmedian(responses, axis=1)
-        avg = np.nanmedian(responses / norm[:, np.newaxis], axis=0)
-        response = avg * np.nanmedian(norm)
+        R = fits.open(op.join(DIRNAME,
+                              'lrs2_config/response_%s.fits' % specname))
+        response = R[0].data[1]*1.
 
     f = []
     names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias', 'xypos',
