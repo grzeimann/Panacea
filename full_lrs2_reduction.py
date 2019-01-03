@@ -1104,7 +1104,7 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname, he):
     hdu.writeto(outname, overwrite=True)
 
 
-def find_source(dimage, derror, dx, dy, skysub, commonwave):
+def find_source(dimage, derror, dx, dy, skysub, commonwave, obj, specn):
     D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
     sn = dimage * 0.
     for i in np.arange(len(dimage)):
@@ -1118,15 +1118,15 @@ def find_source(dimage, derror, dx, dy, skysub, commonwave):
                                          calinfo[5][:, 1])
         
         xc, yc, xstd, ystd, xoff, yoff = D
-        log.info('Source found at s/n: %0.2f' % SN)
+        log.info('%s, %s: Source found at s/n: %0.2f' (obj, specn, SN))
         return xc, yc, xstd, ystd
     if SN > 5.:
         loc = np.argmax(dimage)
         X = np.ones(commonwave.shape)
-        log.info('Source found at s/n: %0.2f' % SN)
+        log.info('%s, %s: Source found at s/n: %0.2f' % (obj, specn, SN))
         return dx[loc], dy[loc], 0.8*X, 0.8*X
     else:
-        log.info('No Source found, s/n too low: %0.2f' % SN)
+        log.info('%s, %s:No Source found, s/n too low: %0.2f' % (obj, specn, SN))
         return None
 
 
@@ -1534,7 +1534,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             dimage = np.median(skysub[:, wi:we+1], axis=1)
             derror = np.sqrt(np.sum(e[:, wi:we+1]**2, axis=1))*1.253 / np.sqrt(we-wi+1)
             loc1 = find_source(dimage, derror, pos[:, 0], pos[:, 1],
-                               skysub, commonwave)
+                               skysub, commonwave, obj[0])
             if loc1 is not None:
                 loc = [0., 0., 0.]
                 loc[0] = loc1[0]
