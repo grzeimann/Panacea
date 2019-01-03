@@ -1118,7 +1118,7 @@ def find_source(dimage, derror, dx, dy, skysub, commonwave, obj, specn):
                                          calinfo[5][:, 1])
         
         xc, yc, xstd, ystd, xoff, yoff = D
-        log.info('%s, %s: Source found at s/n: %0.2f' (obj, specn, SN))
+        log.info('%s, %s: Source found at s/n: %0.2f' % (obj, specn, SN))
         return xc, yc, xstd, ystd
     if SN > 5.:
         loc = np.argmax(dimage)
