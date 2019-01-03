@@ -1534,7 +1534,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             wi = np.searchsorted(commonwave, wave_0-wb, side='left')
             we = np.searchsorted(commonwave, wave_0+wb, side='right')
             dimage = np.median(skysub[:, wi:we+1], axis=(1,))
-            derror = np.sqrt(np.sum(e[:, wi:we+1]**2, axis=1))*1.253 / np.sqrt(we-wi-1)
+            derror = np.sqrt(np.sum(e[:, wi:we+1]**2, axis=1))*1.253 / np.sqrt(we-wi+1)
             loc1 = find_source(dimage, derror, calinfo[5][:, 0], calinfo[5][:, 1],
                                skysub, commonwave)
             if loc1 is not None:
@@ -1545,7 +1545,6 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 xstd = loc1[2]
                 ystd = loc1[3]
                 log.info('Source seeing initially found to be: %0.2f' % loc[2])
-                loc[2] = np.max([np.min([3.0, loc[2]]), 0.8])
         if args.source_x is not None:
             loc = [args.source_x, args.source_y, 1.5]
             xstd = np.ones(commonwave.shape) * 1.5
