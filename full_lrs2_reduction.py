@@ -1108,7 +1108,7 @@ def find_source(dimage, derror, dx, dy, skysub, commonwave, obj, specn):
     D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
     sn = dimage * 0.
     for i in np.arange(len(dimage)):
-        sel = D[i, :] < 3.
+        sel = D[i, :] < 1.5
         S = np.sum(dimage[sel])
         N = np.sqrt(np.sum(derror[sel]**2))
         sn[i] = S / N
