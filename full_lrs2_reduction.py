@@ -1107,8 +1107,7 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname, he):
 def find_source(dimage, derror, dx, dy, skysub, commonwave):
     D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
     sn = dimage * 0.
-    print(dimage, derror)
-    for i in np.arange(len(x)):
+    for i in np.arange(len(dimage)):
         sel = D[i, :] < 3.
         S = np.sum(dimage[sel])
         N = np.sqrt(np.sum(derror[sel]**2))
@@ -1536,7 +1535,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             we = np.searchsorted(commonwave, wave_0+wb, side='right')
             dimage = np.median(skysub[:, wi:we+1], axis=1)
             derror = np.sqrt(np.sum(e[:, wi:we+1]**2, axis=1))*1.253 / np.sqrt(we-wi+1)
-            loc1 = find_source(dimage, derror, calinfo[5][:, 0], calinfo[5][:, 1],
+            loc1 = find_source(dimage, derror, pos[:, 0], pos[:, 1],
                                skysub, commonwave)
             if loc1 is not None:
                 loc = [0., 0., 0.]
