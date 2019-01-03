@@ -1126,7 +1126,7 @@ def find_source(dimage, derror, dx, dy, skysub, commonwave, obj, specn):
         log.info('%s, %s: Source found at s/n: %0.2f' % (obj, specn, SN))
         return dx[loc], dy[loc], 0.8*X, 0.8*X
     else:
-        log.info('%s, %s:No Source found, s/n too low: %0.2f' % (obj, specn, SN))
+        log.info('%s, %s: No Source found, s/n too low: %0.2f' % (obj, specn, SN))
         return None
 
 
@@ -1140,10 +1140,6 @@ def get_standard_star_params(data, commonwave, xloc, yloc):
     xc, yc, xs, ys = [i * wchunk for i in [0., 0., 0., 0.]]
     for i in np.arange(11):
         y = dchunk[i]
-        ind = np.argmax(y)
-        sn = y[ind] / np.sqrt(biweight_midvariance(y))
-        if sn < 8.:
-            continue
         dist = np.sqrt((xloc - xloc[ind])**2 + (yloc - yloc[ind])**2)
         inds = dist < 3.
         x_centroid = np.sum(y[inds] * xloc[inds]) / np.sum(y[inds])
