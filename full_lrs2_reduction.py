@@ -997,7 +997,7 @@ def sky_subtraction(rect, error, xloc, yloc):
     tempy = init * 1.
     tempy[~cont] = np.nan
     smooth_back = convolve(tempy, G, nan_treatment='interpolate',
-                               preserve_nan=False)
+                           preserve_nan=False)
     peak_loc, sn, v = find_peaks(init - smooth_back, thresh = 3)
     locs = np.round(peak_loc).astype(int)
     locs = np.sort(np.hstack([locs-2, locs-1, locs, locs+1, locs+2]))
@@ -1050,7 +1050,7 @@ def sky_subtraction(rect, error, xloc, yloc):
         V = [np.abs(sol), 0.5 * np.median(E)]
         mult = V[np.argmin(V)] * sg
         res[:, j] = mult
-    return sky + res
+    return sky + res, model
 
 
 def make_frame(xloc, yloc, data, error, wave, dw, Dx, Dy, wstart=5700.,
@@ -1104,13 +1104,16 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname, he):
     hdu.writeto(outname, overwrite=True)
 
 
-def find_source(image, xgrid, ygrid, dimage, dx, dy, skysub, commonwave):    
-    G = Gaussian2DKernel(2.5)
-    c = convolve(image, G)
-    std = np.sqrt(biweight_midvariance(c))
-    peak = np.max(c[3:-3, 3:-3]) 
-    sn = peak / std
-    if sn > 20.:
+def find_source(dimage, derror, dx, dy, skysub, commonwave):
+    D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
+    sn = dimage * 0.
+    for i in np.arange(len(x)):
+        sel = D[i, :] < 3.
+        S = np.sum(dimage[sel])
+        N = np.sqrt(np.sum(derror[sel]**2))
+        sn[i] = S / N
+    SN = np.max(sn)
+    if SN > 20.:
         D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
                                          calinfo[5][:, 1])
         
@@ -1118,7 +1121,7 @@ def find_source(image, xgrid, ygrid, dimage, dx, dy, skysub, commonwave):
         log.info('Source found at s/n: %0.2f' % sn)
         log.info('Low s/n source at x, y: %0.2f, %0.2f' % (xc, yc))
         return xc, yc, xstd, ystd
-    if sn > 5.:
+    if SN > 5.:
         loc = np.argmax(dimage)
         X = np.ones(commonwave.shape)
         log.info('Source found at s/n: %0.2f' % sn)
@@ -1504,7 +1507,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         e /= mini[0][3]
         if args.correct_ftf:
             r, e = correct_ftf(r, e)
-        sky = sky_subtraction(r, e, pos[:, 0], pos[:, 1])
+        sky, ftf_cor = sky_subtraction(r, e, pos[:, 0], pos[:, 1])
         sky[calinfo[-3][:, 1] == 1.] = 0.
         skysub = r - sky
         if response is not None:
@@ -1531,8 +1534,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             wi = np.searchsorted(commonwave, wave_0-wb, side='left')
             we = np.searchsorted(commonwave, wave_0+wb, side='right')
             dimage = np.median(skysub[:, wi:we+1], axis=(1,))
-            loc1 = find_source(zimage, xgrid, ygrid, dimage,
-                               calinfo[5][:, 0], calinfo[5][:, 1],
+            derror = np.sqrt(np.sum(e[:, wi:we+1]**2))*1.253 / np.sqrt(we-wi-1)
+            loc1 = find_source(dimage, derror, calinfo[5][:, 0], calinfo[5][:, 1],
                                skysub, commonwave)
             if loc1 is not None:
                 loc = [0., 0., 0.]
