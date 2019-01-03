@@ -1112,7 +1112,7 @@ def find_source(dimage, derror, dx, dy, skysub, commonwave, obj, specn):
         S = np.sum(dimage[sel])
         N = np.sqrt(np.sum(derror[sel]**2))
         sn[i] = S / N
-    SN = np.max(sn)
+    SN = np.nanmax(sn)
     if SN > 20.:
         D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
                                          calinfo[5][:, 1])
