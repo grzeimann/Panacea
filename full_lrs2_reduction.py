@@ -1140,6 +1140,7 @@ def get_standard_star_params(data, commonwave, xloc, yloc):
     xc, yc, xs, ys = [i * wchunk for i in [0., 0., 0., 0.]]
     for i in np.arange(11):
         y = dchunk[i]
+        ind = np.argmax(y)
         dist = np.sqrt((xloc - xloc[ind])**2 + (yloc - yloc[ind])**2)
         inds = dist < 3.
         x_centroid = np.sum(y[inds] * xloc[inds]) / np.sum(y[inds])
