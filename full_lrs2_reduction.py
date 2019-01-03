@@ -1118,17 +1118,17 @@ def find_source(dimage, derror, dx, dy, skysub, commonwave):
                                          calinfo[5][:, 1])
         
         xc, yc, xstd, ystd, xoff, yoff = D
-        log.info('Source found at s/n: %0.2f' % sn)
+        log.info('Source found at s/n: %0.2f' % SN)
         log.info('Low s/n source at x, y: %0.2f, %0.2f' % (xc, yc))
         return xc, yc, xstd, ystd
     if SN > 5.:
         loc = np.argmax(dimage)
         X = np.ones(commonwave.shape)
-        log.info('Source found at s/n: %0.2f' % sn)
+        log.info('Source found at s/n: %0.2f' % SN)
         log.info('Low s/n source at x, y: %0.2f, %0.2f' % (dx[loc], dy[loc]))
         return dx[loc], dy[loc], 0.8*X, 0.8*X
     else:
-        log.info('No Source found, s/n too low: %0.2f' % sn)
+        log.info('No Source found, s/n too low: %0.2f' % SN)
         return None
 
 
