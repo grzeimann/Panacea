@@ -1123,7 +1123,7 @@ def mask_skylines_cosmics(wave, rect_spec, name, error):
     mask2[1:, :] += mask2[:-1, :]
     mask2[:-1, :] += mask2[1:, :]
     if name == 'uv':
-        mask1[79:83, 979:984] = -1.
+        mask1[79:83, 979:987] = -1.
     mask = (mask1 + mask2) < 0
     return mask
 
@@ -1131,6 +1131,7 @@ def mask_skylines_cosmics(wave, rect_spec, name, error):
 def convolve_spatially(x, y, spec, wave, name, error, sig_spatial=0.75,
                        sig_wave=1.5):
     W = build_weight_matrix(x, y, sig=sig_spatial)
+    D = np.sqrt((x - y[:, np.newaxis])**2 + (x - y[:, np.newaxis])**2)
     mask = mask_skylines_cosmics(wave, spec, name, error)
     Z = spec * 1.
     E = error**2
@@ -1150,7 +1151,9 @@ def convolve_spatially(x, y, spec, wave, name, error, sig_spatial=0.75,
     Y[np.isnan(Y)] = 0.
     ind = np.unravel_index(np.nanargmax(Y[:, 100:-100],
                                         axis=None), Z[:, 100:-100].shape)
-    #fits.PrimaryHDU(Z_copy / E_copy).writeto('LRS2/test.fits', overwrite=True)
+    fits.PrimaryHDU(spec / Z).writeto('LRS2/test.fits', overwrite=True)
+    print(ind)
+    sys.exit(1)
     return ind[1]+100, Z_copy[:, ind[1]+100], E_copy[:, ind[1]+100]
 
 
