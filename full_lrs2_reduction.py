@@ -1161,7 +1161,6 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
         loc, dimage, derror = convolve_spatially(dx, dy, skysub, commonwave,
                                                  specn, error,
                                                  sig_wave=wave_size)
-        log.info('Index for %0.2f is %i' % (wave_size, loc))
         sn = dimage * 0.
         for i in np.arange(len(dimage)):
             sel = D[i, :] < 1.5
@@ -1170,6 +1169,7 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
             sn[i] = S / N
         SN_list.append(np.nanmax(sn))
         loc_list.append(loc)
+    log.info('S/N for Emission: %0.2f, S/N for Continuum: %0.2f'% (SN_list[0], SN_list[1]))
     ind = np.argmax(SN_list)
     SN = np.max(SN_list)
     loc = loc_list[ind]
