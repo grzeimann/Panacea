@@ -1152,6 +1152,8 @@ def convolve_spatially(x, y, spec, wave, name, error, sig_spatial=0.75,
     ind = np.unravel_index(np.nanargmax(Y[:, 100:-100],
                                         axis=None), Z[:, 100:-100].shape)
     fits.PrimaryHDU(spec / Z).writeto('LRS2/test.fits', overwrite=True)
+    fits.PrimaryHDU(Y).writeto('LRS2/test2.fits', overwrite=True)
+
     print(ind)
     sys.exit(1)
     return ind[1]+100, Z_copy[:, ind[1]+100], E_copy[:, ind[1]+100]
