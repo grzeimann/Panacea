@@ -1128,10 +1128,12 @@ def mask_skylines_cosmics(wave, rect_spec, name, error):
     return mask
 
 
-def convolve_spatially(x, y, spec, wave, name, error, sig_spatial=0.75,
+def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75,
                        sig_wave=1.5):
     W = build_weight_matrix(x, y, sig=sig_spatial)
     D = np.sqrt((x - y[:, np.newaxis])**2 + (x - y[:, np.newaxis])**2)
+    for i in np.arange(D.shape[0]):
+        D[i, :] = np.array(D[i, :] < 1.5, dtype=float)
     mask = mask_skylines_cosmics(wave, spec, name, error)
     Z = spec * 1.
     E = error**2
@@ -1143,24 +1145,27 @@ def convolve_spatially(x, y, spec, wave, name, error, sig_spatial=0.75,
         E[i, :] = convolve(E[i, :], G, nan_treatment='fill', fill_value=0.0)
     Z_copy = Z * 1.
     E_copy = np.sqrt(E)
+    T = spec * 0.
+    ispec[mask] = 0.
     for i in np.arange(spec.shape[1]):
         Z[:, i] = np.dot(Z[:, i], W)
         E[:, i] = np.dot(E[:, i], W)
+        T[:, i] = np.dot(ispec[:, i], D)
     E[:] = np.sqrt(E)
     Y = Z / E
     Y[np.isnan(Y)] = 0.
+    YY = ispec / T
+    YY[np.isnan(YY)] = 0.
     ind = np.unravel_index(np.nanargmax(Y[:, 100:-100],
                                         axis=None), Z[:, 100:-100].shape)
-    fits.PrimaryHDU(spec / Z).writeto('LRS2/test.fits', overwrite=True)
-    fits.PrimaryHDU(Y).writeto('LRS2/test2.fits', overwrite=True)
-
+    fits.PrimaryHDU(YY).writeto('LRS2/test.fits', overwrite=True)
     print(ind)
     sys.exit(1)
     return ind[1]+100, Z_copy[:, ind[1]+100], E_copy[:, ind[1]+100]
 
 
 def find_source(dx, dy, skysub, commonwave, obj, specn, error,
-                xoff, yoff, wave_0):
+                xoff, yoff, wave_0, ispec):
     D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
     loc, dimage, derror = convolve_spatially(dx, dy, skysub, commonwave,
                                              specn, error,
