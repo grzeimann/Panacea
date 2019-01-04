@@ -1156,29 +1156,19 @@ def convolve_spatially(x, y, spec, wave, name, error, sig_spatial=0.75,
 
 def find_source(dx, dy, skysub, commonwave, obj, specn, error,
                 xoff, yoff, wave_0):
-    SN_list = []
-    loc_list = []
     D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
-    for wave_size in [1.5, 8.]:
-        loc, dimage, derror = convolve_spatially(dx, dy, skysub, commonwave,
-                                                 specn, error,
-                                                 sig_wave=wave_size)
-        sn = dimage * 0.
-        for i in np.arange(len(dimage)):
-            sel = D[i, :] < 1.5
-            S = np.sum(dimage[sel])
-            N = np.sqrt(np.sum(derror[sel]**2))
-            sn[i] = S / N
-        SN_list.append(np.nanmax(sn))
-        loc_list.append(loc)
-    log.info('S/N for Emission: %0.2f, S/N for Continuum: %0.2f'% (SN_list[0], SN_list[1]))
-    ind = np.argmax(SN_list)
-    SN = np.max(SN_list)
-    loc = loc_list[ind]
-    if ind == 0:
-        kind = 'Emission'
-    else:
-        kind = 'Continuum'        
+    loc, dimage, derror = convolve_spatially(dx, dy, skysub, commonwave,
+                                             specn, error,
+                                             sig_wave=1.5)
+    sn = dimage * 0.
+    for i in np.arange(len(dimage)):
+        sel = D[i, :] < 1.5
+        S = np.sum(dimage[sel])
+        N = np.sqrt(np.sum(derror[sel]**2))
+        sn[i] = S / N
+    SN = np.nanmax(sn)
+    kind = 'Emission'
+      
 #    if SN > 20.:
 #        D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
 #                                         calinfo[5][:, 1])
@@ -1201,7 +1191,7 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
         fit = fitter(G, dx[inds], dy[inds], dimage[inds])
         seeing = 2.35 * np.sqrt(fit.x_stddev * fit.y_stddev)
         if seeing < 0.75:
-            log.info('%s, %s: %s source found at s/n: %0.2f but rejected for being too small' % (obj, specn, kind, SN))
+            log.info('%s, %s: %s source found at s/n: %0.2f but rejected for being too small, col: %i' % (obj, specn, kind, SN, loc))
             return None
         else:
             log.info('%s, %s: %s source found at s/n: %0.2f, with fwhm: %0.2f' % (obj, specn, kind, SN, seeing))
