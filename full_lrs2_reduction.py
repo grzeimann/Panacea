@@ -1131,7 +1131,7 @@ def mask_skylines_cosmics(wave, rect_spec, name, error):
 def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75,
                        sig_wave=1.5):
     W = build_weight_matrix(x, y, sig=sig_spatial)
-    D = np.sqrt((x - y[:, np.newaxis])**2 + (x - y[:, np.newaxis])**2)
+    D = np.sqrt((x - x[:, np.newaxis])**2 + (y - y[:, np.newaxis])**2)
     for i in np.arange(D.shape[0]):
         D[i, :] = np.array(D[i, :] < 1.5, dtype=float)
     mask = mask_skylines_cosmics(wave, spec, name, error)
