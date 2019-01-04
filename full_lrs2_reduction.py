@@ -1104,7 +1104,50 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname, he):
     hdu.writeto(outname, overwrite=True)
 
 
-def find_source(dimage, derror, dx, dy, skysub, commonwave, obj, specn):
+def build_weight_matrix(x, y, sig=1.5):
+    d = np.sqrt((x - x[:, np.newaxis])**2 + (y - y[:, np.newaxis])**2)
+    G = np.exp(-0.5 * (d / sig)**2)
+    G = G / G.sum(axis=0)[:, np.newaxis]
+    return G.swapaxes(0, 1)
+
+
+def mask_skylines_cosmics(wave, rect_spec, name, error):
+    mask1 = rect_spec * 0.
+    if op.exists(op.join(DIRNAME, 'lrs2_config', '%s_skylines.dat' % name)):
+        T = Table.read(op.join(DIRNAME, 'lrs2_config', '%s_skylines.dat' % name),
+                       format='ascii.fixed_width_two_line')
+        for w in T['wavelength']:
+            mask1[:, np.abs(wave - w) < 6.] = -1.
+    mask2 = rect_spec * 0.
+    mask2[error == 0.] = -1.
+    mask = (mask1 + mask2) < 0
+    return mask
+
+
+def convolve_spatially(x, y, spec, wave, name,  error, sig_spatial=0.75,
+                       sig_wave=1.5):
+    W = build_weight_matrix(x, y, sig=sig_spatial)
+    mask = mask_skylines_cosmics(wave, spec, name, error)
+    Z = spec * 1.
+    E = error**2
+    Z[mask] = np.nan
+    E[mask] = np.nan
+    G = Gaussian1DKernel(sig_wave)
+    for i in np.arange(spec.shape[0]):
+        Z[i, :] = convolve(Z[i, :], G, nan_treatment='fill', fill_value=0.0)
+        E[i, :] = convolve(E[i, :], G, nan_treatment='fill', fill_value=0.0)
+    for i in np.arange(spec.shape[1]):
+        Z[:, i] = np.dot(Z[:, i], W)
+        E[:, i] = np.dot(E[:, i], W)
+    E[:] = np.sqrt(E)
+    ind = np.unravel_index(np.argmax(Z[:, 50:-50] / E[:, 50:-50],  axis=None), Z[:, 50:-50].shape)
+    fits.PrimaryHDU(Z / E).writeto('LRS2/test.fits', overwrite=True)
+    return ind[1]+50
+
+
+def find_source(dimage, derror, dx, dy, skysub, commonwave, obj, specn, error):
+    loc = convolve_spatially(dx, dy, skysub, commonwave, specn, error)
+    log.info('Column of max detection: %i' % loc)
     D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
     sn = dimage * 0.
     for i in np.arange(len(dimage)):
@@ -1113,18 +1156,28 @@ def find_source(dimage, derror, dx, dy, skysub, commonwave, obj, specn):
         N = np.sqrt(np.sum(derror[sel]**2))
         sn[i] = S / N
     SN = np.nanmax(sn)
-    if SN > 20.:
-        D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
-                                         calinfo[5][:, 1])
-        
-        xc, yc, xstd, ystd, xoff, yoff = D
-        log.info('%s, %s: Source found at s/n: %0.2f' % (obj, specn, SN))
-        return xc, yc, xstd, ystd
+#    if SN > 20.:
+#        D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
+#                                         calinfo[5][:, 1])
+#        
+#        xc, yc, xstd, ystd, xoff, yoff = D
+#        log.info('%s, %s: Source found at s/n: %0.2f' % (obj, specn, SN))
+#        return xc, yc, xstd, ystd
     if SN > 5.:
-        loc = np.argmax(dimage)
+        ind = np.argmax(dimage)
+        dist = np.sqrt((dx - dx[ind])**2 + (dy - dy[ind])**2)
+        inds = dist < 1.5
+        x_centroid = np.sum(dimage[inds] * dx[inds]) / np.sum(dimage[inds])
+        y_centroid = np.sum(dimage[inds] * dy[inds]) / np.sum(dimage[inds])
         X = np.ones(commonwave.shape)
         log.info('%s, %s: Source found at s/n: %0.2f' % (obj, specn, SN))
-        return dx[loc], dy[loc], 0.8*X, 0.8*X
+        G = Gaussian2D()
+        fitter = LevMarLSQFitter()
+        G.amplitude.value = y[ind]
+        G.x_mean.value = x_centroid
+        G.y_mean.value = y_centroid
+        fit = fitter(G, dx[inds], dy[inds], dimage[inds])
+        return x_centroid, y_centroid, fit.x_stddev.value*X, fit.y_stddev.value * X
     else:
         log.info('%s, %s: No Source found, s/n too low: %0.2f' % (obj, specn, SN))
         return None
@@ -1156,8 +1209,8 @@ def get_standard_star_params(data, commonwave, xloc, yloc):
     sel = xs > 0.
     xoff = np.polyval(np.polyfit(wchunk[sel], xc[sel], 2), commonwave)
     yoff = np.polyval(np.polyfit(wchunk[sel], yc[sel], 2), commonwave)
-    xstd = np.polyval(np.polyfit(wchunk[sel], xs[sel], 2), commonwave)
-    ystd = np.polyval(np.polyfit(wchunk[sel], ys[sel], 2), commonwave)
+    xstd = np.median(xs[sel]) * np.ones(commonwave.shape)
+    ystd = np.median(ys[sel]) * np.ones(commonwave.shape)
     N = len(commonwave)
     return xoff[N/2], yoff[N/2], xstd, ystd, xoff - xoff[N/2], yoff - yoff[N/2]
 
@@ -1531,7 +1584,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             dimage = np.median(skysub[:, wi:we+1], axis=1)
             derror = np.sqrt(np.sum(e[:, wi:we+1]**2, axis=1))*1.253 / np.sqrt(we-wi+1)
             loc1 = find_source(dimage, derror, pos[:, 0], pos[:, 1],
-                               skysub, commonwave, obj[0], specname)
+                               skysub, commonwave, obj[0], specname, e)
             if loc1 is not None:
                 loc = [0., 0., 0.]
                 loc[0] = loc1[0]
