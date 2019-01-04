@@ -1139,6 +1139,14 @@ def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75,
     E = error**2
     Z[mask] = np.nan
     E[mask] = np.nan
+    ispec[mask] = 0.
+    T = ispec * 1.
+    for i in np.arange(ispec.shape[1]):
+        T[:, i] = np.dot(ispec[:, i], D)
+    YY = ispec / T
+    YY[np.isnan(YY)] = 0.
+    Z[YY > 0.2] = np.nan
+    E[YY > 0.2] = np.nan
     G = Gaussian1DKernel(sig_wave)
     for i in np.arange(spec.shape[0]):
         Z[i, :] = convolve(Z[i, :], G, nan_treatment='fill', fill_value=0.0)
@@ -1146,20 +1154,15 @@ def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75,
     Z_copy = Z * 1.
     E_copy = np.sqrt(E)
     T = spec * 0.
-    ispec[mask] = 0.
     for i in np.arange(spec.shape[1]):
         Z[:, i] = np.dot(Z[:, i], W)
         E[:, i] = np.dot(E[:, i], W)
-        T[:, i] = np.dot(ispec[:, i], D)
     E[:] = np.sqrt(E)
     Y = Z / E
     Y[np.isnan(Y)] = 0.
-    YY = ispec / T
-    YY[np.isnan(YY)] = 0.
-    Y[YY > 0.2] = 0.
-    ind = np.unravel_index(np.nanargmax(Y[:, 20:-20],
-                                        axis=None), Z[:, 20:-20].shape)
-    return ind[1]+20, Z_copy[:, ind[1]+20], E_copy[:, ind[1]+20]
+    ind = np.unravel_index(np.nanargmax(Y[:, 50:-50],
+                                        axis=None), Z[:, 50:-50].shape)
+    return ind[1]+50, Z_copy[:, ind[1]+50], E_copy[:, ind[1]+50]
 
 
 def find_source(dx, dy, skysub, commonwave, obj, specn, error,
