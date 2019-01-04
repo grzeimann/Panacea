@@ -1176,7 +1176,7 @@ def find_source(dimage, derror, dx, dy, skysub, commonwave, obj, specn, error):
         log.info('%s, %s: Source found at s/n: %0.2f' % (obj, specn, SN))
         G = Gaussian2D()
         fitter = LevMarLSQFitter()
-        G.amplitude.value = y[ind]
+        G.amplitude.value = dimage[ind]
         G.x_mean.value = x_centroid
         G.y_mean.value = y_centroid
         fit = fitter(G, dx[inds], dy[inds], dimage[inds])
