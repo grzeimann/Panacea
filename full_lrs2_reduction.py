@@ -1139,7 +1139,7 @@ def convolve_spatially(x, y, spec, wave, name, error, sig_spatial=0.75,
         Z[i, :] = convolve(Z[i, :], G, nan_treatment='fill', fill_value=0.0)
         E[i, :] = convolve(E[i, :], G, nan_treatment='fill', fill_value=0.0)
     Z_copy = Z * 1.
-    E_copy = E * 1.
+    E_copy = np.sqrt(E)
     for i in np.arange(spec.shape[1]):
         Z[:, i] = np.dot(Z[:, i], W)
         E[:, i] = np.dot(E[:, i], W)
@@ -1156,10 +1156,12 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
                 xoff, yoff, wave_0):
     SN_list = []
     loc_list = []
+    D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
     for wave_size in [1.5, 8.]:
-        loc, dimage, derror = convolve_spatially(dx, dy, skysub, commonwave, specn, error,
+        loc, dimage, derror = convolve_spatially(dx, dy, skysub, commonwave,
+                                                 specn, error,
                                                  sig_wave=wave_size)
-        D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
+        log.info('Index for %0.2f is %i' % (wave_size, loc))
         sn = dimage * 0.
         for i in np.arange(len(dimage)):
             sel = D[i, :] < 1.5
