@@ -1168,7 +1168,7 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
                 xoff, yoff, wave_0, ispec):
     D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
     loc, dimage, derror = convolve_spatially(dx, dy, skysub, commonwave,
-                                             specn, error,
+                                             specn, error, ispec,
                                              sig_wave=1.5)
     sn = dimage * 0.
     for i in np.arange(len(dimage)):
@@ -1616,7 +1616,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             derror = np.sqrt(np.sum(e[:, wi:we+1]**2, axis=1))*1.253 / np.sqrt(we-wi+1)
             loc1 = find_source(pos[:, 0], pos[:, 1],
                                skysub, commonwave, obj[0], specname, e,
-                               xoff, yoff, wave_0)
+                               xoff, yoff, wave_0, r)
             if loc1 is not None:
                 loc = [0., 0., 0.]
                 loc[0] = loc1[0]
