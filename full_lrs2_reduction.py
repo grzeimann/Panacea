@@ -1122,6 +1122,8 @@ def mask_skylines_cosmics(wave, rect_spec, name, error):
     mask2[error == 0.] = -1.
     mask2[1:, :] += mask2[:-1, :]
     mask2[:-1, :] += mask2[1:, :]
+    if name == 'uv':
+        mask1[79:83, 979:984] = -1.
     mask = (mask1 + mask2) < 0
     return mask
 
@@ -1146,10 +1148,10 @@ def convolve_spatially(x, y, spec, wave, name, error, sig_spatial=0.75,
     E[:] = np.sqrt(E)
     Y = Z / E
     Y[np.isnan(Y)] = 0.
-    ind = np.unravel_index(np.nanargmax(Y[:, 50:-50],
-                                        axis=None), Z[:, 50:-50].shape)
+    ind = np.unravel_index(np.nanargmax(Y[:, 100:-100],
+                                        axis=None), Z[:, 100:-100].shape)
     #fits.PrimaryHDU(Z_copy / E_copy).writeto('LRS2/test.fits', overwrite=True)
-    return ind[1]+50, Z_copy[:, ind[1]+50], E_copy[:, ind[1]+50]
+    return ind[1]+100, Z_copy[:, ind[1]+100], E_copy[:, ind[1]+100]
 
 
 def find_source(dx, dy, skysub, commonwave, obj, specn, error,
@@ -1191,13 +1193,19 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
         x_centroid = np.sum(dimage[inds] * dx[inds]) / np.sum(dimage[inds])
         y_centroid = np.sum(dimage[inds] * dy[inds]) / np.sum(dimage[inds])
         X = np.ones(commonwave.shape)
-        log.info('%s, %s: %s source found at s/n: %0.2f' % (obj, specn, kind, SN))
         G = Gaussian2D()
         fitter = LevMarLSQFitter()
         G.amplitude.value = dimage[ind]
         G.x_mean.value = x_centroid
         G.y_mean.value = y_centroid
         fit = fitter(G, dx[inds], dy[inds], dimage[inds])
+        seeing = 2.35 * np.sqrt(fit.x_stddev * fit.y_stddev)
+        if seeing < 0.75:
+            log.info('%s, %s: %s source found at s/n: %0.2f but rejected for being too small' % (obj, specn, kind, SN))
+            return None
+        else:
+            log.info('%s, %s: %s source found at s/n: %0.2f, with fwhm: %0.2f' % (obj, specn, kind, SN, seeing))
+
         xoff = xoff - xoff[loc]
         yoff = yoff - yoff[loc]
         return x_centroid, y_centroid, fit.x_stddev.value*X, fit.y_stddev.value * X, xoff, yoff
