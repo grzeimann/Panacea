@@ -1156,12 +1156,10 @@ def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75,
     Y[np.isnan(Y)] = 0.
     YY = ispec / T
     YY[np.isnan(YY)] = 0.
-    ind = np.unravel_index(np.nanargmax(Y[:, 100:-100],
-                                        axis=None), Z[:, 100:-100].shape)
-    fits.PrimaryHDU(YY).writeto('LRS2/test.fits', overwrite=True)
-    print(ind)
-    sys.exit(1)
-    return ind[1]+100, Z_copy[:, ind[1]+100], E_copy[:, ind[1]+100]
+    Y[YY > 0.2] = 0.
+    ind = np.unravel_index(np.nanargmax(Y[:, 20:-20],
+                                        axis=None), Z[:, 20:-20].shape)
+    return ind[1]+20, Z_copy[:, ind[1]+20], E_copy[:, ind[1]+20]
 
 
 def find_source(dx, dy, skysub, commonwave, obj, specn, error,
