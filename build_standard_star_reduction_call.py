@@ -24,7 +24,7 @@ objects = []
 dates = []
 standard_call = []
 basecall = ('python /work/03730/gregz/maverick/Panacea/full_lrs2_reduction.py '
-            '-d %s -s %s -ssd %s -sso %s -o %s')
+            '-d %s -s %s -o %s')
 slot = sys.argv[2]
 if slot == '056':
     names = "\"uv,orange\""
@@ -43,7 +43,7 @@ for _object in object_table:
             obsid = op.basename(op.dirname(op.dirname(op.dirname(filename)))).split('lrs2')[1]
             date = op.basename(op.dirname(op.dirname(op.dirname(op.dirname(op.dirname(filename))))))
             standard_call.append(basecall %
-                                 (date, names, date, obsid, objectname))
+                                 (date, names, objectname))
 
 for f, basename in zip([standard_call], ['rstan']):
     chunks = np.array_split(f, len(f) / 20 + 1)
