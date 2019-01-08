@@ -13,27 +13,30 @@ from utils import biweight_location
 import numpy as np
 from scipy.interpolate import LSQBivariateSpline, interp1d
 from astropy.convolution import Gaussian1DKernel, interpolate_replace_nans
-from scipy.signal import medfilt
+from astropy.convolution import convolve
+from scipy.signal import medfilt, savgol_filter
+from skimage.feature import register_translation
 import argparse as ap
 from input_utils import setup_logging
 import warnings
+from astropy.modeling.models import Polynomial2D
+from astropy.modeling.fitting import LevMarLSQFitter
+
+
+get_newwave = True
 
 def get_script_path():
     return op.dirname(op.realpath(sys.argv[0]))
 
 DIRNAME = get_script_path()
 
-blueinfo = [['BL', 'uv', 'multi_503_056_7001', [3640., 4640.], ['LL', 'LU']],
-            ['BR', 'orange', 'multi_503_056_7001', [4660., 6950.], ['RU', 'RL']]]
-redinfo = [['RL', 'red', 'multi_502_066_7002', [6450., 8400.], ['LL', 'LU']],
-           ['RR', 'farred', 'multi_502_066_7002', [8275., 10500.], ['RU', 'RL']]]
-#list_of_blue = [['20170121', 'lrs20000010', 'exp01', '20170121', 'lrs20000011', 'exp01'],
-#                ['20170126', 'lrs20000010', 'exp01', '20170121', 'lrs20000011', 'exp01'],
-#                ['20170126', 'lrs20000010', 'exp02', '20170121', 'lrs20000011', 'exp01'],
-#                ['20170126', 'lrs20000010', 'exp03', '20170121', 'lrs20000011', 'exp01'],
-#                ['20170126', 'lrs20000010', 'exp04', '20170121', 'lrs20000011', 'exp01'],
-#                ['20170126', 'lrs20000010', 'exp05', '20170121', 'lrs20000011', 'exp01']]
-#list_of_red  = [['20170121', 'lrs20000011', 'exp01', '20170121', 'lrs20000010', 'exp01']]
+blueinfo = [['BL', 'uv', 'multi_503_056_7001', [3640., 4640.], ['LL', 'LU'],
+             [4350., 4375.]], ['BR', 'orange', 'multi_503_056_7001',
+            [4660., 6950.], ['RU', 'RL'], [6270., 6470.]]]
+redinfo = [['RL', 'red', 'multi_502_066_7002', [6450., 8400.], ['LL', 'LU'],
+            [7225., 7425.]], ['RR', 'farred', 'multi_502_066_7002',
+           [8275., 10500.], ['RU', 'RL'], [9280., 9530.]]]
+
 parser = ap.ArgumentParser(add_help=True)
 
 parser.add_argument("-b", "--basedir",
@@ -48,7 +51,12 @@ parser.add_argument("-scd", "--scidateobsexp",
 parser.add_argument("-skd", "--skydateobsexp",
                     help='''Example: "20180112,lrs20000027,exp01"''',
                     type=str, default=None)
-args = parser.parse_args(args=None)
+
+targs = ["-b", "/Users/gregz/cure/reductions",
+         "-s", "red", "-scd", "20181108,lrs20000025,exp01", "-skd",
+         "20181108,lrs20000024,exp01"]
+
+args = parser.parse_args(args=targs)
 args.log = setup_logging('test_skysub')
 if args.scidateobsexp is None:
     args.log.error('--scidateobsexp/-scd was not set.')
@@ -116,6 +124,127 @@ def rectify(wave, spec, lims, mask=None, fac=1.0):
     return rect_wave, rect_spec
 
 
+def fit_continuum(wv, sky, skip=3, fil_len=95, func=np.array):
+    skym_s = 1. * sky
+    sky_sm = savgol_filter(skym_s, fil_len, 1)
+    allind = np.arange(len(wv), dtype=int)
+    for i in np.arange(5):
+        mad = np.median(np.abs(sky - sky_sm))
+        outlier = func(sky - sky_sm) > 1.5 * mad
+        sel = np.where(outlier)[0]
+        for j in np.arange(1, skip+1):
+            sel = np.union1d(sel, sel + 1)
+            sel = np.union1d(sel, sel - 1)
+        sel = np.sort(np.unique(sel))
+        sel = sel[skip:-skip]
+        good = np.setdiff1d(allind, sel)
+        skym_s = 1.*sky
+        skym_s[sel] = np.interp(wv[sel], wv[good], sky_sm[good])
+        sky_sm = savgol_filter(skym_s, fil_len, 1)
+    return sky_sm
+
+
+def make_skyline_model(wave, skylines, norm, dw_pix=None, kernel_size=2.1):
+        kernel_size = kernel_size * dw_pix
+        skymodel = np.zeros(wave.shape)
+        for line in skylines:
+            G = (norm * line[1] / np.sqrt((np.pi * 2. * kernel_size**2)) *
+                 np.exp(-1. * (wave-line[0])**2 / (2. * kernel_size**2)))
+            skymodel += G
+        return skymodel
+
+
+def convert_vac_to_air(skyline):
+    s2 = (1e4 / skyline[:, 0])**2
+    n = (1 + 0.0000834254 + 0.02406147 / (130 - s2) + 0.00015998 /
+         (38.9 - s2))
+    skyline[:, 0] = skyline[:, 0] / n
+    return skyline
+
+
+def get_skyline_file(skyline_file):
+    V = np.loadtxt(skyline_file)
+    V[:, 0] = V[:, 0] * 1e4
+    skyline = convert_vac_to_air(V)
+    return skyline
+
+
+def make_avg_spec(wave, spec, binsize=35, per=50):
+    ind = np.argsort(wave.ravel())
+    T = 1
+    for p in wave.shape:
+        T *= p
+    wchunks = np.array_split(wave.ravel()[ind],
+                             T / binsize)
+    schunks = np.array_split(spec.ravel()[ind],
+                             T / binsize)
+    nwave = np.array([np.mean(chunk) for chunk in wchunks])
+    nspec = np.array([np.percentile(chunk, per) for chunk in schunks])
+    nwave, nind = np.unique(nwave, return_index=True)
+    return nwave, nspec[nind]
+
+
+def align_wave_with_sky(wave, sky, l1, l2, error):
+    skyline = get_skyline_file(op.join(DIRNAME,
+                                       'lrs2_config/airglow_groups.dat'))
+    sel = np.where((skyline[:, 0] > l1) * (skyline[:, 0] < l2))[0]
+    kshift = np.zeros((sky.shape[0],))
+    p = kshift * 0.
+    G = Gaussian1DKernel(1.5)
+    for i in np.arange(sky.shape[0]):
+        xl = np.searchsorted(wave[i], l1)
+        xh = np.searchsorted(wave[i], l2)
+        p[i] = np.percentile(sky[i, xl:xh] / error[i, xl:xh], 98)
+    if np.median(p) < 100.:
+        args.log.info('Low S/N regime for sky fitting.')
+    P = np.median(p)
+    nchunks = np.min([sky.shape[0]/4, int(sky.shape[0] / (100. / P))])
+    args.log.info('Using %i chunks b/c individual fiber s/n is %0.2f' %
+                  (nchunks, P))
+    nshift, fshift = ([], [])
+    for wchunk, schunk, fchunk in zip(np.array_split(wave, nchunks),
+                                      np.array_split(sky, nchunks),
+                                      np.array_split(np.arange(
+                                                     sky.shape[0]),
+                                                     nchunks)):
+        nw, ns = make_avg_spec(wchunk, schunk, binsize=(sky.shape[0] /
+                                                        nchunks))
+        xl = np.searchsorted(nw, l1)
+        xh = np.searchsorted(nw, l2)
+        m1 = sky.shape[1] / 2
+        dw_pix = np.mean(wchunk[:, m1+1] - wchunk[:, m1])
+        skymodel = make_skyline_model(nw, skyline[sel, :], 1.,
+                                      kernel_size=2.1, dw_pix=dw_pix)
+        cont = fit_continuum(nw, ns)
+        y = convolve(ns-cont, G)
+        dw = nw[xh] - nw[xh-1]
+        shift = register_translation(skymodel[xl:xh, np.newaxis],
+                                     y[xl:xh, np.newaxis],
+                                     upsample_factor=100)
+        nshift.append(shift[0][0]*dw)
+        fshift.append(np.mean(fchunk))
+#        import matplotlib.pyplot as plt
+#        plt.figure
+#        norm = np.max(y[xl:xh]) / np.max(skymodel[xl:xh])
+#        plt.plot(nw + shift[0][0]*dw, y)
+#        plt.plot(nw, skymodel*norm)
+#        plt.ylim([-5, np.nanpercentile((ns-cont)[xl:xh], 99)*1.8])
+#        plt.xlim([nw[xl], nw[xh]])
+#        plt.show()
+#        ans = raw_input('%0.2f' % shift[0][0])
+#        if ans == 'q':
+#            sys.exit(1)
+    args.log.info(nshift)
+    y = np.array(nshift)
+    absy = np.abs(y - medfilt(y, 5))
+    mad = np.median(absy)
+    sel = absy < 2. * mad
+    p = np.polyval(np.polyfit(np.array(fshift)[sel], np.array(nshift)[sel], 3),
+                   np.arange(sky.shape[0]))
+    args.log.info('Average wavelength offset: %0.3f' % np.median(p))
+    return wave + p[:, np.newaxis]
+
+
 def get_info(basefile, amps, lims, in_wave=None):
     ifup, spectrum, wave = ([], [], [])
     for amp in amps:
@@ -130,12 +259,11 @@ def get_info(basefile, amps, lims, in_wave=None):
                 wt = in_wave[:N/2, :]
             else:
                 wt = in_wave[N/2:, :]
-        rw, rs = rectify(wt, np.array(sci['spectrum'].data, dtype=float),
-                         lims, fac=1.5)
-        spectrum.append(rs)
-        wave.append(rw)
-    ifup, spectrum, wave = [np.vstack(x) for x in [ifup, spectrum, wave]]
-    return ifup, spectrum, wave
+        spectrum.append(sci['spectrum'].data)
+        wave.append(wt)
+    ifup, spectrum, wave = [np.vstack(x)
+                                 for x in [ifup, spectrum, wave]]
+    return [ifup, spectrum, wave]
 
 
 def write_cube(wave,  xgrid, ygrid, zgrid, outname):
@@ -155,7 +283,7 @@ def write_cube(wave,  xgrid, ygrid, zgrid, outname):
     hdu.writeto(outname, overwrite=True)
 
 
-def create_image_header(wave,  xgrid, ygrid, zgrid, func=fits.ImageHDU):
+def create_image_header(wave, xgrid, ygrid, zgrid, func=fits.ImageHDU):
     hdu = func(np.array(zgrid, dtype='float32'))
     hdu.header['CRVAL1'] = xgrid[0, 0]
     hdu.header['CRVAL2'] = ygrid[0, 0]
@@ -209,7 +337,7 @@ def solve_system(sci_list, sky_list, x, y, xoff, yoff, sci_image):
         else:
             C[:, 0] = sci_image[:, j]
         sel = get_selection(sci_list[1][:, j], sky_list[1][:, j])
-        sel = (sel * np.isfinite(sci_list[1][:, j]) *
+        sel = (np.isfinite(sci_list[1][:, j]) *
                np.isfinite(sky_list[1][:, j]))
         C[:, 1] = sky_list[1][:, j]
         with warnings.catch_warnings():
@@ -226,17 +354,52 @@ def main(reduc_info, info_list):
     scidate, sciobs, sciexp, skydate, skyobs, skyexp = reduc_info
     print('Working on %s %s %s' % (scidate, sciobs, sciexp))
     for side in info_list:
-        specinit, specname, multi, lims, amps = side
-        W = fits.open('/Users/gregz/cure/panacea/lrs2_config/'
-                      '%s_wavelength.fits' % specname)
+        specinit, specname, multi, lims, amps, slims = side
+        if specname == 'uv':
+            W1 = fits.open('/Users/gregz/cure/panacea/lrs2_config/'
+                           '%s_%s_wavelength.fits' % (specname, 'LL'))
+            W2 = fits.open('/Users/gregz/cure/panacea/lrs2_config/'
+                           '%s_%s_wavelength.fits' % (specname, 'LU'))
+            W = np.vstack([W1[0].data, W2[0].data])
+        elif specname == 'orange':
+            W1 = fits.open('/Users/gregz/cure/panacea/lrs2_config/'
+                           '%s_%s_wavelength.fits' % (specname, 'RU'))
+            W2 = fits.open('/Users/gregz/cure/panacea/lrs2_config/'
+                           '%s_%s_wavelength.fits' % (specname, 'RL'))
+            W = np.vstack([W1[0].data, W2[0].data])
+        else:
+            W = fits.open('/Users/gregz/cure/panacea/lrs2_config/'
+                          '%s_wavelength.fits' % specname)[0].data
         sky_file = basedir % (skydate, skyobs, skyexp, multi)
         sci_file = basedir % (scidate, sciobs, sciexp, multi)
         darfile = '/Users/gregz/cure/panacea/lrs2_config/dar_%s.dat' % specinit
         T = Table.read(darfile, format='ascii.fixed_width_two_line')
-        sci_list = get_info(sci_file, amps, lims, in_wave=W[0].data)
-        sky_list = get_info(sky_file, amps, lims, in_wave=W[0].data)
+        sci_list = get_info(sci_file, amps, lims, in_wave=None)
+        sky_list = get_info(sky_file, amps, lims, in_wave=None)
+        sky = np.where(sky_list[1] < 0., 0., sky_list[1])
+        error_sky = np.sqrt(2.*3**2 + 0.8 * sky)
+        if get_newwave:
+            newwave = sky_list[2] * 0.
+            args.log.info('Getting new wavelength solution from sky for amp 1.')
+            newwave[:140] = align_wave_with_sky(sky_list[2][:140],
+                                                sky_list[1][:140], slims[0],
+                                                slims[1], error_sky[:140])
+            args.log.info('Getting new wavelength solution from sky for amp 2.')
+            newwave[140:] = align_wave_with_sky(sky_list[2][140:],
+                                                sky_list[1][140:], slims[0],
+                                                slims[1], error_sky[:140])
+        else:
+            newwave = sky_list[2]
+        rw, rs = rectify(newwave, np.array(sci_list[1], dtype=float),
+                         lims, fac=1.5)
+        sci_list[2] = rw*1.
+        sci_list[1] = rs*1.
+        rw, rs = rectify(newwave, np.array(sky_list[1], dtype=float),
+                         lims, fac=1.5)
+        sky_list[2] = rw*1.
+        sky_list[1] = rs*1.
         x, y = (sci_list[0][:, 0], sci_list[0][:, 1])
-        wave = sci_list[2][0]
+        wave = sci_list[2]
         wave_0 = np.mean(wave)
         xoff = (np.interp(wave, T['wave'], T['x_0']) -
                 np.interp(wave_0, T['wave'], T['x_0']))
@@ -248,6 +411,26 @@ def main(reduc_info, info_list):
         sel = np.where(((x - xn)**2 + (y-yn)**2) > 5.0**2)[0]
         v = biweight_location(sci_list[1][sel, :] / sky_list[1][sel, :],
                               axis=(0,))
+        gal_image = biweight_location(sci_list[1] - v * sky_list[1], axis=(1,))
+        loc = np.argmax(gal_image)
+        args.log.info('Peak found at %0.2f, %0.2f' % (x[loc], y[loc]))
+        xn, yn = (x[loc], y[loc])
+        d = (x - xn)**2 + (y-yn)**2
+        thresh = np.percentile(d, 90)
+        sel = np.where(((x - xn)**2 + (y-yn)**2) > thresh)[0]
+        from astropy.stats import sigma_clipped_stats
+        v = biweight_location(sci_list[1][sel, :] / sky_list[1][sel, :],
+                              axis=(0,))
+        XN = biweight_location(sci_list[1], axis=(1,))
+        YN = biweight_location(v*sky_list[1], axis=(1,))
+        data = XN / YN
+        mean, median, std = sigma_clipped_stats(info[0]/info[1])
+        sel = np.abs(data - median) < 3. * std
+        P = Polynomial2D(2)
+        fitter = LevMarLSQFitter()
+        fit = fitter(P, x[sel], y[sel], data[sel])
+        offset = fit(x, y)
+        sky_list[1] = sky_list[1] * offset[:, np.newaxis]
         gal_image = biweight_location(sci_list[1] - v * sky_list[1], axis=(1,))
         sky, temp, norm1, norm2 = solve_system(sci_list, sky_list, x, y, xoff,
                                                yoff, gal_image)
@@ -272,8 +455,8 @@ def main(reduc_info, info_list):
 
 if args.side == 'blue':
     for blue in list_of_blue:
-        main(blue, blueinfo)
+        info = main(blue, blueinfo)
 
 if args.side == 'red':
     for red in list_of_red:
-        main(red, redinfo)
+        info = main(red, redinfo)
