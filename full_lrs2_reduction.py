@@ -1746,8 +1746,8 @@ def get_cal_path(pathname, date):
         pathname = pathname.replace(datec, daten)
         cnt += 1
         log.info(pathname)
-        if cnt > 10:
-            log.error('SHIT!!!')
+        if cnt > 30:
+            log.error('Could not find cal within 30 days.')
             break
     return pathname, daten
 
