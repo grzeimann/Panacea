@@ -1537,6 +1537,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                   ifuslot, specname, standard=False, response=None):
     log.info('Extracting %s from %s' % (obj[0], bf))
     scifiles = bf.replace('exp01', 'exp*')
+    print(scifiles)
     images, rect, spec, cos, fl, Fi, E, header = extract_sci(scifiles, amps, calinfo[2],
                                               calinfo[1], calinfo[0], calinfo[3],
                                               calinfo[4], calinfo[5])
