@@ -1918,3 +1918,6 @@ for info in listinfo:
             if args.object.lower() in obj[0].lower():
                 big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
+            if check_if_standard(obj[0]) and (ifuslot in obj[0]):
+                big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
+                          ifuslot, specname, response=response)
