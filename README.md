@@ -73,7 +73,8 @@ export PATH=”/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bi
 ```
 
 #### Running Panacea in the command line
-To run in the command line, TACC wants users to create an interactive development environment which basically gets you a single CPU to yourself.  Just type the following:
+To run in the command line, TACC wants users to create an interactive development environment which basically gets you a single CPU to 
+yourself.  Just type the following:
 ```
 idev
 ```
@@ -113,8 +114,54 @@ optional arguments:
                         0000012
 ```
 
+If you want to reduce a given object on a given night you can use the following options:
 
-#### Preparing the reductions
+```
+python /work/03730/gregz/maverick/Panacea/full_lrs2_reduction.py -d DATE -o TARGET_NAME -s "uv"
+```
+
+You can reduce any side you want, above I choose the "uv" channel, and the TARGET_NAME only has to be in the full name of the target
+(e.g., HD which is in HD_19445_056_E).
+
+#### Running Panacea in batch
+To run a reduction of a given target on a given date for all four channels simply:
+```
+cdw
+cp /work/03946/hetdex/maverick/runlrs2general .
+runlrs2general DATE TARGET_NAME
+```
+
+You will see an immediate output like:
+```
+----------------------------------------------------------------
+          Welcome to the Maverick Supercomputer                 
+----------------------------------------------------------------
+
+No reservation for this job
+--> Verifying valid submit host (login2)...OK
+--> Verifying valid jobname...OK
+--> Enforcing max jobs per user...OK
+--> Verifying availability of your home dir (/home/03730/gregz)...OK
+--> Verifying availability of your work dir (/work/03730/gregz/maverick)...OK
+--> Verifying valid ssh keys...OK
+--> Verifying access to desired queue (gpu)...OK
+--> Verifying job request is within current queue limits...OK
+--> Checking available allocation (Hobby-Eberly-Telesco)...OK
+Submitted batch job 900134
+```
+
+This means you successfully submitted your job to the supercomputer and the reductions are in progress.  You can see the log of the 
+reductions in the file "reductionlrs2daily.oXXXXXX" where the XXXXXX is the job number as shown above in the line 
+"Submitted batch job 900134".  The reductions should finish in 20 minutes or so depending on computer availability 
+and number of exposures of the target.
+
+You can always edit "rlrs2_daily" to run any four reduction call you may want and submit the job manually with:
+```
+sbatch rlrs2_daily.slurm
+```
+
+The reductions will be in "LRS2/ORPHANS" for reductions before 2018/07/01 and in "LRS2/PROGRAM-ID" for reductions after this date.
+The standard stars will be in "LRS2/STANDARDS" and the calibrations used are in "LRS2/CALS".  
 
 ## Code Description
 Panacea is a general integral field unit (IFU) spectroscopic reduction tool tailored specifically for the Hobby Eberly Telescope (HET).
