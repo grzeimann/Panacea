@@ -72,11 +72,45 @@ To begin on TACC, point to the common python environment. In your home "~/.bashr
 export PATH=”/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bin:$PATH”
 ```
 
-#### Getting Panacea
-Then move to your work directory and clone Panacea: 
+#### Running Panacea in the command line
+To run in the command line, TACC wants users to create an interactive development environment which basically gets you a single CPU to yourself.  Just type the following:
 ```
-cdw
-git clone https://github.com/grzeimann/Panacea.git
+idev
+```
+
+Then you can check out the Panacea reduction options:
+```
+python /work/03730/gregz/maverick/Panacea/full_lrs2_reduction.py -h
+
+usage: full_lrs2_reduction.py [-h] [-d DATE] [-s SIDES] [-o OBJECT] [-uf]
+                              [-cf] [-cw CENTRAL_WAVE] [-wb WAVELENGTH_BIN]
+                              [-sx SOURCE_X] [-sy SOURCE_Y]
+                              [-ssd STANDARD_STAR_DATE]
+                              [-sso STANDARD_STAR_OBSID]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d DATE, --date DATE  Date for reduction
+  -s SIDES, --sides SIDES
+                        "uv,orange,red,farred"
+  -o OBJECT, --object OBJECT
+                        Object name, no input reduces all objects
+  -uf, --use_flat       Use FLT instead of Twi
+  -cf, --correct_ftf    Correct fiber to fiber
+  -cw CENTRAL_WAVE, --central_wave CENTRAL_WAVE
+                        Central Wavelength for collapsed Frame
+  -wb WAVELENGTH_BIN, --wavelength_bin WAVELENGTH_BIN
+                        Wavelength Bin to collapse over (+/- bin size)
+  -sx SOURCE_X, --source_x SOURCE_X
+                        Source's x position at the central_wave
+  -sy SOURCE_Y, --source_y SOURCE_Y
+                        Source's y position at the central_wave
+  -ssd STANDARD_STAR_DATE, --standard_star_date STANDARD_STAR_DATE
+                        Standard Star Date for response function, example:
+                        20181101
+  -sso STANDARD_STAR_OBSID, --standard_star_obsid STANDARD_STAR_OBSID
+                        Standard Star ObsID for response function, example:
+                        0000012
 ```
 
 
