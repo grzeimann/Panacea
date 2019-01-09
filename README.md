@@ -69,7 +69,7 @@ This section covers how to run your own reductions with modifications to achieve
 #### Setting up your Python environment
 To begin on TACC, point to the common python environment. In your home "~/.bashrc" file, add the following line at the bottom:
 ```
-export PATH=”/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bin:$PATH”
+export PATH=/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bin:$PATH
 ```
 
 #### Running Panacea in the command line
