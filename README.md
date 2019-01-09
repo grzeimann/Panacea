@@ -153,9 +153,15 @@ Submitted batch job 900134
 This means you successfully submitted your job to the supercomputer and the reductions are in progress.  You can see the log of the 
 reductions in the file "reductionlrs2daily.oXXXXXX" where the XXXXXX is the job number as shown above in the line 
 "Submitted batch job 900134".  The reductions should finish in 20 minutes or so depending on computer availability 
-and number of exposures of the target.
+and number of exposures of the target.  The simplest way to see the effectiveness of the reduction is look at the source extraction
+information in the log.
 
-You can always edit "rlrs2_daily" to run any four reduction call you may want and submit the job manually with:
+```
+cat reductionlrs2daily.oXXXXXX | grep source
+```
+
+If you would like more flexibility in your batch processing, you can always edit "rlrs2_daily" to run any four reduction 
+call you may want and submit the job manually with:
 ```
 sbatch rlrs2_daily.slurm
 ```
