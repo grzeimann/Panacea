@@ -1,4 +1,4 @@
-(NOTE: This is still in progress and will finish Jan/4/2019.  Beware of absolute fluxing issues.)
+(NOTE: This is still in progress and will finish Jan/14/2019.  Beware of absolute fluxing issues.)
 # Panacea v1.0 (Automatic LRS2 Pipeline)
 This package the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope. Every morning the pipeline reduces data taken the previous night.  Below we discuss the algorithms and products of Panacea, how to access your data reductions, and how to run the pipeline yourself with varying options. All of the data reduction products live on the Texas Advanced Computing Center (TACC).  We start with the instructions to log on to TACC, and where you reductions are placed.
 
