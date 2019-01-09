@@ -546,7 +546,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
                 masterbias, pos):
     files1 = sorted(glob.glob(sci_path.replace('LL', amps[0])))
     files2 = sorted(glob.glob(sci_path.replace('LL', amps[1])))
-
+    print(files1)
     xloc, yloc = (pos[:, 0], pos[:, 1])
     array_list, hdr_list = ([], [])
     for filename1, filename2 in zip(files1, files2):
@@ -1536,7 +1536,7 @@ def get_response(objname, commonwave, spec, specname):
 def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                   ifuslot, specname, standard=False, response=None):
     log.info('Extracting %s from %s' % (obj[0], bf))
-    scifiles = bf.replace('exp01', 'exp*')
+    scifiles = op.join(op.dirname(bf.replace('exp01', 'exp*')), '*%sLL*.fits' % ifuslot)
     images, rect, spec, cos, fl, Fi, E, header = extract_sci(scifiles, amps, calinfo[2],
                                               calinfo[1], calinfo[0], calinfo[3],
                                               calinfo[4], calinfo[5])
@@ -1553,7 +1553,6 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             np.interp(wave_0, T['wave'], T['x_0']))
     yoff = (np.interp(commonwave, T['wave'], T['y_0']) -
             np.interp(wave_0, T['wave'], T['y_0']))
-    print([len(xii) for xii in [images, rect, spec, cos, fl, Fi, E, header]])
     for im, r, s, c, fli, Fii, e, he in zip(images, rect, spec, cos,
                                             fl, Fi, E, header):
 
