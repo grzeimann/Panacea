@@ -546,7 +546,6 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
                 masterbias, pos):
     files1 = sorted(glob.glob(sci_path.replace('LL', amps[0])))
     files2 = sorted(glob.glob(sci_path.replace('LL', amps[1])))
-    print(files1)
     xloc, yloc = (pos[:, 0], pos[:, 1])
     array_list, hdr_list = ([], [])
     for filename1, filename2 in zip(files1, files2):
@@ -1584,7 +1583,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             pos[:, 5] = dec
         except:
             log.warning('Astrometry Issue')
-        fn = bf.replace('exp01', 'exp%02d' % cnt)
+        fn = op.join(op.dirname(bf.replace('exp01', 'exp%02d' % cnt)), '*%sLL*.fits' % ifuslot)
         fn = glob.glob(fn)
         mini = get_objects(fn, ['OBJECT', 'EXPTIME'], full=True)
         log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
