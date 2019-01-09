@@ -1767,6 +1767,7 @@ for info in listinfo:
     commonwave = np.linspace(lims[0], lims[1], 2064)
     specid, ifuslot, ifuid = multi.split('_')
     package = []
+    marc = []
     if args.use_flat:
         flt_check_path = op.join(baseraw, args.date,  'lrs2', 'lrs20000*',
                                  'exp01', 'lrs2', '2*_056LL_flt.fits')
@@ -1847,9 +1848,11 @@ for info in listinfo:
                  (ifuslot, amp))
         bigW = get_bigW(amp, wave, trace, masterbias)
         package.append([wave, trace, bigW, masterbias, amppos, dead])
+        marc.append([masterarc])
     # Normalize the two amps and correct the flat
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
+    masterarc = np.vstack(marc)
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
     log.info('Getting flat for ifuslot, %s, side, %s' % (ifuslot, specname))
     twiflat = get_twiflat_field(twibase, amps, calinfo[0], calinfo[1],
@@ -1892,14 +1895,16 @@ for info in listinfo:
         response = R[0].data[1]*1.
 
     f = []
-    names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias', 'xypos',
-             'dead', 'flatspec', 'bigF']
+    names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias',
+             'xypos', 'dead', 'flatspec', 'bigF']
     for i, cal in enumerate(calinfo):
         if i == 0:
             func = fits.PrimaryHDU
         else:
             func = fits.ImageHDU
         f.append(func(cal))
+    f.append(fits.ImageHDU(masterarc))
+    names.append('masterarc')
     if response is not None:
         f.append(fits.ImageHDU(np.array([commonwave, response], dtype=float)))
         names.append('response')
