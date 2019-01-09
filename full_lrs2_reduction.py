@@ -1169,7 +1169,7 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
                 xoff, yoff, wave_0, ispec):
     D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
     loc, dimage, derror = convolve_spatially(dx, dy, skysub, commonwave,
-                                             specn, error, ispec,
+                                             specn, error, ispec*1.,
                                              sig_wave=1.5)
     sn = dimage * 0.
     for i in np.arange(len(dimage)):
