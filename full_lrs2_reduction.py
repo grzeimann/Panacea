@@ -1128,6 +1128,18 @@ def mask_skylines_cosmics(wave, rect_spec, name, error):
     return mask
 
 
+def get_all_cosmics(x, y, ispec, error):
+    D = np.sqrt((x - x[:, np.newaxis])**2 + (y - y[:, np.newaxis])**2)
+    for i in np.arange(D.shape[0]):
+        D[i, :] = np.array(D[i, :] < 1.5, dtype=float)
+    ispec[error==0.] = 0.
+    T = ispec * 1.
+    for i in np.arange(ispec.shape[1]):
+        T[:, i] = np.dot(ispec[:, i], D)
+    YY = ispec / T
+    YY[np.isnan(YY)] = 0.
+    return YY > 0.2
+
 def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75,
                        sig_wave=1.5):
     W = build_weight_matrix(x, y, sig=sig_spatial)
@@ -1587,6 +1599,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         e /= mini[0][3]
         if args.correct_ftf:
             r, e = correct_ftf(r, e)
+        bad = get_all_cosmics(pos[:, 0], pos[:, 1], r*1., e * 1.)
+        e[bad] = 0.
         sky = sky_subtraction(r, e, pos[:, 0], pos[:, 1])
         sky[calinfo[-3][:, 1] == 1.] = 0.
         skysub = r - sky
@@ -1654,12 +1668,10 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         if response is not None:
             f5 = np.vstack([commonwave, skysubspec, skyspec,
                             errorskysubspec, errorskyspec,
-                            response, xoff, yoff])
+                            response])
         else:
             f5 = np.vstack([commonwave, skysubspec, skyspec,
                             errorskysubspec, errorskyspec,
-                            np.ones(commonwave.shape),
-                            np.ones(commonwave.shape),
                             np.ones(commonwave.shape)])
 
         f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
@@ -1702,7 +1714,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 continue
             f1.header[key] = he[key]
         names = ['wavelength', 'F_lambda', 'Sky_lambda', 'e_F_lambda',
-                 'e_Sky_lambda', 'response', 'x_adr', 'y_adr']
+                 'e_Sky_lambda', 'response']
         f1.header['DWAVE'] = commonwave[1] - commonwave[0]
         f1.header['WAVE0'] = commonwave[0]
         f1.header['WAVESOL'] = 'WAVE0 + DWAVE * linspace(0, NAXIS1)'
