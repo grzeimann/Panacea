@@ -112,15 +112,15 @@ for i in ['source_x', 'source_y']:
 args.sides = [x.replace(' ', '') for x in args.sides.split(',')]
 
 blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4645.], ['LL', 'LU'],
-             [4350., 4375.], ['hg_b', 'cd-a_b', 'fear_r', 'cd_b']],
+             [4350., 4375.], ['hg_b', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']],
             ['BR', 'orange', '503_056_7001',
              [4635., 6950.], ['RU', 'RL'], [6270., 6470.],
-             ['hg_b', 'cd-a_b', 'fear_r', 'cd_b']]]
+             ['hg_b', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']]]
 redinfo = [['RL', 'red', '502_066_7002', [6450., 8400.], ['LL', 'LU'],
-            [7225., 7425.], ['hg_r', 'cd-a_b', 'fear_r', 'cd_b']],
+            [7225., 7425.], ['hg_r', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']],
            ['RR', 'farred', '502_066_7002',
             [8275., 10500.], ['RU', 'RL'], [9280., 9530.],
-            ['hg_r', 'cd-a_b', 'fear_r', 'cd_b']]]
+            ['hg_r', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']]]
 
 listinfo = []
 for side in args.sides:
@@ -637,20 +637,15 @@ def get_masterbias(zro_path, amp):
 
 def get_masterarc(arc_path, amp, arc_names, masterbias, specname):
     files = glob.glob(arc_path.replace('LL', amp))
-    # if specname == 'farred':
-    #     ofiles = glob.glob(arc_path.replace('LL', amp).replace('cmp', 'sci'))
-    #     files = files + ofiles
     listarc, listarce = ([], [])
     for filename in files:
         f = fits.open(filename)
-        print(f[0].header['OBJECT'].lower(), arc_names)
         if f[0].header['OBJECT'].lower() in arc_names:
             a, e = base_reduction(filename)
             a[:] -= masterbias
             listarc.append(a)
             listarce.append(e)
     listarc, listarce = [np.array(x) for x in [listarc, listarce]]
-    # total_error = np.sqrt(np.sum(listarce**2, axis=0))
     return np.sum(listarc, axis=0)
 
 
