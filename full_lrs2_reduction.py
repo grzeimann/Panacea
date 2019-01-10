@@ -1832,6 +1832,7 @@ for info in listinfo:
         lamp_path, newdate = get_cal_path(lamp_path, args.date)
         if newdate != args.date:
             log.info('Found lamp files on %s and using them for %s' % (newdate, args.date))
+        print(lamp_path)
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
                                   specname)
         fits.PrimaryHDU(masterarc).writeto('wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
