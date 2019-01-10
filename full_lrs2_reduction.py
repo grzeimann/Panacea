@@ -643,9 +643,8 @@ def get_masterarc(arc_path, amp, arc_names, masterbias, specname):
     listarc, listarce = ([], [])
     for filename in files:
         f = fits.open(filename)
-        # scicond = ('_056' in f[0].header['OBJECT']) and ('sci' in filename)
+        print(f[0].header['OBJECT'].lower(), arc_names)
         if f[0].header['OBJECT'].lower() in arc_names:
-            print(filename)
             a, e = base_reduction(filename)
             a[:] -= masterbias
             listarc.append(a)
