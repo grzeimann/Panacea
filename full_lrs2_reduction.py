@@ -641,11 +641,11 @@ def get_masterarc(arc_path, amp, arc_names, masterbias, specname):
     #     ofiles = glob.glob(arc_path.replace('LL', amp).replace('cmp', 'sci'))
     #     files = files + ofiles
     listarc, listarce = ([], [])
-    print(files)
     for filename in files:
         f = fits.open(filename)
         # scicond = ('_056' in f[0].header['OBJECT']) and ('sci' in filename)
         if f[0].header['OBJECT'].lower() in arc_names:
+            print(filename)
             a, e = base_reduction(filename)
             a[:] -= masterbias
             listarc.append(a)
