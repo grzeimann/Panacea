@@ -4,6 +4,7 @@
 # Panacea v1.0 (Automatic LRS2 Pipeline)
 ## Table of Contents
 [Overview](https://github.com/grzeimann/Panacea/blob/master/README.md#Overview)
+
 [FAQ](https://github.com/grzeimann/Panacea/blob/master/README.md#frequently-asked-questions)
 
 ## Overview
