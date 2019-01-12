@@ -2,13 +2,17 @@
 
 
 # Panacea v1.0 (Automatic LRS2 Pipeline)
+## Table of Contents
+[Overview](https://github.com/grzeimann/Panacea/blob/master/README.md#Overview)
+[FAQ](https://github.com/grzeimann/Panacea/blob/master/README.md#frequently-asked-questions)
+
+## Overview
 This package is the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope. Every morning the pipeline reduces data taken 
 the previous night.  Below we discuss the algorithms and products of Panacea, how to access your data reductions, and how to run the 
 pipeline yourself with varying options. All of the data reduction products live on the Texas Advanced Computing Center (TACC).  We start 
 with the instructions to log on to TACC, and where you reductions are placed.
 
-# Table of Contents
-[FAQ](https://github.com/grzeimann/Panacea/blob/master/README.md#frequently-asked-questions)
+
 
 ## Working on TACC 
 The reductions are designed to be run on TACC where a copy of the raw data lives.  We will describe how to get started on TACC,  where the automatic reduction products live, how to run the code yourself, and the products that are produced.
