@@ -51,7 +51,7 @@ scp -r username@maverick.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRA
 There are three main data products: spectrum*.fits, multi*.fits, and *cube*.fits.  The first product, spectrum*.fits, 
 is produced for all exposures and all channels.  Within the fits image, lie rows corresponding to different attributes. 
 ```
-row1: wavelength
+row1: wavelength (air)
 row2: extracted object spectrum (f_lambda: ergs/s/cm^2/A)
 row3: extracted sky spectrum from same aperture and weighting as object (s_lambda: ergs/s/cm^2/A)
 row4: error for extracted object spectrum (e_f_lambda: ergs/s/cm^2/A)
