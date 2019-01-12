@@ -7,8 +7,6 @@
 
 [TACC](https://github.com/grzeimann/Panacea/blob/master/README.md#Working-on-TACC)
 
-[FAQ](https://github.com/grzeimann/Panacea/blob/master/README.md#frequently-asked-questions)
-
 [Data Access](https://github.com/grzeimann/Panacea/blob/master/README.md#How-to-get-your-data)
 
 [Data Products](https://github.com/grzeimann/Panacea/blob/master/README.md#Data-Products)
@@ -16,6 +14,9 @@
 [Running Panacea](https://github.com/grzeimann/Panacea/blob/master/README.md#Running-the-reductions-yourself)
 
 [Panacea: the code](https://github.com/grzeimann/Panacea/blob/master/README.md#Code-Description)
+
+[FAQ](https://github.com/grzeimann/Panacea/blob/master/README.md#frequently-asked-questions)
+
 
 ## Overview
 This package is the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope. Every morning the pipeline reduces data taken 
