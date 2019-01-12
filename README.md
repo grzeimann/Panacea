@@ -211,7 +211,7 @@ The quality of the bias subtraction is demonstrated in two ways: subtracting con
 
 ## Frequently Asked Questions
 
-Q: Are the wavelength units in Vacuum or Air?
+Q: Are the wavelength units in vacuum or air?
 
 A: Air
 
