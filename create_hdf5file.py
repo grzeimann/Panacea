@@ -182,13 +182,13 @@ def main(argv=None):
         cnt = 1
 
     shot = shottable.row
-    success = append_shot_to_table(shot, files[0], cnt, T)
+    success = append_shot_to_table(shot, files[0], cnt)
     if success:
         shottable.flush()
     for fn in files:
         args.log.info('Working on %s' % fn)
         fib = fibtable.row
-        success = append_fibers_to_table(fib, fn, cnt)
+        success = append_fibers_to_table(fib, fn, cnt, T)
         if success:
             fibtable.flush()
 
