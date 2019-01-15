@@ -24,11 +24,9 @@ def build_path(reduction_folder, instr, date, obsid, expn):
 
 
 def get_files(args):
-    args.log.info('Looking at %i days' % len(args.daterange))
-    for date in args.daterange:
-        datestr = '%04d%02d%02d' % (date.year, date.month, date.day)
-        files = glob.glob(op.join(args.rootdir, datestr, args.instrument, '*',
-                          'exp*', args.instrument, 'multi_*.fits'))
+    files = glob.glob(op.join(args.rootdir, args.date, 'virus',
+                              'virus%07d' % int(args.observation),
+                              'exp*', 'virus', 'multi_*.fits'))
     return files
 
 
