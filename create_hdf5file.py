@@ -94,9 +94,9 @@ def append_fibers_to_table(fib, fn, cnt, T):
     attr = ['spectrum', 'wavelength', 'fiber_to_fiber', 'sky_spectrum']
     mname = op.basename(fn)[:-5]
     expn = op.basename(op.dirname(op.dirname(fn)))
-    sel = np.where(T['col8'] == (mname + '_001.ixy'))
-    print(expn, mname, T['col10'][sel])
-    loc = sel[T['col10'][sel] == expn]
+    sel = T['col8'] == (mname + '_001.ixy')
+    sel1 = T['col10'] == expn
+    loc = np.where(sel * sel1)[0]
     for i in np.arange(n):
         fib['obsind'] = cnt
         fib['fibnum'] = i
