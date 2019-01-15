@@ -64,6 +64,7 @@ class VIRUSShot(tb.IsDescription):
     dewpoint = tb.Float32Col()
     pressure = tb.Float32Col()
     exptime = tb.Float32Col()
+    expnum = tb.Int32Col()
 
 
 def append_shot_to_table(shot, fn, cnt):
@@ -85,7 +86,7 @@ def append_shot_to_table(shot, fn, cnt):
     shot.append()
 
 
-def append_fibers_to_table(fib, fn, cnt):
+def append_fibers_to_table(fib, fn, cnt, T):
     F = fits.open(fn)
     if 'spectrum' in F:
         n = F['spectrum'].data.shape[0]
@@ -93,9 +94,20 @@ def append_fibers_to_table(fib, fn, cnt):
     else:
         return False
     attr = ['spectrum', 'wavelength', 'fiber_to_fiber', 'sky_spectrum']
+    mname = op.basename(fn)[:-5]
+    expn = op.basename(op.dirname(op.dirname(fn)))
+    sel = np.where(T['col8'] == (mname + '_001.ixy'))
+    loc = sel[T['col10'][sel] == expn]
     for i in np.arange(n):
         fib['obsind'] = cnt
         fib['fibnum'] = i
+        loci = loc + i
+        if len(loc):
+            fib['ra'] = T['col1'][loci]
+            fib['dec'] = T['col2'][loci]
+        else:
+            fib['ra'] = -999.0
+            fib['dec'] = -999.0
         if 'ifupos' in F:
             fib['x'] = F['ifupos'].data[i, 0]
             fib['y'] = F['ifupos'].data[i, 1]
@@ -111,6 +123,7 @@ def append_fibers_to_table(fib, fn, cnt):
         fib['ifuid'] = '%03d' % int(F[0].header['IFUID'])
         fib['specid'] = '%03d' % int(F[0].header['SPECID'])
         fib['amp'] = '%s' % F[0].header['amp'][:2]
+        fib['expnum'] = int(expn[-2:])
         fib.append()
     return True
 
@@ -171,7 +184,7 @@ def main(argv=None):
         cnt = 1
 
     shot = shottable.row
-    success = append_shot_to_table(shot, files[0], cnt)
+    success = append_shot_to_table(shot, files[0], cnt, T)
     if success:
         shottable.flush()
     for fn in files:
