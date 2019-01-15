@@ -45,6 +45,7 @@ class VIRUSFiber(tb.IsDescription):
     ifuid = tb.StringCol(3)
     specid = tb.StringCol(3)
     amp = tb.StringCol(2)
+    expnum = tb.Int32Col()
 
 
 class VIRUSShot(tb.IsDescription):
@@ -62,7 +63,6 @@ class VIRUSShot(tb.IsDescription):
     dewpoint = tb.Float32Col()
     pressure = tb.Float32Col()
     exptime = tb.Float32Col()
-    expnum = tb.Int32Col()
 
 
 def append_shot_to_table(shot, fn, cnt):
