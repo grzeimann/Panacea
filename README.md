@@ -1,6 +1,28 @@
-(NOTE: This is still in progress and will finish Jan/14/2019.  Beware of absolute fluxing issues.)
+(NOTE: This is still in progress and will finish Jan/31/2019.  Beware of absolute fluxing issues.)
+
+
 # Panacea v1.0 (Automatic LRS2 Pipeline)
-This package is the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope. Every morning the pipeline reduces data taken the previous night.  Below we discuss the algorithms and products of Panacea, how to access your data reductions, and how to run the pipeline yourself with varying options. All of the data reduction products live on the Texas Advanced Computing Center (TACC).  We start with the instructions to log on to TACC, and where you reductions are placed.
+## Table of Contents
+[Overview](https://github.com/grzeimann/Panacea/blob/master/README.md#Overview)
+
+[TACC](https://github.com/grzeimann/Panacea/blob/master/README.md#Working-on-TACC)
+
+[Data Access](https://github.com/grzeimann/Panacea/blob/master/README.md#How-to-get-your-data)
+
+[Data Products](https://github.com/grzeimann/Panacea/blob/master/README.md#Data-Products)
+
+[Running Panacea](https://github.com/grzeimann/Panacea/blob/master/README.md#Running-the-reductions-yourself)
+
+[Panacea: the code](https://github.com/grzeimann/Panacea/blob/master/README.md#Code-Description)
+
+[FAQ](https://github.com/grzeimann/Panacea/blob/master/README.md#frequently-asked-questions)
+
+
+## Overview
+This package is the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope. Every morning the pipeline reduces data taken 
+the previous night.  Below we discuss the algorithms and products of Panacea, how to access your data reductions, and how to run the 
+pipeline yourself with varying options. All of the data reduction products live on the Texas Advanced Computing Center (TACC).  We start 
+with the instructions to log on to TACC, and where you reductions are placed.
 
 ## Working on TACC 
 The reductions are designed to be run on TACC where a copy of the raw data lives.  We will describe how to get started on TACC,  where the automatic reduction products live, how to run the code yourself, and the products that are produced.
@@ -36,7 +58,7 @@ scp -r username@maverick.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRA
 There are three main data products: spectrum*.fits, multi*.fits, and *cube*.fits.  The first product, spectrum*.fits, 
 is produced for all exposures and all channels.  Within the fits image, lie rows corresponding to different attributes. 
 ```
-row1: wavelength
+row1: wavelength (air)
 row2: extracted object spectrum (f_lambda: ergs/s/cm^2/A)
 row3: extracted sky spectrum from same aperture and weighting as object (s_lambda: ergs/s/cm^2/A)
 row4: error for extracted object spectrum (e_f_lambda: ergs/s/cm^2/A)
@@ -63,16 +85,16 @@ Cosmics: identified cosmics in the central four pixels of the trace
 Unrectified Spectra: Unrectified, uncalibrated spectra for each fiber
 ```
 
-### Running the reductions yourself
+## Running the reductions yourself
 This section covers how to run your own reductions with modifications to achieve specific science objectives.
 
-#### Setting up your Python environment
+### Setting up your Python environment
 To begin on TACC, point to the common python environment. In your home "~/.bashrc" file, add the following line at the bottom:
 ```
 export PATH=/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bin:$PATH
 ```
 
-#### Running Panacea in the command line
+### Running Panacea in the command line
 To run in the command line, TACC wants users to create an interactive development environment which basically gets you a single CPU to 
 yourself.  Just type the following:
 ```
@@ -123,7 +145,7 @@ python /work/03730/gregz/maverick/Panacea/full_lrs2_reduction.py -d DATE -o TARG
 You can reduce any side you want, above I choose the "uv" channel, and the TARGET_NAME only has to be in the full name of the target
 (e.g., HD which is in HD_19445_056_E).
 
-#### Running Panacea in batch
+### Running Panacea in batch
 To run a reduction of a given target on a given date for all four channels simply:
 ```
 cdw
@@ -193,6 +215,12 @@ The quality of the bias subtraction is demonstrated in two ways: subtracting con
 <p align="center">
   <img src="images/trace_fibmodel.png" width="850"/>
 </p>
+
+## Frequently Asked Questions
+
+Q: Are the wavelength units in vacuum or air?
+
+A: Air
 
 ## Authors
 
