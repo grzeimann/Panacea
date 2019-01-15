@@ -13,7 +13,8 @@ import os.path as op
 import numpy as np
 
 from astropy.io import fits
-from input_utils import setup_parser, set_daterange, setup_logging
+from input_utils import setup_logging
+from astropy.table import Table
 
 
 def build_path(reduction_folder, instr, date, obsid, expn):
@@ -31,23 +32,25 @@ def get_files(args):
     return files
 
 
-class LRS2Fiber(tb.IsDescription):
+class VIRUSFiber(tb.IsDescription):
     obsind = tb.Int32Col()
     fibnum = tb.Int32Col()
     x = tb.Float32Col()
     y = tb.Float32Col()
-    spectrum = tb.Float32Col((2064,))
-    wavelength = tb.Float32Col((2064,))
-    fiber_to_fiber = tb.Float32Col((2064,))
-    sky_spectrum = tb.Float32Col((2064,))
-
-
-class LRS2Amp(tb.IsDescription):
-    obsind = tb.Int32Col()
+    ra = tb.Float32Col()
+    dec = tb.Float32Col()
+    spectrum = tb.Float32Col((1032,))
+    wavelength = tb.Float32Col((1032,))
+    fiber_to_fiber = tb.Float32Col((1032,))
+    sky_spectrum = tb.Float32Col((1032,))
     ifuslot = tb.StringCol(3)
-    ifuid = tb.StringCol(4)
+    ifuid = tb.StringCol(3)
     specid = tb.StringCol(3)
     amp = tb.StringCol(2)
+
+
+class VIRUSShot(tb.IsDescription):
+    obsind = tb.Int32Col()
     date = tb.StringCol(8)
     mjd = tb.Float32Col()
     obsid = tb.StringCol(7)
@@ -63,7 +66,27 @@ class LRS2Amp(tb.IsDescription):
     exptime = tb.Float32Col()
 
 
-def append_file_to_table(fib, amp, F, cnt):
+def append_shot_to_table(shot, fn, cnt):
+    F = fits.open(fn)
+    shot['obsind'] = cnt
+    shot['date'] = ''.join(F[0].header['DATE-OBS'].split('-'))
+    shot['time'] = ''.join(re.split('[:,.]', F[0].header['UT']))[:7]
+    shot['mjd'] = F[0].header['MJD']
+    shot['obsid'] = '%07d' % F[0].header['OBSID']
+    shot['ra'] = F[0].header['TRAJCRA'] * 15.
+    shot['dec'] = F[0].header['TRAJCDEC']
+    shot['pa'] = F[0].header['PARANGLE']
+    shot['ambtemp'] = F[0].header['AMBTEMP']
+    shot['humidity'] = F[0].header['HUMIDITY']
+    shot['dewpoint'] = F[0].header['DEWPOINT']
+    shot['pressure'] = F[0].header['BAROMPRE']
+    shot['exptime'] = F[0].header['EXPTIME']
+    shot['expn'] = int(op.basename(op.dirname(op.dirname(F.filename())))[-2:])
+    shot.append()
+
+
+def append_fibers_to_table(fib, fn, cnt):
+    F = fits.open(fn)
     if 'spectrum' in F:
         n = F['spectrum'].data.shape[0]
         d = F['spectrum'].data.shape[1]
@@ -84,37 +107,31 @@ def append_file_to_table(fib, amp, F, cnt):
                 fib[att] = F[att].data[i, :]
             else:
                 fib[att] = np.zeros((d,))
+        fib['ifuslot'] = '%03d' % int(F[0].header['IFUSLOT'])
+        fib['ifuid'] = '%03d' % int(F[0].header['IFUID'])
+        fib['specid'] = '%03d' % int(F[0].header['SPECID'])
+        fib['amp'] = '%s' % F[0].header['amp'][:2]
         fib.append()
-    amp['obsind'] = cnt
-    amp['ifuslot'] = '%03d' % int(F[0].header['IFUSLOT'])
-    amp['ifuid'] = '%03d' % int(F[0].header['IFUID'])
-    amp['specid'] = '%03d' % int(F[0].header['SPECID'])
-    amp['amp'] = '%s' % F[0].header['amp'][:2]
-    amp['date'] = ''.join(F[0].header['DATE-OBS'].split('-'))
-    amp['time'] = ''.join(re.split('[:,.]', F[0].header['UT']))[:7]
-    amp['mjd'] = F[0].header['MJD']
-    amp['obsid'] = '%07d' % F[0].header['OBSID']
-    amp['ra'] = F[0].header['TRAJCRA'] * 15.
-    amp['dec'] = F[0].header['TRAJCDEC']
-    amp['pa'] = F[0].header['PARANGLE']
-    amp['ambtemp'] = F[0].header['AMBTEMP']
-    amp['humidity'] = F[0].header['HUMIDITY']
-    amp['dewpoint'] = F[0].header['DEWPOINT']
-    amp['pressure'] = F[0].header['BAROMPRE']
-    amp['exptime'] = F[0].header['EXPTIME']
-    amp['expn'] = int(op.basename(op.dirname(op.dirname(F.filename())))[-2:])
-    amp.append()
     return True
 
 
 def main(argv=None):
     ''' Main Function '''
     # Call initial parser from init_utils
-    parent_parser = setup_parser()
-
-    # Use "--append" to append to an existing file "--outfilename"
     parser = ap.ArgumentParser(description="""Create HDF5 file.""",
-                               parents=[parent_parser, ])
+                               add_help=True)
+
+    parser.add_argument("-d", "--date",
+                        help='''Date, e.g., 20170321, YYYYMMDD''',
+                        type=str, default=None)
+
+    parser.add_argument("-o", "--observation",
+                        help='''Observation number, "00000007" or "7"''',
+                        type=str, default=None)
+
+    parser.add_argument("-r", "--rootdir",
+                        help='''Root Directory for Reductions''',
+                        type=str, default='/work/03946/hetdex/maverick')
 
     parser.add_argument('-o', '--outfilename', type=str,
                         help='''Relative or absolute path for output HDF5
@@ -127,8 +144,10 @@ def main(argv=None):
     args.log = setup_logging()
 
     # Get the daterange over which reduced files will be collected
-    args = set_daterange(args)
     files = get_files(args)
+    datestr = '%sv%03d' % (args.date, int(args.observation))
+    filepath = '/work/00115/gebhardt/maverick/detect/%s/dithall.use' % datestr
+    T = Table.read(filepath, format='ascii')
 
     # Creates a new file if the "--append" option is not set or the file
     # does not already exist.
@@ -139,35 +158,29 @@ def main(argv=None):
     else:
         fileh = tb.open_file(args.outfilename, 'w')
         group = fileh.create_group(fileh.root, 'Info',
-                                   'LRS2 Fiber Data and Metadata')
-        table1 = fileh.create_table(group, 'Fibers', LRS2Fiber, 'Fiber Info')
-        table2 = fileh.create_table(group, 'Amps', LRS2Amp, 'Amp Info')
+                                   'VIRUS Fiber Data and Metadata')
+        table1 = fileh.create_table(group, 'Fibers', VIRUSFiber, 'Fiber Info')
+        table2 = fileh.create_table(group, 'Shot', VIRUSShot, 'Shot Info')
 
     # Grab the fiber table and amplifier table for writing
     fibtable = fileh.root.Info.Fibers
-    amptable = fileh.root.Info.Amps
+    shottable = fileh.root.Info.Shot
     if does_exist:
-        cnt = amptable[-1]['obsind']
+        cnt = shottable[-1]['obsind']
     else:
         cnt = 1
 
+    shot = shottable.row
+    success = append_shot_to_table(shot, files[0], cnt)
+    if success:
+        shottable.flush()
     for fn in files:
         args.log.info('Working on %s' % fn)
-        F = fits.open(fn)
         fib = fibtable.row
-        amp = amptable.row
-        success = append_file_to_table(fib, amp, F, cnt)
+        success = append_fibers_to_table(fib, fn, cnt)
         if success:
-            cnt += 1
             fibtable.flush()
-            amptable.flush()
-        attr = ['spectrum', 'wavelength', 'fiber_to_fiber', 'sky_spectrum',
-                'ifupos']
-        for att in attr:
-            if att in F:
-                del F[att].data
 
-        F.close()
     fileh.close()
 
 
