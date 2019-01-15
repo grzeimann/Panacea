@@ -146,7 +146,7 @@ def main(argv=None):
                         help='''Root Directory for Reductions''',
                         type=str, default='/work/03946/hetdex/maverick')
 
-    parser.add_argument('-o', '--outfilename', type=str,
+    parser.add_argument('-of', '--outfilename', type=str,
                         help='''Relative or absolute path for output HDF5
                         file.''', default=None)
     parser.add_argument('-a', '--append',
