@@ -95,6 +95,7 @@ def append_fibers_to_table(fib, fn, cnt, T):
     mname = op.basename(fn)[:-5]
     expn = op.basename(op.dirname(op.dirname(fn)))
     sel = np.where(T['col8'] == (mname + '_001.ixy'))
+    print(expn, mname, T['col10'][sel])
     loc = sel[T['col10'][sel] == expn]
     for i in np.arange(n):
         fib['obsind'] = cnt
