@@ -10,7 +10,7 @@ import numpy as np
 import pyds9
 
 
-h5file = open_file('/Users/gregz/cure/panacea/test.h5', mode='r')
+h5file = open_file('/work/03730/gregz/maverick/test.h5', mode='r')
 table = h5file.root.Info.Fibers
 spec = np.array(table.cols.spectrum[:])
 ds9 = pyds9.DS9()
