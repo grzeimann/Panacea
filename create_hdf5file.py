@@ -45,6 +45,7 @@ class VIRUSFiber(tb.IsDescription):
     twi_spectrum = tb.Float32Col((1032,))
     trace = tb.Float32Col((1032,))
     sky_subtracted = tb.Float32Col((1032,))
+    error1Dfib = tb.Float32Col((1032,))
     ifuslot = tb.StringCol(3)
     ifuid = tb.StringCol(3)
     specid = tb.StringCol(3)
@@ -56,7 +57,7 @@ class VIRUSImage(tb.IsDescription):
     obsind = tb.Int32Col()
     image = tb.Float32Col((1032, 1032))
     error = tb.Float32Col((1032, 1032))
-    skysub = tb.Float32Col((1032, 1032))
+    clean_image = tb.Float32Col((1032, 1032))
     ifuslot = tb.StringCol(3)
     ifuid = tb.StringCol(3)
     specid = tb.StringCol(3)
@@ -105,10 +106,13 @@ def append_fibers_to_table(fib, im, fn, cnt, T):
     n = F['spectrum'].data.shape[0]
     d = F['spectrum'].data.shape[1]
     attr = ['spectrum', 'wavelength', 'fiber_to_fiber', 'twi_spectrum',
-            'sky_subtracted', 'trace']
-    imattr = ['image', 'error', 'skysub']
+            'sky_subtracted', 'trace', 'error1Dfib']
+    imattr = ['image', 'error', 'clean_image']
     for att in imattr:
-        im[att] = F[att].data * 1.
+        if att == 'image':
+            im[att] = F['PRIMARY'].data * 1.
+        else:
+            im[att] = F[att].data * 1.
     mname = op.basename(fn)[:-5]
     expn = op.basename(op.dirname(op.dirname(fn)))
     sel = T['col8'] == (mname + '_001.ixy')
