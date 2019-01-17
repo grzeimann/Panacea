@@ -33,14 +33,30 @@ def get_files(args):
 class VIRUSFiber(tb.IsDescription):
     obsind = tb.Int32Col()
     fibnum = tb.Int32Col()
-    x = tb.Float32Col()
-    y = tb.Float32Col()
+    ifux = tb.Float32Col()
+    ifuy = tb.Float32Col()
+    fpx = tb.Float32Col()
+    fpy = tb.Float32Col()
     ra = tb.Float32Col()
     dec = tb.Float32Col()
     spectrum = tb.Float32Col((1032,))
     wavelength = tb.Float32Col((1032,))
     fiber_to_fiber = tb.Float32Col((1032,))
-    sky_spectrum = tb.Float32Col((1032,))
+    twi_spectrum = tb.Float32Col((1032,))
+    trace = tb.Float32Col((1032,))
+    sky_subtracted = tb.Float32Col((1032,))
+    ifuslot = tb.StringCol(3)
+    ifuid = tb.StringCol(3)
+    specid = tb.StringCol(3)
+    amp = tb.StringCol(2)
+    expnum = tb.Int32Col()
+
+
+class VIRUSImage(tb.IsDescription):
+    obsind = tb.Int32Col()
+    image = tb.Float32Col((1032, 1032))
+    error = tb.Float32Col((1032, 1032))
+    skysub = tb.Float32Col((1032, 1032))
     ifuslot = tb.StringCol(3)
     ifuid = tb.StringCol(3)
     specid = tb.StringCol(3)
@@ -84,14 +100,15 @@ def append_shot_to_table(shot, fn, cnt):
     shot.append()
 
 
-def append_fibers_to_table(fib, fn, cnt, T):
+def append_fibers_to_table(fib, im, fn, cnt, T):
     F = fits.open(fn)
-    if 'spectrum' in F:
-        n = F['spectrum'].data.shape[0]
-        d = F['spectrum'].data.shape[1]
-    else:
-        return False
-    attr = ['spectrum', 'wavelength', 'fiber_to_fiber', 'sky_spectrum']
+    n = F['spectrum'].data.shape[0]
+    d = F['spectrum'].data.shape[1]
+    attr = ['spectrum', 'wavelength', 'fiber_to_fiber', 'twi_spectrum',
+            'sky_subtracted', 'trace']
+    imattr = ['image', 'error', 'skysub']
+    for att in imattr:
+        im[att] = F[att].data * 1.
     mname = op.basename(fn)[:-5]
     expn = op.basename(op.dirname(op.dirname(fn)))
     sel = T['col8'] == (mname + '_001.ixy')
@@ -104,15 +121,15 @@ def append_fibers_to_table(fib, fn, cnt, T):
         if len(loc):
             fib['ra'] = T['col1'][loci]
             fib['dec'] = T['col2'][loci]
+            fib['fpx'] = T['col6'][loci]
+            fib['fpy'] = T['col7'][loci]
         else:
             fib['ra'] = -999.0
             fib['dec'] = -999.0
-        if 'ifupos' in F:
-            fib['x'] = F['ifupos'].data[i, 0]
-            fib['y'] = F['ifupos'].data[i, 1]
-        else:
-            fib['x'] = -999.0
-            fib['y'] = -999.0
+            fib['fpx'] = -999.0
+            fib['fpy'] = -999.0
+        fib['ifux'] = F['ifupos'].data[i, 0]
+        fib['ifuy'] = F['ifupos'].data[i, 1]
         for att in attr:
             if att in F:
                 fib[att] = F[att].data[i, :]
@@ -124,6 +141,13 @@ def append_fibers_to_table(fib, fn, cnt, T):
         fib['amp'] = '%s' % F[0].header['amp'][:2]
         fib['expnum'] = int(expn[-2:])
         fib.append()
+    im['obsind'] = cnt
+    im['ifuslot'] = '%03d' % int(F[0].header['IFUSLOT'])
+    im['ifuid'] = '%03d' % int(F[0].header['IFUID'])
+    im['specid'] = '%03d' % int(F[0].header['SPECID'])
+    im['amp'] = '%s' % F[0].header['amp'][:2]
+    im['expnum'] = int(expn[-2:])
+    im.append()
     return True
 
 
@@ -173,10 +197,13 @@ def main(argv=None):
                                    'VIRUS Fiber Data and Metadata')
         table1 = fileh.create_table(group, 'Fibers', VIRUSFiber, 'Fiber Info')
         table2 = fileh.create_table(group, 'Shot', VIRUSShot, 'Shot Info')
+        table3 = fileh.create_table(group, 'Images', VIRUSImage, 'Image Info')
 
     # Grab the fiber table and amplifier table for writing
     fibtable = fileh.root.Info.Fibers
     shottable = fileh.root.Info.Shot
+    imagetable = fileh.root.Info.Images
+
     if does_exist:
         cnt = shottable[-1]['obsind']
     else:
@@ -189,9 +216,11 @@ def main(argv=None):
     for fn in files:
         args.log.info('Working on %s' % fn)
         fib = fibtable.row
-        success = append_fibers_to_table(fib, fn, cnt, T)
+        im = imagetable.row
+        success = append_fibers_to_table(fib, im, fn, cnt, T)
         if success:
             fibtable.flush()
+            imagetable.flush()
 
     fileh.close()
 
