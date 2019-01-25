@@ -1735,6 +1735,7 @@ def get_cal_path(pathname, date):
     cnt = 0
     while len(glob.glob(pathname)) == 0:
         datec_ = datetime(int(daten[:4]), int(daten[4:6]), int(daten[6:]))
+        datec = '%04d%02d%02d' % (datec_.year, datec_.month, datec_.day)
         daten_ = datec_ - timedelta(days=1)
         daten = '%04d%02d%02d' % (daten_.year, daten_.month, daten_.day)
         pathname = pathname.replace(datec, daten)
