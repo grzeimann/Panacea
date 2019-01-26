@@ -93,6 +93,10 @@ parser.add_argument("-sso", "--standard_star_obsid",
                     example: 0000012''',
                     type=str, default=None)
 
+parser.add_argument("-rac", "--reduce_arc_lamps",
+                    help='''Will only reduce arc lamps if set''',
+                    action="count", default=0)
+
 args = parser.parse_args(args=None)
 
 if args.standard_star_obsid is not None:
@@ -1843,7 +1847,7 @@ for info in listinfo:
                  (ifuslot, amp))
         bigW = get_bigW(amp, wave, trace, masterbias)
         package.append([wave, trace, bigW, masterbias, amppos, dead])
-        marc.append([masterarc])
+        marc.append(masterarc)
     # Normalize the two amps and correct the flat
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
@@ -1854,7 +1858,10 @@ for info in listinfo:
                                 calinfo[2], commonwave, calinfo[3], specname)
     calinfo.insert(2, twiflat)
     flatspec = get_spectra(calinfo[2], calinfo[1])
-    calinfo.append(flatspec)
+    masterarcerror = np.sqrt(3.**2 + np.where(masterarc > 0., masterarc, 0.))
+    arcspec, ae, Cc, Yyy, Fff = weighted_extraction(masterarc, masterarcerror,
+                                                    calinfo[2], calinfo[1])
+    calinfo.append(arcspec)
     bigF = get_bigF(calinfo[1], calinfo[2])
     calinfo.append(bigF)
     #####################
