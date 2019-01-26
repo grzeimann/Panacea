@@ -434,14 +434,14 @@ def find_cosmics(Y, E, trace, thresh=8., ran=0):
     return C
 
 
-def weighted_extraction(image, error, flat, trace):
+def weighted_extraction(image, error, flat, trace, cthresh=8.):
     E = safe_division(error, flat)
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
     nY = Y * 1.
     C = np.array(Y * 0., dtype=bool)
     for i in np.arange(1):
-        cosmics = find_cosmics(nY, E, trace, ran=1)
+        cosmics = find_cosmics(nY, E, trace, thresh=cthresh, ran=1)
         C = C + cosmics
 
     x = np.arange(trace.shape[1])
@@ -1860,8 +1860,14 @@ for info in listinfo:
     flatspec = get_spectra(calinfo[2], calinfo[1])
     masterarcerror = np.sqrt(3.**2 + np.where(masterarc > 0., masterarc, 0.))
     arcspec, ae, Cc, Yyy, Fff = weighted_extraction(masterarc, masterarcerror,
-                                                    calinfo[2], calinfo[1])
-    calinfo.append(arcspec)
+                                                    calinfo[2], calinfo[1],
+                                                    cthresh=500)
+    sP = np.zeros((calinfo[0].shape[0], len(commonwave)))
+    for fiber in np.arange(calinfo[0].shape[0])):
+        I = interp1d(calinfo[0][fiber], arspec[fiber],
+                             kind='linear', fill_value='extrapolate')
+        sP[fiber] = I(commonwave)
+    calinfo.append(sP)
     bigF = get_bigF(calinfo[1], calinfo[2])
     calinfo.append(bigF)
     #####################
@@ -1898,7 +1904,7 @@ for info in listinfo:
 
     f = []
     names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias',
-             'xypos', 'dead', 'flatspec', 'bigF']
+             'xypos', 'dead', 'arcspec', 'bigF']
     for i, cal in enumerate(calinfo):
         if i == 0:
             func = fits.PrimaryHDU
