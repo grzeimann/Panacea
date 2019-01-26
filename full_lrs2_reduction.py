@@ -1863,8 +1863,8 @@ for info in listinfo:
                                                     calinfo[2], calinfo[1],
                                                     cthresh=500)
     sP = np.zeros((calinfo[0].shape[0], len(commonwave)))
-    for fiber in np.arange(calinfo[0].shape[0])):
-        I = interp1d(calinfo[0][fiber], arspec[fiber],
+    for fiber in np.arange(calinfo[0].shape[0]):
+        I = interp1d(calinfo[0][fiber], arcspec[fiber],
                              kind='linear', fill_value='extrapolate')
         sP[fiber] = I(commonwave)
     calinfo.append(sP)
