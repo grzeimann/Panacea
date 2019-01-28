@@ -786,14 +786,17 @@ def count_matches(lines, loc, fib, cnt=5):
 
 def get_wavelength_from_arc(image, trace, lines, side, amp):
     spectrum = get_spectra(image, trace)
+    fib = np.argmax(np.median(spectrum, axis=1))
     if side == 'uv':
         thresh = 3.  # 5
         lines = lines[lines['col3'] > 0.0005]   
         spectrum2 = spectrum*0.
+        fib = trace.shape[0] / 2
         for i in np.arange(trace.shape[0]):
             ll = int(np.max([0, i-4]))
             hl = int(np.min([trace.shape[0], i+5]))
             spectrum2[i] = np.median(spectrum[ll:hl], axis=0)
+        spectrum2[fib] = np.median(spectrum[fib-10: fib+10], axis=0)
         spectrum = spectrum2 * 1.
     if side == 'orange':
         thresh = 3.  # 8
@@ -802,7 +805,6 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
     if side == 'farred':
         thresh = 3.  # 20
 
-    fib = np.argmax(np.median(spectrum, axis=1))
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
     x = np.arange(trace.shape[1])
@@ -851,10 +853,18 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
             s[l] = MR[ind1]
             pp[l] = dist[ind1]
     inds = np.where(found_lines[fib] > 0.)[0]
+    delv = []
+    for ind in inds:
+        sel = np.where(found_lines[fib, ind] ==
+                       np.delete(found_lines[fib, inds]))[0]
+        if len(sel)>1:
+            if np.any(pp[ind] > pp[inds[sel]]):
+                delv.append(ind)
+    inds = np.delete(inds, delv)
     for ind in inds:
         print(lines['col1'][ind], lines['col2'][ind], found_lines[fib][ind],
               lines['col3'][ind], s[ind], pp[ind])
-
+            
     for i, line in enumerate(lines):
         if found_lines[fib, i] == 0.:
             continue
