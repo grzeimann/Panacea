@@ -836,7 +836,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
         ER = lines['col3'][l] / lines['col3'][ls[0]]
         MR = pr[fib] / pr[fib][ind]
         EE = MR * np.sqrt(1./ph[fib]**2 + 1./ph[fib][ind])
-        EE = np.max([EE, .1 * MR, 0.001], axis=0)
+        EE = np.max([EE, .1 * MR, 0.001 * np.ones(MR.shape)], axis=0)
         dist = v/2. + np.abs(ER - MR) / EE
         if np.min(dist) < 10.:
             ind1 = np.argmin(dist)
