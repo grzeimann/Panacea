@@ -659,7 +659,8 @@ def get_mastertwi(twi_path, amp, masterbias):
     for filename in files:
         a, e = base_reduction(filename)
         a[:] -= masterbias
-        listtwi.append(a)
+        if np.median(a)>10.:
+            listtwi.append(a)
     twi_array = np.array(listtwi, dtype=float)
     norm = np.median(twi_array, axis=(1, 2))[:, np.newaxis, np.newaxis]
     return np.median(twi_array / norm, axis=0)
@@ -786,6 +787,7 @@ def count_matches(lines, loc, fib, cnt=5):
 def get_wavelength_from_arc(image, trace, lines, side, amp):
     if side == 'uv':
         thresh = 3.  # 5
+        lines = lines[lines['col3']>0.005]
     if side == 'orange':
         thresh = 3.  # 8
     if side == 'red':
