@@ -792,8 +792,8 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
         spectrum2 = spectrum*0.
         fib = trace.shape[0] / 2
         for i in np.arange(trace.shape[0]):
-            ll = int(np.max([0, i-4]))
-            hl = int(np.min([trace.shape[0], i+5]))
+            ll = int(np.max([0, i-10]))
+            hl = int(np.min([trace.shape[0], i+11]))
             spectrum2[i] = np.median(spectrum[ll:hl], axis=0)
             G = Gaussian1DKernel(1.5)
             spectrum2[i] = convolve(spectrum2[i], G)
