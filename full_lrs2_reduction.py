@@ -859,11 +859,11 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
         if len(sel)>1:
             if np.any(pp[ind] > pp[inds[sel]]):
                 delv.append(ind)
+                found_lines[fib, ind] = 0.
     inds = np.delete(inds, delv)
     for ind in inds:
         print(lines['col1'][ind], lines['col2'][ind], found_lines[fib][ind],
-              lines['col3'][ind], s[ind], pp[ind])
-            
+              lines['col3'][ind], s[ind], pp[ind])    
     for i, line in enumerate(lines):
         if found_lines[fib, i] == 0.:
             continue
