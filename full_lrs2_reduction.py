@@ -905,6 +905,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
             found_lines[i] = (found_lines1[i] +
                               np.median(found_lines[i][sel[i]] -
                                         found_lines1[i][sel[i]]))
+            found_lines[i][found_lines1[i] == 0.] = 0.
     else:
         thresh = 3.
         found_lines = find_lines(spectrum, trace, lines, thresh, fib)
