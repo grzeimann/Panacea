@@ -786,14 +786,15 @@ def count_matches(lines, loc, fib, cnt=5):
 
 def get_wavelength_from_arc(image, trace, lines, side, amp):
     spectrum = get_spectra(image, trace)
-    fib = np.argmax(np.median(spectrum, axis=1))
     if side == 'uv':
         thresh = 3.  # 5
-        lines = lines[lines['col3'] > 0.002]        
+        lines = lines[lines['col3'] > 0.0005]   
+        spectrum2 = spectrum*0.
         for i in np.arange(trace.shape[0]):
             ll = int(np.max([0, i-4]))
             hl = int(np.min([trace.shape[0], i+5]))
-            spectrum[i] = np.median(spectrum[ll:hl], axis=0)
+            spectrum2[i] = np.median(spectrum[ll:hl], axis=0)
+        spectrum = spectrum2 * 1.
     if side == 'orange':
         thresh = 3.  # 8
     if side == 'red':
@@ -801,6 +802,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
     if side == 'farred':
         thresh = 3.  # 20
 
+    fib = np.argmax(np.median(spectrum, axis=1))
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
     x = np.arange(trace.shape[1])
