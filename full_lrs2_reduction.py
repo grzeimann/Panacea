@@ -1835,12 +1835,13 @@ for info in listinfo:
         if newdate != args.date:
             log.info('Found trace files on %s and using them for %s' % (newdate, args.date))
         masterflt = get_mastertwi(twibase, amp, masterbias)
-
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         trace, dead = get_trace(masterflt, specid, ifuslot, ifuid, amp,
                                 twi_date)
         #fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
+        spectrum = get_spectra(masterflt, trace)
+        fits.PrimaryHDU(spectrum).writeto('for_greg_%s_%s_twi.fits' % (side, amp), overwrite=True)
 
         ##########################
         # MASTERARC [WAVELENGTH] #
