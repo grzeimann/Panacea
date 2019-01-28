@@ -803,7 +803,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
         thresh = 3.  # 50
     if side == 'farred':
         thresh = 3.  # 20
-
+    fits.PrimaryHDU(spectrum).writeto('for_greg_%s_%s.fits' % (side, amp), overwrite=True)
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
     x = np.arange(trace.shape[1])
