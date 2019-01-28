@@ -830,6 +830,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
     y = lines['col2'] + off
     s = found_lines[fib] * 0.
     pp = s * 0.
+    pph = s * 0.
     s[ls[0]] = 1.
     pp[ls[0]] = 0.
     for l in ls[1:]:
@@ -853,6 +854,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
                          diff[0] + lines['col2'])
             s[l] = MR[ind1]
             pp[l] = dist[ind1]
+            pph[l] = ph[fib][ind1]
     inds = np.where(found_lines[fib] > 0.)[0]
     delv = []
     for ind in inds:
@@ -864,7 +866,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
     inds = np.delete(inds, delv)
     for ind in inds:
         print(lines['col1'][ind], lines['col2'][ind], found_lines[fib][ind],
-              lines['col3'][ind], s[ind], pp[ind], ph[fib][ind])    
+              lines['col3'][ind], s[ind], pp[ind], pph[ind])    
     for i, line in enumerate(lines):
         if found_lines[fib, i] == 0.:
             continue
