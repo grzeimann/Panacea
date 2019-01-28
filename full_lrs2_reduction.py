@@ -797,7 +797,6 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
             spectrum2[i] = np.median(spectrum[ll:hl], axis=0)
             G = Gaussian1DKernel(1.5)
             spectrum2[i] = convolve(spectrum2[i], G)
-        spectrum2[fib] = np.median(spectrum[fib-10: fib+10], axis=0)
         spectrum = spectrum2 * 1.
     if side == 'orange':
         thresh = 3.  # 8
