@@ -784,30 +784,9 @@ def count_matches(lines, loc, fib, cnt=5):
     return np.unravel_index(np.argmax(M), M.shape)
 
 
-def get_wavelength_from_arc(image, trace, lines, side, amp):
-    spectrum = get_spectra(image, trace)
-    fib = np.argmax(np.median(spectrum, axis=1))
-    if side == 'uv':
-        thresh = 5.  # 5
-        spectrum2 = spectrum*0.
-        fib = trace.shape[0] / 2
-        for i in np.arange(trace.shape[0]):
-            ll = int(np.max([0, i-4]))
-            hl = int(np.min([trace.shape[0], i+5]))
-            spectrum2[i] = np.median(spectrum[ll:hl], axis=0)
-            G = Gaussian1DKernel(1.5)
-            spectrum2[i] = convolve(spectrum2[i], G)
-        spectrum = spectrum2 * 1.
-    if side == 'orange':
-        thresh = 3.  # 8
-    if side == 'red':
-        thresh = 3.  # 50
-    if side == 'farred':
-        thresh = 3.  # 20
-    fits.PrimaryHDU(spectrum).writeto('for_greg_%s_%s.fits' % (side, amp), overwrite=True)
+def find_lines(spectrum, trace, lines, thresh, fib):
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
-    x = np.arange(trace.shape[1])
     loc = []
     ph, pr = ([], [])
     for i, spec in enumerate(spectrum):
@@ -891,7 +870,48 @@ def get_wavelength_from_arc(image, trace, lines, side, amp):
             m = np.abs(loc[j] - v)
             if np.min(m) < 2.:
                 found_lines[j, i] = loc[j][np.argmin(m)]
-    fits.PrimaryHDU(found_lines).writeto('fl_%s_%s.fits' % (side, amp), overwrite=True)
+    return found_lines
+
+
+def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
+    spectrum = get_spectra(image, trace)
+    fib = np.argmax(np.median(spectrum, axis=1))
+    if side == 'uv':
+        thresh = 5.  # 5
+        spectrum2 = spectrum*0.
+        fib = trace.shape[0] / 2
+        for i in np.arange(trace.shape[0]):
+            ll = int(np.max([0, i-4]))
+            hl = int(np.min([trace.shape[0], i+5]))
+            spectrum2[i] = np.median(spectrum[ll:hl], axis=0)
+            G = Gaussian1DKernel(1.5)
+            spectrum2[i] = convolve(spectrum2[i], G)
+        spectrum = spectrum2 * 1.
+        spectrum1 = get_spectra(otherimage, trace)
+        spectrum2 = spectrum1*0.
+        fib = trace.shape[0] / 2
+        for i in np.arange(trace.shape[0]):
+            ll = int(np.max([0, i-4]))
+            hl = int(np.min([trace.shape[0], i+5]))
+            spectrum2[i] = np.median(spectrum1[ll:hl], axis=0)
+            G = Gaussian1DKernel(1.5)
+            spectrum2[i] = convolve(spectrum2[i], G)
+        spectrum1 = spectrum2 * 1.
+        fib = trace.shape[0] / 2
+        found_lines = find_lines(spectrum, trace, lines, thresh, fib)
+        found_lines1 = find_lines(spectrum1, trace, lines, thresh, fib)
+        sel = (found_lines > 0.) * (found_lines1 > 0.)
+        for i in np.arange(found_lines.shape[0]):
+            found_lines[i] = (found_lines1[i] +
+                              np.median(found_lines[i][sel[i]] -
+                                        found_lines1[i][sel[i]]))
+    else:
+        thresh = 3.
+        found_lines = find_lines(spectrum, trace, lines, thresh, fib)
+
+    x = np.arange(trace.shape[1])
+
+    #fits.PrimaryHDU(found_lines).writeto('fl_%s_%s.fits' % (side, amp), overwrite=True)
     for i, line in enumerate(lines):
         if np.sum(found_lines[:, i]) < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
@@ -1840,8 +1860,6 @@ for info in listinfo:
         trace, dead = get_trace(masterflt, specid, ifuslot, ifuid, amp,
                                 twi_date)
         #fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
-        spectrum = get_spectra(masterflt, trace)
-        fits.PrimaryHDU(spectrum).writeto('for_greg_%s_%s_twi.fits' % (side, amp), overwrite=True)
 
         ##########################
         # MASTERARC [WAVELENGTH] #
@@ -1855,10 +1873,13 @@ for info in listinfo:
             log.info('Found lamp files on %s and using them for %s' % (newdate, args.date))
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
                                   specname)
+        def_arc = get_masterarc(lamp_path.replace(newdate, '20181201'), amp,
+                                arc_names, masterbias, specname)
         #fits.PrimaryHDU(masterarc).writeto('wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname, amp)
+        wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname,
+                                       amp, otherimage=def_arc)
         #fits.PrimaryHDU(wave).writeto('test_wave.fits', overwrite=True)
 
         #################################
