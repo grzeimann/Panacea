@@ -663,7 +663,6 @@ def get_mastertwi(twi_path, amp, masterbias):
             listtwi.append(a)
     twi_array = np.array(listtwi, dtype=float)
     norm = np.median(twi_array, axis=(1, 2))[:, np.newaxis, np.newaxis]
-    print(twi_array.shape, norm)
     return np.median(twi_array / norm, axis=0)
 
 
@@ -1861,7 +1860,7 @@ for info in listinfo:
                  (ifuslot, amp))
         trace, dead = get_trace(masterflt, specid, ifuslot, ifuid, amp,
                                 twi_date)
-        #fits.PrimaryHDU(trace).writeto('test_trace.fits', overwrite=True)
+        fits.PrimaryHDU(masterflt).writeto('test_trace.fits', overwrite=True)
 
         ##########################
         # MASTERARC [WAVELENGTH] #
