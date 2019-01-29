@@ -259,8 +259,8 @@ def get_powerlaw(image, trace, spec):
     inds = np.setdiff1d(np.arange(image.shape[0] * image.shape[1]), inds)
     y, x = np.unravel_index(inds, image.shape)
     xlim = [0, image.shape[1]]
-    xy = np.median(spec, axis=1)
-    bottom = np.percentile(xy, 15)
+    xy = np.nanmedian(spec, axis=1)
+    bottom = np.abs(np.nanpercentile(xy, 15))
     sel = np.where(xy > (15. * bottom))[0]
     log.info('Number of fibers that need powerlaw modeling: %i' % len(sel))
     xp = np.hstack([np.arange(xlim[0], xlim[1], 128), image.shape[1]-1])
@@ -1860,7 +1860,6 @@ for info in listinfo:
                  (ifuslot, amp))
         trace, dead = get_trace(masterflt, specid, ifuslot, ifuid, amp,
                                 twi_date)
-        fits.PrimaryHDU(masterflt).writeto('test_trace.fits', overwrite=True)
 
         ##########################
         # MASTERARC [WAVELENGTH] #
