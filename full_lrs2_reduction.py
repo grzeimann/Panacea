@@ -663,6 +663,7 @@ def get_mastertwi(twi_path, amp, masterbias):
             listtwi.append(a)
     twi_array = np.array(listtwi, dtype=float)
     norm = np.median(twi_array, axis=(1, 2))[:, np.newaxis, np.newaxis]
+    print(twi_array.shape, norm)
     return np.median(twi_array / norm, axis=0)
 
 
