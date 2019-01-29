@@ -659,7 +659,7 @@ def get_mastertwi(twi_path, amp, masterbias):
     for filename in files:
         a, e = base_reduction(filename)
         a[:] -= masterbias
-        if np.median(a)>10.:
+        if np.percentile(a, 75) > 100.:
             listtwi.append(a)
     twi_array = np.array(listtwi, dtype=float)
     norm = np.median(twi_array, axis=(1, 2))[:, np.newaxis, np.newaxis]
