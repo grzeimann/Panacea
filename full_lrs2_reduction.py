@@ -93,9 +93,13 @@ parser.add_argument("-sso", "--standard_star_obsid",
                     example: 0000012''',
                     type=str, default=None)
 
-parser.add_argument("-rac", "--reduce_arc_lamps",
-                    help='''Will only reduce arc lamps if set''',
-                    action="count", default=0)
+parser.add_argument("-ad", "--arc_date",
+                    help='''Arc Date for reduction''',
+                    type=str, default=None)
+
+parser.add_argument("-td", "--twi_date",
+                    help='''Twilight Date for reduction''',
+                    type=str, default=None)
 
 args = parser.parse_args(args=None)
 
@@ -1627,8 +1631,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         fn = glob.glob(fn)
         mini = get_objects(fn, ['OBJECT', 'EXPTIME'], full=True)
         log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
-        r[calinfo[-3][:, 1] == 1.] = 0.
-        e[calinfo[-3][:, 1] == 1.] = 0.
+        r[calinfo[6][:, 1] == 1.] = 0.
+        e[calinfo[6][:, 1] == 1.] = 0.
 
         r /= mini[0][1]
         r /= mini[0][2]
@@ -1641,7 +1645,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         bad = get_all_cosmics(pos[:, 0], pos[:, 1], r*1., e * 1.)
         e[bad] = 0.
         sky = sky_subtraction(r, e, pos[:, 0], pos[:, 1])
-        sky[calinfo[-3][:, 1] == 1.] = 0.
+        sky[calinfo[6][:, 1] == 1.] = 0.
         skysub = r - sky
         if response is not None:
             r *= response
@@ -1792,6 +1796,12 @@ def get_cal_path(pathname, date):
     return pathname, daten
 
 
+def get_previous_night(daten):    
+    datec_ = datetime(int(daten[:4]), int(daten[4:6]), int(daten[6:]))
+    daten_ = datec_ - timedelta(days=1)
+    daten = '%04d%02d%02d' % (daten_.year, daten_.month, daten_.day)
+    return daten
+
 # LRS2-R
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
@@ -1807,7 +1817,7 @@ for info in listinfo:
     commonwave = np.linspace(lims[0], lims[1], 2064)
     specid, ifuslot, ifuid = multi.split('_')
     package = []
-    marc = []
+    marc, mtwi = ([], [])
     if args.use_flat:
         flt_check_path = op.join(baseraw, args.date,  'lrs2', 'lrs20000*',
                                  'exp01', 'lrs2', '2*_056LL_flt.fits')
@@ -1851,15 +1861,29 @@ for info in listinfo:
         #####################
         log.info('Getting MasterFlat for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
+
         twibase, newdate = get_cal_path(twibase, args.date)
 
         if newdate != args.date:
             log.info('Found trace files on %s and using them for %s' % (newdate, args.date))
-        masterflt = get_mastertwi(twibase, amp, masterbias)
+        
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
-        trace, dead = get_trace(masterflt, specid, ifuslot, ifuid, amp,
-                                twi_date)
+        failed = True
+        cnt = 0
+        while failed and (cnt < 30.):
+            try:
+                masterflt = get_mastertwi(twibase, amp, masterbias)
+                trace, dead = get_trace(masterflt, specid, ifuslot, ifuid, amp,
+                                        newdate)
+                failed = False
+            except:
+                datetry = get_previous_night(newdate)
+                log.warning('Trace failed for night: %s' % newdate)
+                twibase.replace(newdate, datetry)
+                newdate = datetry
+                cnt += 1
+        
 
         ##########################
         # MASTERARC [WAVELENGTH] #
@@ -1890,26 +1914,28 @@ for info in listinfo:
         bigW = get_bigW(amp, wave, trace, masterbias)
         package.append([wave, trace, bigW, masterbias, amppos, dead])
         marc.append(masterarc)
+        mtwi.append(masterflt)
     # Normalize the two amps and correct the flat
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
-    masterarc = np.vstack(marc)
+    masterarc, masterflt = [np.vstack(x) for x in zip(marc, mtwi)]
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
     log.info('Getting flat for ifuslot, %s, side, %s' % (ifuslot, specname))
     twiflat = get_twiflat_field(twibase, amps, calinfo[0], calinfo[1],
                                 calinfo[2], commonwave, calinfo[3], specname)
     calinfo.insert(2, twiflat)
     flatspec = get_spectra(calinfo[2], calinfo[1])
-    masterarcerror = np.sqrt(3.**2 + np.where(masterarc > 0., masterarc, 0.))
-    arcspec, ae, Cc, Yyy, Fff = weighted_extraction(masterarc, masterarcerror,
-                                                    calinfo[2], calinfo[1],
-                                                    cthresh=500)
-    sP = np.zeros((calinfo[0].shape[0], len(commonwave)))
-    for fiber in np.arange(calinfo[0].shape[0]):
-        I = interp1d(calinfo[0][fiber], arcspec[fiber],
-                             kind='linear', fill_value='extrapolate')
-        sP[fiber] = I(commonwave)
-    calinfo.append(sP)
+    for mfile in [masterarc, masterflt]:
+        masterarcerror = np.sqrt(3.**2 + np.where(mfile > 0., file, 0.))
+        arcspec, ae, Cc, Yyy, Fff = weighted_extraction(mfile, masterarcerror,
+                                                        calinfo[2], calinfo[1],
+                                                        cthresh=500)
+        sP = np.zeros((calinfo[0].shape[0], len(commonwave)))
+        for fiber in np.arange(calinfo[0].shape[0]):
+            I = interp1d(calinfo[0][fiber], arcspec[fiber],
+                                 kind='linear', fill_value='extrapolate')
+            sP[fiber] = I(commonwave)
+        calinfo.append(sP)
     bigF = get_bigF(calinfo[1], calinfo[2])
     calinfo.append(bigF)
     #####################
@@ -1946,7 +1972,7 @@ for info in listinfo:
 
     f = []
     names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias',
-             'xypos', 'dead', 'arcspec', 'bigF']
+             'xypos', 'dead', 'arcspec', 'fltspec', 'bigF']
     for i, cal in enumerate(calinfo):
         if i == 0:
             func = fits.PrimaryHDU
