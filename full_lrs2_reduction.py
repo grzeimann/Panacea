@@ -1926,7 +1926,7 @@ for info in listinfo:
     calinfo.insert(2, twiflat)
     flatspec = get_spectra(calinfo[2], calinfo[1])
     for mfile in [masterarc, masterflt]:
-        masterarcerror = np.sqrt(3.**2 + np.where(mfile > 0., file, 0.))
+        masterarcerror = np.sqrt(3.**2 + np.where(mfile > 0., mfile, 0.))
         arcspec, ae, Cc, Yyy, Fff = weighted_extraction(mfile, masterarcerror,
                                                         calinfo[2], calinfo[1],
                                                         cthresh=500)
