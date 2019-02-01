@@ -1880,7 +1880,7 @@ for info in listinfo:
             except:
                 datetry = get_previous_night(newdate)
                 log.warning('Trace failed for night: %s' % newdate)
-                twibase.replace(newdate, datetry)
+                twibase = twibase.replace(newdate, datetry)
                 newdate = datetry
                 cnt += 1
         
