@@ -1918,7 +1918,7 @@ for info in listinfo:
     # Normalize the two amps and correct the flat
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
-    masterarc, masterflt = [np.vstack(x) for x in zip(marc, mtwi)]
+    masterarc, masterflt = [np.vstack(x) for x in [marc, mtwi]]
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
     log.info('Getting flat for ifuslot, %s, side, %s' % (ifuslot, specname))
     twiflat = get_twiflat_field(twibase, amps, calinfo[0], calinfo[1],
