@@ -48,26 +48,21 @@ fn = []
 for date in dates:
     fns = glob.glob('/work/03946/hetdex/maverick/LRS2/CALS/cal_%s_%s.fits' %
                     (date, side))
-    for f in fns:
-        fn.append(f)
+    fn.append([fns[0], date])
 
 source = []
 for f in fn:
-    F = fits.open(f)
-    try:
-        wavelength = F['response'].data[0]
-        counts = np.median(F['arcspec'].data, axis=0)
-    
-        source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
-                                                 counts=counts,
-                                                 date=date)))
-        p.line('wavelength', 'counts', source=source[-1])
-        p.yaxis.axis_label = 'Counts'
-        select.line('wavelength', 'counts', source=source[-1])
-        select.ygrid.grid_line_color = None
-    except:
-        print('Could not plot %s' % f)
+    F = fits.open(f[0])
+    wavelength = F['response'].data[0]
+    counts = np.median(F['arcspec'].data, axis=0)
 
+    source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
+                                             counts=counts,
+                                             date=f[1])))
+    p.line('wavelength', 'counts', source=source[-1])
+    p.yaxis.axis_label = 'Counts'
+    select.line('wavelength', 'counts', source=source[-1])
+    select.ygrid.grid_line_color = None
 range_tool = RangeTool(x_range=p.x_range)
 range_tool.overlay.fill_color = "navy"
 range_tool.overlay.fill_alpha = 0.2
