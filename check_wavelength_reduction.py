@@ -13,7 +13,7 @@ import sys
 from astropy.io import fits
 from astropy.table import Table
 from bokeh.layouts import column
-from bokeh.models import ColumnDataSource, RangeTool, HoverTools
+from bokeh.models import ColumnDataSource, RangeTool
 from bokeh.plotting import figure, save, output_file
 
 
