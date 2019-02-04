@@ -67,6 +67,10 @@ parser.add_argument("-cf", "--correct_ftf",
                     help='''Correct fiber to fiber''',
                     action="count", default=0)
 
+parser.add_argument("-md", "--model_dar",
+                    help='''model DAR''',
+                    action="count", default=0)
+
 parser.add_argument("-cw", "--central_wave",
                     help='''Central Wavelength for collapsed Frame''',
                     type=float, default=None)
@@ -1235,13 +1239,13 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
     SN = np.nanmax(sn)
     kind = 'Emission'
       
-#    if SN > 20.:
-#        D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
-#                                         calinfo[5][:, 1])
-#        
-#        xc, yc, xstd, ystd, xoff, yoff = D
-#        log.info('%s, %s: Source found at s/n: %0.2f' % (obj, specn, SN))
-#        return xc, yc, xstd, ystd
+    if args.model_dar:
+        D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
+                                         calinfo[5][:, 1])
+        
+        xc, yc, xstd, ystd, xoff, yoff = D
+        log.info('%s, %s: Source found at s/n: %0.2f' % (obj, specn, SN))
+        return xc, yc, xstd, ystd, xoff, yoff
     if SN > 5.:
         ind = np.argmax(dimage)
         dist = np.sqrt((dx - dx[ind])**2 + (dy - dy[ind])**2)
@@ -1431,12 +1435,13 @@ def get_mirror_illumination_guider(fn, exptime,
     y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8], DT[9:11],
                          DT[11:13], DT[13:15]]]
     d0 = datetime(y, m, d, h, mi, s)
-    tarfolder = op.join(path, 'gc1', 'gc1.tar')
-    if not op.exists(tarfolder):
+    tarfolder = op.join(path, 'gc1', '*.tar')
+    tarfolder = glob.glob(tarfolder)
+    if len(tarfolder) == 0:
         area = 51.4e4
         log.info('Using default mirror illumination: %0.2f m^2' % (area/1e4))
         return area
-    T = tarfile.open(tarfolder, 'r')
+    T = tarfile.open(tarfolder[0], 'r')
     init_list = sorted([name for name in T.getnames()
                         if name[-5:] == '.fits'])
     final_list = []
