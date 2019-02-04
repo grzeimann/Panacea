@@ -13,7 +13,7 @@ import sys
 from astropy.io import fits
 from astropy.table import Table
 from bokeh.layouts import column
-from bokeh.models import ColumnDataSource, RangeTool
+from bokeh.models import ColumnDataSource, RangeTool, HoverTools
 from bokeh.plotting import figure, save, output_file
 
 
@@ -24,10 +24,16 @@ side = sys.argv[2]
 side_dict = {'uv': [4050., 4150.], 'orange':[5650., 5850.], 
              'red': [7450., 7650.], 'farred': [9100., 9300.]}
 
-p = figure(plot_height=300, plot_width=800, tools="",
+TOOLTIPS = [
+    ('date', '@date'),
+    ("wavelength", "$wavelength"),
+    ("counts", "$counts")
+]
+
+p = figure(plot_height=300, plot_width=800, tools="hover",
            toolbar_location=None, x_axis_location="above",
            background_fill_color="#efefef", x_range=(side_dict[side][0],
-           side_dict[side][1]),
+           side_dict[side][1]), tooltips=TOOLTIPS,
            y_axis_type="log", y_range=(1., 10**5))
 
 select = figure(title=("Drag the middle and edges of the selection "
@@ -53,7 +59,8 @@ for f in fn:
         counts = np.median(F['arcspec'].data, axis=0)
     
         source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
-                                                 counts=counts)))
+                                                 counts=counts),
+                                       date=date))
         p.line('wavelength', 'counts', source=source[-1])
         p.yaxis.axis_label = 'Counts'
         select.line('wavelength', 'counts', source=source[-1])
