@@ -59,8 +59,8 @@ for f in fn:
         counts = np.median(F['arcspec'].data, axis=0)
     
         source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
-                                                 counts=counts),
-                                       date=date))
+                                                 counts=counts,
+                                                 date=date)))
         p.line('wavelength', 'counts', source=source[-1])
         p.yaxis.axis_label = 'Counts'
         select.line('wavelength', 'counts', source=source[-1])
