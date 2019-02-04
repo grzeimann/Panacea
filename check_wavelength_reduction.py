@@ -34,12 +34,6 @@ select = figure(title=("Drag the middle and edges of the selection "
                 y_axis_type=None,
                 tools="", toolbar_location=None, background_fill_color="#efefef")
 
-range_tool = RangeTool(x_range=p.x_range)
-range_tool.overlay.fill_color = "navy"
-range_tool.overlay.fill_alpha = 0.2
-
-
-select.add_tools(range_tool)
 
 fn = []
 for date in dates:
@@ -57,14 +51,17 @@ for f in fn:
     
         source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
                                                  counts=counts)))
-        p.line('wavelength', 'counts', source=source[-1])
+        p.line(wavelength, counts)
         p.yaxis.axis_label = 'Counts'
-        select.line('wavelength', 'counts', source=source[-1])
+        select.line(wavelength, counts)
         select.ygrid.grid_line_color = None
     except:
         print('Could not plot %s' % f)
 
-
+range_tool = RangeTool(x_range=p.x_range)
+range_tool.overlay.fill_color = "navy"
+range_tool.overlay.fill_alpha = 0.2
+select.add_tools(range_tool)
 select.toolbar.active_multi = range_tool
 
 output_file("image.html", title="image.py example")
