@@ -24,16 +24,11 @@ side = sys.argv[2]
 side_dict = {'uv': [4050., 4150.], 'orange':[5650., 5850.], 
              'red': [7450., 7650.], 'farred': [9100., 9300.]}
 
-TOOLTIPS = [
-    ('date', '$date'),
-    ("wavelength", "$wavelength"),
-    ("counts", "$counts")
-]
 
 p = figure(plot_height=300, plot_width=800, tools="hover",
            toolbar_location=None, x_axis_location="above",
            background_fill_color="#efefef", x_range=(side_dict[side][0],
-           side_dict[side][1]), tooltips=TOOLTIPS,
+           side_dict[side][1]),
            y_axis_type="log", y_range=(1., 10**5))
 
 select = figure(title=("Drag the middle and edges of the selection "
@@ -48,23 +43,25 @@ fn = []
 for date in dates:
     fns = glob.glob('/work/03946/hetdex/maverick/LRS2/CALS/cal_%s_%s.fits' %
                     (date, side))
-    if len(fns):
-        fn.append([fns[0], date])
+    for f in fns:
+        fn.append(f)
 
 source = []
 for f in fn:
-    F = fits.open(f[0])
-    wavelength = F['response'].data[0]
-    counts = np.median(F['arcspec'].data, axis=0)
+    F = fits.open(f)
+    try:
+        wavelength = F['response'].data[0]
+        counts = np.median(F['arcspec'].data, axis=0)
+    
+        source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
+                                                 counts=counts)))
+        p.line('wavelength', 'counts', source=source[-1])
+        p.yaxis.axis_label = 'Counts'
+        select.line('wavelength', 'counts', source=source[-1])
+        select.ygrid.grid_line_color = None
+    except:
+        print('Could not plot %s' % f)
 
-    #source.append(ColumnDataSource(data=))
-    source.append(dict(wavelength=wavelength, 
-                                             counts=counts,
-                                             date=f[1]))
-    p.line('wavelength', 'counts', source=source[-1])
-    p.yaxis.axis_label = 'Counts'
-    select.line('wavelength', 'counts', source=source[-1])
-    select.ygrid.grid_line_color = None
 range_tool = RangeTool(x_range=p.x_range)
 range_tool.overlay.fill_color = "navy"
 range_tool.overlay.fill_alpha = 0.2
