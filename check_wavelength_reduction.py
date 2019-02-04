@@ -25,7 +25,7 @@ side_dict = {'uv': [4050., 4150.], 'orange':[5650., 5850.],
              'red': [7450., 7650.], 'farred': [9100., 9300.]}
 
 TOOLTIPS = [
-    ('date', '@date'),
+    ('date', '$date'),
     ("wavelength", "$wavelength"),
     ("counts", "$counts")
 ]
