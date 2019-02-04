@@ -18,7 +18,8 @@ from bokeh.plotting import figure, save, output_file
 
 
 
-dates = np.loadtxt(sys.argv[1])
+dates = Table.read(sys.argv[1], format='ascii.no_header')
+dates = dates['col1']
 side = sys.argv[2]
 side_dict = {'uv': [4050., 4150.], 'orange':[5650., 5850.], 
              'red': [7450., 7650.], 'farred': [9100., 9300.]}
@@ -37,7 +38,6 @@ select = figure(title=("Drag the middle and edges of the selection "
 
 fn = []
 for date in dates:
-    print(date, side)
     fns = glob.glob('/work/03946/hetdex/maverick/LRS2/CALS/cal_%s_%s.fits' %
                     (date, side))
     for f in fns:
