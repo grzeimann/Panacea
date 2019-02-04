@@ -37,6 +37,7 @@ select = figure(title=("Drag the middle and edges of the selection "
 
 fn = []
 for date in dates:
+    print(date, side)
     fns = glob.glob('/work/03946/hetdex/maverick/LRS2/CALS/cal_%s_%s.fits' %
                     (date, side))
     for f in fns:
@@ -48,12 +49,12 @@ for f in fn:
     try:
         wavelength = F['response'].data[0]
         counts = np.median(F['arcspec'].data, axis=0)
-        print(counts, counts.shape)
+    
         source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
                                                  counts=counts)))
-        p.line(wavelength, counts)
+        p.line('wavelength', 'counts', source=source[-1])
         p.yaxis.axis_label = 'Counts'
-        select.line(wavelength, counts)
+        select.line('wavelength', 'counts', source=source[-1])
         select.ygrid.grid_line_color = None
     except:
         print('Could not plot %s' % f)
