@@ -21,7 +21,7 @@ palette = ["#053061", "#2166ac", "#4393c3", "#92c5de", "#d1e5f0",
            "#f7f7f7", "#fddbc7", "#f4a582", "#d6604d", "#b2182b", "#67001f"]
 
 dates = Table.read(sys.argv[1], format='ascii.no_header')
-dates = dates['col1']
+dates = np.sort(dates['col1'])
 side = sys.argv[2]
 side_dict = {'uv': [4050., 4150.], 'orange':[5650., 5850.], 
              'red': [7450., 7650.], 'farred': [9100., 9300.]}
