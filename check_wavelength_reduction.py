@@ -48,7 +48,7 @@ for f in fn:
     try:
         wavelength = F['response'].data[0]
         counts = np.median(F['arcspec'].data, axis=0)
-    
+        print(counts, counts.shape)
         source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
                                                  counts=counts)))
         p.line(wavelength, counts)
