@@ -48,7 +48,7 @@ for date in dates:
                     (date, side))
     for f in fns:
         cnt1 = cnt % len(palette)
-        fn.append([f, palette[cnt1]])
+        fn.append([f, palette[cnt1], date])
         cnt += 1
 
 source = []
@@ -60,7 +60,8 @@ for f in fn:
     
         source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
                                                  counts=counts)))
-        p.line('wavelength', 'counts', source=source[-1], line_color=f[1])
+        p.line('wavelength', 'counts', source=source[-1], line_color=f[1],
+               legend='%s' % f[2])
         p.yaxis.axis_label = 'Counts'
         select.line('wavelength', 'counts', source=source[-1], line_color=f[1])
         select.ygrid.grid_line_color = None
@@ -72,6 +73,7 @@ range_tool.overlay.fill_color = "navy"
 range_tool.overlay.fill_alpha = 0.2
 select.add_tools(range_tool)
 select.toolbar.active_multi = range_tool
+p.legend.location = "top_left"
 
 output_file("image.html", title="image.py example")
 save(column(p, select))
