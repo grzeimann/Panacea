@@ -27,13 +27,15 @@ side_dict = {'uv': [4050., 4150.], 'orange':[5650., 5850.],
 p = figure(plot_height=300, plot_width=800, tools="",
            toolbar_location=None, x_axis_location="above",
            background_fill_color="#efefef", x_range=(side_dict[side][0],
-           side_dict[side][1]))
+           side_dict[side][1]),
+           y_axis_type="log", y_range=(1., 10**5))
 
 select = figure(title=("Drag the middle and edges of the selection "
                        "box to change the range above"),
                 plot_height=130, plot_width=800, y_range=p.y_range,
-                y_axis_type=None,
-                tools="", toolbar_location=None, background_fill_color="#efefef")
+                y_axis_type="log",
+                tools="", toolbar_location=None,
+                background_fill_color="#efefef")
 
 
 fn = []
