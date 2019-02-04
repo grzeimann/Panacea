@@ -34,6 +34,13 @@ select = figure(title=("Drag the middle and edges of the selection "
                 y_axis_type=None,
                 tools="", toolbar_location=None, background_fill_color="#efefef")
 
+range_tool = RangeTool(x_range=p.x_range)
+range_tool.overlay.fill_color = "navy"
+range_tool.overlay.fill_alpha = 0.2
+
+
+select.add_tools(range_tool)
+
 fn = []
 for date in dates:
     fns = glob.glob('/work/03946/hetdex/maverick/LRS2/CALS/cal_%s_%s.fits' %
@@ -52,16 +59,12 @@ for f in fn:
                                                  counts=counts)))
         p.line('wavelength', 'counts', source=source[-1])
         p.yaxis.axis_label = 'Counts'
+        select.line('wavelength', 'counts', source=source[-1])
+        select.ygrid.grid_line_color = None
     except:
         print('Could not plot %s' % f)
 
-range_tool = RangeTool(x_range=p.x_range)
-range_tool.overlay.fill_color = "navy"
-range_tool.overlay.fill_alpha = 0.2
 
-select.line('date', 'close', source=source)
-select.ygrid.grid_line_color = None
-select.add_tools(range_tool)
 select.toolbar.active_multi = range_tool
 
 output_file("image.html", title="image.py example")
