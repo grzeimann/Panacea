@@ -25,7 +25,7 @@ side_dict = {'uv': [4050., 4150.], 'orange':[5650., 5850.],
              'red': [7450., 7650.], 'farred': [9100., 9300.]}
 
 
-p = figure(plot_height=300, plot_width=800, tools="hover",
+p = figure(plot_height=300, plot_width=800,
            toolbar_location=None, x_axis_location="above",
            background_fill_color="#efefef", x_range=(side_dict[side][0],
            side_dict[side][1]),
