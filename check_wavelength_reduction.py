@@ -19,6 +19,7 @@ from bokeh.plotting import figure, save, output_file
 
 
 date_table = Table.read(sys.argv[1], format='ascii')
+print(date_table)
 side = sys.argv[2]
 dates = date_table['col1']
 side_dict = {'uv': [4050., 4150.], 'orange':[5650., 5850.], 
