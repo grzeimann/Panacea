@@ -17,6 +17,8 @@ from bokeh.models import ColumnDataSource, RangeTool
 from bokeh.plotting import figure, save, output_file
 
 
+palette = ["#053061", "#2166ac", "#4393c3", "#92c5de", "#d1e5f0",
+           "#f7f7f7", "#fddbc7", "#f4a582", "#d6604d", "#b2182b", "#67001f"]
 
 dates = Table.read(sys.argv[1], format='ascii.no_header')
 dates = dates['col1']
@@ -40,24 +42,27 @@ select = figure(title=("Drag the middle and edges of the selection "
 
 
 fn = []
+cnt = 0
 for date in dates:
     fns = glob.glob('/work/03946/hetdex/maverick/LRS2/CALS/cal_%s_%s.fits' %
                     (date, side))
     for f in fns:
-        fn.append(f)
+        cnt1 = cnt % len(palette)
+        fn.append([f, palette[cnt1]])
+        cnt += 1
 
 source = []
 for f in fn:
-    F = fits.open(f)
+    F = fits.open(f[0])
     try:
         wavelength = F['response'].data[0]
         counts = np.median(F['arcspec'].data, axis=0)
     
         source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
                                                  counts=counts)))
-        p.line('wavelength', 'counts', source=source[-1])
+        p.line('wavelength', 'counts', source=source[-1], line_color=f[1])
         p.yaxis.axis_label = 'Counts'
-        select.line('wavelength', 'counts', source=source[-1])
+        select.line('wavelength', 'counts', source=source[-1], line_color=f[1])
         select.ygrid.grid_line_color = None
     except:
         print('Could not plot %s' % f)
