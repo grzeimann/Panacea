@@ -48,7 +48,8 @@ fn = []
 for date in dates:
     fns = glob.glob('/work/03946/hetdex/maverick/LRS2/CALS/cal_%s_%s.fits' %
                     (date, side))
-    fn.append([fns[0], date])
+    if len(fns):
+        fn.append([fns[0], date])
 
 source = []
 for f in fn:
