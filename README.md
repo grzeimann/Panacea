@@ -179,7 +179,7 @@ and number of exposures of the target.  The simplest way to see the effectivenes
 information in the log.
 
 ```
-cat reductionlrs2daily.oXXXXXX | grep Source
+cat reductionlrs2daily.oXXXXXX | grep source
 ```
 
 If you would like more flexibility in your batch processing, you can always edit "rlrs2_daily" to run any four reduction 
