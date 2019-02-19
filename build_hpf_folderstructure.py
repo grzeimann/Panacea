@@ -48,7 +48,7 @@ def create_table(filename):
 
 for date in dates:
     log.info('Working on %s.' % date)
-    fns = glob.glob(op.join(SlopeImages, date, '*'))
+    fns = sorted(glob.glob(op.join(SlopeImages, date, '*')))
     T1 = create_table(op.join(Manifests, 'hpf_%s.list' % date))
     datec_ = datetime(int(date[:4]), int(date[4:6]), int(date[6:]))
     daten_ = datec_ + timedelta(days=1)
@@ -67,7 +67,7 @@ for date in dates:
         if len(ind) == 0:
             log.warning('Could not find %s and %s in manifest' % (date, obs))
             continue
-        name = str(T['Frame'][ind])
+        name = T['Frame'][ind]
         oname = name.replace('.fits', '.optimal.fits')
         if T['ObsType'][ind] == 'Cal':
             folder = op.join(reducdir, 'CALS')
@@ -80,10 +80,12 @@ for date in dates:
         loc = op.join(SlopeImages, date, obs, name)
         oloc = op.join(WaveCal, date, obs, oname)
         sname = op.join(folder, name[:-5] + '_' + obs + '.fits')
-        soname = op.join(folder,name[:-5] + '_' + obs + '.optimal.fits')
+        soname = op.join(folder, name[:-5] + '_' + obs + '.optimal.fits')
         if op.exists(loc):
             cmd = 'cp %s %s' % (loc, sname)
             V = subprocess.call(cmd, shell=True)
+        else:
+            log.warning('Could not copy %s because does not exist' % loc)
         if op.exists(oloc):
             cmd = 'cp %s %s' % (oloc, soname)
             V = subprocess.call(cmd, shell=True)
