@@ -14,10 +14,12 @@ import re
 from astropy.table import Table
 from datetime import datetime, timedelta
 from distutils.dir_util import mkpath
-
+from input_utils import setup_logging
 
 basedir = '/work/03946/hetdex/maverick/HPF_Processed'
 reducdir = '/work/03946/hetdex/maverick/HPF'
+
+log = setup_logging('hpf_data')
 
 SlopeImages = op.join(basedir, 'SlopeImages')
 WaveCal = op.join(basedir, 'WavelengthCalibrated_e2ds')
@@ -45,6 +47,7 @@ def create_table(filename):
     return t
 
 for date in dates:
+    log.info('Working on %s.' % date)
     fns = glob.glob(op.join(SlopeImages, date, '*'))
     T1 = create_table(op.join(Manifests, 'hpf_%s.list' % date))
     datec_ = datetime(int(date[:4]), int(date[4:6]), int(date[6:]))
@@ -62,7 +65,7 @@ for date in dates:
             T = T2
         ind = np.where(sel*sel2)[0]
         if len(ind) == 0:
-            print('Could not find %s and %s in manifest' % (date, obs))
+            log.warning('Could not find %s and %s in manifest' % (date, obs))
             continue
         name = T['Frame']
         oname = name.replace('.fits', '.optimal.fits')
@@ -86,7 +89,7 @@ for date in dates:
             cmd = 'cp %s %s' % (oloc, soname)
             V = subprocess.call(cmd, shell=True)
         else:
-            print('Could not copy %s because does not exist' % oloc)
+            log.warning('Could not copy %s because does not exist' % oloc)
         
             
         
