@@ -74,7 +74,7 @@ for date in dates:
             folder = op.join(reducdir, 'CALS')
         if T['ObsType'][ind] == 'Sci':
             if T['QProg'][ind] != '':
-                folder = op.join(reducdir, T['QProg'])
+                folder = op.join(reducdir, T['QProg'][ind])
             else:
                 folder = op.join(reducdir, 'ORPHANS')
         mkpath(folder)
