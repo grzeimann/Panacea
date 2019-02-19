@@ -68,7 +68,7 @@ for date in dates:
             log.warning('Could not find %s and %s in manifest' % (date, obs))
             continue
         name = T['Frame'][ind]
-        print(T['Frame'])
+        print(ind)
         oname = name.replace('.fits', '.optimal.fits')
         if T['ObsType'][ind] == 'Cal':
             folder = op.join(reducdir, 'CALS')
