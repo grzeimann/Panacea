@@ -43,7 +43,6 @@ def create_table(filename):
         string = init_string[k]
         for i in np.arange(len(indices)-1):
             biglist[i].append(string[indices[i]:indices[i+1]].replace(' ', ''))
-    print(indices, len(biglist))
     t = Table(biglist, names=headers0)
     return t
 
@@ -68,7 +67,7 @@ for date in dates:
         if len(ind) == 0:
             log.warning('Could not find %s and %s in manifest' % (date, obs))
             continue
-        name = T['Frame']
+        name = T['Frame'][ind]
         oname = name.replace('.fits', '.optimal.fits')
         if T['ObsType'][ind] == 'Cal':
             folder = op.join(reducdir, 'CALS')
