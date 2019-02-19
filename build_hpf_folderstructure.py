@@ -43,7 +43,8 @@ def create_table(filename):
         string = init_string[k]
         for i in np.arange(len(indices)-1):
             biglist[i].append(string[indices[i]:indices[i+1]].replace(' ', ''))
-    t = Table(biglist, names=headers)
+    print(indices, len(biglist))
+    t = Table(biglist, names=headers0)
     return t
 
 for date in dates:
