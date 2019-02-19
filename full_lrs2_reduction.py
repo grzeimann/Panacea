@@ -1692,8 +1692,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 log.info('Source seeing initially found to be: %0.2f' % loc[2])
         if args.source_x is not None:
             loc = [args.source_x, args.source_y, 1.5]
-            xstd = np.ones(commonwave.shape) * 1.5
-            ystd = np.ones(commonwave.shape) * 1.5
+            xstd = np.ones(commonwave.shape) * 0.75
+            ystd = np.ones(commonwave.shape) * 0.75
             
         if loc is not None:
             log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
