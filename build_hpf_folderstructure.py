@@ -68,7 +68,6 @@ for date in dates:
             log.warning('Could not find %s and %s in manifest' % (date, obs))
             continue
         name = str(T['Frame'][ind])
-        print(name)
         oname = name.replace('.fits', '.optimal.fits')
         if T['ObsType'][ind] == 'Cal':
             folder = op.join(reducdir, 'CALS')
@@ -80,9 +79,8 @@ for date in dates:
         mkpath(folder)
         loc = op.join(SlopeImages, date, obs, name)
         oloc = op.join(WaveCal, date, obs, oname)
-        sname = op.join(folder, T['Frame'][ind][:-5] + '_' + obs + '.fits')
-        soname = op.join(folder,
-                         T['Frame'][ind][:-5] + '_' + obs + '.optimal.fits')
+        sname = op.join(folder, name[:-5] + '_' + obs + '.fits')
+        soname = op.join(folder,name[:-5] + '_' + obs + '.optimal.fits')
         if op.exists(loc):
             cmd = 'cp %s %s' % (loc, sname)
             V = subprocess.call(cmd, shell=True)
