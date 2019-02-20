@@ -35,25 +35,17 @@ twi_get_fibermodel = True
 twi_get_wavelength_solution = True
 twi_get_fiber_to_fiber = True
 
-sci_subtract_background = False
+sci_subtract_background = True
 sci_sky_subtraction = True
 sci_remeasure_fibermodel = False
 sci_significance_map = True
 
 # Configuration Directories
-#rootdir = "/work/03946/hetdex/maverick"
-#virusconfig = "/work/03946/hetdex/maverick/virus_config"
-#darkpath = "/work/03730/gregz/maverick/lib_dark/march"
-#biaspath = "/work/03730/gregz/maverick/lib_bias/march"
-#pixflatpath = "/work/03946/hetdex/maverick/virus_config/PixelFlats"
-
-
-rootdir = "/Users/gregz/cure/virus_raw"
-virusconfig = "/Users/gregz/cure/virus_early/virus_config"
-darkpath = "/Users/gregz/cure/virus_early/virus_config/lib_dark/march"
-biaspath = "/Users/gregz/cure/virus_early/virus_config/lib_bias/march"
-pixflatpath = "/Users/gregz/cure/virus_early/virus_config/PixelFlats"
-
+rootdir = "/work/03946/hetdex/maverick"
+virusconfig = "/work/03946/hetdex/hdr1/software/virus_config"
+biaspath = "/work/03946/hetdex/hdr1/software/virus_config/lib_bias/20180701"
+darkpath = "/work/03946/hetdex/hdr1/software/virus_config/lib_dark"
+pixflatpath = "/work/03946/hetdex/hdr1/software/virus_config/PixelFlats"
 
 # Config dictionary for Amplifier reduction inputs 
 config_dict = {'adjust_trace': 'adjust_trace', 'use_trace_ref':'use_trace_ref',
