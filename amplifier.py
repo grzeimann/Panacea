@@ -715,7 +715,8 @@ class Amplifier:
                                   dtype=float)
             self.image[:] = np.where(pixelflat > 1e-1, self.image / pixelflat, 
                                      0.0)
-            self.error[pixelflat<=0.0] = -1.0
+#            self.error[pixelflat<=0.0] = -1.0
+            self.error[pixelflat<=0.0] = 0.0
             self.mask = np.where(pixelflat > 1e-1, 0.0, -1.0)
             sel = np.isfinite(self.image)
             if (~sel).sum()>0:
