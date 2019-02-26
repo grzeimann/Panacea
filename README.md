@@ -185,7 +185,7 @@ cat reductionlrs2daily.oXXXXXX | grep source
 If you would like more flexibility in your batch processing, you can always edit "rlrs2_daily" to run any four reduction 
 call you may want and submit the job manually with:
 ```
-sbatch rlrs2_daily.slurm
+sbatch rgeneral_lrs2.slurm
 ```
 
 The reductions will be in "LRS2/ORPHANS" for reductions before 2018/07/01 and in "LRS2/PROGRAM-ID" for reductions after this date.
