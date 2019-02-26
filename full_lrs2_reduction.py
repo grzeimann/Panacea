@@ -1217,8 +1217,10 @@ def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75,
         Z[:, i] = np.dot(Z[:, i], W)
         E[:, i] = np.dot(E[:, i], W)
     E[:] = np.sqrt(E)
-    Y = Z / E
-    Y[np.isnan(Y)] = 0.
+    Y = Z * 0.
+    sel = E > 0.
+    Y[sel] = Z[sel] / E[sel]
+    Y[~np.isfinite(Y)] = 0.
     ind = np.unravel_index(np.nanargmax(Y[:, 50:-50],
                                         axis=None), Z[:, 50:-50].shape)
     return ind[1]+50, Z_copy[:, ind[1]+50], E_copy[:, ind[1]+50]
@@ -1426,44 +1428,48 @@ def panstarrs_query(ra_deg, dec_deg, rad_deg, mindet=1,
     return data.to_table(use_names_over_ids=True)
 
 
-def get_mirror_illumination_guider(fn, exptime,
+def get_mirror_illumination_guider(fn, exptime, default=51.4e4,
                                    path='/work/03946/hetdex/maverick'):
-    M = []
-    path = op.join(path, args.date)
-    f = op.basename(fn)
-    DT = f.split('_')[0]
-    y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8], DT[9:11],
-                         DT[11:13], DT[13:15]]]
-    d0 = datetime(y, m, d, h, mi, s)
-    tarfolder = op.join(path, 'gc1', '*.tar')
-    tarfolder = glob.glob(tarfolder)
-    if len(tarfolder) == 0:
-        area = 51.4e4
-        log.info('Using default mirror illumination: %0.2f m^2' % (area/1e4))
+    try:
+        M = []
+        path = op.join(path, args.date)
+        f = op.basename(fn)
+        DT = f.split('_')[0]
+        y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8], DT[9:11],
+                             DT[11:13], DT[13:15]]]
+        d0 = datetime(y, m, d, h, mi, s)
+        tarfolder = op.join(path, 'gc1', '*.tar')
+        tarfolder = glob.glob(tarfolder)
+        if len(tarfolder) == 0:
+            area = 51.4e4
+            log.info('Using default mirror illumination: %0.2f m^2' % (area/1e4))
+            return area
+        T = tarfile.open(tarfolder[0], 'r')
+        init_list = sorted([name for name in T.getnames()
+                            if name[-5:] == '.fits'])
+        final_list = []
+        for t in init_list:
+            DT = t.split('_')[0]
+            y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8],
+                                 DT[9:11], DT[11:13], DT[13:15]]]
+            d = datetime(y, m, d, h, mi, s)
+            p = (d - d0).seconds
+            if (p > -10.) * (p < exptime+10.):
+                final_list.append(t)
+        for fn in final_list:
+            fobj = T.extractfile(T.getmember(fn))
+            M.append(get_mirror_illumination(fobj))
+        M = np.array(M)
+        sel = M != 51.4e4
+        if sel.sum() > 0.:
+            area = np.mean(M[sel])
+        else:
+            area = 51.4e4
+        log.info('Final Mirror illumination: %0.2f m^2' % (area/1e4))
         return area
-    T = tarfile.open(tarfolder[0], 'r')
-    init_list = sorted([name for name in T.getnames()
-                        if name[-5:] == '.fits'])
-    final_list = []
-    for t in init_list:
-        DT = t.split('_')[0]
-        y, m, d, h, mi, s = [int(x) for x in [DT[:4], DT[4:6], DT[6:8],
-                             DT[9:11], DT[11:13], DT[13:15]]]
-        d = datetime(y, m, d, h, mi, s)
-        p = (d - d0).seconds
-        if (p > -10.) * (p < exptime+10.):
-            final_list.append(t)
-    for fn in final_list:
-        fobj = T.extractfile(T.getmember(fn))
-        M.append(get_mirror_illumination(fobj))
-    M = np.array(M)
-    sel = M != 51.4e4
-    if sel.sum() > 0.:
-        area = np.mean(M[sel])
-    else:
-        area = 51.4e4
-    log.info('Final Mirror illumination: %0.2f m^2' % (area/1e4))
-    return area
+    except: 
+        log.info('Using default mirror illumination: %0.2f m^2' % (default/1e4))
+        return default
 
 
 def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
