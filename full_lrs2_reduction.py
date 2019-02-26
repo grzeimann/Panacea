@@ -1235,8 +1235,12 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
                                                specn, error, ispec*1.,
                                                sig_wave=1.5)
     N = sdimage.shape[1] / 2
+    log.info('size of sdimage: %i' % N)
+    print(sdimage.shape)
     kSN = 0.
     for k in np.arange(N):
+        log.info('index for sdimage: %i, %i' % (N-k, N+k+1))
+
         dimage = np.sum(sdimage[:, (N-k):(N+k+1)], axis=1)
         derror = np.sqrt(np.sum(sderror[:, (N-k):(N+k+1)]**2, axis=1))
         sn = dimage * 0.
