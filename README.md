@@ -149,7 +149,7 @@ You can reduce any side you want, above I choose the "uv" channel, and the TARGE
 To run a reduction of a given target on a given date for all four channels simply:
 ```
 cdw
-cp /work/03946/hetdex/maverick/runlrs2general .
+cp /work/03946/hetdex/maverick/run_lrs2/runlrs2general .
 runlrs2general DATE TARGET_NAME
 ```
 
