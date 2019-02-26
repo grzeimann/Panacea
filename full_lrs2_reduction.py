@@ -1223,22 +1223,33 @@ def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75,
     Y[~np.isfinite(Y)] = 0.
     ind = np.unravel_index(np.nanargmax(Y[:, 50:-50],
                                         axis=None), Z[:, 50:-50].shape)
-    return ind[1]+50, Z_copy[:, ind[1]+50], E_copy[:, ind[1]+50]
+    l1 = ind[1] + 50 - 25
+    l2 = ind[1] + 50 + 26
+    return ind[1]+50, Z_copy[:, l1:l2], E_copy[:, l1:l2]
 
 
 def find_source(dx, dy, skysub, commonwave, obj, specn, error,
                 xoff, yoff, wave_0, ispec):
     D = np.sqrt((dx - dx[:, np.newaxis])**2 + (dy - dy[:, np.newaxis])**2)
-    loc, dimage, derror = convolve_spatially(dx, dy, skysub, commonwave,
-                                             specn, error, ispec*1.,
-                                             sig_wave=1.5)
-    sn = dimage * 0.
-    for i in np.arange(len(dimage)):
-        sel = D[i, :] < 1.5
-        S = np.sum(dimage[sel])
-        N = np.sqrt(np.sum(derror[sel]**2))
-        sn[i] = S / N
-    SN = np.nanmax(sn)
+    loc, sdimage, sderror = convolve_spatially(dx, dy, skysub, commonwave,
+                                               specn, error, ispec*1.,
+                                               sig_wave=1.5)
+    N = sdimage.shape[1] / 2
+    kSN = 0.
+    for k in np.arange(N):
+        dimage = np.sum(sdimage[:, (N-k):(N+k+1)], axis=1)
+        derror = np.sqrt(np.sum(sderror[:, (N-k):(N+k+1)]**2, axis=1))
+        sn = dimage * 0.
+        for i in np.arange(len(dimage)):
+            sel = D[i, :] < 1.5
+            S = np.sum(dimage[sel])
+            N = np.sqrt(np.sum(derror[sel]**2))
+            sn[i] = S / N
+        SN = np.nanmax(sn)
+        if kSN > SN:
+            break
+        else: 
+            kSN = SN * 1.
     kind = 'Emission'
       
     if args.model_dar:
