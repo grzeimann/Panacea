@@ -1234,15 +1234,11 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
     loc, sdimage, sderror = convolve_spatially(dx, dy, skysub, commonwave,
                                                specn, error, ispec*1.,
                                                sig_wave=1.5)
-    N = sdimage.shape[1] / 2
-    log.info('size of sdimage: %i' % N)
-    print(sdimage.shape)
+    BN = sdimage.shape[1] / 2
     kSN = 0.
-    for k in np.arange(N):
-        log.info('index for sdimage: %i, %i' % (N-k, N+k+1))
-
-        dimage = np.sum(sdimage[:, (N-k):(N+k+1)], axis=1)
-        derror = np.sqrt(np.sum(sderror[:, (N-k):(N+k+1)]**2, axis=1))
+    for k in np.arange(BN):
+        dimage = np.sum(sdimage[:, (BN-k):(BN+k+1)], axis=1)
+        derror = np.sqrt(np.sum(sderror[:, (BN-k):(BN+k+1)]**2, axis=1))
         sn = dimage * 0.
         for i in np.arange(len(dimage)):
             sel = D[i, :] < 1.5
