@@ -216,7 +216,6 @@ The quality of the bias subtraction is demonstrated in two ways: subtracting con
   <img src="images/trace_fibmodel.png" width="850"/>
 </p>
 
-https://github.com/grzeimann/Panacea/blob/master/images/arcplot_farred.html   
 
 
 ## Frequently Asked Questions
