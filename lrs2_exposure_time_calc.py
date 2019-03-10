@@ -17,9 +17,9 @@ from bokeh.models.widgets import Slider, Select
 from bokeh.plotting import figure, save, output_file
 
 channel = 'UV'
-seeing_def = 1.5
+seeing_def = 1.8
 objmag_def = 19.0
-skymag_def = 21.0
+sky_kind = 'dark'
 exptime_def = 1200.0
 area = 45e4
 fibarea = 3. / 4. * np.sqrt(3.) * 0.59**2
@@ -35,7 +35,12 @@ for ch in channels:
     response_dict[ch+'_wave'] = F[0].data[0] * 1.
     response_dict[ch+'_resp'] = F[0].data[1] * 1.
 
-def get_sn(chan, _seeing, _objmag, _skymag, _exptime):
+for ch in channels:
+    for sname in ['bright', 'grey', 'dark']:
+        F = fits.open('lrs2_config/%s_%s_sky.fits' % (sname, ch))
+        response_dict[sname + '_' + ch + '_sky'] = F[0].data[1] * 1.    
+
+def get_sn(chan, _seeing, _objmag, skykind, _exptime):
     n1 = 3.* np.sqrt(2)
     wave_arr = response_dict[chan+'_wave']
     wave = np.mean(wave_arr)
@@ -44,8 +49,7 @@ def get_sn(chan, _seeing, _objmag, _skymag, _exptime):
     _objflux = 10**(-0.4 * (_objmag - 23.9)) * 1e-29 * 3e18 / wave**2
     _objflux = _objflux / resp_arr
     cnts = _objflux * _exptime * dw * area * colfrac
-    _skyflux = 10**(-0.4 * (_skymag - 23.9)) * 1e-29 * 3e18 / wave**2
-    _skyflux = _skyflux / resp_arr
+    _skyflux = response_dict[skykind + '_' + chan + '_sky'] / resp_arr
     skycnts = _skyflux * _exptime * dw * area * fibarea * colfrac
     d = np.sqrt(px**2 + py**2)
     weights = np.exp(-0.5 * d**2 / (_seeing/2.35)**2)
@@ -58,9 +62,9 @@ def get_sn(chan, _seeing, _objmag, _skymag, _exptime):
     return wave_arr, signal / noise, noise
 
 # Set up data
-x, y, noise = get_sn(channel, seeing_def, objmag_def, skymag_def, exptime_def)
+x, y, noise = get_sn(channel, seeing_def, objmag_def, sky_kind, exptime_def)
 response_dict['x'] = x
-response_dict['y'] = 0. * x
+response_dict['y'] = y * 0.
 DF = pd.DataFrame = response_dict
 source = ColumnDataSource(data=DF)
 
@@ -108,6 +112,8 @@ code="""
     var data = source.data;
     var chw = channel.value + '_wave';
     var chr = channel.value + '_resp';
+    var skystr = sky.value + '_' + channel.value + '_sky';
+    var w = data[skystr]
     var a = seeing.value / 2.35;
     var b = objmag.value;
     var posx = px;
@@ -127,13 +133,6 @@ code="""
     for (var i = 0; i < iweights.length; i++){
         weights[i] = iweights[i] / sum;
     }
-    var skytype = sky.value;
-    if (skytype == 'dark')
-        var w = 22.5;
-    if (skytype == 'grey')
-        var w = 21.75;
-    if (skytype == 'bright')
-        var w = 21.0;
     var k = exptime.value;
     var x = data['x'];
     var y = data['y'];
@@ -152,10 +151,9 @@ code="""
     var signal = 0.0;
     for (var i = 0; i < x.length; i++) {
         cnt = Math.pow(10, (-0.4 * (b - 23.9))) * 1E-29 * 3E18 / Math.pow(start/2 + end/2, 2);
-        skycnt = Math.pow(10, (-0.4 * (w - 23.9))) * 1E-29 * 3E18 / Math.pow(start/2 + end/2, 2);
         cnt = cnt / resp[i];
         cnt = cnt * k * dw * area * colfrac;
-        skycnt = skycnt / resp[i];
+        skycnt = w[i] / resp[i]
         skycnt = skycnt * k * dw * area * fibarea * colfrac;
         noise = 0.0;
         signal = 0.0;
@@ -204,5 +202,5 @@ callback.args["exptime"] = exptime
 # Set up layouts and add to document
 inputs = column(channel_select, sky_select, seeing, objmag, exptime)
 
-output_file("image.html", title="Exposure Time Calculator")
+output_file("lrs2_exptime_calc.html", title="Exposure Time Calculator")
 save(row(inputs, plot, width=1200))
