@@ -1788,6 +1788,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             f1.header['SOURCEX'] = loc[0]
             f1.header['SOURCEY'] = loc[1]
             f1.header['SEEING'] = loc[2]
+            f1.header['MILLUM'] = mini[0][2]
         if response is not None:
             f1.header['FLUXUNIT'] = 'ergs/s/cm2/A'
         else:
