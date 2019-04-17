@@ -8,6 +8,7 @@ Created on Mon Jun 11 11:32:27 2018
 import glob
 import os.path as op
 import numpy as np
+import tarfile
 
 from amplifier import Amplifier
 from astropy.io import fits
@@ -28,15 +29,30 @@ def build_filenames(date, args):
     Build directory structure and search for unique observations, and return
     a single file for each observation to examine the header.
     '''
-    basedir = op.join(args.rootdir, date, args.instrument,
-                      args.instrument + '0000*', 'exp*', args.instrument)
-    filenames = sorted(glob.glob(op.join(basedir, '2*_zro.fits')))
+    tarfolder = op.join(args.rootdir, date, args.instrument, 
+                        "{:s}0000*.tar".format(args.instrument))
+    tarfolders = glob.glob(tarfolder)
+    if len(tarfolders):
+        filenames = []
+        for tarfolder in tarfolders:
+            T = tarfile.open(tarfolder, 'r')
+            for name in T.getnames():
+                if name[-5:] == '.fits':
+                    filenames.append(name)                            
+    else:
+        basedir = op.join(args.rootdir, date, args.instrument,
+                          args.instrument + '0000*', 'exp*', args.instrument)
+        filenames = sorted(glob.glob(op.join(basedir, '2*_zro.fits')))
     dirnames = [op.dirname(fn) for fn in filenames]
     unique_dirnames, ind = np.unique(dirnames, return_index=True)
     return [filenames[i][:-14] for i in ind]
 
 
 def get_image(fn):
+    tarbase = op.dirname(op.dirname(op.dirname(fn))) + '.tar'
+    if op.exists(tarbase):
+        T = tarfile.open(tarbase, 'r')
+        fn = T.extractfile(T.getmember(fn))
     A = Amplifier(fn, '')
     ly = A.biassec[2]
     hy = A.biassec[3]
