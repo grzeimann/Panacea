@@ -35,6 +35,7 @@ def build_filenames(date, args):
     if len(tarfolders):
         filenames = []
         for tarfolder in tarfolders:
+            args.log.info('Inspecting %s' % tarfolder)
             T = tarfile.open(tarfolder, 'r')
             for name in T.getnames():
                 if name[-5:] == '.fits':
