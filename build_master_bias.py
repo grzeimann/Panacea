@@ -37,9 +37,17 @@ def build_filenames(date, args):
         for tarfolder in tarfolders:
             args.log.info('Inspecting %s' % tarfolder)
             T = tarfile.open(tarfolder, 'r')
-            for name in T.getnames():
+            names = T.getnames()
+            flag = False
+            for name in names:
                 if name[-5:] == '.fits':
-                    filenames.append(name)                            
+                    if name[-9:] == '_zro.fits':
+                        flag = True
+                    break
+            if flag:
+                for name in names:
+                    if name[-5:] == 'fits': 
+                        filenames.append(name)                            
     else:
         basedir = op.join(args.rootdir, date, args.instrument,
                           args.instrument + '0000*', 'exp*', args.instrument)
