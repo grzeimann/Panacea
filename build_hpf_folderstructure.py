@@ -53,7 +53,10 @@ for date in dates:
     datec_ = datetime(int(date[:4]), int(date[4:6]), int(date[6:]))
     daten_ = datec_ + timedelta(days=1)
     daten = '%04d%02d%02d' % (daten_.year, daten_.month, daten_.day)
-    T2 = create_table(op.join(Manifests, 'hpf_%s.list' % daten))
+    try:
+        T2 = create_table(op.join(Manifests, 'hpf_%s.list' % daten))
+    except:
+        T2 = T1
     for fn in fns:
         obs = op.basename(fn)
         T = T1
