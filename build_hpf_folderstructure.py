@@ -49,7 +49,17 @@ def create_table(filename):
 for date in dates:
     log.info('Working on %s.' % date)
     fns = sorted(glob.glob(op.join(SlopeImages, date, '*')))
-    T1 = create_table(op.join(Manifests, 'hpf_%s.list' % date))
+    try:
+        T1 = create_table(op.join(Manifests, 'hpf_%s.list' % date))
+    except:
+        datec_ = datetime(int(date[:4]), int(date[4:6]), int(date[6:]))
+        daten_ = datec_ + timedelta(days=1)
+        daten = '%04d%02d%02d' % (daten_.year, daten_.month, daten_.day)
+        try:
+            T2 = create_table(op.join(Manifests, 'hpf_%s.list' % daten))
+        except:
+            continue
+        T1 = T2
     datec_ = datetime(int(date[:4]), int(date[4:6]), int(date[6:]))
     daten_ = datec_ + timedelta(days=1)
     daten = '%04d%02d%02d' % (daten_.year, daten_.month, daten_.day)
