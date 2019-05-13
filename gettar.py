@@ -27,5 +27,5 @@ for tarfolder in tarfolders:
             filenames.append(tarfolder)
             kind.append(name[-8:-5])
             flag = False
-t = Table([filenames, kind])
-t.write('alltar.txt', format='ascii')
+t = Table([filenames, kind], names=['Filename', 'Kind'])
+t.write('alltar.txt', format='ascii.fixed_header_two_line')
