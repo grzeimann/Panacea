@@ -68,8 +68,7 @@ def get_image(fn):
     if op.exists(tarbase):
         T = tarfile.open(tarbase, 'r')
         s = '/'.join(fn.split('/')[-4:])
-        print(s)
-        fn = T.extractfile(T.getmember(fn))
+        fn = T.extractfile(T.getmember(s))
     A = Amplifier(fn, '')
     ly = A.biassec[2]
     hy = A.biassec[3]
