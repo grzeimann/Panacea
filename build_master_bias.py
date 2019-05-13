@@ -48,6 +48,8 @@ def build_filenames(date, args):
                 if name[-5:] == '.fits':
                     flag = False
                     if name[-9:] == '_zro.fits':
+                        names = T.getnames()
+                        print(names[-1])
                         filenames.append(name)
     else:
         basedir = op.join(args.rootdir, date, args.instrument,
