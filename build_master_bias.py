@@ -49,8 +49,10 @@ def build_filenames(date, args):
                     flag = False
                     if name[-9:] == '_zro.fits':
                         names = sorted(T.getnames())
-                        print(names[-1])
-                        filenames.append(name)
+                        for namei in names:
+                            if namei[-5:] == '.fits':
+                                if namei[-9:] == '_zro.fits':
+                                    filenames.append(namei)
     else:
         basedir = op.join(args.rootdir, date, args.instrument,
                           args.instrument + '0000*', 'exp*', args.instrument)
