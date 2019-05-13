@@ -28,4 +28,4 @@ for tarfolder in tarfolders:
             kind.append(name[-8:-5])
             flag = False
 t = Table([filenames, kind], names=['Filename', 'Kind'])
-t.write('alltar.txt', format='ascii.fixed_header_two_line')
+t.write('alltar.txt', format='ascii.fixed_width_two_line')
