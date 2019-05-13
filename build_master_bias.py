@@ -52,7 +52,8 @@ def build_filenames(date, args):
                         for namei in names:
                             if namei[-5:] == '.fits':
                                 if namei[-9:] == '_zro.fits':
-                                    filenames.append(namei)
+                                    filenames.append(op.join(op.dirname(tarfolder),
+                                                             namei))
     else:
         basedir = op.join(args.rootdir, date, args.instrument,
                           args.instrument + '0000*', 'exp*', args.instrument)
