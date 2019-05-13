@@ -19,12 +19,13 @@ kind = []
 for tarfolder in tarfolders:
     print(tarfolder)
     T = tarfile.open(tarfolder, 'r')
-    names = T.getnames()
-    flag = False
-    for name in names:
+    flag = True
+    while flag:
+        a = T.next()
+        name = a.name
         if name[-5:] == '.fits':
             filenames.append(tarfolder)
             kind.append(name[-8:-5])
-            break
+            flag = False
 t = Table([filenames, kind])
 t.write('alltar.txt', format='ascii')
