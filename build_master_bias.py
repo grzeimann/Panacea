@@ -16,6 +16,7 @@ from distutils.dir_util import mkpath
 from input_utils import setup_parser, set_daterange, setup_logging
 from utils import biweight_location
 
+greg_file = '/work/03730/gregz/maverick/alltar.txt'
 
 def write_fits(hdu, name):
     try:
@@ -37,17 +38,17 @@ def build_filenames(date, args):
         for tarfolder in tarfolders:
             args.log.info('Inspecting %s' % tarfolder)
             T = tarfile.open(tarfolder, 'r')
-            names = T.getnames()
-            flag = False
-            for name in names:
+            flag = True
+            while flag:
+                a = T.next()
+                try:
+                    name = a.name
+                except:
+                    flag = False
                 if name[-5:] == '.fits':
                     if name[-9:] == '_zro.fits':
-                        flag = True
-                    break
-            if flag:
-                for name in names:
-                    if name[-5:] == 'fits': 
-                        filenames.append(name)                            
+                        filenames.append(name)
+                        flag = False                       
     else:
         basedir = op.join(args.rootdir, date, args.instrument,
                           args.instrument + '0000*', 'exp*', args.instrument)
