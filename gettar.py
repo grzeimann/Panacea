@@ -22,7 +22,10 @@ for tarfolder in tarfolders:
     flag = True
     while flag:
         a = T.next()
-        name = a.name
+        try:
+            name = a.name
+        except:
+            flag = False
         if name[-5:] == '.fits':
             filenames.append(tarfolder)
             kind.append(name[-8:-5])
