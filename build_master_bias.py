@@ -67,6 +67,8 @@ def get_image(fn):
     tarbase = op.dirname(op.dirname(op.dirname(fn))) + '.tar'
     if op.exists(tarbase):
         T = tarfile.open(tarbase, 'r')
+        s = '/'.join(fn.split('/')[-4:])
+        print(s)
         fn = T.extractfile(T.getmember(fn))
     A = Amplifier(fn, '')
     ly = A.biassec[2]
