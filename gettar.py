@@ -11,9 +11,9 @@ import glob
 import tarfile
 from astropy.table import Table
 
-tarfolder = op.join('/work/03946/hetdex/maverick/20180613*', 'virus', 
+tarfolder = op.join('/work/03946/hetdex/maverick/201*', 'virus', 
                     "{:s}00000*.tar".format('virus'))
-tarfolders = glob.glob(tarfolder)
+tarfolders = sorted(glob.glob(tarfolder))
 filenames = []
 kind = []
 for tarfolder in tarfolders:
