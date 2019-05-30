@@ -8,7 +8,7 @@ Created on Thu May 30 13:16:47 2019
 
 import astropy.units as u
 import numpy as np
-import sys
+
 from input_utils import setup_logging
 from astropy.io import fits
 from astropy.coordinates import SkyCoord
@@ -37,6 +37,14 @@ log.info('Finding shots of interest')
 
 matched_sources = {}
 shots_of_interest = []
+E = Extract()
+# Build aperture PSF for aperture extraction
+fixed_aperture = 4.
+
+# Using box size of 10.5 (length of box side) and pixel scale of 0.25
+# To see documentation use: help(E.tophat_psf)
+aperture = E.tophat_psf(fixed_aperture, 10.5, 0.25)
+
 for i, coord in enumerate(survey.coords):
     dist = coords.separation(coord)
     sep_constraint = dist < max_sep
@@ -45,5 +53,16 @@ for i, coord in enumerate(survey.coords):
     matched_sources[name] = idx
     if len(idx) > 0:
         shots_of_interest.append(name)
+        log.info('Working on shot: %s' % name)
+        E.load_shot(name)
+        for ind in idx:
+            info_result = E.get_fiberinfo_for_coord(coords[ind], radius=7.)
+            if info_result is not None:
+                log.info('Extracting %i' % ID[ind])
+                ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
+                weights = E.build_weights(xc, yc, ifux, ifuy, aperture)
+                result = E.get_spectrum(data, error, mask, weights)
+                spectrum_aper, spectrum_aper_error = [res for res in result]
+        
 log.info('Done.')
 print(shots_of_interest)
