@@ -29,8 +29,8 @@ bintable = fitsfile[1].data
 
 ID = bintable['ID']
 
-r = np.random.rand(10000)*360.
-d = np.random.rand(10000)*180. - 90.
+r = np.random.rand(100000)*360.
+d = np.random.rand(100000)*180. - 90.
 coords = SkyCoord(bintable['RA']*u.deg, bintable['DEC']*u.deg)
 coords = SkyCoord(r*u.deg, d*u.deg)
 
