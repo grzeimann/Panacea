@@ -20,7 +20,7 @@ from hetdex_api.survey import Survey
 survey = Survey('hdr1')
 t = Table(survey.hdfile.root.Survey[:])
 
-filename = '/work/03730/gregz/cure/MUSE_WIDE_sources_for_hetdex.fits'
+filename = '/work/03730/gregz/maverick/MUSE_WIDE_sources_for_hetdex.fits'
 
 fitsfile = fits.open(filename)
 bintable = fitsfile[1].data
