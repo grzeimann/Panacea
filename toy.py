@@ -8,6 +8,7 @@ Created on Thu May 30 13:16:47 2019
 
 import astropy.units as u
 import numpy as np
+import pickle
 
 from input_utils import setup_logging
 from astropy.io import fits
@@ -45,6 +46,9 @@ fixed_aperture = 4.
 # To see documentation use: help(E.tophat_psf)
 aperture = E.tophat_psf(fixed_aperture, 10.5, 0.25)
 
+Sources = {}
+for i in ID:
+    Sources[i] = []
 for i, coord in enumerate(survey.coords):
     dist = coords.separation(coord)
     sep_constraint = dist < max_sep
@@ -63,6 +67,8 @@ for i, coord in enumerate(survey.coords):
                 weights = E.build_weights(xc, yc, ifux, ifuy, aperture)
                 result = E.get_spectrum(data, error, mask, weights)
                 spectrum_aper, spectrum_aper_error = [res for res in result]
-        
+                Sources[ID[ind]].append([spectrum_aper, spectrum_aper_error,
+                                         weights.sum(axis=0)])
+        E.fibers.close()
+pickle.dump(Sources, open( "save.p", "wb" ))
 log.info('Done.')
-print(shots_of_interest)
