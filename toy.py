@@ -29,10 +29,10 @@ bintable = fitsfile[1].data
 
 ID = bintable['ID']
 
-s = np.random.rand(10000)*360.
-t = np.random.rand(10000)*180. - 90.
+r = np.random.rand(10000)*360.
+d = np.random.rand(10000)*180. - 90.
 coords = SkyCoord(bintable['RA']*u.deg, bintable['DEC']*u.deg)
-coords = SkyCoord(s*u.deg, t*u.deg)
+coords = SkyCoord(r*u.deg, d*u.deg)
 
 max_sep = 11.0 * u.arcminute
 
