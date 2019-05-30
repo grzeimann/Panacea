@@ -57,6 +57,15 @@ for i, coord in enumerate(survey.coords):
     matched_sources[name] = idx
     if len(idx) > 0:
         shots_of_interest.append(name)
+log.info('Number of shots of interest: %i' % len(shots_of_interest))
+
+for i, coord in enumerate(survey.coords):
+    dist = coords.separation(coord)
+    sep_constraint = dist < max_sep
+    name = '%sv%03d' % (t['date'][i], t['obsid'][i])
+    idx = np.where(sep_constraint)[0]
+    matched_sources[name] = idx
+    if len(idx) > 0:
         log.info('Working on shot: %s' % name)
         E.load_shot(name)
         for ind in idx:
