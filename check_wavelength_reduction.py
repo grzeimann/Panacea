@@ -59,31 +59,28 @@ arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
 source = []
 for f in fn:
     F = fits.open(f[0])
-    try:
-        wavelength = F['response'].data[0]
-        counts = np.median(F['arcspec'].data, axis=0)
-    
-        source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
-                                                 counts=counts)))
-        p.line('wavelength', 'counts', source=source[-1], line_color=f[1],
-               legend='%s' % f[2])
-        p.yaxis.axis_label = 'Counts'
-        select.line('wavelength', 'counts', source=source[-1], line_color=f[1])
-        select.ygrid.grid_line_color = None
-        peak = []
-        for line in arc_lines:
-            sel = np.abs(line['col1']-wavelength)-5.
-            peak.append(np.max(counts[sel]))
-        peak = np.array(peak)
-        peak /= np.max(peak)
-        Z = np.array((len(peak), 2))
-        Z[:, 0] = np.array(arc_lines['col3'])
-        Z[:, 1] = peak
-        print(fn[2])
-        print(Z)
-            
-    except:
-        print('Could not plot %s' % f)
+    wavelength = F['response'].data[0]
+    counts = np.median(F['arcspec'].data, axis=0)
+
+    source.append(ColumnDataSource(data=dict(wavelength=wavelength, 
+                                             counts=counts)))
+    p.line('wavelength', 'counts', source=source[-1], line_color=f[1],
+           legend='%s' % f[2])
+    p.yaxis.axis_label = 'Counts'
+    select.line('wavelength', 'counts', source=source[-1], line_color=f[1])
+    select.ygrid.grid_line_color = None
+    peak = []
+    for line in arc_lines:
+        sel = np.abs(line['col1']-wavelength)-5.
+        peak.append(np.max(counts[sel]))
+    peak = np.array(peak)
+    peak /= np.max(peak)
+    Z = np.array((len(peak), 2))
+    Z[:, 0] = np.array(arc_lines['col3'])
+    Z[:, 1] = peak
+    print(fn[2])
+    print(Z)
+
     
 
 
