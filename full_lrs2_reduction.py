@@ -817,7 +817,7 @@ def find_lines(spectrum, trace, lines, thresh, fib, side=None):
         selhg = lines['col4'] == name
         rat = (v[1][0] / v[0][0]) / (v[1][1] / v[0][1])
         print(v)
-        lines['col3'][selhg] *= rat
+        lines['col3'][selhg] /= rat
     found_lines = np.zeros((trace.shape[0], len(lines)))
     ls = np.argsort(lines['col3'])[::-1]
     
