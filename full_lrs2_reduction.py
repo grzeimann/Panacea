@@ -808,15 +808,15 @@ def find_lines(spectrum, trace, lines, thresh, fib, side=None):
         names = ['Hg', 'Cd']
         v = []
         for name in names:
-            selhg = arc_lines['col4'] == name
+            selhg = lines['col4'] == name
             ma = np.argmax(arc_lines['col3'][selhg])
-            sel = np.abs(pr[fib] - arc_lines['col2'][ma]) < 50.
+            sel = np.abs(pr[fib] - lines['col2'][ma]) < 50.
             v1 = np.max(pr[fib][sel])
-            v2 = arc_lines['col3'][ma]
+            v2 = lines['col3'][ma]
             v.append([v1, v2])
-        selhg = arc_lines['col4'] == name
+        selhg = lines['col4'] == name
         rat = (v[1][0] / v[0][0]) / (v[1][1] / v[0][1])
-        arc_lines['col3'][selhg] *= rat
+        lines['col3'][selhg] *= rat
     found_lines = np.zeros((trace.shape[0], len(lines)))
     ls = np.argsort(lines['col3'])[::-1]
     
