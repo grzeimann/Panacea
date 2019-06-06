@@ -79,6 +79,12 @@ for f in fn:
     peak = np.array(peak)
     peak /= np.max(peak)
     Z = np.zeros((len(peak), 2))
+    names = ['Hg', 'Cd']
+    for name in names:
+        selhg = arc_lines['col4'] == name
+        ma = np.max(arc_lines['col3'][selhg])
+        arc_lines['col3'][selhg] /= ma
+    arc_lines['col3']
     Z[:, 0] = np.array(arc_lines['col3'])
     Z[:, 1] = peak
     print(fn[2])
