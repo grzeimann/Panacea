@@ -792,7 +792,7 @@ def count_matches(lines, loc, fib, cnt=5):
     return np.unravel_index(np.argmax(M), M.shape)
 
 
-def find_lines(spectrum, trace, lines, thresh, fib):
+def find_lines(spectrum, trace, lines, thresh, fib, side=None):
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
     loc = []
@@ -802,11 +802,24 @@ def find_lines(spectrum, trace, lines, thresh, fib):
         loc.append(px)
         ph.append(ps)
         pr.append(py)
-
+    
+    inds = np.argsort(pr[fib])[::-1]
+    if side == 'orange':
+        names = ['Hg', 'Cd']
+        v = []
+        for name in names:
+            selhg = arc_lines['col4'] == name
+            ma = np.argmax(arc_lines['col3'][selhg])
+            sel = np.abs(pr[fib] - arc_lines['col2'][ma]) < 50.
+            v1 = np.max(pr[fib][sel])
+            v2 = arc_lines['col3'][ma]
+            v.append([v1, v2])
+        selhg = arc_lines['col4'] == name
+        rat = (v[1][0] / v[0][0]) / (v[1][1] / v[0][1])
+        arc_lines['col3'][selhg] *= rat
     found_lines = np.zeros((trace.shape[0], len(lines)))
     ls = np.argsort(lines['col3'])[::-1]
-
-    inds = np.argsort(pr[fib])[::-1]
+    
     for ind in inds:
         off = loc[fib][ind] - lines['col2'][ls[0]]
         if np.abs(off) < 50.:
@@ -916,7 +929,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
             found_lines[i][found_lines1[i] == 0.] = 0.
     else:
         thresh = 3.
-        found_lines = find_lines(spectrum, trace, lines, thresh, fib)
+        found_lines = find_lines(spectrum, trace, lines, thresh, fib, side)
 
     x = np.arange(trace.shape[1])
 
