@@ -71,7 +71,7 @@ for f in fn:
     select.ygrid.grid_line_color = None
     peak = []
     for line in arc_lines:
-        sel = np.abs(line['col1']-wavelength)-5.
+        sel = np.abs(line['col1']-wavelength) < 5.
         peak.append(np.max(counts[sel]))
     peak = np.array(peak)
     peak /= np.max(peak)
