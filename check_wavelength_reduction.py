@@ -72,8 +72,10 @@ for f in fn:
     peak = []
     for line in arc_lines:
         sel = np.abs(line['col1']-wavelength) < 5.
-        print(sel.sum())
-        peak.append(np.max(counts[sel]))
+        if sel.sum() > 0.:
+            peak.append(np.max(counts[sel]))
+        else:
+            peak.append(0.)
     peak = np.array(peak)
     peak /= np.max(peak)
     Z = np.array((len(peak), 2))
