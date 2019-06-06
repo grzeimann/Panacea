@@ -9,6 +9,7 @@ Created on Mon Feb  4 08:43:49 2019
 import glob
 import numpy as np
 import sys
+import os.path as op
 
 from astropy.io import fits
 from astropy.table import Table
@@ -33,7 +34,7 @@ p = figure(plot_height=300, plot_width=800,
            side_dict[side][1]),
            y_axis_type="log", y_range=(1., 10**5))
 
-select = figure(title=("Drag the middle and edges of the selection "
+select = figure(title=("Drag the selection "
                        "box to change the range above"),
                 plot_height=130, plot_width=800, y_range=p.y_range,
                 y_axis_type="log",
@@ -44,12 +45,16 @@ select = figure(title=("Drag the middle and edges of the selection "
 fn = []
 cnt = 0
 for date in dates:
-    fns = glob.glob('/work/03946/hetdex/maverick/LRS2/CALS/cal_%s_%s.fits' %
+    fns = glob.glob('/work/03730/gregz/maverick/LRS2/CALS/cal_%s_%s.fits' %
                     (date, side))
     for f in fns:
         cnt1 = cnt % len(palette)
         fn.append([f, palette[cnt1], date])
         cnt += 1
+
+DIRNAME = '/work/03730/gregz/maverick/Panacea'
+arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
+                                   side), format='ascii')
 
 source = []
 for f in fn:
@@ -65,8 +70,22 @@ for f in fn:
         p.yaxis.axis_label = 'Counts'
         select.line('wavelength', 'counts', source=source[-1], line_color=f[1])
         select.ygrid.grid_line_color = None
+        peak = []
+        for line in arc_lines:
+            sel = np.abs(line['col1']-wavelength)-5.
+            peak.append(np.max(counts[sel]))
+        peak = np.array(peak)
+        peak /= np.max(peak)
+        Z = np.array((len(peak), 2))
+        Z[:, 0] = np.array(arc_lines['col3'])
+        Z[:, 1] = peak
+        print(fn[2])
+        print(Z)
+            
     except:
         print('Could not plot %s' % f)
+    
+
 
 range_tool = RangeTool(x_range=p.x_range)
 range_tool.overlay.fill_color = "navy"
