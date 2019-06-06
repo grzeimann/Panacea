@@ -78,6 +78,7 @@ for f in fn:
             peak.append(0.)
     peak = np.array(peak)
     peak /= np.max(peak)
+    print(peak)
     Z = np.array((len(peak), 2))
     Z[:, 0] = np.array(arc_lines['col3'])
     Z[:, 1] = peak
