@@ -1880,13 +1880,17 @@ def get_flt_base():
         flt_check_path, newdate = get_cal_path(flt_check_path, i_date)
         flt_files = sorted(glob.glob(flt_check_path))
         for fn in flt_files:
-            o = fits.open(fn)[0].header['OBJECT']
             if specname in ['uv', 'orange']:
+                if specname == 'orange':
+                    fn = fn.replace('LL', 'RL')
+                o = fits.open(fn)[0].header['OBJECT']
                 if 'ldls' in o.lower():
                     fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
                     sat = np.sum(fits.open(fn)[0].data == 65535) > 100
-            o = fits.open(fn)[0].header['OBJECT']
             if specname in ['red', 'farred']:
+                if specname == 'farred':
+                    fn = fn.replace('LL', 'RL')
+                o = fits.open(fn)[0].header['OBJECT']
                 if 'qth' in o.lower():
                     fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
                     sat = np.sum(fits.open(fn)[0].data == 65535) > 100
