@@ -2062,6 +2062,8 @@ for info in listinfo:
         f.append(func(cal))
     f.append(fits.ImageHDU(masterarc))
     names.append('masterarc')
+    f.append(fits.ImageHDU(masterFlat))
+    names.append('masterFlat')
     if response is not None:
         f.append(fits.ImageHDU(np.array([commonwave, response], dtype=float)))
         names.append('response')
