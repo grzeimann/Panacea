@@ -804,7 +804,6 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
         ph.append(ps)
         pr.append(py)
     
-    inds = np.argsort(ph[fib])[::-1]
     if side == 'orange':
         names = ['Hg', 'Cd']
         v = []
@@ -836,16 +835,13 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
             mxv = lines['col3'][selhg][ma]
             nrt = v[0][0] / v[1][0]
             lines['col3'][selhg] *= nrt / mxv
-        print(v[0][0] / v[1][0], v[0][1] / v[1][1],
-              lines['col3'], nlines['col3'])
     found_lines = np.zeros((trace.shape[0], len(lines)))
     ls = np.argsort(lines['col3'])[::-1]
-    print(lines[ls[0]])
-    for ind in inds:
-        off = loc[fib][ind] - lines['col2'][ls[0]]
-        if np.abs(off) < 50.:
-            break
+    sel = np.abs(loc[fib] - lines['col2'][ls[0]]) < 50.
+    ind = np.where(sel)[0][np.argmax(ph[fib][sel])]
     off = loc[fib][ind] - lines['col2'][ls[0]]
+    print(lines[ls[0]], off)
+
     found_lines[fib, ls[0]] = loc[fib][ind]
     y = lines['col2'] + off
     s = found_lines[fib] * 0.
