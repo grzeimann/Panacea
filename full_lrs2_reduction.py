@@ -792,11 +792,12 @@ def count_matches(lines, loc, fib, cnt=5):
     return np.unravel_index(np.argmax(M), M.shape)
 
 
-def find_lines(spectrum, trace, lines, thresh, fib, side=None):
+def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     cont = percentile_filter(spectrum, 15, (1, 101))
     spectrum -= cont
     loc = []
     ph, pr = ([], [])
+    lines = Table(nlines)
     for i, spec in enumerate(spectrum):
         px, ps, py = find_peaks(spec, thresh=thresh)
         loc.append(px)
@@ -812,7 +813,7 @@ def find_lines(spectrum, trace, lines, thresh, fib, side=None):
             ma = np.argmax(arc_lines['col3'][selhg])
             sel = np.abs(pr[fib] - lines['col2'][selhg][ma]) < 50.
             v1 = np.max(ph[fib][sel])
-            v2 = lines['col3'][ma]
+            v2 = lines['col3'][selhg][ma]
             v.append([v1, v2])
         selhg = lines['col4'] == name
         rat = (v[1][0] / v[0][0]) / (v[1][1] / v[0][1])
