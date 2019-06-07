@@ -800,7 +800,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     lines = Table(nlines)
     for i, spec in enumerate(spectrum):
         px, ps, py = find_peaks(spec, thresh=thresh)
-        sel = np.abs(px - 1032.) > 4.
+        sel = np.abs(px - 1032.) > 10.
         loc.append(px[sel])
         ph.append(ps[sel])
         pr.append(py[sel])
