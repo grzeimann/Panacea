@@ -820,7 +820,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
             selhg = lines['col4'] == 'Hg'
             ma = np.argmax(arc_lines['col3'][selhg])
             mxv = lines['col3'][selhg][ma]
-            lines['col3'][selhg] = 1. / mxv
+            lines['col3'][selhg] *= 1. / mxv
             selhg = lines['col4'] == 'Cd'
             ma = np.argmax(arc_lines['col3'][selhg])
             mxv = lines['col3'][selhg][ma]
@@ -830,7 +830,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
             selhg = lines['col4'] == 'Cd'
             ma = np.argmax(arc_lines['col3'][selhg])
             mxv = lines['col3'][selhg][ma]
-            lines['col3'][selhg] = 1. / mxv
+            lines['col3'][selhg] *= 1. / mxv
             selhg = lines['col4'] == 'Hg'
             ma = np.argmax(arc_lines['col3'][selhg])
             mxv = lines['col3'][selhg][ma]
