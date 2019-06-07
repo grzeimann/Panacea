@@ -840,7 +840,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
               lines['col3'], nlines['col3'])
     found_lines = np.zeros((trace.shape[0], len(lines)))
     ls = np.argsort(lines['col3'])[::-1]
-    
+    print(lines[ls[0]])
     for ind in inds:
         off = loc[fib][ind] - lines['col2'][ls[0]]
         if np.abs(off) < 50.:
