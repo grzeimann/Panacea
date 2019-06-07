@@ -825,7 +825,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
             ma = np.argmax(arc_lines['col3'][selhg])
             mxv = lines['col3'][selhg][ma]
             nrt = v[1][0] / v[0][0]
-            lines['col3'][selhg] = nrt / mxv
+            lines['col3'][selhg] *= nrt / mxv 
         else:
             selhg = lines['col4'] == 'Cd'
             ma = np.argmax(arc_lines['col3'][selhg])
@@ -835,7 +835,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
             ma = np.argmax(arc_lines['col3'][selhg])
             mxv = lines['col3'][selhg][ma]
             nrt = v[0][0] / v[1][0]
-            lines['col3'][selhg] = nrt / mxv
+            lines['col3'][selhg] *= nrt / mxv
         print(v[0][0] / v[1][0], v[0][1] / v[1][1],
               lines['col3'], nlines['col3'])
     found_lines = np.zeros((trace.shape[0], len(lines)))
