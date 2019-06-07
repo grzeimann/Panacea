@@ -1847,6 +1847,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
         except:
             log.warning('Exposure %i Failed' %i)
             cnt += 1
+
 def get_cal_path(pathname, date):
     datec = date
     daten = date
@@ -1894,7 +1895,7 @@ def get_flt_base():
                 if 'qth' in o.lower():
                     fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
                     sat = np.sum(fits.open(fn)[0].data == 65535) > 100
-        print(np.sum(fits.open(fn)[0].data == 65535), sat, i_date)
+        print(np.sum(fits.open(fn)[0].data == 65535), sat, flt_files)
         i_date=get_previous_night(i_date)
     twiflt_path = op.join(baseraw, newdate,  '%s', fltobs, 'exp*',
                           '%s', '2*_%sLL_flt.fits')
