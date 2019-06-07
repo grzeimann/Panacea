@@ -816,9 +816,28 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
             v2 = lines['col3'][selhg][ma]
             v.append([v1, v2])
         selhg = lines['col4'] == name
-        rat = (v[1][0] / v[0][0]) / (v[1][1] / v[0][1])
-        print(v)
-        lines['col3'][selhg] *= rat
+        if v[0][0] > v[1][0]:
+            selhg = lines['col4'] == 'Hg'
+            ma = np.argmax(arc_lines['col3'][selhg])
+            mxv = lines['col3'][selhg][ma]
+            lines['col3'][selhg] = 1. / mxv
+            selhg = lines['col4'] == 'Cd'
+            ma = np.argmax(arc_lines['col3'][selhg])
+            mxv = lines['col3'][selhg][ma]
+            nrt = v[1][0] / v[0][0]
+            lines['col3'][selhg] = nrt / mxv
+        else:
+            selhg = lines['col4'] == 'Cd'
+            ma = np.argmax(arc_lines['col3'][selhg])
+            mxv = lines['col3'][selhg][ma]
+            lines['col3'][selhg] = 1. / mxv
+            selhg = lines['col4'] == 'Hg'
+            ma = np.argmax(arc_lines['col3'][selhg])
+            mxv = lines['col3'][selhg][ma]
+            nrt = v[0][0] / v[1][0]
+            lines['col3'][selhg] = nrt / mxv
+        print(v[0][0] / v[1][0], v[0][1] / v[1][1],
+              lines['col3'], nlines['col3'])
     found_lines = np.zeros((trace.shape[0], len(lines)))
     ls = np.argsort(lines['col3'])[::-1]
     
