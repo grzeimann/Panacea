@@ -87,8 +87,6 @@ for f in fn:
     arc_lines['col3']
     Z[:, 0] = np.array(arc_lines['col3'])
     Z[:, 1] = peak
-    print(fn[2])
-    print(Z)
 
     
 
