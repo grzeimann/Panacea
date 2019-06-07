@@ -800,9 +800,10 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     lines = Table(nlines)
     for i, spec in enumerate(spectrum):
         px, ps, py = find_peaks(spec, thresh=thresh)
-        loc.append(px)
-        ph.append(ps)
-        pr.append(py)
+        sel = np.abs(px - 1032.) > 4.
+        loc.append(px[sel])
+        ph.append(ps[sel])
+        pr.append(py[sel])
     
     if side == 'orange':
         names = ['Hg', 'Cd']
@@ -949,6 +950,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
 
     x = np.arange(trace.shape[1])
     found_lines[found_lines > 2060] = 0.
+    fits.PrimaryHDU(found_lines).writeto('fl_%s_%s.fits' % (side, amp), overwrite=True)
     for i, line in enumerate(lines):
         if np.sum(found_lines[:, i]) < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
