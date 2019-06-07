@@ -1871,6 +1871,25 @@ def get_previous_night(daten):
     daten = '%04d%02d%02d' % (daten_.year, daten_.month, daten_.day)
     return daten
 
+def get_flt_base():
+    flt_check_path = op.join(baseraw, args.date,  'lrs2', 'lrs20000*',
+                             'exp01', 'lrs2', '2*_056LL_flt.fits')
+    flt_check_path, newdate = get_cal_path(flt_check_path, args.date)
+    flt_files = sorted(glob.glob(flt_check_path))
+    for fn in flt_files:
+        o = fits.open(fn)[0].header['OBJECT']
+        if specname in ['uv', 'orange']:
+            if 'ldls' in o.lower():
+                fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
+        o = fits.open(fn)[0].header['OBJECT']
+        if specname in ['red', 'farred']:
+            if 'qth' in o.lower():
+                fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
+    twiflt_path = op.join(baseraw, newdate,  '%s', fltobs, 'exp*',
+                          '%s', '2*_%sLL_flt.fits')
+    twibase = twiflt_path % (instrument, instrument, ifuslot)
+    return twibase, newdate
+
 # LRS2-R
 fiberpos, fiberspec = ([], [])
 log.info('Beginning the long haul.')
@@ -1886,24 +1905,11 @@ for info in listinfo:
     commonwave = np.linspace(lims[0], lims[1], 2064)
     specid, ifuslot, ifuid = multi.split('_')
     package = []
-    marc, mtwi = ([], [])
+    marc, mtwi, mflt = ([], [], [])
     if args.use_flat:
-        flt_check_path = op.join(baseraw, args.date,  'lrs2', 'lrs20000*',
-                                 'exp01', 'lrs2', '2*_056LL_flt.fits')
-        flt_check_path, newdate = get_cal_path(flt_check_path, args.date)
-        flt_files = sorted(glob.glob(flt_check_path))
-        for fn in flt_files:
-            o = fits.open(fn)[0].header['OBJECT']
-            if specname in ['uv', 'orange']:
-                if 'ldls' in o.lower():
-                    fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
-            o = fits.open(fn)[0].header['OBJECT']
-            if specname in ['red', 'farred']:
-                if 'qth' in o.lower():
-                    fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
-        twiflt_path = op.join(baseraw, newdate,  '%s', fltobs, 'exp*',
-                              '%s', '2*_%sLL_flt.fits')
-        twibase = twiflt_path % (instrument, instrument, ifuslot)
+        twibase, newdate = get_flt_base()
+        if newdate != args.date:
+            log.info('Found flt files on %s and using them for %s' % (newdate, args.date))
     else:
         twiflt_path = op.join(baseraw, args.date,  '%s', '*', 'exp*',
                               '%s', '2*_%sLL_twi.fits')
@@ -1982,19 +1988,25 @@ for info in listinfo:
                  (ifuslot, amp))
         bigW = get_bigW(amp, wave, trace, masterbias)
         package.append([wave, trace, bigW, masterbias, amppos, dead])
+        fltbase, newdate = get_flt_base()
+        if newdate != args.date:
+            log.info('Found flt files on %s and using them for %s' % (newdate, args.date))
+        masterFlat = get_mastertwi(fltbase, amp, masterbias)
+
         marc.append(masterarc)
         mtwi.append(masterflt)
+        mflt.append(masterFlat)
     # Normalize the two amps and correct the flat
     calinfo = [np.vstack([package[0][i], package[1][i]])
                for i in np.arange(len(package[0]))]
-    masterarc, masterflt = [np.vstack(x) for x in [marc, mtwi]]
+    masterarc, masterflt, masterFlat = [np.vstack(x) for x in [marc, mtwi, mflt]]
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
     log.info('Getting flat for ifuslot, %s, side, %s' % (ifuslot, specname))
     twiflat = get_twiflat_field(twibase, amps, calinfo[0], calinfo[1],
                                 calinfo[2], commonwave, calinfo[3], specname)
     calinfo.insert(2, twiflat)
     flatspec = get_spectra(calinfo[2], calinfo[1])
-    for mfile in [masterarc, masterflt]:
+    for mfile in [masterarc, masterflt, masterFlat]:
         masterarcerror = np.sqrt(3.**2 + np.where(mfile > 0., mfile, 0.))
         arcspec, ae, Cc, Yyy, Fff = weighted_extraction(mfile, masterarcerror,
                                                         calinfo[2], calinfo[1],
@@ -2041,7 +2053,7 @@ for info in listinfo:
 
     f = []
     names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias',
-             'xypos', 'dead', 'arcspec', 'fltspec', 'bigF']
+             'xypos', 'dead', 'arcspec', 'fltspec', 'Flatspec', 'bigF']
     for i, cal in enumerate(calinfo):
         if i == 0:
             func = fits.PrimaryHDU
