@@ -1884,12 +1884,12 @@ def get_flt_base():
             if specname in ['uv', 'orange']:
                 if 'ldls' in o.lower():
                     fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
-                    sat = np.sum(fits.open(fn).data == 65535) > 100
+                    sat = np.sum(fits.open(fn)[0].data == 65535) > 100
             o = fits.open(fn)[0].header['OBJECT']
             if specname in ['red', 'farred']:
                 if 'qth' in o.lower():
                     fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
-                    sat = np.sum(fits.open(fn).data == 65535) > 100
+                    sat = np.sum(fits.open(fn)[0].data == 65535) > 100
         i_date=get_previous_night(i_date)
     twiflt_path = op.join(baseraw, newdate,  '%s', fltobs, 'exp*',
                           '%s', '2*_%sLL_flt.fits')
