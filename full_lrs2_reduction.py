@@ -1894,7 +1894,7 @@ def get_flt_base():
                 if 'qth' in o.lower():
                     fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
                     sat = np.sum(fits.open(fn)[0].data == 65535) > 100
-        print(np.sum(fits.open(fn)[0].data == 65535), sat)
+        print(np.sum(fits.open(fn)[0].data == 65535), sat, i_date)
         i_date=get_previous_night(i_date)
     twiflt_path = op.join(baseraw, newdate,  '%s', fltobs, 'exp*',
                           '%s', '2*_%sLL_flt.fits')
