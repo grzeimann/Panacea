@@ -840,7 +840,6 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     sel = np.abs(loc[fib] - lines['col2'][ls[0]]) < 50.
     ind = np.where(sel)[0][np.argmax(pr[fib][sel])]
     off = loc[fib][ind] - lines['col2'][ls[0]]
-    print(lines[ls[0]], off)
 
     found_lines[fib, ls[0]] = loc[fib][ind]
     y = lines['col2'] + off
@@ -950,7 +949,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
 
     x = np.arange(trace.shape[1])
 
-    #fits.PrimaryHDU(found_lines).writeto('fl_%s_%s.fits' % (side, amp), overwrite=True)
+    fits.PrimaryHDU(found_lines).writeto('fl_%s_%s.fits' % (side, amp), overwrite=True)
     for i, line in enumerate(lines):
         if np.sum(found_lines[:, i]) < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
