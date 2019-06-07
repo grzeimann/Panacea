@@ -402,7 +402,10 @@ def get_spectra(array_flt, array_trace):
     for fiber in np.arange(array_trace.shape[0]):
         indl = np.floor(array_trace[fiber]).astype(int)
         indh = np.ceil(array_trace[fiber]).astype(int)
-        spectrum[fiber] = array_flt[indl, x] / 2. + array_flt[indh, x] / 2.
+        try:
+            spectrum[fiber] = array_flt[indl, x] / 2. + array_flt[indh, x] / 2.
+        except:
+            log.warning('Index for getting spectrum out of bounds.')
     return spectrum
 
 
