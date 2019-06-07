@@ -804,7 +804,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
         ph.append(ps)
         pr.append(py)
     
-    inds = np.argsort(pr[fib])[::-1]
+    inds = np.argsort(ph[fib])[::-1]
     if side == 'orange':
         names = ['Hg', 'Cd']
         v = []
