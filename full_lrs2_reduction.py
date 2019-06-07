@@ -961,6 +961,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
         found_lines[:, i] = yt
     wave = trace * 0.0
     res = np.zeros((trace.shape[0],))
+    Res = np.zeros(found_lines.shape)
     for j in np.arange(trace.shape[0]):
         sel = found_lines[j, :] > 0.0
         if sel.sum() < 3:
@@ -969,6 +970,10 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
                              lines['col1'][sel], 3), x)
         res[j] = np.std(np.interp(found_lines[j, sel], x, wave[j]) -
                         lines['col1'][sel])
+        Res[j, sel] = (np.interp(found_lines[j, sel], x, wave[j]) -
+                                lines['col1'][sel])
+    fits.PrimaryHDU(Res).writeto('Rl_%s_%s.fits' % (side, amp), overwrite=True)
+
     missing = np.where(np.all(wave == 0., axis=1))[0]
     if len(missing):
         good = np.where(~np.all(wave == 0., axis=1))[0]
