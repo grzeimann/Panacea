@@ -800,7 +800,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     lines = Table(nlines)
     for i, spec in enumerate(spectrum):
         px, ps, py = find_peaks(spec, thresh=thresh)
-        sel = np.abs(px - 1032.) > 10.
+        sel = np.abs(px - 1032.) > 0.
         loc.append(px[sel])
         ph.append(ps[sel])
         pr.append(py[sel])
@@ -895,7 +895,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
                 k += 1
                 v = found_lines[k, i]
             m = np.abs(loc[j] - v)
-            if np.min(m) < 2.:
+            if np.min(m) < 2.0:
                 found_lines[j, i] = loc[j][np.argmin(m)]
         for j in np.arange(fib+1, trace.shape[0]):
             if len(loc[j]) < 1:
@@ -906,7 +906,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
                 k -= 1
                 v = found_lines[k, i]
             m = np.abs(loc[j] - v)
-            if np.min(m) < 2.:
+            if np.min(m) < 2.0:
                 found_lines[j, i] = loc[j][np.argmin(m)]
     return found_lines
 
