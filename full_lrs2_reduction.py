@@ -861,7 +861,8 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
         EE = MR * np.sqrt(1./ph[fib]**2 + 1./ph[fib][ind])
         EE = np.max([EE, .1 * MR, 0.001 * np.ones(MR.shape)], axis=0)
         dist = v/2. + np.abs(ER - MR) / EE
-        print(guess, dist)
+        n = np.argmin(dist)
+        print(guess, v[n], (ER - MR)[n], EE[n])
         if np.min(dist) < 10.:
             ind1 = np.argmin(dist)
             found_lines[fib, l] = loc[fib][ind1]
