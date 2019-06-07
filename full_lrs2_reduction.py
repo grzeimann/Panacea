@@ -960,7 +960,8 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
         ind = np.array(found_lines[:, i], dtype=int)
         xt = trace[np.arange(trace.shape[0]), ind]
         yt = robust_polyfit(xt, found_lines[:, i])
-        qft[i] = np.std(found_lines1[:, i] - yt)
+        sel = found_lines1[:, i] > 0.
+        qft[i] = np.std(found_lines1[sel, i] - yt[sel])
         found_lines[:, i] = yt
     print(qft)
     wave = trace * 0.0
