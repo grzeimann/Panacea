@@ -810,8 +810,8 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
         for name in names:
             selhg = lines['col4'] == name
             ma = np.argmax(arc_lines['col3'][selhg])
-            sel = np.abs(pr[fib] - lines['col2'][selhg][ma]) < 50.
-            v1 = np.max(ph[fib][sel])
+            sel = np.abs(loc[fib] - lines['col2'][selhg][ma]) < 50.
+            v1 = np.max(pr[fib][sel])
             v2 = lines['col3'][selhg][ma]
             v.append([v1, v2])
         selhg = lines['col4'] == name
@@ -838,7 +838,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     found_lines = np.zeros((trace.shape[0], len(lines)))
     ls = np.argsort(lines['col3'])[::-1]
     sel = np.abs(loc[fib] - lines['col2'][ls[0]]) < 50.
-    ind = np.where(sel)[0][np.argmax(ph[fib][sel])]
+    ind = np.where(sel)[0][np.argmax(pr[fib][sel])]
     off = loc[fib][ind] - lines['col2'][ls[0]]
     print(lines[ls[0]], off)
 
