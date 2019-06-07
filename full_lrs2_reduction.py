@@ -952,6 +952,7 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
     found_lines[found_lines > 2060] = 0.
     found_lines1 = found_lines * 1.
     fits.PrimaryHDU(found_lines).writeto('fl_%s_%s.fits' % (side, amp), overwrite=True)
+    qft = np.zeros((len(lines),))
     for i, line in enumerate(lines):
         if np.sum(found_lines[:, i]) < (0.5 * trace.shape[0]):
             found_lines[:, i] = 0.0
@@ -959,7 +960,9 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
         ind = np.array(found_lines[:, i], dtype=int)
         xt = trace[np.arange(trace.shape[0]), ind]
         yt = robust_polyfit(xt, found_lines[:, i])
+        qft[i] = np.std(found_lines1[:, i] - yt)
         found_lines[:, i] = yt
+    print(qft)
     wave = trace * 0.0
     res = np.zeros((trace.shape[0],))
     Res = np.zeros(found_lines.shape)
