@@ -11,6 +11,7 @@ import subprocess
 import numpy as np
 import glob
 import re
+import sys
 from astropy.table import Table
 from datetime import datetime, timedelta
 from distutils.dir_util import mkpath
@@ -28,6 +29,9 @@ Manifests = op.join(basedir, 'Manifests')
 # Get all dates in SlopeImages folder
 dates = [op.basename(fn) 
          for fn in sorted(glob.glob(op.join(SlopeImages, '*')))]
+
+if len(sys.argv) > 1:
+    dates = [date for date in dates if int(date) > int(sys.argv[1])]
 
 def create_table(filename):
     headers = [line.rstrip('\n').split() for line in open(filename)]
