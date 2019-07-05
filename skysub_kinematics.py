@@ -232,8 +232,8 @@ def correct_wavelength_to_sky(spectra, skylines, wave, thresh=3.):
         pl, ps, pv, pw = find_peaks(spectra[i], wave)
         V = pw[:, np.newaxis] - sky_wave
         d = np.abs(V)
-        D = np.min(d, axis=1)
-        L = np.argmin(d, axis=1)
+        D = np.min(d, axis=0)
+        L = np.argmin(d, axis=0)
         sel = D < thresh
         y = L[sel]
         x = X[sel]
