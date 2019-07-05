@@ -261,7 +261,11 @@ def get_pca_fit_residuals(data, pca):
 def identify_sky_pixels(sky):
     G = Gaussian1DKernel(20.0)
     cont = convolve(sky, G)
-    mask = sigma_clip(sky - cont, masked=True, maxiters=None)
+    try:
+        mask = sigma_clip(sky - cont, masked=True, maxiters=None,
+                          stdfunc=mad_std)
+    except:
+        mask = sigma_clip(sky - cont, iters=None, stdfunc=mad_std) 
     for i in np.arange(5):
         nsky = sky * 1.
         mask.mask[1:] += mask.mask[:-1]
