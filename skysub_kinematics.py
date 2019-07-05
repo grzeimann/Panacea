@@ -255,7 +255,7 @@ def main():
     wave = F[6].data[0]
     channel = args.sciobs.split('_')[-1][:-5]
     channel_dict = {'uv': 'BL', 'orange': 'BR', 'red': 'RL', 'farred': 'RR'}
-    specinit = chennel_dict[channel]
+    specinit = channel_dict[channel]
     darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % specinit)
     skylinefile = op.join(DIRNAME, 'lrs2_config/%s_skylines.dat' % channel)
     T = Table.read(darfile, format='ascii.fixed_width_two_line')
