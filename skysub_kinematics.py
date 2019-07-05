@@ -230,14 +230,15 @@ def correct_wavelength_to_sky(spectra, skylines, wave, thresh=3.):
     CW = np.zeros((nfibers, len(sky_wave))) * np.nan
     for i in np.arange(nfibers):
         pl, ps, pv, pw = find_peaks(spectra[i], wave)
-        V = pw[:, np.newaxis] - sky_wave
-        d = np.abs(V)
-        D = np.min(d, axis=0)
-        L = np.argmin(d, axis=0)
-        sel = D < thresh
-        y = L[sel]
-        x = X[sel]
-        CW[i, sel] = V[y, x]
+        if len(pl):
+            V = pw[:, np.newaxis] - sky_wave
+            d = np.abs(V)
+            D = np.min(d, axis=0)
+            L = np.argmin(d, axis=0)
+            sel = D < thresh
+            y = L[sel]
+            x = X[sel]
+            CW[i, sel] = V[y, x]
     return CW
         
 
