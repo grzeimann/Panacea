@@ -5,23 +5,29 @@ Created on Fri Oct  5 14:53:10 2018
 @author: gregz
 """
 
+import argparse as ap
+import numpy as np
 import os.path as op
 import sys
-from astropy.io import fits
-from astropy.table import Table
-from utils import biweight_location
-import numpy as np
-from scipy.interpolate import LSQBivariateSpline, interp1d
-from astropy.convolution import Gaussian1DKernel, interpolate_replace_nans
-from astropy.convolution import convolve
-from scipy.signal import medfilt, savgol_filter
-from skimage.feature import register_translation
-import argparse as ap
-from input_utils import setup_logging
 import warnings
+
+from astropy.convolution import Gaussian1DKernel, convolve
+from astropy.convolution import interpolate_replace_nans
 from astropy.modeling.models import Polynomial2D
 from astropy.modeling.fitting import LevMarLSQFitter
+from astropy.io import fits
 from astropy.stats import biweight_midvariance, sigma_clipped_stats
+from astropy.stats import sigma_clip
+from astropy.table import Table
+from input_utils import setup_logging
+from scipy.interpolate import LSQBivariateSpline, interp1d
+from scipy.signal import medfilt, savgol_filter
+from skimage.feature import register_translation
+from sklearn.decomposition import PCA
+from utils import biweight_location
+
+
+warnings.filterwarnings("ignore")
 
 
 def get_script_path():
@@ -223,13 +229,58 @@ def find_peaks(y, wave, thresh=8.):
     peak_wave = np.interp(peak_loc, np.arange(len(wave)), wave)
     return peak_loc, peaks/std, peaks, peak_wave
 
+
+def correct_amplifier_offsets(data):
+    y = np.mean(data[:, 400:-400], axis=1)
+    x = np.arange(len(y))
+    maskL = sigma_clip(y[:140], masked=True, maxiters=None)
+    maskR = sigma_clip(y[140:], masked=True, maxiters=None)
+    modelL = np.polyval(np.polyfit(x[:140][~maskL.mask], y[:140][~maskL.mask], 1), x[:140])
+    modelR = np.polyval(np.polyfit(x[140:][~maskR.mask], y[140:][~maskR.mask], 1), x[140:])
+    avg = np.mean(np.hstack([modelL, modelR]))
+    return np.hstack([modelL / avg, modelR / avg])
+
+def estimate_sky(data):
+    y = np.mean(data[:, 400:-400], axis=1)
+    mask = sigma_clip(y, masked=True, maxiters=None)
+    skyfibers = ~mask.mask
+    sky = np.median(data[skyfibers], axis=0)
+    return sky
+
+def get_pca_sky_residuals(data, ncomponents=5):
+    pca = PCA(n_components=ncomponents)
+    H = pca.fit_transform(data)
+    A = np.dot(H, pca.components_)
+    return pca, A
+
+def get_pca_fit_residuals(data, pca):
+    coeff = pca.transform(data)
+    model = np.dot(coeff, pca.components_)
+    return model
+
+def identify_sky_pixels(sky):
+    G = Gaussian1DKernel(20.0)
+    cont = convolve(sky, G)
+    mask = sigma_clip(sky - cont, masked=True, maxiters=None)
+    for i in np.arange(5):
+        nsky = sky * 1.
+        mask.mask[1:] += mask.mask[:-1]
+        mask.mask[:-1] += mask.mask[1:]
+        nsky[mask.mask] = np.nan
+        cont = convolve(nsky, G)
+        while np.isnan(cont).sum():
+            cont = interpolate_replace_nans(cont, G)
+        mask = sigma_clip(sky - cont, masked=True, maxiters=None)
+    return mask.mask, cont    
+
 def correct_wavelength_to_sky(spectra, skylines, wave, thresh=3.):
     nfibers = spectra.shape[0]
     sky_wave = skylines['wavelength']
     X = np.arange(len(sky_wave))
     CW = np.zeros((nfibers, len(sky_wave))) * np.nan
     for i in np.arange(nfibers):
-        pl, ps, pv, pw = find_peaks(spectra[i], wave)
+        skypixels, back = identify_sky_pixels(spectra[i])
+        pl, ps, pv, pw = find_peaks(spectra[i]-back, wave)
         if len(pl):
             V = pw[:, np.newaxis] - sky_wave
             d = np.abs(V)
@@ -239,8 +290,7 @@ def correct_wavelength_to_sky(spectra, skylines, wave, thresh=3.):
             y = L[sel]
             x = X[sel]
             CW[i, sel] = V[y, x]
-    return CW
-        
+    return CW    
 
 def main():
     F = fits.open(op.join(args.directory, args.sciobs))
