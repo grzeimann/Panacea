@@ -16,7 +16,7 @@ from astropy.convolution import interpolate_replace_nans
 from astropy.modeling.models import Polynomial2D
 from astropy.modeling.fitting import LevMarLSQFitter
 from astropy.io import fits
-from astropy.stats import biweight_midvariance, sigma_clipped_stats
+from astropy.stats import biweight_midvariance, sigma_clipped_stats, mad_std
 from astropy.stats import sigma_clip
 from astropy.table import Table
 from input_utils import setup_logging
@@ -270,7 +270,11 @@ def identify_sky_pixels(sky):
         cont = convolve(nsky, G)
         while np.isnan(cont).sum():
             cont = interpolate_replace_nans(cont, G)
-        mask = sigma_clip(sky - cont, masked=True, maxiters=None)
+        try:
+            mask = sigma_clip(sky - cont, masked=True, maxiters=None,
+                              stdfunc=mad_std)
+        except:
+            mask = sigma_clip(sky - cont, iters=None, stdfunc=mad_std) 
     return mask.mask, cont    
 
 def correct_wavelength_to_sky(spectra, skylines, wave, thresh=3.):
