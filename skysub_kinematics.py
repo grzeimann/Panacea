@@ -6,8 +6,10 @@ Created on Fri Oct  5 14:53:10 2018
 """
 
 import argparse as ap
+import matplotlib.pyplot as plt
 import numpy as np
 import os.path as op
+import seaborn as sns
 import sys
 import warnings
 
@@ -20,6 +22,7 @@ from astropy.stats import biweight_midvariance, sigma_clipped_stats, mad_std
 from astropy.stats import sigma_clip
 from astropy.table import Table
 from input_utils import setup_logging
+from matplotlib.ticker import MultipleLocator
 from scipy.interpolate import LSQBivariateSpline, interp1d
 from scipy.signal import medfilt, savgol_filter
 from skimage.feature import register_translation
@@ -40,12 +43,17 @@ parser = ap.ArgumentParser(add_help=True)
 parser.add_argument("-d", "--directory",
                     help='''base directory for reductions''',
                     type=str, default="")
+
+parser.add_argument("galaxyname",  help='''Name of Galaxy''', type=str)
+
 parser.add_argument("sciobs",
                     help='''e.g., multi_20170126_0000011_exp02_farred.fits''',
                     type=str)
+
 parser.add_argument("skyobs",
                     help='''e.g., multi_20170126_0000011_exp01_farred.fits''',
                     type=str, default=None)
+
 parser.add_argument("-ds", "--dont_correct_wavelength_to_sky",
                     help='''Don't correct wavelength to sky if used''',
                     action="count", default=0)
@@ -271,7 +279,7 @@ def identify_sky_pixels(sky):
         mask.mask[1:] += mask.mask[:-1]
         mask.mask[:-1] += mask.mask[1:]
         nsky[mask.mask] = np.nan
-        cont = convolve(nsky, G)
+        cont = convolve(nsky, G, boundary='extend')
         while np.isnan(cont).sum():
             cont = interpolate_replace_nans(cont, G)
         try:
@@ -298,35 +306,97 @@ def correct_wavelength_to_sky(spectra, skylines, wave, thresh=3.):
             y = L[sel]
             x = X[sel]
             CW[i, sel] = V[y, x]
-    return CW    
+    return CW   
+
+def make_skyline_wave_offset_vs_fiber_plot(wavecorrection_list, utc_list, wave,
+                                           galname):
+    ml = MultipleLocator(5)
+    sns.set_context('talk')
+    sns.set_style("ticks", {"xtick.major.size": 8, "ytick.major.size": 8,
+                            "xtick.minor.size": 2, "xtick.minor.size": 2})
+    plt.figure(figsize=(7, 5))
+    plt.gca().set_position([0.2, 0.2, 0.7, 0.7])
+    dw = wave[1] - wave[0]
+    for wc, utc in zip(wavecorrection_list, utc_list):
+        y = np.nanmean(wc, axis=1)
+        plt.scatter(np.arange(280), y, alpha=0.1, s=20, edgecolor='none')
+        sel = np.isfinite(y)
+        P = np.polyval(np.polyfit(np.arange(280)[sel], y[sel], 1),
+                       np.arange(280))
+        plt.plot(np.arange(280), P, lw=2, label='UTC ' + utc[:-2])
+    plt.axes().xaxis.set_minor_locator(ml)
+    plt.ylim([dw*-4., dw*4.])
+    plt.xlim([-2, 280])
+    plt.xlabel(r'Fiber Number')
+    plt.ylabel(r'$\lambda$ Offset from Sky Lines ($\AA$)')
+    plt.legend()
+    plt.savefig('Wave_offset_from_sky_vs_fiber_%s.png' % galname, dpi=300)
+
+def make_skyline_wave_offset_vs_wave_plot(wavecorrection_list, utc_list, wave,
+                                           galname, SkyLines):
+    ml = MultipleLocator(100)
+    sns.set_context('talk')
+    sns.set_style("ticks", {"xtick.major.size": 8, "ytick.major.size": 8,
+                            "xtick.minor.size": 2, "xtick.minor.size": 2})
+    dw = wave[1]-wave[0]
+    plt.figure(figsize=(7, 5))
+    plt.gca().set_position([0.2, 0.2, 0.7, 0.7])
+    for wc, utc in zip(wavecorrection_list, utc_list):
+        y = np.nanmean(wc, axis=0)
+        plt.scatter(SkyLines['wavelength'], y, alpha=0.4, s=40, edgecolor='none')
+        sel = np.isfinite(y)
+        P = np.polyval(np.polyfit(SkyLines['wavelength'][sel], y[sel], 2),
+                       wave)
+        plt.plot(wave, P, lw=2, label='UTC ' + utc[:-2])
+    plt.axes().xaxis.set_minor_locator(ml)
+    plt.ylim([dw*-4., dw*4.])
+    plt.xlim([wave[0], wave[-1]])
+    plt.xlabel(r'Wavelength ($\AA$)')
+    plt.ylabel(r'$\lambda$ Offset from Sky Lines ($\AA$)')
+    plt.legend()
+    plt.savefig('Wave_offset_from_sky_vs_wave_%s.png' % galname, dpi=300)
 
 def main():
-    F = fits.open(op.join(args.directory, args.sciobs))
-    args.log.info('Science observation: %s loaded' % (args.sciobs))
-    skyflag = args.skyobs.lower() != 'none'
-    if skyflag:
-        S = fits.open(op.join(args.directory, args.skyobs))
-        args.log.info('Sky observation: %s loaded' % (args.sciobs))
-    else:
-        S = None
+    sciobs = args.sciobs.split(',').replace(' ', '')
+    skyobs = args.skyobs.split(',').replace(' ', '')
+    SciFits_List = []
+    for _sciobs in sciobs:
+        SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
+        args.log.info('Science observation: %s loaded' % (_sciobs))
+    SkyFits_List = []
+    for _skyobs in skyobs:
+        skyflag = _skyobs.lower() != 'none'
+        if skyflag:
+            SkyFits_List.append(fits.open(op.join(args.directory, _skyobs)))
+            args.log.info('Sky observation: %s loaded' % (_skyobs))
     
     # Basic Info Dump
-    wave = F[6].data[0]
-    channel = args.sciobs.split('_')[-1][:-5]
+    wave = SciFits_List[0][6].data[0]
+    channel = sciobs[0].split('_')[-1][:-5]
     channel_dict = {'uv': 'BL', 'orange': 'BR', 'red': 'RL', 'farred': 'RR'}
     specinit = channel_dict[channel]
     darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % specinit)
-    skylinefile = op.join(DIRNAME, 'lrs2_config/%s_skylines.dat' % channel)
+    skylinefile = op.join(DIRNAME, 'lrs2_config/skylines_%s.dat' % channel)
     T = Table.read(darfile, format='ascii.fixed_width_two_line')
     SkyLines = Table.read(skylinefile, format='ascii.fixed_width_two_line')
     
-    SciSpectra = F[0].data
-    if skyflag:
-        SkySpectra = S[0].data
     if not args.dont_correct_wavelength_to_sky:
-        CW = correct_wavelength_to_sky(SciSpectra, SkyLines, wave)
-    
-    fits.PrimaryHDU(CW).writeto('test.fits', overwrite=True)
+        wavecorrection_list, utc_list = ([], [])
+        for _scifits in SciFits_List:
+            SciSpectra = _scifits[0].data
+            utc_list.append(_scifits[0].header['UT'])
+            CW = correct_wavelength_to_sky(SciSpectra, SkyLines, wave)
+            wavecorrection_list.append(CW)
+        for _skyfits in SkyFits_List:
+            SkySpectra = _skyfits[0].data
+            utc_list.append(_skyfits[0].header['UT'])
+            CW = correct_wavelength_to_sky(SkySpectra, SkyLines, wave)
+            wavecorrection_list.append(CW)
+        make_skyline_wave_offset_vs_fiber_plot(wavecorrection_list, utc_list,
+                                               wave, args.galaxyname)
+        make_skyline_wave_offset_vs_wave_plot(wavecorrection_list, utc_list,
+                                               wave, args.galaxyname,
+                                               SkyLines)
 #    x, y = (F[5].data[:, 0], F[5].data[:, 1])
 #    wave_0 = np.mean(wave)
 #    xoff = (np.interp(wave, T['wave'], T['x_0']) -
