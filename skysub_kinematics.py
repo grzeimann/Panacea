@@ -5,6 +5,8 @@ Created on Fri Oct  5 14:53:10 2018
 @author: gregz
 """
 
+import matplotlib
+matplotlib.use('agg')
 import argparse as ap
 import matplotlib.pyplot as plt
 import numpy as np
