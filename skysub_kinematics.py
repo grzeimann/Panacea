@@ -385,11 +385,13 @@ def main():
     if not args.dont_correct_wavelength_to_sky:
         wavecorrection_list, utc_list = ([], [])
         for _scifits in SciFits_List:
+            args.log.info('Correcting wavelength for %s' % _scifits.filename())
             SciSpectra = _scifits[0].data
             utc_list.append(_scifits[0].header['UT'])
             CW = correct_wavelength_to_sky(SciSpectra, SkyLines, wave)
             wavecorrection_list.append(CW)
         for _skyfits in SkyFits_List:
+            args.log.info('Correcting wavelength for %s' % _skyfits.filename())
             SkySpectra = _skyfits[0].data
             utc_list.append(_skyfits[0].header['UT'])
             CW = correct_wavelength_to_sky(SkySpectra, SkyLines, wave)
