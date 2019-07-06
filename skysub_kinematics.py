@@ -359,8 +359,8 @@ def make_skyline_wave_offset_vs_wave_plot(wavecorrection_list, utc_list, wave,
     plt.savefig('Wave_offset_from_sky_vs_wave_%s.png' % galname, dpi=300)
 
 def main():
-    sciobs = args.sciobs.split(',').replace(' ', '')
-    skyobs = args.skyobs.split(',').replace(' ', '')
+    sciobs = [x.replace(' ', '') for x in args.sciobs.split(',')]
+    skyobs = [x.replace(' ', '') for x in args.skyobs.split(',')]
     SciFits_List = []
     for _sciobs in sciobs:
         SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
