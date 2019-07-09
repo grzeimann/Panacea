@@ -510,7 +510,7 @@ def main():
         y = np.median(SciSpectra[:, 410:440], axis=1)
         xc, yc = find_centroid(pos, y)
         ran1 = [ran[0]-xc, ran[1]-xc, ran[2]-yc, ran[3]-yc]
-        ran_list = ran1
+        ran_list.append(ran1)
     ran_array = np.array(ran_list)
     rmax = np.max(ran_array, axis=0)
     rmin = np.min(ran_array, axis=0)
