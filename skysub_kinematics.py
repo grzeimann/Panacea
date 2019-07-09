@@ -504,7 +504,7 @@ def main():
         sky = None
     info = []
     scale = 0.4
-    ran = [-6.4, 6.4, 3.6, 3.6]
+    ran = [-6.4, 6.4, -3.6, 3.6]
     ran_list = []
     for _scifits in SciFits_List:
         SciSpectra = _scifits[0].data
@@ -521,7 +521,7 @@ def main():
     args.log.info('Cube limits - x: [%0.2f, %0.2f], y: [%0.2f, %0.2f]' %
                   (ran[0], ran[1], ran[2], ran[3]))
     for _scifits in SciFits_List:
-        args.log.info('Working on reduction for %s' % _scifits.__filename__)
+        args.log.info('Working on reduction for %s' % _scifits.filename())
         SciSpectra = _scifits[0].data
         SciError = _scifits[3].data
         good = (SciSpectra == 0.).sum(axis=1) < 200
