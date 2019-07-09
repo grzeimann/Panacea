@@ -562,8 +562,6 @@ def main():
     ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
     Header = _scifits[0].header
     for key in header.keys():
-        if key in Header:
-            continue
         if ('CCDSEC' in key) or ('DATASEC' in key):
             continue
         if ('BSCALE' in key) or ('BZERO' in key):
