@@ -494,7 +494,8 @@ def main():
             np.interp(wave_0, T['wave'], T['y_0']))
     
     sky = []
-    for _skyfits in SkySpectra:
+    for _skyfits in SkyFits_List:
+        SkySpectra = _skyfits[0].data
         sel = (SkySpectra == 0.).sum(axis=1) < 200
         sky.append(np.median(SkySpectra[sel], axis=0))
     if len(sky) > 0:
