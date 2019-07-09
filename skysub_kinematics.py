@@ -510,6 +510,7 @@ def main():
         SciSpectra = _scifits[0].data
         y = np.median(SciSpectra[:, 410:440], axis=1)
         xc, yc = find_centroid(pos, y)
+        print(xc, yc)
         ran1 = [ran[0]-xc, ran[1]-xc, ran[2]-yc, ran[3]-yc]
         ran_list.append(ran1)
     ran_array = np.array(ran_list)
@@ -520,7 +521,7 @@ def main():
     args.log.info('Cube limits - x: [%0.2f, %0.2f], y: [%0.2f, %0.2f]' %
                   (ran[0], ran[1], ran[2], ran[3]))
     for _scifits in SciFits_List:
-        args.log.info('Working on reduction for %s' % _scifits.__filename)
+        args.log.info('Working on reduction for %s' % _scifits.__filename__)
         SciSpectra = _scifits[0].data
         SciError = _scifits[3].data
         good = (SciSpectra == 0.).sum(axis=1) < 200
