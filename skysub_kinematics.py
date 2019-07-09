@@ -555,7 +555,7 @@ def main():
         args.log.info('RA, Dec at x, y in cube: %0.6f, %0.6f at %0.2f, %0.2f' %
                       (S.ra.deg, S.dec.deg, xp, yp))
         A = Astrometry(S.ra.deg, S.dec.deg, _scifits[0].header['PARANGLE'],
-                       xp, yp, x_scale=-scale,  y_scale=scale) 
+                       xp, yp, x_scale=scale,  y_scale=scale) 
         header = A.tp.to_header()
     except:
         args.log.error('Coordinates need to be in format XXhXXmXX.Xs and ' 
