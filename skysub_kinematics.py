@@ -402,9 +402,9 @@ def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
         sel *= np.isfinite(data[:, k]) * good * (error[:, k] > 0.)
         if np.any(sel):
             Dcube[k, :, :] = (griddata(S[sel], data[sel, k],
-                                       (xgrid, ygrid), method='linear') * area)
+                                       (xgrid, ygrid), method='cubic') * area)
             Ecube[k, :, :] = (griddata(S[sel], error[sel, k],
-                                       (xgrid, ygrid), method='linear') * area)
+                                       (xgrid, ygrid), method='cubic') * area)
     return Dcube, Ecube, xgrid, ygrid
 
 def write_cube(wave, xgrid, ygrid, Dcube, outname, he):
@@ -510,7 +510,8 @@ def main():
         SciSpectra = _scifits[0].data
         y = np.median(SciSpectra[:, 410:440], axis=1)
         xc, yc = find_centroid(pos, y)
-        print(xc, yc)
+        args.log.info('%s has object centroid at: %0.2f, %0.2f' %
+                      (_scifits.filename(), xc, yc))
         ran1 = [ran[0]-xc, ran[1]-xc, ran[2]-yc, ran[3]-yc]
         ran_list.append(ran1)
     ran_array = np.array(ran_list)
