@@ -503,7 +503,7 @@ def main():
     else:
         sky = None
     info = []
-    scale = 0.4
+    scale = 0.25
     ran = [-6.4, 6.4, -3.6, 3.6]
     ran_list = []
     for _scifits in SciFits_List:
