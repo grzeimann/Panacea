@@ -343,7 +343,7 @@ def find_centroid(pos, y):
     yc = np.sum(image[sel] * grid_y[sel]) / np.sum(image[sel])
     return xc, yc
 
-def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran, area,
+def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
               radius=0.7):
     '''
     Make data cube for a given ifuslot
