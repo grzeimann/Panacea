@@ -15,21 +15,21 @@ import seaborn as sns
 import sys
 import warnings
 
+from astrometry import Astrometry
+from astropy import units as U
+from astropy.coordinates import SkyCoord
 from astropy.convolution import Gaussian1DKernel, convolve
 from astropy.convolution import interpolate_replace_nans
-from astropy.modeling.models import Polynomial2D
-from astropy.modeling.fitting import LevMarLSQFitter
 from astropy.io import fits
 from astropy.stats import biweight_midvariance, sigma_clipped_stats, mad_std
 from astropy.stats import sigma_clip
 from astropy.table import Table
 from input_utils import setup_logging
 from matplotlib.ticker import MultipleLocator
-from scipy.interpolate import LSQBivariateSpline, interp1d
+from scipy.interpolate import LSQBivariateSpline, griddata
 from scipy.signal import medfilt, savgol_filter
-from skimage.feature import register_translation
 from sklearn.decomposition import PCA
-from utils import biweight_location
+from math_utils import biweight
 
 
 warnings.filterwarnings("ignore")
@@ -55,6 +55,11 @@ parser.add_argument("sciobs",
 parser.add_argument("skyobs",
                     help='''e.g., multi_20170126_0000011_exp01_farred.fits''',
                     type=str, default=None)
+
+parser.add_argument("ra",  help='''RA of Galaxy''', type=str)
+
+parser.add_argument("dec",  help='''Dec of Galaxy''', type=str)
+
 
 parser.add_argument("-ds", "--dont_correct_wavelength_to_sky",
                     help='''Don't correct wavelength to sky if used''',
@@ -133,37 +138,6 @@ def get_skyline_file(skyline_file):
     V[:, 0] = V[:, 0] * 1e4
     skyline = convert_vac_to_air(V)
     return skyline
-
-
-
-def write_cube(wave,  xgrid, ygrid, zgrid, outname):
-    hdu = fits.PrimaryHDU(np.array(zgrid, dtype='float32'))
-    hdu.header['CRVAL1'] = xgrid[0, 0]
-    hdu.header['CRVAL2'] = ygrid[0, 0]
-    hdu.header['CRVAL3'] = wave[0]
-    hdu.header['CRPIX1'] = 1
-    hdu.header['CRPIX2'] = 1
-    hdu.header['CRPIX3'] = 1
-    hdu.header['CTYPE1'] = 'pixel'
-    hdu.header['CTYPE2'] = 'pixel'
-    hdu.header['CTYPE3'] = 'pixel'
-    hdu.header['CDELT1'] = xgrid[0, 1] - xgrid[0, 0]
-    hdu.header['CDELT2'] = ygrid[1, 0] - ygrid[0, 0]
-    hdu.header['CDELT3'] = wave[1] - wave[0]
-    hdu.writeto(outname, overwrite=True)
-
-
-def create_image_header(wave, xgrid, ygrid, zgrid, func=fits.ImageHDU):
-    hdu = func(np.array(zgrid, dtype='float32'))
-    hdu.header['CRVAL1'] = xgrid[0, 0]
-    hdu.header['CRVAL2'] = ygrid[0, 0]
-    hdu.header['CRPIX1'] = 1
-    hdu.header['CRPIX2'] = 1
-    hdu.header['CTYPE1'] = 'pixel'
-    hdu.header['CTYPE2'] = 'pixel'
-    hdu.header['CDELT1'] = xgrid[0, 1] - xgrid[0, 0]
-    hdu.header['CDELT2'] = ygrid[1, 0] - ygrid[0, 0]
-    return hdu
 
 
 def create_header_objection(wave, image, func=fits.ImageHDU):
@@ -358,6 +332,115 @@ def make_skyline_wave_offset_vs_wave_plot(wavecorrection_list, utc_list, wave,
     plt.legend()
     plt.savefig('Wave_offset_from_sky_vs_wave_%s.png' % galname, dpi=300)
 
+def find_centroid(pos, y):
+    grid_x, grid_y = np.meshgrid(np.linspace(-7., 7., (14*5+1)),
+                                 np.linspace(-3.5, 3.5, 7*5+1))
+    image = griddata(pos[y>0., :2], y[y>0.], (grid_x, grid_y), method='cubic')
+    xc, yc = (pos[np.argmax(y), 0], pos[np.argmax(y), 1])
+    d = np.sqrt((grid_x - xc)**2 + (grid_y - yc)**2)
+    sel = d < 2.
+    xc = np.sum(image[sel] * grid_x[sel]) / np.sum(image[sel])
+    yc = np.sum(image[sel] * grid_y[sel]) / np.sum(image[sel])
+    return xc, yc
+
+def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran, area,
+              radius=0.7):
+    '''
+    Make data cube for a given ifuslot
+    
+    Parameters
+    ----------
+    xloc : 1d numpy array
+        fiber positions in the x-direction [ifu frame]
+    yloc : 1d numpy array
+        fiber positions in the y-direction [ifu frame]
+    data : 2d numpy array
+        fiber spectra [N fibers x M wavelength]
+    Dx : 1d numpy array
+        Atmospheric refraction in x-direction as a function of wavelength
+    Dy : 1d numpy array
+        Atmospheric refraction in y-direction as a function of wavelength
+    ftf : 1d numpy array
+        Average fiber to fiber normalization (1 value for each fiber)
+    scale : float
+        Spatial pixel scale in arcseconds
+    seeing_fac : float
+    
+    Returns
+    -------
+    Dcube : 3d numpy array
+        Data cube, corrected for ADR
+    xgrid : 2d numpy array
+        x-coordinates for data cube
+    ygrid : 2d numpy array
+        y-coordinates for data cube
+    '''
+    a, b = data.shape
+    N1 = int((ran[1] - ran[0]) / scale)
+    N2 = int((ran[3] - ran[2]) / scale)
+    xgrid, ygrid = np.meshgrid(np.linspace(ran[0], ran[1], N1),
+                               np.linspace(ran[2], ran[3], N2))
+    Dcube = np.zeros((b,)+xgrid.shape)
+    Ecube = np.zeros((b,)+xgrid.shape)
+
+    S = np.zeros((data.shape[0], 2))
+    D = np.sqrt((xloc - xloc[:, np.newaxis])**2 +
+                (yloc - yloc[:, np.newaxis])**2)
+    area = scale**2 / (3. / 4. * np.sqrt(3.) * 0.59**2)
+
+    W = np.zeros(D.shape, dtype=bool)
+    W[D < radius] = True
+    Gp = Gaussian1DKernel(5.)
+    c = data * 0.
+    for i in np.arange(data.shape[0]):
+        c[i] = interpolate_replace_nans(data[i], Gp)
+    data = c * 1.
+    for k in np.arange(b):
+        S[:, 0] = xloc - Dx[k]
+        S[:, 1] = yloc - Dy[k]
+        sel = (data[:, k] / np.nansum(data[:, k] * W, axis=1)) <= 0.4
+        sel *= np.isfinite(data[:, k]) * good * (error[:, k] > 0.)
+        if np.any(sel):
+            Dcube[k, :, :] = (griddata(S[sel], data[sel, k],
+                                       (xgrid, ygrid), method='linear') * area)
+            Ecube[k, :, :] = (griddata(S[sel], error[sel, k],
+                                       (xgrid, ygrid), method='linear') * area)
+    return Dcube, Ecube, xgrid, ygrid
+
+def write_cube(wave, xgrid, ygrid, Dcube, outname, he):
+    '''
+    Write data cube to fits file
+    
+    Parameters
+    ----------
+    wave : 1d numpy array
+        Wavelength for data cube
+    xgrid : 2d numpy array
+        x-coordinates for data cube
+    ygrid : 2d numpy array
+        y-coordinates for data cube
+    Dcube : 3d numpy array
+        Data cube, corrected for ADR
+    outname : str
+        Name of the outputted fits file
+    he : object
+        hdu header object to carry original header information
+    '''
+    hdu = fits.PrimaryHDU(np.array(Dcube, dtype='float32'))
+    hdu.header['CRVAL3'] = wave[0]
+    hdu.header['CRPIX3'] = 1
+    hdu.header['CTYPE3'] = 'pixel'
+    hdu.header['CDELT3'] = wave[1] - wave[0]
+    for key in he.keys():
+        if key in hdu.header:
+            continue
+        if ('CCDSEC' in key) or ('DATASEC' in key):
+            continue
+        if ('BSCALE' in key) or ('BZERO' in key):
+            continue
+        hdu.header[key] = he[key]
+    hdu.writeto(outname, overwrite=True)
+
 def main():
     sciobs = [x.replace(' ', '') for x in args.sciobs.split(',')]
     skyobs = [x.replace(' ', '') for x in args.skyobs.split(',')]
@@ -401,57 +484,100 @@ def main():
         make_skyline_wave_offset_vs_wave_plot(wavecorrection_list, utc_list,
                                                wave, args.galaxyname,
                                                SkyLines)
-#    x, y = (F[5].data[:, 0], F[5].data[:, 1])
-#    wave_0 = np.mean(wave)
-#    xoff = (np.interp(wave, T['wave'], T['x_0']) -
-#            np.interp(wave_0, T['wave'], T['x_0']))
-#    yoff = (np.interp(wave, T['wave'], T['y_0']) -
-#            np.interp(wave_0, T['wave'], T['y_0']))
+    
+    # Get Fiber Positions and ADR Correction
+    pos = SciFits_List[0][5].data
+    wave_0 = np.mean(wave)
+    xoff = (np.interp(wave, T['wave'], T['x_0']) -
+            np.interp(wave_0, T['wave'], T['x_0']))
+    yoff = (np.interp(wave, T['wave'], T['y_0']) -
+            np.interp(wave_0, T['wave'], T['y_0']))
+    
+    sky = []
+    for _skyfits in SkySpectra:
+        sel = (SkySpectra == 0.).sum(axis=1) < 200
+        sky.append(np.median(SkySpectra[sel], axis=0))
+    if len(sky) > 0:
+        sky = np.sum(sky, axis=0)
+    else:
+        sky = None
+    info = []
+    scale = 0.4
+    ran = [-6.4, 6.4, 3.6, 3.6]
+    ran_list = []
+    for _scifits in SciFits_List:
+        SciSpectra = _scifits[0].data
+        y = np.median(SciSpectra[:, 410:440], axis=1)
+        xc, yc = find_centroid(pos, y)
+        ran1 = [ran[0]-xc, ran[1]-xc, ran[2]-yc, ran[3]-yc]
+        ran_list = ran1
+    ran_array = np.array(ran_list)
+    rmax = np.max(ran_array, axis=0)
+    rmin = np.min(ran_array, axis=0)
+    ran = [np.floor(rmin[0]/scale)*scale, np.ceil(rmax[1]/scale)*scale,
+           np.floor(rmin[2]/scale)*scale, np.ceil(rmax[3]/scale)*scale]   
+    args.log.info('Cube limits - x: [%0.2f, %0.2f], y: [%0.2f, %0.2f]' %
+                  (ran[0], ran[1], ran[2], ran[3]))
+    for _scifits in SciFits_List:
+        args.log.info('Working on reduction for %s' % _scifits.__filename)
+        SciSpectra = _scifits[0].data
+        SciError = _scifits[3].data
+        good = (SciSpectra == 0.).sum(axis=1) < 200
+        y = np.median(SciSpectra[:, 410:440], axis=1)
+        xc, yc = find_centroid(pos, y)
+               
+        zcube, ecube, xgrid, ygrid = make_cube(pos[:, 0]-xc, pos[:, 1]-yc,
+                                               SciSpectra, SciError,
+                                               xoff, yoff, good,
+                                               scale, ran)
+        d = np.sqrt(xgrid**2 + ygrid**2)
+        skysel = (d > np.max(d) - 1.5)
+        scisky = np.nanmedian(zcube[:, skysel], axis=1)
+        if sky is not None:
+            ratio = biweight(zcube[:, skysel] / sky[:, np.newaxis], axis=1)
+            scisky = sky * ratio
+        skysub_cube = zcube - scisky[:, np.newaxis, np.newaxis]
+        info.append([skysub_cube, ecube, xgrid, ygrid])
+    
+    xgrid = info[0][2]
+    ygrid = info[0][3]
+    try:
+        S = SkyCoord(args.ra, args.dec)
+        xt = np.arange(1, xgrid.shape[1]+1)
+        yt = np.arange(1, ygrid.shape[0]+1)
+        xp = np.interp(0., xgrid[0], xt)
+        yp = np.interp(0., ygrid[:, 0], yt)
+        args.log.info('RA, Dec at x, y in cube: %0.6f, %0.6f at %0.2f, %0.2f' %
+                      (S.ra.deg, S.dec.deg, xp, yp))
+        A = Astrometry(S.ra.deg, S.dec.deg, _scifits[0].header['PARANGLE'],
+                       xp, yp, x_scale=-scale,  y_scale=scale) 
+        header = A.tp.to_header()
+    except:
+        args.log.error('Coordinates need to be in format XXhXXmXX.Xs and ' 
+                       '+/-XXdXXmXX.Xs')
+    zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
+    ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
+    Header = _scifits[0].header
+    for key in header.keys():
+        if key in Header:
+            continue
+        if ('CCDSEC' in key) or ('DATASEC' in key):
+            continue
+        if ('BSCALE' in key) or ('BZERO' in key):
+            continue
+        Header[key] = header[key]
+    outname = '%s_%s_cube.fits' % (args.galaxyname,  channel)
+    eoutname = '%s_%s_error_cube.fits' % (args.galaxyname,  channel)
+    write_cube(wave, xgrid, ygrid, zcube, outname, Header)
+    write_cube(wave, xgrid, ygrid, ecube, eoutname, Header)
 
-#    # Initial Models
-#    xn, yn = (0., 0.)
-#    sel = np.where(((x - xn)**2 + (y-yn)**2) > 5.0**2)[0]
-#    v = biweight_location(sci_list[1][sel, :] / sky_list[1][sel, :],
-#                          axis=(0,))
-#    gal_image = biweight_location(sci_list[1] - v * sky_list[1], axis=(1,))
-#    loc = np.argmax(gal_image)
-#    args.log.info('Peak found at %0.2f, %0.2f' % (x[loc], y[loc]))
-#    xn, yn = (x[loc], y[loc])
-#    d = (x - xn)**2 + (y-yn)**2
-#    thresh = np.percentile(d, 90)
-#    sel = np.where(((x - xn)**2 + (y-yn)**2) > thresh)[0]
-#    v = biweight_location(sci_list[1][sel, :] / sky_list[1][sel, :],
-#                          axis=(0,))
-#        XN = biweight_location(sci_list[1], axis=(1,))
-#        YN = biweight_location(v*sky_list[1], axis=(1,))
-#        data = XN / YN
-#        mean, median, std = sigma_clipped_stats(info[0]/info[1])
-#        sel = np.abs(data - median) < 3. * std
-#        P = Polynomial2D(2)
-#        fitter = LevMarLSQFitter()
-#        fit = fitter(P, x[sel], y[sel], data[sel])
-#        offset = fit(x, y)
-#        sky_list[1] = sky_list[1] * offset[:, np.newaxis]
-#        gal_image = biweight_location(sci_list[1] - v * sky_list[1], axis=(1,))
-#        sky, temp, norm1, norm2 = solve_system(sci_list, sky_list, x, y, xoff,
-#                                               yoff, gal_image)
-#        skysub = sci_list[1] - sky
-#        for S, name in zip([sky, skysub], ['sky', 'skysub']):
-#            outname = '%s_%s_%s_%s_%s_cube.fits' % (scidate, sciobs, sciexp,
-#                                                    specname, name)
-#            zcube, zimage, xgrid, ygrid = make_frame(x, y, S, wave, T['wave'],
-#                                                     xoff, yoff,
-#                                                     wstart=wave_0-50.,
-#                                                     wend=wave_0+50.)
-#            write_cube(wave, xgrid, ygrid, zcube, outname)
-#        outname = '%s_%s_%s_%s_%s.fits' % ('multi', scidate, sciobs, sciexp,
-#                                           specname)
-#        X = np.array([T['wave'], T['x_0'], T['y_0']])
-#        f1 = create_header_objection(wave, sci_list[1], func=fits.PrimaryHDU)
-#        f2 = create_header_objection(wave, sky)
-#        f3 = create_header_objection(wave, skysub)
-#        fits.HDUList([f1, f2, f3, fits.ImageHDU(sci_list[0]),
-#                      fits.ImageHDU(wave), fits.ImageHDU(zimage),
-#                      fits.ImageHDU(X)]).writeto(outname, overwrite=True)
+        
+#    X = np.array([T['wave'], T['x_0'], T['y_0']])
+#    f1 = create_header_objection(wave, sci_list[1], func=fits.PrimaryHDU)
+#    f2 = create_header_objection(wave, sky)
+#    f3 = create_header_objection(wave, skysub)
+#    fits.HDUList([f1, f2, f3, fits.ImageHDU(sci_list[0]),
+#                  fits.ImageHDU(wave), fits.ImageHDU(zimage),
+#                  fits.ImageHDU(X)]).writeto(outname, overwrite=True)
 
 main()
