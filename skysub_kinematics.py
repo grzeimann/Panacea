@@ -486,11 +486,13 @@ def main():
                                                SkyLines)
     
     # Get Fiber Positions and ADR Correction
-    pos = SciFits_List[0][5].data
+    pos = SciFits_List[0][5].data * 1.
+    pos[:, 1] = SciFits_List[0][5].data[:, 0] * 1.
+    pos[:, 0] = SciFits_List[0][5].data[:, 1] * 1.
     wave_0 = np.mean(wave)
-    xoff = (np.interp(wave, T['wave'], T['x_0']) -
+    yoff = (np.interp(wave, T['wave'], T['x_0']) -
             np.interp(wave_0, T['wave'], T['x_0']))
-    yoff = (np.interp(wave, T['wave'], T['y_0']) -
+    xoff = (np.interp(wave, T['wave'], T['y_0']) -
             np.interp(wave_0, T['wave'], T['y_0']))
     
     sky = []
@@ -504,7 +506,7 @@ def main():
         sky = None
     info = []
     scale = 0.25
-    ran = [-6.4, 6.4, -3.6, 3.6]
+    ran = [-3.6, 3.6, -6.4, 6.4]
     ran_list = []
     for _scifits in SciFits_List:
         SciSpectra = _scifits[0].data
