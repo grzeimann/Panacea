@@ -554,7 +554,7 @@ def main():
         ran1 = [np.min(delta_ra), np.max(delta_ra), np.min(delta_dec),
                 np.max(delta_dec)]
         ran_list.append(ran1)
-        Pos.append([delta_ra, delta_dec])
+        Pos.append([delta_ra, delta_dec, raoff, decoff])
     ran_array = np.array(ran_list)
     rmax = np.max(ran_array, axis=0)
     rmin = np.min(ran_array, axis=0)
@@ -570,7 +570,7 @@ def main():
         good = (SciSpectra == 0.).sum(axis=1) < 200
         zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
-                                               xoff, yoff, good,
+                                               P[2], P[3], good,
                                                scale, ran)
         d = np.sqrt(xgrid**2 + ygrid**2)
         skysel = (d > np.max(d) - 1.5)
