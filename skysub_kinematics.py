@@ -562,7 +562,7 @@ def main():
            np.floor(rmin[2]/scale)*scale, np.ceil(rmax[3]/scale)*scale]   
     args.log.info('Cube limits - x: [%0.2f, %0.2f], y: [%0.2f, %0.2f]' %
                   (ran[0], ran[1], ran[2], ran[3]))
-
+    F = []
     for _scifits, P in zip(SciFits_List, Pos):
         args.log.info('Working on reduction for %s' % _scifits.filename())
         SciSpectra = _scifits[0].data
@@ -580,6 +580,15 @@ def main():
             scisky = sky * ratio
         skysub_cube = zcube - scisky[:, np.newaxis, np.newaxis]
         info.append([skysub_cube, ecube, xgrid, ygrid])
+        d = np.sqrt(P[0]**2 + P[1]**2)
+        skysel = (d > np.max(d) - 1.5)
+        skytemp = np.nanmedian(SciSpectra[skysel], axis=0)
+        if sky is not None:
+            ratio = biweight(SciSpectra[skysel] / sky, axis=1)
+            skytemp = sky * ratio
+        f1 = create_header_objection(wave, SciSpectra - skytemp,
+                                     func=fits.PrimaryHDU)
+        F.append(f1)
     
     xgrid = info[0][2]
     ygrid = info[0][3]
@@ -591,14 +600,7 @@ def main():
     eoutname = '%s_%s_error_cube.fits' % (args.galaxyname,  channel)
     write_cube(wave, xgrid, ygrid, zcube, outname, Header)
     write_cube(wave, xgrid, ygrid, ecube, eoutname, Header)
-
-        
-#    X = np.array([T['wave'], T['x_0'], T['y_0']])
-#    f1 = create_header_objection(wave, sci_list[1], func=fits.PrimaryHDU)
-#    f2 = create_header_objection(wave, sky)
-#    f3 = create_header_objection(wave, skysub)
-#    fits.HDUList([f1, f2, f3, fits.ImageHDU(sci_list[0]),
-#                  fits.ImageHDU(wave), fits.ImageHDU(zimage),
-#                  fits.ImageHDU(X)]).writeto(outname, overwrite=True)
+    outname = '%s_%s_multi.fits' % (args.galaxyname,  channel)
+    fits.HDUList(F).writeto(outname, overwrite=True)
 
 main()
