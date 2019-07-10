@@ -586,8 +586,12 @@ def main():
         if sky is not None:
             ratio = biweight(SciSpectra[skysel] / sky, axis=0)
             skytemp = sky * ratio
+        if len(F) == 0:
+            func = fits.PrimaryHDU
+        else:
+            func = fits.ImageHDU
         f1 = create_header_objection(wave, SciSpectra - skytemp,
-                                     func=fits.PrimaryHDU)
+                                     func=func)
         F.append(f1)
     
     xgrid = info[0][2]
