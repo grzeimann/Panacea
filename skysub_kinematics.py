@@ -543,7 +543,7 @@ def main():
         date = _sciobs.split('_')[1]
         channel = _sciobs.split('_')[-1][:-5]
         calname = 'cal_%s_%s.fits' % (date, channel)
-        CalFits_List.append(fits.open(op.join(args.directory, calname)))
+        CalFits_List.append(fits.open(op.join(args.caldirectory, calname)))
         args.log.info('Cal observation: %s loaded' % calname)
     
     # Basic Info Dump
