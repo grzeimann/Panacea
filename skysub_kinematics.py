@@ -427,9 +427,17 @@ def write_cube(wave, xgrid, ygrid, Dcube, outname, he):
         hdu header object to carry original header information
     '''
     hdu = fits.PrimaryHDU(np.array(Dcube, dtype='float32'))
+    hdu.header['CRVAL1'] = xgrid[0, 0]
+    hdu.header['CRVAL2'] = ygrid[0, 0]
     hdu.header['CRVAL3'] = wave[0]
+    hdu.header['CRPIX1'] = 1
+    hdu.header['CRPIX2'] = 1
     hdu.header['CRPIX3'] = 1
+    hdu.header['CTYPE1'] = 'pixel'
+    hdu.header['CTYPE2'] = 'pixel'
     hdu.header['CTYPE3'] = 'pixel'
+    hdu.header['CDELT1'] = xgrid[0, 1] - xgrid[0, 0]
+    hdu.header['CDELT2'] = ygrid[1, 0] - ygrid[0, 0]
     hdu.header['CDELT3'] = wave[1] - wave[0]
     for key in he.keys():
         if key in hdu.header:
@@ -440,6 +448,22 @@ def write_cube(wave, xgrid, ygrid, Dcube, outname, he):
             continue
         hdu.header[key] = he[key]
     hdu.writeto(outname, overwrite=True)
+
+def get_ADR_RAdec(xoff, yoff, astrometry_object):
+        '''
+        Use an astrometry object to convert delta_x and delta_y into
+        delta_ra and delta_dec
+        
+        Parameters
+        ----------
+        astrometry_object : Astrometry Class
+            Contains the astrometry to convert x and y to RA and Dec
+        '''
+        tRA, tDec = astrometry_object.tp.wcs_pix2world(xoff, yoff, 1)
+        ADRra = ((tRA - astrometry_object.ra0) * 3600. *
+                      np.cos(np.deg2rad(astrometry_object.dec0)))
+        ADRdec = (tDec - astrometry_object.dec0) * 3600.
+        return ADRra, ADRdec
 
 def main():
     sciobs = [x.replace(' ', '') for x in args.sciobs.split(',')]
@@ -508,14 +532,29 @@ def main():
     scale = 0.25
     ran = [-3.6, 3.6, -6.4, 6.4]
     ran_list = []
+    try:
+        S = SkyCoord(args.ra, args.dec)
+    except:
+        args.log.error('Coordinates need to be in format XXhXXmXX.Xs and ' 
+                       '+/-XXdXXmXX.Xs')
+        sys.exit(1)
+    Pos = []
     for _scifits in SciFits_List:
         SciSpectra = _scifits[0].data
         y = np.median(SciSpectra[:, 410:440], axis=1)
         xc, yc = find_centroid(pos, y)
         args.log.info('%s has object centroid at: %0.2f, %0.2f' %
                       (_scifits.filename(), xc, yc))
-        ran1 = [ran[0]-xc, ran[1]-xc, ran[2]-yc, ran[3]-yc]
+        A = Astrometry(S.ra.deg, S.dec.deg, _scifits[0].header['PARANGLE'],
+                       xc, yc)
+        raoff, decoff = get_ADR_RAdec(xoff+xc, yoff+yc, A)
+        ra, dec = A.tp.wcs_pix2world(pos[:, 0], pos[:, 1], 1)
+        delta_ra = np.cos(np.deg2rad(S.dec.deg)) * (ra - S.ra.deg) * 3600.
+        delta_dec = (dec - S.dec.deg) * 3600.
+        ran1 = [np.min(delta_ra), np.max(delta_ra), np.min(delta_dec),
+                np.max(delta_dec)]
         ran_list.append(ran1)
+        Pos.append([delta_ra, delta_dec])
     ran_array = np.array(ran_list)
     rmax = np.max(ran_array, axis=0)
     rmin = np.min(ran_array, axis=0)
@@ -523,15 +562,13 @@ def main():
            np.floor(rmin[2]/scale)*scale, np.ceil(rmax[3]/scale)*scale]   
     args.log.info('Cube limits - x: [%0.2f, %0.2f], y: [%0.2f, %0.2f]' %
                   (ran[0], ran[1], ran[2], ran[3]))
-    for _scifits in SciFits_List:
+
+    for _scifits, P in zip(SciFits_List, Pos):
         args.log.info('Working on reduction for %s' % _scifits.filename())
         SciSpectra = _scifits[0].data
         SciError = _scifits[3].data
         good = (SciSpectra == 0.).sum(axis=1) < 200
-        y = np.median(SciSpectra[:, 410:440], axis=1)
-        xc, yc = find_centroid(pos, y)
-               
-        zcube, ecube, xgrid, ygrid = make_cube(pos[:, 0]-xc, pos[:, 1]-yc,
+        zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
                                                xoff, yoff, good,
                                                scale, ran)
@@ -546,29 +583,10 @@ def main():
     
     xgrid = info[0][2]
     ygrid = info[0][3]
-    try:
-        S = SkyCoord(args.ra, args.dec)
-        xt = np.arange(1, xgrid.shape[1]+1)
-        yt = np.arange(1, ygrid.shape[0]+1)
-        xp = np.interp(0., xgrid[0], xt)
-        yp = np.interp(0., ygrid[:, 0], yt)
-        args.log.info('RA, Dec at x, y in cube: %0.6f, %0.6f at %0.2f, %0.2f' %
-                      (S.ra.deg, S.dec.deg, xp, yp))
-        A = Astrometry(S.ra.deg, S.dec.deg, _scifits[0].header['PARANGLE'],
-                       xp, yp, x_scale=scale,  y_scale=scale) 
-        header = A.tp.to_header()
-    except:
-        args.log.error('Coordinates need to be in format XXhXXmXX.Xs and ' 
-                       '+/-XXdXXmXX.Xs')
+    
     zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
     ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
     Header = _scifits[0].header
-    for key in header.keys():
-        if ('CCDSEC' in key) or ('DATASEC' in key):
-            continue
-        if ('BSCALE' in key) or ('BZERO' in key):
-            continue
-        Header[key] = header[key]
     outname = '%s_%s_cube.fits' % (args.galaxyname,  channel)
     eoutname = '%s_%s_error_cube.fits' % (args.galaxyname,  channel)
     write_cube(wave, xgrid, ygrid, zcube, outname, Header)
