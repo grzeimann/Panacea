@@ -546,7 +546,7 @@ def main():
         args.log.info('%s has object centroid at: %0.2f, %0.2f' %
                       (_scifits.filename(), xc, yc))
         A = Astrometry(S.ra.deg, S.dec.deg, _scifits[0].header['PARANGLE'],
-                       xc, yc, kind='lrs2')
+                       xc, yc, kind='lrs2', x_scale=1., y_scale=1.)
         raoff, decoff = get_ADR_RAdec(xoff+xc, yoff+yc, A)
         ra, dec = A.tp.wcs_pix2world(pos[:, 0], pos[:, 1], 1)
         delta_ra = np.cos(np.deg2rad(S.dec.deg)) * (ra - S.ra.deg) * 3600.
