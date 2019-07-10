@@ -46,6 +46,10 @@ parser.add_argument("-d", "--directory",
                     help='''base directory for reductions''',
                     type=str, default="")
 
+parser.add_argument("-c", "--caldirectory",
+                    help='''cal directory for reductions''',
+                    type=str, default="")
+
 parser.add_argument("galaxyname",  help='''Name of Galaxy''', type=str)
 
 parser.add_argument("sciobs",
@@ -468,13 +472,20 @@ def get_ADR_RAdec(xoff, yoff, astrometry_object):
         ADRdec = (tDec - astrometry_object.dec0) * 3600.
         return ADRra, ADRdec
 
-def get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt, sky_subtract=True):
+def get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt, sky_subtract=True,
+             cal=False):
     F = []
     info = []
     for _scifits, P in zip(SciFits_List, Pos):
         args.log.info('Working on reduction for %s' % _scifits.filename())
-        SciSpectra = _scifits[0].data
-        SciError = _scifits[3].data
+        if not cal:
+            SciSpectra = _scifits[0].data
+            SciError = _scifits[3].data
+        else:
+            SciSpectra = _scifits['arcspec'].data
+            sel = SciSpectra > 0.
+            SciError[sel]= np.sqrt(SciSpectra/np.sqrt(2) + 3**2*2.)
+            SciError[~sel] = np.sqrt(3**2*2.)
         good = (SciSpectra == 0.).sum(axis=1) < 200
         zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
@@ -527,6 +538,13 @@ def main():
         if skyflag:
             SkyFits_List.append(fits.open(op.join(args.directory, _skyobs)))
             args.log.info('Sky observation: %s loaded' % (_skyobs))
+    CalFits_List = []
+    for _sciobs in sciobs:
+        date = _sciobs.split('_')[1]
+        channel = _sciobs.split('_')[-1][:-5]
+        calname = 'cal_%s_%s.fits' % (date, channel)
+        CalFits_List.append(fits.open(op.join(args.directory, calname)))
+        args.log.info('Cal observation: %s loaded' % calname)
     
     # Basic Info Dump
     wave = SciFits_List[0][6].data[0]
@@ -629,17 +647,36 @@ def main():
     ################################# Sky #####################################
     cnt = 1
     F1, info = get_cube(SkyFits_List, Pos, scale, ran, sky, wave, cnt,
-                       sky_subtract=False)
-    xgrid = info[0][2]
-    ygrid = info[0][3]
-    zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
-    ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
-    Header = _scifits[0].header
-    outname = '%s_%s_sky_cube.fits' % (args.galaxyname,  channel)
-    eoutname = '%s_%s_sky_error_cube.fits' % (args.galaxyname,  channel)
-    write_cube(wave, xgrid, ygrid, zcube, outname, Header)
-    write_cube(wave, xgrid, ygrid, ecube, eoutname, Header)
+                        sky_subtract=False)
+    if len(info):
+        xgrid = info[0][2]
+        ygrid = info[0][3]
+        zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
+        ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
+        Header = _scifits[0].header
+        outname = '%s_%s_sky_cube.fits' % (args.galaxyname,  channel)
+        eoutname = '%s_%s_sky_error_cube.fits' % (args.galaxyname,  channel)
+        write_cube(wave, xgrid, ygrid, zcube, outname, Header)
+        write_cube(wave, xgrid, ygrid, ecube, eoutname, Header)
     outname = '%s_%s_multi.fits' % (args.galaxyname,  channel)
     fits.HDUList(F+F1).writeto(outname, overwrite=True)
+    
+    ################################# Cal #####################################
+    cnt = 1
+    F2, info = get_cube(CalFits_List, Pos, scale, ran, sky, wave, cnt,
+                        sky_subtract=False, cal=True)
+    if len(info):
+        xgrid = info[0][2]
+        ygrid = info[0][3]
+        zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
+        ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
+        Header = _scifits[0].header
+        outname = '%s_%s_lamp_cube.fits' % (args.galaxyname,  channel)
+        eoutname = '%s_%s_lamp_error_cube.fits' % (args.galaxyname,  channel)
+        write_cube(wave, xgrid, ygrid, zcube, outname, Header)
+        write_cube(wave, xgrid, ygrid, ecube, eoutname, Header)
+    outname = '%s_%s_multi.fits' % (args.galaxyname,  channel)
+    
+    fits.HDUList(F+F1+F2).writeto(outname, overwrite=True)
 
 main()
