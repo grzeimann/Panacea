@@ -129,6 +129,8 @@ class Astrometry:
             self.rot = 360. - (90. + self.pa + self.sys_rot)
         elif self.kind == 'acam':
             self.rot = self.pa + self.sys_rot + 90.
+        elif self.kind == 'lrs2':
+            self.rot = 360. - (self.pa + self.sys_rot)
         else:
             self.log.error('"kind" was not set to available options.')
             self.log.info('Available options are: %s and %s' % ('fplane',
