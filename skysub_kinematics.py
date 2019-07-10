@@ -483,6 +483,7 @@ def get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt, sky_subtract=True,
             SciError = _scifits[3].data
         else:
             SciSpectra = _scifits['arcspec'].data
+            SciError = 0. * SciSpectra
             sel = SciSpectra > 0.
             SciError[sel]= np.sqrt(SciSpectra/np.sqrt(2) + 3**2*2.)
             SciError[~sel] = np.sqrt(3**2*2.)
