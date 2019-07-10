@@ -572,6 +572,7 @@ def main():
                                                SciSpectra, SciError,
                                                P[2], P[3], good,
                                                scale, ran)
+        fits.PrimaryHDU(np.array([P[2], P[3]])).writeto('test.fits', overwrite=True)
         d = np.sqrt(xgrid**2 + ygrid**2)
         skysel = (d > np.max(d) - 1.5)
         scisky = np.nanmedian(zcube[:, skysel], axis=1)
