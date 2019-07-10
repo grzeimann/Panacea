@@ -485,7 +485,7 @@ def get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt, sky_subtract=True,
             SciSpectra = _scifits['arcspec'].data
             SciError = 0. * SciSpectra
             sel = SciSpectra > 0.
-            SciError[sel]= np.sqrt(SciSpectra/np.sqrt(2) + 3**2*2.)
+            SciError[sel]= np.sqrt(SciSpectra[sel]/np.sqrt(2) + 3**2*2.)
             SciError[~sel] = np.sqrt(3**2*2.)
         good = (SciSpectra == 0.).sum(axis=1) < 200
         zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
