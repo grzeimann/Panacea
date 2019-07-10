@@ -376,8 +376,8 @@ def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
         y-coordinates for data cube
     '''
     a, b = data.shape
-    N1 = int((ran[1] - ran[0]) / scale)
-    N2 = int((ran[3] - ran[2]) / scale)
+    N1 = int((ran[1] - ran[0]) / scale)+1
+    N2 = int((ran[3] - ran[2]) / scale)+1
     xgrid, ygrid = np.meshgrid(np.linspace(ran[0], ran[1], N1),
                                np.linspace(ran[2], ran[3], N2))
     Dcube = np.zeros((b,)+xgrid.shape)
