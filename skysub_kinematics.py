@@ -60,6 +60,9 @@ parser.add_argument("ra",  help='''RA of Galaxy''', type=str)
 
 parser.add_argument("dec",  help='''Dec of Galaxy''', type=str)
 
+parser.add_argument("-dss", "--dont_subtract_sky",
+                    help='''Don't Subtract Sky''',
+                    action="count", default=0)
 
 parser.add_argument("-ds", "--dont_correct_wavelength_to_sky",
                     help='''Don't correct wavelength to sky if used''',
@@ -465,6 +468,52 @@ def get_ADR_RAdec(xoff, yoff, astrometry_object):
         ADRdec = (tDec - astrometry_object.dec0) * 3600.
         return ADRra, ADRdec
 
+def get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt, sky_subtract=True):
+    F = []
+    info = []
+    for _scifits, P in zip(SciFits_List, Pos):
+        args.log.info('Working on reduction for %s' % _scifits.filename())
+        SciSpectra = _scifits[0].data
+        SciError = _scifits[3].data
+        good = (SciSpectra == 0.).sum(axis=1) < 200
+        zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
+                                               SciSpectra, SciError,
+                                               P[2], P[3], good,
+                                               scale, ran)
+        d = np.sqrt(P[0]**2 + P[1]**2)
+        skysel = (d > np.max(d) - 1.5)
+        pixsel = np.zeros(xgrid.shape, dtype=bool)
+        for fib in np.where(skysel)[0]:    
+            D = np.sqrt((xgrid-P[0][fib])**2 + (ygrid-P[1][fib])**2)
+            pixsel += D < 0.6
+        if sky_subtract:
+            scisky = np.nanmedian(zcube[:, pixsel], axis=1)
+            if sky is not None:
+                ratio = biweight(zcube[:, pixsel] / sky[:, np.newaxis], axis=1)
+                scisky = sky * ratio
+        else:
+            scisky = np.zeros((SciSpectra.shape[1],))
+        skysub_cube = zcube - scisky[:, np.newaxis, np.newaxis]
+        info.append([skysub_cube, ecube, xgrid, ygrid])
+        
+        # Subtract sky in fiber space rather than on the cube
+        if sky_subtract:
+            skytemp = np.nanmedian(SciSpectra[skysel], axis=0)
+            if sky is not None:
+                ratio = biweight(SciSpectra[skysel] / sky, axis=0)
+                skytemp = sky * ratio
+        else:
+            skytemp = np.zeros((SciSpectra.shape[1],))
+        if cnt == 0:
+            func = fits.PrimaryHDU
+        else:
+            func = fits.ImageHDU
+        f1 = create_header_objection(wave, SciSpectra - skytemp,
+                                     func=func)
+        F.append(f1)
+        cnt += 1
+    return F, info
+
 def main():
     sciobs = [x.replace(' ', '') for x in args.sciobs.split(',')]
     skyobs = [x.replace(' ', '') for x in args.skyobs.split(',')]
@@ -562,44 +611,13 @@ def main():
            np.floor(rmin[2]/scale)*scale, np.ceil(rmax[3]/scale)*scale]   
     args.log.info('Cube limits - x: [%0.2f, %0.2f], y: [%0.2f, %0.2f]' %
                   (ran[0], ran[1], ran[2], ran[3]))
-    F = []
-    for _scifits, P in zip(SciFits_List, Pos):
-        args.log.info('Working on reduction for %s' % _scifits.filename())
-        SciSpectra = _scifits[0].data
-        SciError = _scifits[3].data
-        good = (SciSpectra == 0.).sum(axis=1) < 200
-        zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
-                                               SciSpectra, SciError,
-                                               P[2], P[3], good,
-                                               scale, ran)
-        d = np.sqrt(P[0]**2 + P[1]**2)
-        skysel = (d > np.max(d) - 1.5)
-        pixsel = np.zeros(xgrid.shape, dtype=bool)
-        for fib in np.where(skysel)[0]:    
-            D = np.sqrt((xgrid-P[0][fib])**2 + (ygrid-P[1][fib])**2)
-            pixsel += D < 0.6
-        scisky = np.nanmedian(zcube[:, pixsel], axis=1)
-        if sky is not None:
-            ratio = biweight(zcube[:, pixsel] / sky[:, np.newaxis], axis=1)
-            scisky = sky * ratio
-        skysub_cube = zcube - scisky[:, np.newaxis, np.newaxis]
-        info.append([skysub_cube, ecube, xgrid, ygrid])
-        
-        skytemp = np.nanmedian(SciSpectra[skysel], axis=0)
-        if sky is not None:
-            ratio = biweight(SciSpectra[skysel] / sky, axis=0)
-            skytemp = sky * ratio
-        if len(F) == 0:
-            func = fits.PrimaryHDU
-        else:
-            func = fits.ImageHDU
-        f1 = create_header_objection(wave, SciSpectra - skytemp,
-                                     func=func)
-        F.append(f1)
     
+    ############################### Science ###################################
+    cnt = 0
+    F, info = get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt,
+                       sky_subtract=True)
     xgrid = info[0][2]
     ygrid = info[0][3]
-    
     zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
     ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
     Header = _scifits[0].header
@@ -607,7 +625,21 @@ def main():
     eoutname = '%s_%s_error_cube.fits' % (args.galaxyname,  channel)
     write_cube(wave, xgrid, ygrid, zcube, outname, Header)
     write_cube(wave, xgrid, ygrid, ecube, eoutname, Header)
+    
+    ################################# Sky #####################################
+    cnt = 1
+    F1, info = get_cube(SkyFits_List, Pos, scale, ran, sky, wave, cnt,
+                       sky_subtract=False)
+    xgrid = info[0][2]
+    ygrid = info[0][3]
+    zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
+    ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
+    Header = _scifits[0].header
+    outname = '%s_%s_sky_cube.fits' % (args.galaxyname,  channel)
+    eoutname = '%s_%s_sky_error_cube.fits' % (args.galaxyname,  channel)
+    write_cube(wave, xgrid, ygrid, zcube, outname, Header)
+    write_cube(wave, xgrid, ygrid, ecube, eoutname, Header)
     outname = '%s_%s_multi.fits' % (args.galaxyname,  channel)
-    fits.HDUList(F).writeto(outname, overwrite=True)
+    fits.HDUList(F+F1).writeto(outname, overwrite=True)
 
 main()
