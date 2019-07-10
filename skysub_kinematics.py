@@ -572,17 +572,19 @@ def main():
                                                SciSpectra, SciError,
                                                P[2], P[3], good,
                                                scale, ran)
-        fits.PrimaryHDU(np.array([P[2], P[3]])).writeto('test.fits', overwrite=True)
-        d = np.sqrt(xgrid**2 + ygrid**2)
+        d = np.sqrt(P[0]**2 + P[1]**2)
         skysel = (d > np.max(d) - 1.5)
-        scisky = np.nanmedian(zcube[:, skysel], axis=1)
+        pixsel = np.zeros(xgrid.shape, dtype=bool)
+        for fib in np.where(skysel)[0]:    
+            D = np.sqrt((xgrid-P[0][fib])**2 + (ygrid-P[1][fib])**2)
+            pixsel += D < 0.6
+        scisky = np.nanmedian(zcube[:, pixsel], axis=1)
         if sky is not None:
-            ratio = biweight(zcube[:, skysel] / sky[:, np.newaxis], axis=1)
+            ratio = biweight(zcube[:, pixsel] / sky[:, np.newaxis], axis=1)
             scisky = sky * ratio
         skysub_cube = zcube - scisky[:, np.newaxis, np.newaxis]
         info.append([skysub_cube, ecube, xgrid, ygrid])
-        d = np.sqrt(P[0]**2 + P[1]**2)
-        skysel = (d > np.max(d) - 1.5)
+        
         skytemp = np.nanmedian(SciSpectra[skysel], axis=0)
         if sky is not None:
             ratio = biweight(SciSpectra[skysel] / sky, axis=0)
