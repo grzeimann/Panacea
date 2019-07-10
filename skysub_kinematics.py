@@ -584,7 +584,7 @@ def main():
         skysel = (d > np.max(d) - 1.5)
         skytemp = np.nanmedian(SciSpectra[skysel], axis=0)
         if sky is not None:
-            ratio = biweight(SciSpectra[skysel] / sky, axis=1)
+            ratio = biweight(SciSpectra[skysel] / sky, axis=0)
             skytemp = sky * ratio
         f1 = create_header_objection(wave, SciSpectra - skytemp,
                                      func=fits.PrimaryHDU)
