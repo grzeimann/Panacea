@@ -511,12 +511,12 @@ def main():
     
     # Get Fiber Positions and ADR Correction
     pos = SciFits_List[0][5].data * 1.
-    pos[:, 1] = SciFits_List[0][5].data[:, 0] * 1.
-    pos[:, 0] = SciFits_List[0][5].data[:, 1] * 1.
+    pos[:, 0] = SciFits_List[0][5].data[:, 0] * 1.
+    pos[:, 1] = SciFits_List[0][5].data[:, 1] * 1.
     wave_0 = np.mean(wave)
-    yoff = (np.interp(wave, T['wave'], T['x_0']) -
+    xoff = (np.interp(wave, T['wave'], T['x_0']) -
             np.interp(wave_0, T['wave'], T['x_0']))
-    xoff = (np.interp(wave, T['wave'], T['y_0']) -
+    yoff = (np.interp(wave, T['wave'], T['y_0']) -
             np.interp(wave_0, T['wave'], T['y_0']))
     
     sky = []
