@@ -651,7 +651,7 @@ def get_masterbias(zro_path, amp):
 
 
 def get_masterarc(arc_path, amp, arc_names, masterbias, specname):
-    files = glob.glob(arc_path.replace('LL', amp))
+    files = sorted(glob.glob(arc_path.replace('LL', amp)))
     listarc, listarce = ([], [])
     cnt = 0
     for filename in files:
@@ -662,7 +662,7 @@ def get_masterarc(arc_path, amp, arc_names, masterbias, specname):
             listarc.append(a)
             listarce.append(e)
             cnt += 1
-        if cnt > 50:
+        if cnt > 80:
             break
     listarc, listarce = [np.array(x) for x in [listarc, listarce]]
     return np.sum(listarc, axis=0)
