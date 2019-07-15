@@ -220,14 +220,22 @@ def find_peaks(y, wave, thresh=8.):
     peak_wave = np.interp(peak_loc, np.arange(len(wave)), wave)
     return peak_loc, peaks/std, peaks, peak_wave
 
+def execute_sigma_clip(y):
+    try:
+        mask = sigma_clip(y, masked=True, maxiters=None, stdfunc=mad_std)
+    except:
+        mask = sigma_clip(y, iters=None, stdfunc=mad_std)
+    return mask
 
-def correct_amplifier_offsets(data):
-    y = np.mean(data[:, 400:-400], axis=1)
+
+def correct_amplifier_offsets(y, order=1):
     x = np.arange(len(y))
-    maskL = sigma_clip(y[:140], masked=True, maxiters=None)
-    maskR = sigma_clip(y[140:], masked=True, maxiters=None)
-    modelL = np.polyval(np.polyfit(x[:140][~maskL.mask], y[:140][~maskL.mask], 1), x[:140])
-    modelR = np.polyval(np.polyfit(x[140:][~maskR.mask], y[140:][~maskR.mask], 1), x[140:])
+    maskL = execute_sigma_clip(y[:140])
+    maskR = execute_sigma_clip(y[140:])
+    modelL = np.polyval(np.polyfit(x[:140][~maskL.mask],
+                                   y[:140][~maskL.mask], order), x[:140])
+    modelR = np.polyval(np.polyfit(x[140:][~maskR.mask],
+                                   y[140:][~maskR.mask], order), x[140:])
     avg = np.mean(np.hstack([modelL, modelR]))
     return np.hstack([modelL / avg, modelR / avg])
 
@@ -472,8 +480,8 @@ def get_ADR_RAdec(xoff, yoff, astrometry_object):
         ADRdec = (tDec - astrometry_object.dec0) * 3600.
         return ADRra, ADRdec
 
-def get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt, sky_subtract=True,
-             cal=False):
+def get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt, cor=None,
+             sky_subtract=True, cal=False):
     F = []
     info = []
     for _scifits, P in zip(SciFits_List, Pos):
@@ -487,6 +495,9 @@ def get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt, sky_subtract=True,
             sel = SciSpectra > 0.
             SciError[sel]= np.sqrt(SciSpectra[sel]/np.sqrt(2) + 3**2*2.)
             SciError[~sel] = np.sqrt(3**2*2.)
+        if cor is not None:
+            SciSpectra /= cor[:, np.newaxis]
+            SciError /= cor[:, np.newaxis]
         good = (SciSpectra == 0.).sum(axis=1) < 200
         zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
@@ -588,14 +599,22 @@ def main():
             np.interp(wave_0, T['wave'], T['y_0']))
     
     sky = []
+    cor = []
     for _skyfits in SkyFits_List:
         SkySpectra = _skyfits[0].data
         sel = (SkySpectra == 0.).sum(axis=1) < 200
+        y = np.nanmedian(SkySpectra[:, 410:440], axis=1)
+        mask = execute_sigma_clip(y)
+        sel = sel * ~mask.mask
+        correction = correct_amplifier_offsets(y)
+        cor.append(correction)
         sky.append(np.median(SkySpectra[sel], axis=0))
     if len(sky) > 0:
         sky = np.sum(sky, axis=0)
+        cor = np.mean(cor, axis=0)
     else:
         sky = None
+        cor = None
     info = []
     scale = 0.25
     ran = [-3.6, 3.6, -6.4, 6.4]
@@ -647,7 +666,7 @@ def main():
     
     ################################# Sky #####################################
     cnt = 1
-    F1, info = get_cube(SkyFits_List, Pos, scale, ran, sky, wave, cnt,
+    F1, info = get_cube(SkyFits_List, Pos, scale, ran, sky, wave, cnt, cor=cor,
                         sky_subtract=False)
     if len(info):
         xgrid = info[0][2]
