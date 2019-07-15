@@ -161,7 +161,7 @@ baseraw = '/work/03946/hetdex/maverick'
 
 sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*sci.fits')
-cmp_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
+cmp_path = op.join(baseraw, twi_date[:-2] + '*',  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_cmp.fits')
 twi_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_twi.fits')
@@ -1895,7 +1895,6 @@ def get_flt_base():
                 if 'qth' in o.lower():
                     fltobs = op.basename(op.dirname(op.dirname(op.dirname(fn))))
                     sat = np.sum(fits.open(fn)[0].data == 65535) > 100
-        print(np.sum(fits.open(fn)[0].data == 65535), sat)
         n_date=get_previous_night(i_date)
         flt_check_path = flt_check_path.replace(i_date, n_date)
         i_date = n_date
@@ -1982,9 +1981,9 @@ for info in listinfo:
                  (ifuslot, amp))
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
-        lamp_path, newdate = get_cal_path(lamp_path, args.date)
-        if newdate != args.date:
-            log.info('Found lamp files on %s and using them for %s' % (newdate, args.date))
+        #lamp_path, newdate = get_cal_path(lamp_path, args.date)
+        #if newdate != args.date:
+        #    log.info('Found lamp files on %s and using them for %s' % (newdate, args.date))
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
                                   specname)
         def_arc = get_masterarc(lamp_path.replace(newdate, '20181201'), amp,
