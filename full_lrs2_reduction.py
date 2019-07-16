@@ -652,20 +652,14 @@ def get_masterbias(zro_path, amp):
 
 def get_masterarc(arc_path, amp, arc_names, masterbias, specname):
     files = sorted(glob.glob(arc_path.replace('LL', amp)))
-    listarc, listarce = ([], [])
-    cnt = 0
+    arcsum = 0.
     for filename in files:
         f = fits.open(filename)
         if f[0].header['OBJECT'].lower() in arc_names:
             a, e = base_reduction(filename)
             a[:] -= masterbias
-            listarc.append(a)
-            listarce.append(e)
-            cnt += 1
-        if cnt > 80:
-            break
-    listarc, listarce = [np.array(x) for x in [listarc, listarce]]
-    return np.sum(listarc, axis=0)
+            arcsum += a
+    return arcsum
 
 
 def get_mastertwi(twi_path, amp, masterbias):
