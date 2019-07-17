@@ -650,17 +650,20 @@ def get_masterbias(zro_path, amp):
     return np.median(listzro, axis=0)
 
 
-def get_masterarc(arc_path, amp, arc_names, masterbias, specname):
+def get_masterarc(arc_path, amp, arc_names, masterbias, specname, trace):
     files = sorted(glob.glob(arc_path.replace('LL', amp)))
-    arcsum = 0.
+    arcsum = np.zeros((1032, 2064))
+    cnt = np.zeros((1032, 2064))
     for filename in files:
         f = fits.open(filename)
         if f[0].header['OBJECT'].lower() in arc_names:
             a, e = base_reduction(filename)
             a[:] -= masterbias
             if np.median(a) < 3000.:
-                arcsum += a
-    return arcsum
+                c = find_cosmics(a, e, trace, thresh=8., ran=0)
+                arcsum[~c] += a[~c]
+                cnt[~c] += 1.
+    return arcsum / cnt
 
 
 def get_mastertwi(twi_path, amp, masterbias):
