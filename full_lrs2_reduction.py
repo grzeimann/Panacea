@@ -1987,9 +1987,10 @@ for info in listinfo:
         #if newdate != args.date:
         #    log.info('Found lamp files on %s and using them for %s' % (newdate, args.date))
         masterarc = get_masterarc(lamp_path, amp, arc_names, masterbias,
-                                  specname)
+                                  specname, trace)
         def_arc = get_masterarc(lamp_path.replace(newdate, '20181201'), amp,
-                                arc_names, masterbias, specname)
+                                arc_names, masterbias, specname, trace)
+
         #fits.PrimaryHDU(masterarc).writeto('wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
