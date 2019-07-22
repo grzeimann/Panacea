@@ -660,9 +660,9 @@ def get_masterarc(arc_path, amp, arc_names, masterbias, specname, trace):
             a, e = base_reduction(filename)
             a[:] -= masterbias
             if np.median(a) < 3000.:
-                c = find_cosmics(a, e, trace, thresh=8., ran=0)
-                arcsum[~c] += a[~c]
-                cnt[~c] += 1.
+                #c = find_cosmics(a, e, trace, thresh=15., ran=0)
+                arcsum += a
+                cnt += 1.
     return arcsum / cnt
 
 
