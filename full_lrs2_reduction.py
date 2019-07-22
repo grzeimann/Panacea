@@ -165,7 +165,7 @@ cmp_path = op.join(baseraw, twi_date[:-2] + '*',  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_cmp.fits')
 twi_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_twi.fits')
-bias_path = op.join(baseraw, twi_date, '%s', '%s%s', 'exp*',
+bias_path = op.join(baseraw, twi_date[:-2] + '*', '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
 
 
@@ -643,11 +643,13 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
 
 def get_masterbias(zro_path, amp):
     files = glob.glob(zro_path.replace('LL', amp))
-    listzro = []
+    biassum = np.zeros((1032, 2064))
+    cnt = np.zeros((1032, 2064))
     for filename in files:
         a, error = base_reduction(filename)
-        listzro.append(a)
-    return np.median(listzro, axis=0)
+        biassum += a
+        cnt += 1.
+    return biassum / cnt
 
 
 def get_masterarc(arc_path, amp, arc_names, masterbias, specname, trace):
