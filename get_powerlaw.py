@@ -641,7 +641,6 @@ for ifuslot in ifuslots:
                                args.date)
         twi = get_twi_spectra(masterflt, trace)
         plaw = get_powerlaw(masterflt, trace, twi, amp)
-        name = '%s_%07d_%s_%s_%s_%s_plaw.fits' % (args.date, args.observation,
-                                                  specid, ifuSLOT, ifuid, amp)
+        name = 'plaw_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
         fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir, name),
                         overwrite=True)
