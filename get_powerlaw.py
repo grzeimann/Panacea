@@ -13,6 +13,7 @@ import numpy as np
 import os.path as op
 import sys
 import tarfile
+import warnings
 
 from astropy.io import fits
 from astropy.stats import biweight_location
@@ -21,7 +22,7 @@ from distutils.dir_util import mkpath
 from input_utils import setup_logging
 from scipy.interpolate import interp2d
 
-
+warnings.filterwarnings("ignore")
 
 
 parser = ap.ArgumentParser(add_help=True)
@@ -641,7 +642,9 @@ for ifuslot in ifuslots:
             trace, ref = get_trace(masterflt, specid, ifuSLOT, ifuid, amp,
                                    args.date)
             twi = get_twi_spectra(masterflt, trace)
-            plaw = get_powerlaw(masterflt, trace, twi, amp)
+            medtwi = np.median(twi, axis=0)
+            plaw = (get_powerlaw(masterflt, trace, twi, amp) /
+                    medtwi[np.newaxis, :])
             name = 'plaw_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
             fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir, name),
                             overwrite=True)
