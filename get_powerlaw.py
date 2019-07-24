@@ -613,7 +613,8 @@ def get_twi_files(kind='twi'):
     if len(glob.glob(tarname)):
         twitarfile = get_twi_tarfile(tarname, args.date, kind=kind)
         with tarfile.open(twitarfile) as tf:
-            twinames = sorted(tf.getnames())
+            twinames = [fn for fn in sorted(tf.getnames())
+                        if fn[-5:] == '.fits']
     else:
         pathname = build_path(args.rootdir, args.date, '*', '*', '*',
                              base=kind)
@@ -623,7 +624,6 @@ def get_twi_files(kind='twi'):
 
 log = setup_logging()
 twinames, twitarfile = get_twi_files()
-print(twinames, twitarfile)
 ifuslots = get_ifuslots(twinames)
 outdir = op.join(args.outputdir, args.date)
 mkpath(outdir)
