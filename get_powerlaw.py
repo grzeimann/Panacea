@@ -644,7 +644,7 @@ for ifuslot in ifuslots:
             twi = get_twi_spectra(masterflt, trace)
             medtwi = np.median(twi, axis=0)
             plaw = get_powerlaw(masterflt, trace, twi, amp)
-            plaw = plaw * plaw.sum() / masterflt.sum()
+            plaw /= masterflt.sum()
             name = 'plaw_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
             fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir, name),
                             overwrite=True)
