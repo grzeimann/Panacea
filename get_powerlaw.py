@@ -623,6 +623,7 @@ def get_twi_files(kind='twi'):
 
 log = setup_logging()
 twinames, twitarfile = get_twi_files()
+print(twinames, twitarfile)
 ifuslots = get_ifuslots(twinames)
 outdir = op.join(args.outputdir, args.date)
 mkpath(outdir)
