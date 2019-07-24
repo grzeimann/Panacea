@@ -6,20 +6,21 @@ Created on Wed Jul 24 14:04:57 2019
 @author: gregz
 """
 
-import numpy as np
-from scipy.interpolate import interp2d
-import glob
-import datetime
-from datetime import timedelta
-from astropy.io import fits
-import os.path as op
-import tarfile
-from input_utils import setup_logging
-import sys
 import argparse as ap
-from astropy.stats import biweight_location
 import fnmatch
+import glob
+import numpy as np
+import os.path as op
+import sys
+import tarfile
+
+from astropy.io import fits
+from astropy.stats import biweight_location
+from datetime import timedelta, datetime
 from distutils.dir_util import mkpath
+from input_utils import setup_logging
+from scipy.interpolate import interp2d
+
 
 
 
@@ -172,11 +173,11 @@ def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate,
                               'fiber_loc_%s_%s_%s_%s.txt' %
                               (specid, ifuslot, ifuid, amp)))
     dates = [op.basename(op.dirname(fn)) for fn in files]
-    obsdate = datetime.datetime(int(obsdate[:4]), int(obsdate[4:6]),
+    obsdate = datetime(int(obsdate[:4]), int(obsdate[4:6]),
                        int(obsdate[6:]))
     timediff = np.zeros((len(dates),))
     for i, datei in enumerate(dates):
-        d = datetime.datetime(int(datei[:4]), int(datei[4:6]),
+        d = datetime(int(datei[:4]), int(datei[4:6]),
                      int(datei[6:]))
         timediff[i] = np.abs((obsdate - d).days)
     ref_file = np.loadtxt(files[np.argmin(timediff)])
