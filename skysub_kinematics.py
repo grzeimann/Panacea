@@ -280,7 +280,7 @@ def identify_sky_pixels(sky):
             mask = sigma_clip(sky - cont, iters=None, stdfunc=mad_std) 
     return mask.mask, cont    
 
-def correct_wavelength_to_sky(spectra, skylines, wave, thresh=3.):
+def correct_wavelength_to_sky(spectra, skylines, wave, thresh=4.5):
     nfibers = spectra.shape[0]
     sky_wave = skylines['wavelength']
     X = np.arange(len(sky_wave))
@@ -564,11 +564,11 @@ def main():
     channel_dict = {'uv': 'BL', 'orange': 'BR', 'red': 'RL', 'farred': 'RR'}
     specinit = channel_dict[channel]
     darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % specinit)
-    skylinefile = op.join(DIRNAME, 'lrs2_config/skylines_%s.dat' % channel)
     T = Table.read(darfile, format='ascii.fixed_width_two_line')
-    SkyLines = Table.read(skylinefile, format='ascii.fixed_width_two_line')
     
     if not args.dont_correct_wavelength_to_sky:
+        skylinefile = op.join(DIRNAME, 'lrs2_config/skylines_%s.dat' % channel)
+        SkyLines = Table.read(skylinefile, format='ascii.fixed_width_two_line')
         wavecorrection_list, utc_list = ([], [])
         for _scifits in SciFits_List:
             args.log.info('Correcting wavelength for %s' % _scifits.filename())
