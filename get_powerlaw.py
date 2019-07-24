@@ -633,14 +633,17 @@ for ifuslot in ifuslots:
         fnames_glob = '*/2*%s%s*%s.fits' % (ifuSLOT, amp, 'twi')
         twibase = fnmatch.filter(twinames, fnames_glob)
         log.info('Making powerlaw for %s%s' % (ifuslot, amp))
-        masterbias = 0.0
-        masterflt = get_mastertwi(twibase, masterbias, twitarfile)
-        specid, ifuid, ifuSLOT, header = get_ifuinfo_from_header(twitarfile,
-                                                                 twibase[0])
-        trace, ref = get_trace(masterflt, specid, ifuSLOT, ifuid, amp,
-                               args.date)
-        twi = get_twi_spectra(masterflt, trace)
-        plaw = get_powerlaw(masterflt, trace, twi, amp)
-        name = 'plaw_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
-        fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir, name),
-                        overwrite=True)
+        try:
+            masterbias = 0.0
+            masterflt = get_mastertwi(twibase, masterbias, twitarfile)
+            specid, ifuid, ifuSLOT, header = get_ifuinfo_from_header(twitarfile,
+                                                                     twibase[0])
+            trace, ref = get_trace(masterflt, specid, ifuSLOT, ifuid, amp,
+                                   args.date)
+            twi = get_twi_spectra(masterflt, trace)
+            plaw = get_powerlaw(masterflt, trace, twi, amp)
+            name = 'plaw_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
+            fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir, name),
+                            overwrite=True)
+        except:
+            log.info('Failed to make powerlaw for %s%s' % (ifuslot, amp))
