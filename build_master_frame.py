@@ -78,7 +78,7 @@ def get_filenames(args):
     
     for date in dates:
         tname = karl_tarlist % date
-        process = subprocess.Popen('cat %s | grep %s | grep _%s' %
+        process = subprocess.Popen('cat %s | grep %s | grep _%sLL' %
                                    (tname, args.kind, ifuslot),
                                    stdout=subprocess.PIPE, shell=True)
         while True:
@@ -87,7 +87,7 @@ def get_filenames(args):
                 break
             b = line.rstrip()
             c = op.join(args.rootdir, b)
-            filenames.append(c)
+            filenames.append(c[:-14])
     return filenames
 
 def get_image(fn):
@@ -123,7 +123,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         mname = 'masterflt'
     bia_list = []
     for itm in file_list:
-        fn = itm #+ '%s%s_%s.fits' % (ifuslot, amp, args.kind)
+        fn = itm + '%s%s_%s.fits' % (ifuslot, amp, args.kind)
         try:
             bia_list.append(get_image(fn))
         except:
