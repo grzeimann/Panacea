@@ -90,6 +90,12 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         mname = 'masterbias'
     if args.kind == 'drk':
         mname = 'masterdark'
+    if args.kind == 'drk':
+        mname = 'mastersci'
+    if args.kind == 'twi':
+        mname = 'mastertwi'
+    if args.kind == 'flt':
+        mname = 'masterflt'
     bia_list = []
     for itm in file_list:
         fn = itm + '%s%s_%s.fits' % (ifuslot, amp, args.kind)
@@ -148,7 +154,7 @@ args = parser.parse_args(args=None)
 args.log = setup_logging(logname='build_master_bias')
 args = set_daterange(args)
 args.kind = args.kind.lower()
-if args.kind not in ['zro', 'drk']:
+if args.kind not in ['zro', 'drk', 'sci', 'twi', 'flt']:
     args.log.error('"--kind" argument did not match "zro" or "drk"')
     sys.exit(1)
 filenames = []
