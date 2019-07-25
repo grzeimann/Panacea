@@ -650,7 +650,7 @@ for ifuslot in ifuslots:
             fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir, name),
                             overwrite=True)
             name = 'twi_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
-            fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir, name),
+            fits.PrimaryHDU(medtwi, header=header).writeto(op.join(outdir, name),
                             overwrite=True)
         except:
             log.info('Failed to make powerlaw for %s%s' % (ifuslot, amp))
