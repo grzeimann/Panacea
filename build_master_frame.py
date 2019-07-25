@@ -85,7 +85,9 @@ def get_filenames(args):
             line = process.stdout.readline()
             if not line:
                 break
-            filenames.append(line.rstrip())
+            b = line.rstrip()
+            c = '/'.join(b.split('/')[2:])
+            filenames.append(c)
     return filenames
 
 def get_image(fn):
@@ -121,7 +123,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         mname = 'masterflt'
     bia_list = []
     for itm in file_list:
-        fn = itm + '%s%s_%s.fits' % (ifuslot, amp, args.kind)
+        fn = itm #+ '%s%s_%s.fits' % (ifuslot, amp, args.kind)
         try:
             bia_list.append(get_image(fn))
         except:
