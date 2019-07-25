@@ -90,7 +90,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         mname = 'masterbias'
     if args.kind == 'drk':
         mname = 'masterdark'
-    if args.kind == 'drk':
+    if args.kind == 'sci':
         mname = 'mastersci'
     if args.kind == 'twi':
         mname = 'mastertwi'
@@ -165,8 +165,10 @@ for date in args.daterange:
 for amp in ['LL', 'LU', 'RL', 'RU']:
     date = args.daterange[0]
     date = '%04d%02d%02d' % (date.year, date.month, date.day)
-    args.log.info('Length of filenames for %s: %i' %
-                  (date, len(filenames)))
+    date_end = args.daterange[-1]
+    date_end = '%04d%02d%02d' % (date_end.year, date_end.month, date_end.day)
+    args.log.info('Length of filenames for %s-%s: %i' %
+                  (date, date_end, len(filenames)))
     if (len(filenames) % args.maxnum) == 0:
         nbins = len(filenames) / args.maxnum
     else:
