@@ -86,7 +86,7 @@ def get_filenames(args):
             if not line:
                 break
             b = line.rstrip()
-            c = '/'.join(b.split('/')[2:])
+            c = op.join(args.rootdir, b)
             filenames.append(c)
     return filenames
 
