@@ -8,6 +8,7 @@ Created on Mon Jun 11 11:32:27 2018
 import glob
 import os.path as op
 import numpy as np
+import subprocess
 import sys
 import tarfile
 
@@ -17,6 +18,8 @@ from datetime import datetime, timedelta
 from distutils.dir_util import mkpath
 from input_utils import setup_parser, set_daterange, setup_logging
 from utils import biweight_location
+
+karl_tarlist = '/work/00115/gebhardt/maverick/gettar/%starlist'
 
 def write_fits(hdu, name):
     try:
@@ -64,6 +67,26 @@ def build_filenames(date, args):
     unique_dirnames, ind = np.unique(dirnames, return_index=True)
     return [filenames[i][:-14] for i in ind]
 
+def get_filenames(args):
+    filenames = []
+    ifuslot = '%03d' % int(args.ifuslot)
+    dates = []
+    for date in args.daterange:
+        date = '%04d%02d' % (date.year, date.month)
+        if date not in dates:
+            dates.append(date)
+    
+    for date in dates:
+        tname = karl_tarlist % date
+        process = subprocess.Popen('cat %s | grep %s | grep _%s' %
+                                   (tname, args.kind, ifuslot),
+                                   stdout=subprocess.PIPE, shell=True)
+        while True:
+            line = process.stdout.readline()
+            if not line:
+                break
+            filenames.append(line.rstrip())
+    return filenames
 
 def get_image(fn):
     tarbase = op.dirname(op.dirname(op.dirname(fn))) + '.tar'
@@ -157,10 +180,12 @@ args.kind = args.kind.lower()
 if args.kind not in ['zro', 'drk', 'sci', 'twi', 'flt']:
     args.log.error('"--kind" argument did not match "zro" or "drk"')
     sys.exit(1)
-filenames = []
-for date in args.daterange:
-    date = '%04d%02d%02d' % (date.year, date.month, date.day)
-    filenames = filenames + build_filenames(date, args)
+#filenames = []
+#for date in args.daterange:
+#    date = '%04d%02d%02d' % (date.year, date.month, date.day)
+#    filenames = filenames + build_filenames(date, args)
+
+filenames = get_filenames(args)
 
 for amp in ['LL', 'LU', 'RL', 'RU']:
     date = args.daterange[0]
