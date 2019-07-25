@@ -92,7 +92,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         mname = 'masterdark'
     bia_list = []
     for itm in file_list:
-        fn = itm + '%s%s_zro.fits' % (ifuslot, amp)
+        fn = itm + '%s%s_%s.fits' % (ifuslot, amp, args.kind)
         try:
             bia_list.append(get_image(fn))
         except:
