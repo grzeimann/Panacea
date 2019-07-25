@@ -624,7 +624,7 @@ def get_twi_files(kind='twi'):
     return twinames, twitarfile
 
 log = setup_logging()
-twinames, twitarfile = get_twi_files()
+twinames, twitarfile = get_twi_files(kind='twi')
 ifuslots = get_ifuslots(twinames)
 outdir = op.join(args.outputdir, args.date)
 mkpath(outdir)
@@ -647,6 +647,9 @@ for ifuslot in ifuslots:
             plaw /= masterflt.sum()
             plaw *= masterflt.shape[0] * masterflt.shape[1]
             name = 'plaw_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
+            fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir, name),
+                            overwrite=True)
+            name = 'twi_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
             fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir, name),
                             overwrite=True)
         except:
