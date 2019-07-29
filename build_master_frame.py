@@ -90,7 +90,7 @@ def get_filenames(args):
             filenames.append(c[:-14])
     return filenames
 
-def get_image(fn):
+def get_image(fn, tarfile=None):
     tarbase = op.dirname(op.dirname(op.dirname(fn))) + '.tar'
     if op.exists(tarbase):
         T = tarfile.open(tarbase, 'r')
