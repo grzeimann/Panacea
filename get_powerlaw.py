@@ -36,11 +36,25 @@ parser.add_argument("-r", "--rootdir",
                     (just before date folders)''',
                     type=str, default='/work/03946/hetdex/maverick')
 
+parser.add_argument("-f", "--filename",
+                    help='''Filename of the master fits file''',
+                    type=str, default=None)
+
+parser.add_argument("-k", "--kind", help='''twi or flt''',  type=str,
+                    default='twi')
+
 parser.add_argument("-o", "--outputdir",
                     help='''Output Directory''',
                     type=str, default='powerlaw')
 
 args = parser.parse_args(args=None)
+
+log = setup_logging()
+args.log = log
+
+if args.kind not in ['zro', 'drk', 'sci', 'twi', 'flt']:
+    args.log.error('"--kind" argument did not match "zro" or "drk"')
+    sys.exit(1)
 
 def power_law(x, c1, c2=.5, c3=.15, c4=1., sig=2.5):
     '''
@@ -321,7 +335,9 @@ def get_ifuinfo_from_header(tfile, fn):
     specid = '%03d' % int(a[0].header['SPECID'])
     ifuid = '%03d' % int(a[0].header['IFUID'])
     ifuslot = '%03d' % int(a[0].header['IFUSLOT'])
-    return specid, ifuid, ifuslot, a[0].header
+    amp = (a[0].header['CCDPOS'].replace(' ', '') +
+           a[0].header['CCDHALF'].replace(' ', ''))
+    return specid, ifuid, ifuslot, a[0].header, amp
 
 
 def build_path(rootdir, date, obs, ifuslot, amp, base='sci', exp='exp*',
@@ -623,34 +639,54 @@ def get_twi_files(kind='twi'):
         twitarfile = None
     return twinames, twitarfile
 
-log = setup_logging()
-twinames, twitarfile = get_twi_files(kind='twi')
-ifuslots = get_ifuslots(twinames)
-outdir = op.join(args.outputdir, args.date)
-mkpath(outdir)
-for ifuslot in ifuslots:
-    for amp in ['LL', 'LU', 'RL', 'RU']:
-        ifuSLOT = '%03d' % int(ifuslot)
-        fnames_glob = '*/2*%s%s*%s.fits' % (ifuSLOT, amp, 'twi')
-        twibase = fnmatch.filter(twinames, fnames_glob)
-        log.info('Making powerlaw for %s%s' % (ifuslot, amp))
-        try:
-            masterbias = 0.0
-            masterflt = get_mastertwi(twibase, masterbias, twitarfile)
-            specid, ifuid, ifuSLOT, header = get_ifuinfo_from_header(twitarfile,
-                                                                     twibase[0])
-            trace, ref = get_trace(masterflt, specid, ifuSLOT, ifuid, amp,
-                                   args.date)
-            twi = get_twi_spectra(masterflt, trace)
-            medtwi = np.median(twi, axis=0)
-            plaw = get_powerlaw(masterflt, trace, twi, amp)
-            plaw /= masterflt.sum()
-            plaw *= masterflt.shape[0] * masterflt.shape[1]
-            name = 'plaw_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
-            fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir, name),
-                            overwrite=True)
-            name = 'twi_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
-            fits.PrimaryHDU(medtwi, header=header).writeto(op.join(outdir, name),
-                            overwrite=True)
-        except:
-            log.info('Failed to make powerlaw for %s%s' % (ifuslot, amp))
+def main_all():
+    twinames, twitarfile = get_twi_files(kind=args.kind)
+    ifuslots = get_ifuslots(twinames)
+    outdir = op.join(args.outputdir, args.date)
+    mkpath(outdir)
+    for ifuslot in ifuslots:
+        for amp in ['LL', 'LU', 'RL', 'RU']:
+            ifuSLOT = '%03d' % int(ifuslot)
+            fnames_glob = '*/2*%s%s*%s.fits' % (ifuSLOT, amp, args.kind)
+            twibase = fnmatch.filter(twinames, fnames_glob)
+            log.info('Making powerlaw for %s%s' % (ifuslot, amp))
+            try:
+                masterbias = 0.0
+                masterflt = get_mastertwi(twibase, masterbias, twitarfile)
+                sinfo = get_ifuinfo_from_header(twitarfile, twibase[0])
+                specid, ifuid, ifuSLOT, header, amP = sinfo
+                trace, ref = get_trace(masterflt, specid, ifuSLOT, ifuid, amp,
+                                       args.date)
+                twi = get_twi_spectra(masterflt, trace)
+                medtwi = np.median(twi, axis=0)
+                plaw = get_powerlaw(masterflt, trace, twi, amp)
+                plaw /= masterflt.sum()
+                plaw *= masterflt.shape[0] * masterflt.shape[1]
+                name = 'plaw_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
+                fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir,
+                                name), overwrite=True)
+            except:
+                log.info('Failed to make powerlaw for %s%s' % (ifuslot, amp))
+
+
+def main_single():
+    outdir = op.join(args.outputdir, args.date)
+    mkpath(outdir)
+    masterflt = fits.open(args.filename)[0].data
+    sinfo = get_ifuinfo_from_header(None, args.filename)
+    specid, ifuid, ifuSLOT, header, amp = sinfo
+    trace, ref = get_trace(masterflt, specid, ifuSLOT, ifuid, amp,
+                           args.date)
+    twi = get_twi_spectra(masterflt, trace)
+    medtwi = np.median(twi, axis=0)
+    plaw = get_powerlaw(masterflt, trace, twi, amp)
+    plaw /= masterflt.sum()
+    plaw *= masterflt.shape[0] * masterflt.shape[1]
+    name = 'plaw_%s_%s_%s_%s.fits' % (specid, ifuSLOT, ifuid, amp)
+    fits.PrimaryHDU(plaw, header=header).writeto(op.join(outdir,
+                    name), overwrite=True)
+
+if args.filename is not None:
+    main_single()
+else:
+    main_all()
