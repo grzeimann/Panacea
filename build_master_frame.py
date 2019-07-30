@@ -90,11 +90,12 @@ def get_filenames(args):
             filenames.append(c[:-14])
     return filenames
 
-def get_image(fn, tarfile=None):
+def get_image(fn):
     tarbase = op.dirname(op.dirname(op.dirname(fn))) + '.tar'
     if op.exists(tarbase):
         T = tarfile.open(tarbase, 'r')
         s = '/'.join(fn.split('/')[-4:])
+        print(s)
         fn = T.extractfile(T.getmember(s))
     A = Amplifier(fn, '')
     ly = A.biassec[2]
