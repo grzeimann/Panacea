@@ -179,7 +179,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         d3 = d1 + timedelta(days=(d2-d1).days/2)
         avgdate = '%04d%02d%02d' % (d3.year, d3.month, d3.day)
         mkpath(op.join(args.folder, avgdate))
-        args.log.info('Writing %s_%s_%s.fits' % (mname, bia_list[-1][1], amp))
+        args.log.info('Writing %s_%s_%s.fits' % (Name, bia_list[-1][1], amp))
         hdu.header['OBJECT'] = '%s-%s' % (bia_list[0][2], bia_list[-1][2])
         write_fits(hdu, op.join(args.folder, avgdate, '%s_%s_%s.fits' %
                    (Name, bia_list[-1][1], amp)))
