@@ -156,6 +156,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
                 norm = np.median(big_array, axis=(1, 2))
                 sel = norm > 0.
                 big_array = big_array[sel] / norm[sel, np.newaxis, np.newaxis]
+                big_array *= np.median(norm)
         func = biweight
         masterbias, masterstd = func(big_array, nan_treatment=False, calc_std=True,
                                      axis=(0,))
