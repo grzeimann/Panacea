@@ -182,7 +182,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         args.log.info('Writing %s_%s_%s.fits' % (mname, bia_list[-1][1], amp))
         hdu.header['OBJECT'] = '%s-%s' % (bia_list[0][2], bia_list[-1][2])
         write_fits(hdu, op.join(args.folder, avgdate, '%s_%s_%s.fits' %
-                   (mname, bia_list[-1][1], amp)))
+                   (Name, bia_list[-1][1], amp)))
 
 parser = setup_parser()
 parser.add_argument("-f", "--folder", help='''Output folder''', type=str,
