@@ -110,7 +110,7 @@ def get_image(fn):
     return (A.image * 1., A.specid, '%04d%02d%02d' % (A.date.year,
                                                       A.date.month, 
                                                       A.date.day),
-            A.header['OBJECT'])
+            A.header['OBJECT'], A.header)
 
 
 def build_master_frame(file_list, ifuslot, amp, args, date):
@@ -161,7 +161,8 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
             masterbias += func(big_array, axis=(0,))
 
     a, b = masterbias.shape
-    hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'))
+    hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'),
+                          header=bia_list[0][-1])
     
     d1 = datetime(int(bia_list[0][2][:4]), int(bia_list[0][2][4:6]),
                   int(bia_list[0][2][6:]))
