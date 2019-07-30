@@ -78,16 +78,19 @@ def get_filenames(args):
     
     for date in dates:
         tname = karl_tarlist % date
-        process = subprocess.Popen('cat %s | grep %s | grep _%sLL' %
-                                   (tname, args.kind, ifuslot),
-                                   stdout=subprocess.PIPE, shell=True)
-        while True:
-            line = process.stdout.readline()
-            if not line:
-                break
-            b = line.rstrip()
-            c = op.join(args.rootdir, b)
-            filenames.append(c[:-14])
+        for daten in args.daterange:
+            daten = '%04d%02d%02d' % (date.year, date.month, date.day)
+            process = subprocess.Popen('cat %s | grep %s | grep _%sLL | '
+                                       'grep %s' %
+                                       (tname, args.kind, ifuslot, daten),
+                                       stdout=subprocess.PIPE, shell=True)
+            while True:
+                line = process.stdout.readline()
+                if not line:
+                    break
+                b = line.rstrip()
+                c = op.join(args.rootdir, b)
+                filenames.append(c[:-14])
     return filenames
 
 def get_image(fn):
