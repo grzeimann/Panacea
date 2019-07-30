@@ -79,7 +79,7 @@ def get_filenames(args):
     for date in dates:
         tname = karl_tarlist % date
         for daten in args.daterange:
-            daten = '%04d%02d%02d' % (date.year, date.month, date.day)
+            daten = '%04d%02d%02d' % (daten.year, daten.month, daten.day)
             process = subprocess.Popen('cat %s | grep %s | grep _%sLL | '
                                        'grep %s' %
                                        (tname, args.kind, ifuslot, daten),
