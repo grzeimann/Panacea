@@ -168,8 +168,8 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
             masterbias += masterim
             masterstd += masterst / len(objnames)
     for masterim, Name in zip([masterbias, masterstd], [mname, sname]):
-        a, b = masterbias.shape
-        hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'),
+        a, b = masterim.shape
+        hdu = fits.PrimaryHDU(np.array(masterim, dtype='float32'),
                               header=bia_list[0][-1])
         
         d1 = datetime(int(bia_list[0][2][:4]), int(bia_list[0][2][4:6]),
