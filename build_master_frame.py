@@ -106,7 +106,8 @@ def get_image(fn):
     A.trim_image()
     return (A.image * 1., A.specid, '%04d%02d%02d' % (A.date.year,
                                                       A.date.month, 
-                                                      A.date.day))
+                                                      A.date.day),
+            A.header['OBJECT'])
 
 
 def build_master_frame(file_list, ifuslot, amp, args, date):
@@ -123,6 +124,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         mname = 'masterflt'
     if args.kind == 'cmp':
         mname = 'mastercmp'
+        objnames = ['hg', 'cd-a']
     bia_list = []
     for itm in file_list:
         fn = itm + '%s%s_%s.fits' % (ifuslot, amp, args.kind)
@@ -143,9 +145,17 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
                          'cowardly exiting.')
         args.log.warning(uspec)
         return None
-    big_array = np.array([v[0] for v in bia_list])
-    func = biweight_location
-    masterbias = func(big_array, axis=(0,))
+    if args.kind != 'cmp':
+        big_array = np.array([v[0] for v in bia_list])
+        func = biweight_location
+        masterbias = func(big_array, axis=(0,))
+    else:
+        masterbias = np.zeros(bia_list[0][0].shape)
+        for objname in objnames:
+            big_array = np.array([v[0] for v in bia_list
+                                  if v[3].lower() == objname])
+            func = biweight_location
+            masterbias += func(big_array, axis=(0,))
 
     a, b = masterbias.shape
     hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'))
