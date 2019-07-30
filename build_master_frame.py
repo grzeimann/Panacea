@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from distutils.dir_util import mkpath
 from input_utils import setup_parser, set_daterange, setup_logging
 from utils import biweight_location
+from math_utils import biweight
 
 karl_tarlist = '/work/00115/gebhardt/maverick/gettar/%starlist'
 
@@ -150,15 +151,18 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         return None
     if args.kind != 'cmp':
         big_array = np.array([v[0] for v in bia_list])
-        func = biweight_location
-        masterbias = func(big_array, axis=(0,))
+        func = biweight
+        masterbias, masterstd = func(big_array, nan_treatment=False, calc_std=True,
+                                     axis=(0,))
     else:
         masterbias = np.zeros(bia_list[0][0].shape)
         for objname in objnames:
             big_array = np.array([v[0] for v in bia_list
                                   if v[3].lower() == objname])
-            func = biweight_location
-            masterbias += func(big_array, axis=(0,))
+            func = biweight
+            masterim, masterstd = func(big_array, nan_treatment=False, calc_std=True,
+                                         axis=(0,))
+            masterbias += masterim
 
     a, b = masterbias.shape
     hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'),
