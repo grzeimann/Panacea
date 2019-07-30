@@ -129,6 +129,7 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
     if args.kind == 'cmp':
         mname = 'mastercmp'
         objnames = ['hg', 'cd-a']
+    sname = 'masterstd'
     bia_list = []
     for itm in file_list:
         fn = itm + '%s%s_%s.fits' % (ifuslot, amp, args.kind)
@@ -156,29 +157,32 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
                                      axis=(0,))
     else:
         masterbias = np.zeros(bia_list[0][0].shape)
+        masterstd = np.zeros(bia_list[0][0].shape)
+
         for objname in objnames:
             big_array = np.array([v[0] for v in bia_list
                                   if v[3].lower() == objname])
             func = biweight
-            masterim, masterstd = func(big_array, nan_treatment=False, calc_std=True,
+            masterim, masterst = func(big_array, nan_treatment=False, calc_std=True,
                                          axis=(0,))
             masterbias += masterim
-
-    a, b = masterbias.shape
-    hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'),
-                          header=bia_list[0][-1])
-    
-    d1 = datetime(int(bia_list[0][2][:4]), int(bia_list[0][2][4:6]),
-                  int(bia_list[0][2][6:]))
-    d2 = datetime(int(bia_list[-1][2][:4]), int(bia_list[-1][2][4:6]),
-                  int(bia_list[-1][2][6:]))
-    d3 = d1 + timedelta(days=(d2-d1).days/2)
-    avgdate = '%04d%02d%02d' % (d3.year, d3.month, d3.day)
-    mkpath(op.join(args.folder, avgdate))
-    args.log.info('Writing %s_%s_%s.fits' % (mname, bia_list[-1][1], amp))
-    hdu.header['OBJECT'] = '%s-%s' % (bia_list[0][2], bia_list[-1][2])
-    write_fits(hdu, op.join(args.folder, avgdate, '%s_%s_%s.fits' %
-               (mname, bia_list[-1][1], amp)))
+            masterstd += masterst / len(objnames)
+    for masterim, Name in zip([masterbias, masterstd], [mname, sname]):
+        a, b = masterbias.shape
+        hdu = fits.PrimaryHDU(np.array(masterbias, dtype='float32'),
+                              header=bia_list[0][-1])
+        
+        d1 = datetime(int(bia_list[0][2][:4]), int(bia_list[0][2][4:6]),
+                      int(bia_list[0][2][6:]))
+        d2 = datetime(int(bia_list[-1][2][:4]), int(bia_list[-1][2][4:6]),
+                      int(bia_list[-1][2][6:]))
+        d3 = d1 + timedelta(days=(d2-d1).days/2)
+        avgdate = '%04d%02d%02d' % (d3.year, d3.month, d3.day)
+        mkpath(op.join(args.folder, avgdate))
+        args.log.info('Writing %s_%s_%s.fits' % (mname, bia_list[-1][1], amp))
+        hdu.header['OBJECT'] = '%s-%s' % (bia_list[0][2], bia_list[-1][2])
+        write_fits(hdu, op.join(args.folder, avgdate, '%s_%s_%s.fits' %
+                   (mname, bia_list[-1][1], amp)))
 
 parser = setup_parser()
 parser.add_argument("-f", "--folder", help='''Output folder''', type=str,
