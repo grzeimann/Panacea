@@ -108,10 +108,14 @@ def get_image(fn):
     A.overscan_value = biweight_location(A.image[ly:hy, lx:hx])
     A.image[:] = A.image - A.overscan_value
     A.trim_image()
+    tlist = A.header['UT'].split(':')
+    hour, minute, second = (int(tlist[0]), int(tlist[1]),
+                            int(tlist[2].split('.')[0]))
+    d = datetime(A.date.year, A.date.month, A.date.day, hour, minute, second)
     return (A.image * 1., A.specid, '%04d%02d%02d' % (A.date.year,
                                                       A.date.month, 
                                                       A.date.day),
-            A.header['OBJECT'], A.header)
+            A.header['OBJECT'], A.header, d)
 
 
 def build_master_frame(file_list, ifuslot, amp, args, date):
@@ -175,14 +179,15 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
     for masterim, Name in zip([masterbias, masterstd], [mname, sname]):
         a, b = masterim.shape
         hdu = fits.PrimaryHDU(np.array(masterim, dtype='float32'),
-                              header=bia_list[0][-1])
+                              header=bia_list[0][4])
         
         d1 = datetime(int(bia_list[0][2][:4]), int(bia_list[0][2][4:6]),
                       int(bia_list[0][2][6:]))
         d2 = datetime(int(bia_list[-1][2][:4]), int(bia_list[-1][2][4:6]),
                       int(bia_list[-1][2][6:]))
         d3 = d1 + timedelta(days=(d2-d1).days/2)
-        avgdate = '%04d%02d%02d' % (d3.year, d3.month, d3.day)
+        d4 = bia_list[0][4] + (bia_list[-1][4] - bia_list[0][4]) / 2.
+        avgdate = d4.isoformat().replace('-', '').replace(':', '')
         mkpath(op.join(args.folder, avgdate))
         args.log.info('Writing %s_%s_%s.fits' % (Name, bia_list[-1][1], amp))
         hdu.header['OBJECT'] = '%s-%s' % (bia_list[0][2], bia_list[-1][2])
