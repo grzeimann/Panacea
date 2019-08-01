@@ -185,7 +185,8 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         d2 = bia_list[-1][5]
         d4 = (d1 + timedelta(seconds=(d2-d1).seconds / 2.) +
               timedelta(days=(d2-d1).days / 2.))
-        avgdate = d4.isoformat().replace('-', '').replace(':', '')
+        avgdate = '%04d%02d%02dT%02d%02d%02d' % (d4.year, d4.month, d4.day,
+                                                 d4.hour, d4.minute, d4.second)
         mkpath(op.join(args.folder, avgdate))
         args.log.info('Writing %s_%s_%s.fits' % (Name, bia_list[-1][1], amp))
         hdu.header['OBJECT'] = '%s-%s' % (bia_list[0][2], bia_list[-1][2])
