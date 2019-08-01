@@ -181,12 +181,10 @@ def build_master_frame(file_list, ifuslot, amp, args, date):
         hdu = fits.PrimaryHDU(np.array(masterim, dtype='float32'),
                               header=bia_list[0][4])
         
-        d1 = datetime(int(bia_list[0][2][:4]), int(bia_list[0][2][4:6]),
-                      int(bia_list[0][2][6:]))
-        d2 = datetime(int(bia_list[-1][2][:4]), int(bia_list[-1][2][4:6]),
-                      int(bia_list[-1][2][6:]))
-        d3 = d1 + timedelta(days=(d2-d1).days/2)
-        d4 = bia_list[0][5] + (bia_list[-1][5] - bia_list[0][5]) / 2.
+        d1 = bia_list[0][5]
+        d2 = bia_list[-1][5]
+        d4 = (d1 + timedelta(seconds=(d2-d1).seconds / 2.) +
+              timedelta(days=(d2-d1).days / 2.))
         avgdate = d4.isoformat().replace('-', '').replace(':', '')
         mkpath(op.join(args.folder, avgdate))
         args.log.info('Writing %s_%s_%s.fits' % (Name, bia_list[-1][1], amp))
