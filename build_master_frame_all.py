@@ -84,7 +84,7 @@ def get_ifuslots(tarfolder):
                 expnames.append(expn)
             if len(expnames) > 1:
                 flag = False
-    return ifuslots
+    return sorted(ifuslots)
 
 def get_image(fn):
     tarbase = op.dirname(op.dirname(op.dirname(fn))) + '.tar'
