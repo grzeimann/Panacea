@@ -223,6 +223,8 @@ filenames = get_filenames(args)
 tarnames = get_tarfiles(filenames)
 ifuslots = get_unique_ifuslots(tarnames)
 
+args.log.info('Number of unique ifuslots: %i' % len(ifuslots))
+
 for ifuslot in ifuslots:
     for amp in ['LL', 'LU', 'RL', 'RU']:
         date = args.daterange[0]
