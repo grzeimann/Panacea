@@ -86,6 +86,16 @@ def get_ifuslots(tarfolder):
                 flag = False
     return sorted(ifuslots)
 
+def get_unique_ifuslots(tarfolders):
+    dates = [tarfolder.split('/')[-2] for tarfolder in tarfolders]
+    utars, inds = np.unique(dates, return_index=True)
+    utarfolders = [tarfolders[ind] for ind in inds]
+    ifuslots = []
+    for tarfolder in utarfolders:
+        result = get_ifuslots(tarfolder)
+        ifuslots = list(np.union1d(ifuslots, result))
+    return ifuslots
+
 def get_image(fn):
     tarbase = op.dirname(op.dirname(op.dirname(fn))) + '.tar'
     if op.exists(tarbase):
@@ -211,7 +221,7 @@ if args.kind not in ['zro', 'drk', 'sci', 'twi', 'flt', 'cmp']:
 
 filenames = get_filenames(args)
 tarnames = get_tarfiles(filenames)
-ifuslots = get_ifuslots(tarnames[0])
+ifuslots = get_unique_ifuslots(tarnames)
 
 for ifuslot in ifuslots:
     for amp in ['LL', 'LU', 'RL', 'RU']:
