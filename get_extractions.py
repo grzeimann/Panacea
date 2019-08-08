@@ -71,17 +71,20 @@ for i, coord in enumerate(survey.coords):
     idx = np.where(sep_constraint)[0]
     matched_sources[name] = idx
     if len(idx) > 0:
-        shots_of_interest.append([coord, t['date'][i]])
+        shots_of_interest.append([coord, t['date'][i], i])
 log.info('Number of shots of interest: %i' % len(shots_of_interest))
 
-for i, _info in enumerate(shots_of_interest):
+for _info in shots_of_interest:
     coord = _info[0]
     date = str(_info[1])
+    i = _info[2]
     epoch = Time(dt(int(date[:4]), int(date[4:6]), int(date[6:8]))).byear
     try:
         deltaRA = ((epoch - 2015.5) * bintable['pmra'] / 1e3 / 3600. /
                    np.cos(bintable['dec'] * np.pi / 180.))
         deltaDE = (epoch - 2015.5) * bintable['pmdec'] / 1e3 / 3600.
+        deltaRA[np.isnan(deltaRA)] = 0.0
+        deltaDE[np.isnan(deltaDE)] = 0.0
         log.info('Mean dra %0.2f' % (np.mean(np.abs(deltaRA)) * 3600.))
         ncoords = SkyCoord((bintable['ra']+deltaRA)*u.deg,
                            (bintable['dec']+deltaDE)*u.deg)
