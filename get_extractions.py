@@ -74,7 +74,9 @@ for i, coord in enumerate(survey.coords):
         shots_of_interest.append([coord, t['date'][i], i])
 log.info('Number of shots of interest: %i' % len(shots_of_interest))
 
-for _info in shots_of_interest:
+N = len(shots_of_interest)
+
+for j, _info in enumerate(shots_of_interest):
     coord = _info[0]
     date = str(_info[1])
     i = _info[2]
@@ -85,7 +87,6 @@ for _info in shots_of_interest:
         deltaDE = (epoch - 2015.5) * bintable['pmdec'] / 1e3 / 3600.
         deltaRA[np.isnan(deltaRA)] = 0.0
         deltaDE[np.isnan(deltaDE)] = 0.0
-        log.info('Mean dra %0.2f' % (np.mean(np.abs(deltaRA)) * 3600.))
         ncoords = SkyCoord((bintable['ra']+deltaRA)*u.deg,
                            (bintable['dec']+deltaDE)*u.deg)
     except:
@@ -98,7 +99,7 @@ for _info in shots_of_interest:
     idx = np.where(sep_constraint)[0]
     matched_sources[name] = idx
     if len(idx) > 0:
-        log.info('Working on shot: %s' % name)
+        log.info('Working on shot [%i / %i]: %s' % (name, j+1, N))
         E.load_shot(name)
         for ind in idx:
             info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=7.)
