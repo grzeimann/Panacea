@@ -99,7 +99,7 @@ for j, _info in enumerate(shots_of_interest):
     idx = np.where(sep_constraint)[0]
     matched_sources[name] = idx
     if len(idx) > 0:
-        log.info('Working on shot [%i / %i]: %s' % (name, j+1, N))
+        log.info('Working on shot [%i / %i]: %s' % (j+1, N, name))
         E.load_shot(name)
         for ind in idx:
             info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=7.)
