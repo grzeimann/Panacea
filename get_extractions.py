@@ -104,6 +104,7 @@ for i, _info in enumerate(shots_of_interest):
     dist = ncoords.separation(coord)
     sep_constraint = dist < max_sep
     name = '%sv%03d' % (t['date'][i], t['obsid'][i])
+    log.info('%s: %0.2f' % (name, epoch))
     idx = np.where(sep_constraint)[0]
     matched_sources[name] = idx
     if len(idx) > 0:
