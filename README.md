@@ -51,7 +51,7 @@ You merely have to use your "username" and your "PROGRAM-ID" and you can copy ov
 extensive, that is to say they for every Mb of raw data there is 24 Mb of reduced data.  Without going into the data products yet,
 you may just a single product or a single night.  Below is an example, which grabs all spectra within your program for a given data:
 ```
-scp -r username@wrangler.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID/spec*20190105*.fits .
+scp username@wrangler.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID/spec*20190105*.fits .
 ```
 
 ## Data Products
