@@ -34,7 +34,7 @@ ind_chunks = np.array_split(inds, args.chunks)
 for i, ind in enumerate(ind_chunks):
     List = [fits.PrimaryHDU(), fits.BinTableHDU(bintable[ind])]
     F = fits.HDUList(List)
-    F.writeto('data_chunk_%03d.fits' % (i + 1))
+    F.writeto('data_chunk_%03d.fits' % (i + 1), overwrite=True)
     s.append('python get_extractions.py data_chunk_%03d.fits' % (i + 1))
 f = open('extraction_script', 'w')
 f.write('\n'.join(s))
