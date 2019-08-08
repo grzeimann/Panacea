@@ -35,7 +35,7 @@ for i, ind in enumerate(ind_chunks):
     List = [fits.PrimaryHDU(), fits.BinTableHDU(bintable[ind])]
     F = fits.HDUList(List)
     F.writeto('data_chunk_%03d.fits' % (i + 1), overwrite=True)
-    s.append('python get_extractions.py data_chunk_%03d.fits '
+    s.append('python /work/03730/gregz/maverick/Panacea/get_extractions.py data_chunk_%03d.fits '
              'gaia_hetdex_spectra_%03d.fits' % (i + 1, i + 1))
 f = open('extraction_script', 'w')
 f.write('\n'.join(s))
