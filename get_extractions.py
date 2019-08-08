@@ -16,24 +16,10 @@ from astropy.io import fits
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy.table import vstack
+from astropy.time import Time
 from datetime import datetime as dt
 from hetdex_api.extract import Extract 
 from hetdex_api.survey import Survey
-
-def toYearFraction(date):
-    def sinceEpoch(date): # returns seconds since epoch
-        return time.mktime(date.timetuple())
-    s = sinceEpoch
-
-    year = date.year
-    startOfThisYear = dt(year=year, month=1, day=1)
-    startOfNextYear = dt(year=year+1, month=1, day=1)
-
-    yearElapsed = s(date) - s(startOfThisYear)
-    yearDuration = s(startOfNextYear) - s(startOfThisYear)
-    fraction = yearElapsed/yearDuration
-
-    return date.year + fraction
 
 parser = ap.ArgumentParser(add_help=True)
 
@@ -91,11 +77,12 @@ log.info('Number of shots of interest: %i' % len(shots_of_interest))
 for i, _info in enumerate(shots_of_interest):
     coord = _info[0]
     date = str(_info[1])
-    epoch = toYearFraction(dt(int(date[:4]), int(date[4:6]), int(date[6:8])))
+    epoch = Time(dt(int(date[:4]), int(date[4:6]), int(date[6:8]))).byear
     try:
         deltaRA = ((epoch - 2015.5) * bintable['pmra'] / 1e3 / 3600. /
                    np.cos(bintable['dec'] * np.pi / 180.))
         deltaDE = (epoch - 2015.5) * bintable['pmdec'] / 1e3 / 3600.
+        log.info('Mean dra %0.2f' % (np.mean(np.abs(deltaRA)) * 3600.))
         ncoords = SkyCoord((bintable['ra']+deltaRA)*u.deg,
                            (bintable['dec']+deltaDE)*u.deg)
     except:
