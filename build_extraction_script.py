@@ -37,4 +37,4 @@ for i, ind in enumerate(ind_chunks):
     F.writeto('data_chunk_%03d.fits' % (i + 1))
     s.append('python get_extractions.py data_chunk_%03d.fits' % (i + 1))
 f = open('extraction_script', 'w')
-f.write('/n'.join(s))
+f.write('\n'.join(s))
