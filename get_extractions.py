@@ -90,7 +90,7 @@ log.info('Number of shots of interest: %i' % len(shots_of_interest))
 
 for i, _info in enumerate(shots_of_interest):
     coord = _info[0]
-    date = _info[1]
+    date = str(_info[1])
     epoch = toYearFraction(dt(int(date[:4]), int(date[4:6]), int(date[6:8])))
     try:
         deltaRA = ((epoch - 2015.5) * bintable['pmra'] / 1e3 / 3600. /
