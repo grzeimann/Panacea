@@ -9,7 +9,6 @@ Created on Thu May 30 13:16:47 2019
 import argparse as ap
 import astropy.units as u
 import numpy as np
-import time
 
 from input_utils import setup_logging
 from astropy.io import fits
@@ -80,6 +79,9 @@ for j, _info in enumerate(shots_of_interest):
     coord = _info[0]
     date = str(_info[1])
     i = _info[2]
+    fwhm = t['fwhm_moffat'][i]
+    moffat = E.moffat_psf(fwhm, 10.5, 0.25)
+
     epoch = Time(dt(int(date[:4]), int(date[4:6]), int(date[6:8]))).byear
     try:
         deltaRA = ((epoch - 2015.5) * bintable['pmra'] / 1e3 / 3600. /
@@ -90,12 +92,11 @@ for j, _info in enumerate(shots_of_interest):
         ncoords = SkyCoord((bintable['ra']+deltaRA)*u.deg,
                            (bintable['dec']+deltaDE)*u.deg)
     except:
-        log.warning("[%s] Can't convert proper motion for epoch")
+        log.warning("Can't convert proper motion for epoch")
         ncoords = coords
     dist = ncoords.separation(coord)
     sep_constraint = dist < max_sep
     name = '%sv%03d' % (t['date'][i], t['obsid'][i])
-    log.info('%s: %0.2f' % (name, epoch))
     idx = np.where(sep_constraint)[0]
     matched_sources[name] = idx
     if len(idx) > 0:
@@ -106,7 +107,7 @@ for j, _info in enumerate(shots_of_interest):
             if info_result is not None:
                 log.info('Extracting %i' % ID[ind])
                 ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
-                weights = E.build_weights(xc, yc, ifux, ifuy, aperture)
+                weights = E.build_weights(xc, yc, ifux, ifuy, moffat)
                 result = E.get_spectrum(data, error, mask, weights)
                 spectrum_aper, spectrum_aper_error = [res for res in result]
                 Sources.append(table[ind])
@@ -119,15 +120,15 @@ F1 = fits.BinTableHDU(vstack(Sources))
 F1.header['EXTNAME'] = 'catalog'
 F2 = fits.ImageHDU(np.array(Spectra))
 F2.header['EXTNAME'] = 'spectra'
-F2.header['CRVAL2'] = 3470.
-F2.header['CDELTA2'] = 2.
+F2.header['CRVAL1'] = 3470.
+F2.header['CDELTA1'] = 2.
 F3 = fits.ImageHDU(np.array(Error))
 F3.header['EXTNAME'] = 'error'
-F3.header['CRVAL2'] = 3470.
-F3.header['CDELTA2'] = 2.
+F3.header['CRVAL1'] = 3470.
+F3.header['CDELTA1'] = 2.
 F4 = fits.ImageHDU(np.array(Weights))
 F4.header['EXTNAME'] = 'weight'
-F4.header['CRVAL2'] = 3470.
-F4.header['CDELTA2'] = 2.
+F4.header['CRVAL1'] = 3470.
+F4.header['CDELTA1'] = 2.
 F = fits.HDUList([fits.PrimaryHDU(), F1, F2, F3, F4])
 F.writeto(args.outputname, overwrite=True)
