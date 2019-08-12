@@ -20,6 +20,41 @@ from datetime import datetime as dt
 from hetdex_api.extract import Extract 
 from hetdex_api.survey import Survey
 
+def get_spectrum(data, error, mask, weights):
+        '''
+        Weighted spectral extraction
+        
+        Parameters
+        ----------
+        data: numpy 2d array (number of fibers by wavelength dimension)
+            Flux calibrated spectra for fibers within a given radius of the 
+            source.  The radius is defined in get_fiberinfo_for_coord().
+        error: numpy 2d array
+            Error of the flux calibrated spectra 
+        mask: numpy 2d array (bool)
+            Mask of good wavelength regions for each fiber
+        weights: numpy 2d array (float)
+            Normalized extraction model for each fiber
+        
+        Returns
+        -------
+        spectrum: numpy 1d array
+            Flux calibrated extracted spectrum
+        spectrum_error: numpy 1d array
+            Error for the flux calibrated extracted spectrum
+        '''
+        spectrum = (np.sum(data * mask * weights, axis=0) /
+                    np.sum(mask * weights**2, axis=0))
+        spectrum_error = (np.sqrt(np.sum(error**2 * mask * weights, axis=0)) /
+                          np.sum(mask * weights**2, axis=0))
+        # Only use wavelengths with enough weight to avoid large noise spikes
+        w = np.sum(mask * weights, axis=0)
+        sel = w < np.median(w)*0.1
+        spectrum[sel] = np.nan
+        spectrum_error[sel] = np.nan
+        
+        return spectrum, spectrum_error, w
+
 parser = ap.ArgumentParser(add_help=True)
 
 parser.add_argument("filename",
@@ -108,12 +143,15 @@ for j, _info in enumerate(shots_of_interest):
                 log.info('Extracting %i' % ID[ind])
                 ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
                 weights = E.build_weights(xc, yc, ifux, ifuy, moffat)
-                result = E.get_spectrum(data, error, mask, weights)
-                spectrum_aper, spectrum_aper_error = [res for res in result]
+                second_mask = np.sqrt((ifux-xc)**2 + (ifuy-yc)**2) < 3.
+                result = get_spectrum(data, error,
+                                      mask*second_mask[:, np.newaxis],
+                                      weights)
+                spectrum_aper, spectrum_aper_error, w = [res for res in result]
                 Sources.append(table[ind])
                 Spectra.append(spectrum_aper)
                 Error.append(spectrum_aper_error)
-                Weights.append(weights.sum(axis=0))
+                Weights.append(w)
         E.fibers.close()
 
 F1 = fits.BinTableHDU(vstack(Sources))
