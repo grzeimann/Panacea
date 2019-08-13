@@ -49,9 +49,12 @@ def get_spectrum(data, error, mask, weights):
                           np.sum(mask * weights**2, axis=0))
         # Only use wavelengths with enough weight to avoid large noise spikes
         w = np.sum(mask * weights, axis=0)
-        sel = w < np.median(w)*0.1
-        spectrum[sel] = np.nan
-        spectrum_error[sel] = np.nan
+        bad = w < 0.8
+        for i in np.arange(1, 4):
+            bad[i:] += bad[:-i]
+            bad[:-i] += bad[i:]
+        spectrum[bad] = np.nan
+        spectrum_error[bad] = np.nan
         
         return spectrum, spectrum_error, w
 
@@ -110,6 +113,7 @@ log.info('Number of shots of interest: %i' % len(shots_of_interest))
 
 N = len(shots_of_interest)
 
+graceful_exit = 0
 for j, _info in enumerate(shots_of_interest):
     coord = _info[0]
     date = str(_info[1])
