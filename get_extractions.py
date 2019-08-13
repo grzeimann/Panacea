@@ -49,7 +49,7 @@ def get_spectrum(data, error, mask, weights):
                           np.sum(mask * weights**2, axis=0))
         # Only use wavelengths with enough weight to avoid large noise spikes
         w = np.sum(mask * weights, axis=0)
-        bad = w < 0.8
+        bad = w < 0.05
         for i in np.arange(1, 4):
             bad[i:] += bad[:-i]
             bad[:-i] += bad[i:]
@@ -74,6 +74,9 @@ log = setup_logging('toy')
 log.info('Loading Survey')
 survey = Survey('hdr1')
 t = Table(survey.hdfile.root.Survey[:])
+sel = (t['throughput'] > 0.08) * (t['fwhm_moffat'] < 2.6)
+t = t[sel]
+survey.coords = survey.coords[sel]
 
 log.info('Loading External File')
 
