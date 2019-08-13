@@ -74,7 +74,7 @@ log = setup_logging('toy')
 log.info('Loading Survey')
 survey = Survey('hdr1')
 t = Table(survey.hdfile.root.Survey[:])
-sel = (t['throughput'] > 0.08) * (t['fwhm_moffat'] < 2.6)
+sel = (t['response_4540'] > 0.08) * (t['fwhm_moffat'] < 2.6)
 t = t[sel]
 survey.coords = survey.coords[sel]
 
