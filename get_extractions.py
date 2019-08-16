@@ -147,7 +147,7 @@ for j, _info in enumerate(shots_of_interest):
         for ind in idx:
             info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=7.)
             if info_result is not None:
-                log.info('Extracting %i' % ID[ind])
+                log.info('Extracting %s' % str(ID[ind]))
                 ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
                 weights = E.build_weights(xc, yc, ifux, ifuy, moffat)
                 second_mask = np.sqrt((ifux-xc)**2 + (ifuy-yc)**2) < 3.
