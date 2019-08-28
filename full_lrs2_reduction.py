@@ -363,7 +363,10 @@ def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
     for fiber in np.arange(array_wave.shape[0]):
         indl = np.floor(array_trace[fiber]).astype(int)
         indh = np.ceil(array_trace[fiber]).astype(int)
-        spectrum[fiber] = array_flt[indl, x] / 2. + array_flt[indh, x] / 2.
+        try:
+            spectrum[fiber] = array_flt[indl, x] / 2. + array_flt[indh, x] / 2.
+        except:
+            spectrum[fiber] = 0.
     
     log.info('Getting powerlaw for side %s' % specname)
     plaw, norm = get_powerlaw(array_flt, array_trace, spectrum)
