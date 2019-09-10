@@ -46,7 +46,7 @@ def get_spectrum(data, error, mask, weights):
         spectrum = (np.sum(data * mask * weights, axis=0) /
                     np.sum(mask * weights**2, axis=0))
         spectrum_error = (np.sqrt(np.sum(error**2 * mask * weights, axis=0)) /
-                          np.sum(mask * weights**2, axis=0))
+                          np.sqrt(np.sum(mask * weights**2, axis=0)))
         # Only use wavelengths with enough weight to avoid large noise spikes
         w = np.sum(mask * weights, axis=0)
         bad = w < 0.05
