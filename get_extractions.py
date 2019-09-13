@@ -157,7 +157,8 @@ for j, _info in enumerate(shots_of_interest):
                                       mask*second_mask[:, np.newaxis],
                                       weights)
                 spectrum_aper, spectrum_aper_error, w = [res for res in result]
-                table[ind]['obs_id'] = intname
+                dtable = Table(table[ind])
+                dtable['obs_id'] = intname
                 Sources.append(table[ind])
                 Spectra.append(spectrum_aper)
                 Error.append(spectrum_aper_error)
