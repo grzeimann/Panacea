@@ -165,9 +165,9 @@ for j, _info in enumerate(shots_of_interest):
                     nx, ny = centroid_2dg(zarray[0])
                     nxc = np.interp(nx, np.arange(zarray[1].shape[1]), zarray[1][0, :])
                     nyc = np.interp(nx, np.arange(zarray[2].shape[0]), zarray[2][:, 0])
-                    log.info('Original: %02.f, %0.2f, New: %02.f, %0.2f' %
+                    log.info('Original: %0.2f, %0.2f, Change: %0.2f, %0.2f' %
                              (xc, yc, nxc, nyc))
-                    xc, yc = (nxc, nyc)
+                    xc, yc = (nxc+xc, nyc+yc)
                 weights = E.build_weights(xc, yc, ifux, ifuy, moffat)
                 second_mask = np.sqrt((ifux-xc)**2 + (ifuy-yc)**2) < 3.
                 result = get_spectrum(data, error,
