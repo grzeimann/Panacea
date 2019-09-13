@@ -13,7 +13,7 @@ import numpy as np
 from input_utils import setup_logging
 from astropy.io import fits
 from astropy.coordinates import SkyCoord
-from astropy.table import Table
+from astropy.table import Table, Column
 from astropy.table import vstack
 from astropy.time import Time
 from datetime import datetime as dt
@@ -117,7 +117,7 @@ log.info('Number of shots of interest: %i' % len(shots_of_interest))
 N = len(shots_of_interest)
 
 graceful_exit = 0
-table.add_column(np.zeros((len(table),), dtype=int), name='obs_id')
+table.add_column(Column(np.zeros((len(table),), dtype=int), name='obs_id'))
 for j, _info in enumerate(shots_of_interest):
     coord = _info[0]
     date = str(_info[1])
