@@ -108,6 +108,8 @@ fixed_aperture = 3.
 aperture = E.tophat_psf(fixed_aperture, 10.5, 0.25)
 
 Sources, Spectra, Error, Weights = ([], [], [], [])
+if args.recenter:
+    Images = []
 
 for i, coord in enumerate(survey.coords):
     dist = coords.separation(coord)
@@ -158,16 +160,27 @@ for j, _info in enumerate(shots_of_interest):
                 ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
                 if args.recenter:
                     zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
-                                                  scale=0.25, seeing_fac=1.8, boxsize=4.,
+                                                  scale=0.25, seeing_fac=1.5, boxsize=4.,
                                                   wrange=[3470, 5540], nchunks=11,
-                                                  convolve_image=False,
+                                                  convolve_image=True,
                                                   interp_kind='linear')
                     nx, ny = centroid_2dg(zarray[0])
-                    nxc = np.interp(nx, np.arange(zarray[1].shape[1]), zarray[1][0, :])
-                    nyc = np.interp(ny, np.arange(zarray[2].shape[0]), zarray[2][:, 0])
+                    nxc = np.interp(nx, np.arange(zarray[1].shape[1]),
+                                    zarray[1][0, :])
+                    nyc = np.interp(ny, np.arange(zarray[2].shape[0]),
+                                    zarray[2][:, 0])
+                    for n in [nxc, nyc]:
+                        if np.isnan(n):
+                            n = 0.0
                     log.info('Original: %0.2f, %0.2f, Change: %0.2f, %0.2f' %
                              (xc, yc, nxc, nyc))
                     xc, yc = (nxc+xc, nyc+yc)
+                    zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
+                                                  scale=0.25, seeing_fac=1.5, boxsize=4.,
+                                                  wrange=[3470, 5540], nchunks=11,
+                                                  convolve_image=True,
+                                                  interp_kind='linear')
+                    Images.append(zarray[0])
                 weights = E.build_weights(xc, yc, ifux, ifuy, moffat)
                 second_mask = np.sqrt((ifux-xc)**2 + (ifuy-yc)**2) < 3.
                 result = get_spectrum(data, error,
@@ -196,5 +209,9 @@ F4 = fits.ImageHDU(np.array(Weights))
 F4.header['EXTNAME'] = 'weight'
 F4.header['CRVAL1'] = 3470.
 F4.header['CDELTA1'] = 2.
-F = fits.HDUList([fits.PrimaryHDU(), F1, F2, F3, F4])
+if args.recenter:
+    F5 = fits.ImageHDU(np.array(Images))
+    F = fits.HDUList([fits.PrimaryHDU(), F1, F2, F3, F4, F5])
+else:
+    F = fits.HDUList([fits.PrimaryHDU(), F1, F2, F3, F4])
 F.writeto(args.outputname, overwrite=True)
