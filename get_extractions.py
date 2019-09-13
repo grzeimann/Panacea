@@ -19,6 +19,7 @@ from astropy.time import Time
 from datetime import datetime as dt
 from hetdex_api.extract import Extract 
 from hetdex_api.survey import Survey
+from photutils.centroids import centroid_2dg
 
 def get_spectrum(data, error, mask, weights):
         '''
@@ -67,6 +68,10 @@ parser.add_argument("filename",
 parser.add_argument("outputname",
                     help='''Name of fits file output''',
                     type=str)
+
+parser.add_argument("-r", "--recenter",
+                    help='''Re-centroid source''',
+                    action="count", default=0)
 
 args = parser.parse_args(args=None)
 
@@ -151,6 +156,17 @@ for j, _info in enumerate(shots_of_interest):
             if info_result is not None:
                 log.info('Extracting %s' % str(ID[ind]))
                 ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
+                zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
+                                              scale=0.25, seeing_fac=1.8, boxsize=4.,
+                                              wrange=[3470, 5540], nchunks=11,
+                                              convolve_image=False,
+                                              interp_kind='linear')
+                nx, ny = centroid_2dg(zarray[0])
+                nxc = np.interp(nx, np.arange(zarray[1].shape[1]), zarray[1][0, :])
+                nyc = np.interp(nx, np.arange(zarray[2].shape[0]), zarray[2][:, 0])
+                log.info('Original: %02.f, %0.2f, New: %02.f, %0.2f' %
+                         (xc, yc, nxc, nyc))
+                xc, yc = (nxc, nyc)
                 weights = E.build_weights(xc, yc, ifux, ifuy, moffat)
                 second_mask = np.sqrt((ifux-xc)**2 + (ifuy-yc)**2) < 3.
                 result = get_spectrum(data, error,
