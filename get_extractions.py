@@ -117,6 +117,7 @@ log.info('Number of shots of interest: %i' % len(shots_of_interest))
 N = len(shots_of_interest)
 
 graceful_exit = 0
+table.add_column(np.zeros((len(table),), dtype=int), name='obs_id')
 for j, _info in enumerate(shots_of_interest):
     coord = _info[0]
     date = str(_info[1])
@@ -139,6 +140,7 @@ for j, _info in enumerate(shots_of_interest):
     dist = ncoords.separation(coord)
     sep_constraint = dist < max_sep
     name = '%sv%03d' % (t['date'][i], t['obsid'][i])
+    intname = int(name)
     idx = np.where(sep_constraint)[0]
     matched_sources[name] = idx
     if len(idx) > 0:
@@ -155,6 +157,7 @@ for j, _info in enumerate(shots_of_interest):
                                       mask*second_mask[:, np.newaxis],
                                       weights)
                 spectrum_aper, spectrum_aper_error, w = [res for res in result]
+                table[ind]['obs_id'] = intname
                 Sources.append(table[ind])
                 Spectra.append(spectrum_aper)
                 Error.append(spectrum_aper_error)
