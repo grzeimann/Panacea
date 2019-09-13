@@ -140,7 +140,7 @@ for j, _info in enumerate(shots_of_interest):
     dist = ncoords.separation(coord)
     sep_constraint = dist < max_sep
     name = '%sv%03d' % (t['date'][i], t['obsid'][i])
-    intname = int(name)
+    intname = int(name.replace('v', ''))
     idx = np.where(sep_constraint)[0]
     matched_sources[name] = idx
     if len(idx) > 0:
