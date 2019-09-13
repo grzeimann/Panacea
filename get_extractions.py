@@ -152,7 +152,7 @@ for j, _info in enumerate(shots_of_interest):
                 log.info('Extracting %s' % str(ID[ind]))
                 ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
                 weights = E.build_weights(xc, yc, ifux, ifuy, moffat)
-                second_mask = np.sqrt((ifux-xc)**2 + (ifuy-yc)**2) < 3.
+                second_mask = np.sqrt((ifux-xc)**2 + (ifuy-yc)**2) < 6.
                 result = get_spectrum(data, error,
                                       mask*second_mask[:, np.newaxis],
                                       weights)
