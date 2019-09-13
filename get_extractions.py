@@ -159,7 +159,7 @@ for j, _info in enumerate(shots_of_interest):
                 spectrum_aper, spectrum_aper_error, w = [res for res in result]
                 dtable = Table(table[ind])
                 dtable['obs_id'] = intname
-                Sources.append(table[ind])
+                Sources.append(dtable)
                 Spectra.append(spectrum_aper)
                 Error.append(spectrum_aper_error)
                 Weights.append(w)
