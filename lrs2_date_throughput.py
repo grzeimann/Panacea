@@ -22,7 +22,7 @@ from matplotlib.ticker import MultipleLocator
 def get_illum(date, fn):
     t = tarfile.open('/work/03946/hetdex/maverick/%s/gc1/gc1.tar' % date)
     names = t.getnames()
-    fns = fn.replace('-', '').replace(':')[:-5] + '_gc1_sci.fits'
+    fns = fn.replace('-', '').replace(':', '')[:-5] + '_gc1_sci.fits'
     N = names + [fns]
     v = np.array(sorted(N))
     ind = np.where(v == fns)[0]
