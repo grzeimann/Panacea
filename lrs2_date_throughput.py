@@ -16,6 +16,11 @@ from math_utils import biweight
 import tarfile
 import matplotlib.dates as mdates
 from matplotlib.ticker import MultipleLocator
+import seaborn as sns
+
+# Plot style
+sns.set_context('talk')
+sns.set_style('ticks')
 
 
 
@@ -28,7 +33,7 @@ def get_illum(date, fn):
     ind = np.where(v == fns)[0][0]
     try:
         f = fits.open(t.extractfile(v[ind+1]))
-        illum = f[0].header['PUPILLUM']
+        illum = f[0].header['PUPILLUM']*1.05
     except:
         illum = 0.0
     t.close()
@@ -87,4 +92,6 @@ plt.gca().tick_params(axis='x', which='minor', direction='in', bottom=True)
 plt.gca().tick_params(axis='x', which='major', direction='in', bottom=True)
 plt.gca().tick_params(axis='y', which='minor', direction='in', left=True)
 plt.gca().tick_params(axis='y', which='major', direction='in', left=True)
+plt.gca().tick_params(axis='both', which='major', length=15, width=3)
+plt.gca().tick_params(axis='both', which='minor', length=6, width=2)
 plt.savefig('date_throughput.png', dpi=300)
