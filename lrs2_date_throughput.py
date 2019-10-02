@@ -17,7 +17,7 @@ import tarfile
 
 
 def get_illum(date, fn):
-    t = tarfile('/work/03946/hetdex/maverick/%s/gc1/gc1.tar')
+    t = tarfile('/work/03946/hetdex/maverick/%s/gc1/gc1.tar' % date)
     names = t.getnames()
     fns = fn.replace('-', '').replace(':')[:-5] + '_gc1_sci.fits'
     N = names + [fns]
