@@ -57,6 +57,8 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
             if D > datetime.date(2019, 4, 1):
                 illum = get_illum(dt, g[0].header['DATE'])
                 print("Illumination for %s is %0.2f" % (f, illum))
+            else:
+                illum = 1.0
             dT.append(D)
             d = np.interp(g[0].data[0], wave, flam)
             s.append(biweight(g[0].data[1] / d) / illum)
