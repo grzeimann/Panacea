@@ -33,7 +33,7 @@ def get_illum(date, fn):
     ind = np.where(v == fns)[0][0]
     try:
         f = fits.open(t.extractfile(v[ind+1]))
-        illum = f[0].header['PUPILLUM']*1.05
+        illum = f[0].header['PUPILLUM']*1.03
     except:
         illum = 0.0
     t.close()
@@ -86,7 +86,7 @@ ML = MultipleLocator(0.5)
 plt.ylabel('Transparency')
 plt.gca().xaxis.set_major_formatter(myFmt)
 plt.gca().xaxis.set_major_locator(months)
-plt.gca().xaxis.set_minor_locator(weeks)
+plt.gca().xaxis.set_minor_locator(days)
 plt.gca().yaxis.set_minor_locator(mL)
 plt.gca().yaxis.set_major_locator(ML)
 plt.gca().tick_params(axis='x', which='minor', direction='in', bottom=True)
@@ -94,5 +94,5 @@ plt.gca().tick_params(axis='x', which='major', direction='in', bottom=True)
 plt.gca().tick_params(axis='y', which='minor', direction='in', left=True)
 plt.gca().tick_params(axis='y', which='major', direction='in', left=True)
 plt.gca().tick_params(axis='both', which='major', length=15, width=3)
-plt.gca().tick_params(axis='both', which='minor', length=6, width=2)
+plt.gca().tick_params(axis='both', which='minor', length=6, width=1)
 plt.savefig('date_throughput.png', dpi=300)
