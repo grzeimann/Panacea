@@ -14,6 +14,9 @@ import numpy as np
 import datetime
 from math_utils import biweight
 import tarfile
+import matplotlib.dates as mdates
+from matplotlib.ticker import MultipleLocator
+
 
 
 def get_illum(date, fn):
@@ -65,4 +68,23 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
     plt.plot_date(dT, np.array(s), alpha=0.6, ms=5)
 plt.ylim([0, 1.2])
 plt.xlim([datetime.date(2018, 10, 1), datetime.date(2019, 10, 1)])
+plt.gcf().autofmt_xdate()
+
+# Plot formatters
+myFmt = mdates.DateFormatter('%m/%d/%y')
+weeks = mdates.WeekdayLocator()  # every week
+months = mdates.MonthLocator()  # every month
+days = mdates.DayLocator()  # every day
+mL = MultipleLocator(0.1)
+ML = MultipleLocator(0.5)
+
+plt.gca().xaxis.set_major_formatter(myFmt)
+plt.gca().xaxis.set_major_locator(months)
+plt.gca().xaxis.set_minor_locator(weeks)
+plt.gca().yaxis.set_minor_locator(mL)
+plt.gca().yaxis.set_manor_locator(ML)
+plt.gca().tick_params(axis='x', which='minor', direction='in', bottom=True)
+plt.gca().tick_params(axis='x', which='major', direction='in', bottom=True)
+plt.gca().tick_params(axis='y', which='minor', direction='in', left=True)
+plt.gca().tick_params(axis='y', which='major', direction='in', left=True)
 plt.savefig('date_throughput.png', dpi=300)
