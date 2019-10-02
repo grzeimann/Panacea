@@ -28,8 +28,9 @@ def get_illum(date, fn):
         illum = f[0].header['PUPILLUM']
     except:
         illum = 0.0
+    t.close()
     return illum
-
+    
 plt.figure(figsize=(10, 5))
 n = []
 fn = sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/STANDARDS/spectrum_201*orange*'))
