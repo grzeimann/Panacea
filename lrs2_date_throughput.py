@@ -5,7 +5,8 @@ Created on Wed Oct  2 13:16:51 2019
 
 @author: gregz
 """
-
+import matplotlib
+matplotlib.use('agg')
 import glob
 import matplotlib.pyplot as plt
 from astropy.io import fits
