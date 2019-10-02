@@ -25,8 +25,7 @@ def get_illum(date, fn):
     fns = fn.replace('-', '').replace(':', '')[:-5] + '_gc1_sci.fits'
     N = names + [fns]
     v = np.sort(N)
-    ind = np.where(v == fns)[0]
-    print(ind)
+    ind = np.where(v == fns)[0][0]
     try:
         f = fits.open(t.extractfile(v[ind+1]))
         illum = f[0].header['PUPILLUM']
