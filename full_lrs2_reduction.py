@@ -1935,10 +1935,10 @@ for info in listinfo:
     else:
         twiflt_path = op.join(baseraw, args.date,  '%s', '*', 'exp*',
                               '%s', '2*_%sLL_twi.fits')
-        twibase = twiflt_path % (instrument, instrument, ifuslot)
-        twibase, newdate = get_cal_path(twibase, args.date)
-        if newdate != args.date:
-            log.info('Found twi files on %s and using them for %s' % (newdate, args.date))
+        twibase = twi_path % (instrument, instrument, ifuslot)
+        #twibase, newdate = get_cal_path(twibase, args.date)
+        #if newdate != args.date:
+        #    log.info('Found twi files on %s and using them for %s' % (newdate, args.date))
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
         ##############
@@ -1958,11 +1958,11 @@ for info in listinfo:
         #####################
         log.info('Getting MasterFlat for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
+        
+        #twibase, newdate = get_cal_path(twibase, args.date)
 
-        twibase, newdate = get_cal_path(twibase, args.date)
-
-        if newdate != args.date:
-            log.info('Found trace files on %s and using them for %s' % (newdate, args.date))
+        #if newdate != args.date:
+        #    log.info('Found trace files on %s and using them for %s' % (newdate, args.date))
         
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
