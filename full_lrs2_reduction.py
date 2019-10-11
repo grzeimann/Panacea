@@ -1963,6 +1963,7 @@ for info in listinfo:
         twibase, newdate = get_cal_path(twibase, args.date)
         twibase = twi_path % (instrument, instrument, '00000*', instrument,
                                         ifuslot)
+        print(twibase)
         if newdate != args.date:
             log.info('Found trace files on %s and using them for %s' % (newdate, args.date))
         
