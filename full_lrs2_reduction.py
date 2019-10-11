@@ -163,7 +163,7 @@ sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*sci.fits')
 cmp_path = op.join(baseraw, twi_date[:-2] + '*',  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_cmp.fits')
-twi_path = op.join(baseraw, twi_date,  '%s', '%s%s', 'exp*',
+twi_path = op.join(baseraw, twi_date[:-2] + '*',  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_twi.fits')
 bias_path = op.join(baseraw, twi_date[:-2] + '*', '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
