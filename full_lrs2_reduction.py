@@ -1681,13 +1681,14 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 else:
                     basename = 'LRS2/ORPHANS'
             mkpath(basename)
-            PA = float(he['PARANGLE'])
-            RA = float(he['TRAJRA'])
-            DEC = float(he['TRAJDEC'])
-            log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
+            
             pos = np.zeros((len(calinfo[5]), 6))
             pos[:, 0:2] = calinfo[5]
             try:
+                PA = float(he['PARANGLE'])
+                RA = float(he['TRAJRA'])
+                DEC = float(he['TRAJDEC'])
+                log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
                 A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
                 ra, dec = A.get_ifupos_ra_dec(ifuslot, calinfo[5][:, 0],
                                               calinfo[5][:, 1])
