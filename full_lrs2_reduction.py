@@ -1935,7 +1935,8 @@ for info in listinfo:
     else:
         twiflt_path = op.join(baseraw, args.date,  '%s', '*', 'exp*',
                               '%s', '2*_%sLL_twi.fits')
-        twibase = twi_path % (instrument, instrument, ifuslot)
+        twibase = twi_path % (instrument, instrument, '00000*', instrument,
+                                ifuslot)
         #twibase, newdate = get_cal_path(twibase, args.date)
         #if newdate != args.date:
         #    log.info('Found twi files on %s and using them for %s' % (newdate, args.date))
