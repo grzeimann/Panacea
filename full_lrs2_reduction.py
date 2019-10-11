@@ -1852,7 +1852,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 return get_response(obj[0], commonwave, skysubspec, specname)
             cnt += 1
         except:
-            log.warning('Exposure %i Failed' %i)
+            log.warning('Exposure %i Failed' % cnt)
             cnt += 1
 
 def get_cal_path(pathname, date):
