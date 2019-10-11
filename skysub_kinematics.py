@@ -415,7 +415,7 @@ def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
         S[:, 1] = yloc - Dy[k]
         sel = (data[:, k] / np.nansum(data[:, k] * W, axis=1)) <= 0.4
         sel *= np.isfinite(data[:, k]) * good * (error[:, k] > 0.)
-        if np.any(sel):
+        if np.sum(sel) > 15:
             Dcube[k, :, :] = (griddata(S[sel], data[sel, k],
                                        (xgrid, ygrid), method='cubic') * area)
             Ecube[k, :, :] = (griddata(S[sel], error[sel, k],
