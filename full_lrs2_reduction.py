@@ -673,8 +673,6 @@ def get_masterarc(arc_path, amp, arc_names, masterbias, specname, trace):
 
 def get_mastertwi(twi_path, amp, masterbias):
     files = glob.glob(twi_path.replace('LL', amp))
-    print(twi_path.replace('LL', amp))
-    print("length of files: %i" % len(files))
     listtwi = []
     for filename in files:
         a, e = base_reduction(filename)
@@ -1909,9 +1907,9 @@ def get_flt_base():
         flt_check_path = flt_check_path.replace(i_date, n_date)
         i_date = n_date
 
-    twiflt_path = op.join(baseraw, newdate,  '%s', fltobs, 'exp*',
+    twiflt_path = op.join(baseraw, args.date[:-2] + '*',  '%s', '%s00000*', 'exp*',
                           '%s', '2*_%sLL_flt.fits')
-    twibase = twiflt_path % (instrument, instrument, ifuslot)
+    twibase = twiflt_path % (instrument, instrument, instrument, ifuslot)
     return twibase, newdate
 
 # LRS2-R
