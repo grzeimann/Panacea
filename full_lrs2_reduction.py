@@ -673,6 +673,7 @@ def get_masterarc(arc_path, amp, arc_names, masterbias, specname, trace):
 
 def get_mastertwi(twi_path, amp, masterbias):
     files = glob.glob(twi_path.replace('LL', amp))
+    print(twi_path.replace('LL', amp))
     print("length of files: %i" % len(files))
     listtwi = []
     for filename in files:
