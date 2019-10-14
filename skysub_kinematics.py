@@ -21,6 +21,8 @@ from astropy.coordinates import SkyCoord
 from astropy.convolution import Gaussian1DKernel, convolve
 from astropy.convolution import interpolate_replace_nans
 from astropy.io import fits
+from astropy.modeling.models import Gaussian2D
+from astropy.modeling.fitting import SLSQPLSQFitter
 from astropy.stats import biweight_midvariance, sigma_clipped_stats, mad_std
 from astropy.stats import sigma_clip
 from astropy.table import Table
@@ -537,6 +539,18 @@ def get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt, cor=None,
         cnt += 1
     return F, info
 
+def get_norm(cube, xgrid, ygrid, wave, xc, yc, dist=3.):
+    xl = np.searchsorted(wave, 8400)
+    xh = np.searchsorted(wave, 8700)
+    image = biweight(cube[xl:xh], axis=0)
+    G = Gaussian2D(x_mean=xc, y_mean=yc)
+    fitter = SLSQPLSQFitter()
+    X, Y = (xgrid.ravel(), ygrid.ravel())
+    distsel = np.sqrt((X - xc)**2 + (Y-yc)**2) < dist
+    fit = fitter(G, X[distsel], Y[distsel], image.ravel()[distsel])
+    area = fit.amplitude / np.sqrt(2. * np.pi * fit.x_stddev * fit.y_stddev)
+    return area
+
 def main():
     sciobs = [x.replace(' ', '') for x in args.sciobs.split(',')]
     skyobs = [x.replace(' ', '') for x in args.skyobs.split(',')]
@@ -626,10 +640,13 @@ def main():
                        '+/-XXdXXmXX.Xs')
         sys.exit(1)
     Pos = []
+    Xc, Yc = ([], [])
     for _scifits in SciFits_List:
         SciSpectra = _scifits[0].data
         y = np.median(SciSpectra[:, 410:440], axis=1)
         xc, yc = find_centroid(pos, y)
+        Xc.append(xc)
+        Yc.append(yc)
         args.log.info('%s has object centroid at: %0.2f, %0.2f' %
                       (_scifits.filename(), xc, yc))
         A = Astrometry(S.ra.deg, S.dec.deg, _scifits[0].header['PARANGLE'],
@@ -656,7 +673,12 @@ def main():
                        sky_subtract=True)
     xgrid = info[0][2]
     ygrid = info[0][3]
-    zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
+    norms = np.array([get_norm(i[0], xgrid, ygrid, wave, xc, yc) 
+                      for i, xc, yc in zip(info, Xc, Yc)])
+    norms = norms / np.mean(norms)
+    for j, norm in enumerate(norms):
+        args.log.info('Normalization for frame %i: %0.2f' % (j, norm))
+    zcube = np.nanmean(np.array([i[0]/norm for i, norm in zip(info, norms)]), axis=0)
     ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
     Header = _scifits[0].header
     outname = '%s_%s_cube.fits' % (args.galaxyname,  channel)
