@@ -539,7 +539,7 @@ def get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt, cor=None,
         cnt += 1
     return F, info
 
-def get_norm(cube, xgrid, ygrid, wave, xc, yc, dist=3.):
+def get_norm(cube, xgrid, ygrid, wave, dist=3.):
     xl = np.searchsorted(wave, 8400)
     xh = np.searchsorted(wave, 8700)
     image = biweight(cube[xl:xh], axis=0)
@@ -552,7 +552,7 @@ def get_norm(cube, xgrid, ygrid, wave, xc, yc, dist=3.):
     G.amplitude.bounds = (0., 1.)
     fitter = SLSQPLSQFitter()
     X, Y = (xgrid.ravel(), ygrid.ravel())
-    distsel = np.sqrt((X - xc)**2 + (Y-yc)**2) < dist
+    distsel = np.sqrt(X**2 + Y**2) < dist
     totsel = distsel * np.isfinite(image.ravel())
     fit = fitter(G, X[totsel], Y[totsel], image.ravel()[totsel])
     area = fit.amplitude / np.sqrt(2. * np.pi * fit.x_stddev * fit.y_stddev)
@@ -681,8 +681,7 @@ def main():
                        sky_subtract=True)
     xgrid = info[0][2]
     ygrid = info[0][3]
-    norms = np.array([get_norm(i[0], xgrid, ygrid, wave, xc, yc) 
-                      for i, xc, yc in zip(info, Xc, Yc)])
+    norms = np.array([get_norm(i[0], xgrid, ygrid, wave) for i in info])
     norms = norms / np.mean(norms)
     for j, norm in enumerate(norms):
         args.log.info('Normalization for frame %i: %0.2f' % (j, norm))
