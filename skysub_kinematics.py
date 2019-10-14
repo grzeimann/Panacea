@@ -547,6 +547,8 @@ def get_norm(cube, xgrid, ygrid, wave, xc, yc, dist=3.):
     G = Gaussian2D(x_mean=0.0, y_mean=0.0)
     G.x_mean.bounds = (-0.25, 0.25)
     G.y_mean.bounds = (-0.25, 0.25)
+    G.x_stddev.bounds = (0.5, 5.)
+    G.y_stddev.bounds = (0.5, 5.)
     G.amplitude.bounds = (0., 1.)
     fitter = SLSQPLSQFitter()
     X, Y = (xgrid.ravel(), ygrid.ravel())
