@@ -545,7 +545,7 @@ def get_norm(cube, xgrid, ygrid, wave, dist=3.):
     image = biweight(cube[xl:xh], axis=0)
     image = image / np.nansum(image)
     fits.PrimaryHDU(image).writeto('debug.fits', overwrite=True)
-    G = Gaussian2D(x_mean=0.0, y_mean=0.0)
+    G = Gaussian2D(x_mean=0.0, y_mean=0.0, amplitude=0.01)
     G.x_mean.bounds = (-0.25, 0.25)
     G.y_mean.bounds = (-0.25, 0.25)
     G.x_stddev.bounds = (0.5, 5.)
