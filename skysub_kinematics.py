@@ -543,9 +543,11 @@ def get_norm(cube, xgrid, ygrid, wave, xc, yc, dist=3.):
     xl = np.searchsorted(wave, 8400)
     xh = np.searchsorted(wave, 8700)
     image = biweight(cube[xl:xh], axis=0)
+    image = image / np.nansum(image)
     G = Gaussian2D(x_mean=xc, y_mean=yc)
     G.x_mean.bounds(xc-0.25, xc+0.25)
     G.y_mean.bounds(yc-0.25, yc+0.25)
+    G.amplitude.bounds(0., 1.)
     fitter = SLSQPLSQFitter()
     X, Y = (xgrid.ravel(), ygrid.ravel())
     distsel = np.sqrt((X - xc)**2 + (Y-yc)**2) < dist
