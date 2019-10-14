@@ -550,6 +550,7 @@ def get_norm(cube, xgrid, ygrid, wave, xc, yc, dist=3.):
     totsel = distsel * np.isfinite(image.ravel())
     fit = fitter(G, X[totsel], Y[totsel], image.ravel()[totsel])
     area = fit.amplitude / np.sqrt(2. * np.pi * fit.x_stddev * fit.y_stddev)
+    print(fit)
     return area
 
 def main():
