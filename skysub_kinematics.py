@@ -540,8 +540,8 @@ def get_cube(SciFits_List, Pos, scale, ran, sky, wave, cnt, cor=None,
     return F, info
 
 def get_norm(cube, xgrid, ygrid, wave, dist=3.):
-    xl = np.searchsorted(wave, 8400)
-    xh = np.searchsorted(wave, 8700)
+    xl = 250
+    xh = 400
     image = biweight(cube[xl:xh], axis=0)
     image = image / np.nansum(image)
     fits.PrimaryHDU(image).writeto('debug.fits', overwrite=True)
