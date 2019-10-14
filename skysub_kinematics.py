@@ -22,7 +22,7 @@ from astropy.convolution import Gaussian1DKernel, convolve
 from astropy.convolution import interpolate_replace_nans
 from astropy.io import fits
 from astropy.modeling.models import Gaussian2D
-from astropy.modeling.fitting import SLSQPLSQFitter
+from astropy.modeling.fitting import SLSQPLSQFitter, FittingWithOutlierRemoval
 from astropy.stats import biweight_midvariance, sigma_clipped_stats, mad_std
 from astropy.stats import sigma_clip
 from astropy.table import Table
@@ -551,7 +551,7 @@ def get_norm(cube, xgrid, ygrid, wave, dist=3.):
     G.x_stddev.bounds = (0.5, 5.)
     G.y_stddev.bounds = (0.5, 5.)
     G.amplitude.bounds = (0., 1.)
-    fitter = SLSQPLSQFitter()
+    fitter = FittingWithOutlierRemoval(SLSQPLSQFitter(), sigma_clip)
     X, Y = (xgrid.ravel(), ygrid.ravel())
     distsel = np.sqrt(X**2 + Y**2) < dist
     totsel = distsel * np.isfinite(image.ravel()) * (image.ravel() < 1e-6)
