@@ -22,7 +22,7 @@ from astropy.convolution import Gaussian1DKernel, convolve
 from astropy.convolution import interpolate_replace_nans
 from astropy.io import fits
 from astropy.modeling.models import Gaussian2D
-from astropy.modeling.fitting import SLSQPLSQFitter, FittingWithOutlierRemoval
+from astropy.modeling.fitting import LevMarLSQFitter, FittingWithOutlierRemoval
 from astropy.stats import biweight_midvariance, sigma_clipped_stats, mad_std
 from astropy.stats import sigma_clip
 from astropy.table import Table
@@ -545,14 +545,14 @@ def get_norm(cube, xgrid, ygrid, wave, dist=3.):
     image = biweight(cube[xl:xh], axis=0)
     image = image / np.nansum(image)
     fits.PrimaryHDU(image).writeto('debug.fits', overwrite=True)
-    G = Gaussian2D(x_mean=0.0, y_mean=0.0, amplitude=0.01)
+    G = Gaussian2D(x_mean=0.0, y_mean=0.0, amplitude=0.005)
     G.x_mean.bounds = (-0.25, 0.25)
     G.y_mean.bounds = (-0.25, 0.25)
     G.x_stddev.bounds = (0.5, 5.)
     G.y_stddev.bounds = (0.5, 5.)
     G.amplitude.bounds = (0., 1.)
-    fitter = FittingWithOutlierRemoval(SLSQPLSQFitter(), sigma_clip,
-                                       stdfunc= mad_std)
+    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
+                                       stdfunc=mad_std)
     X, Y = (xgrid.ravel(), ygrid.ravel())
     distsel = np.sqrt(X**2 + Y**2) < dist
     totsel = distsel * np.isfinite(image.ravel()) * (image.ravel() > 1e-6)
