@@ -547,7 +547,8 @@ def get_norm(cube, xgrid, ygrid, wave, xc, yc, dist=3.):
     fitter = SLSQPLSQFitter()
     X, Y = (xgrid.ravel(), ygrid.ravel())
     distsel = np.sqrt((X - xc)**2 + (Y-yc)**2) < dist
-    fit = fitter(G, X[distsel], Y[distsel], image.ravel()[distsel])
+    totsel = distsel * np.isfinite(image.ravel())
+    fit = fitter(G, X[totsel], Y[totsel], image.ravel()[totsel])
     area = fit.amplitude / np.sqrt(2. * np.pi * fit.x_stddev * fit.y_stddev)
     return area
 
