@@ -495,6 +495,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
                 scisky = sky * ratio
         else:
             scisky = np.zeros((SciSpectra.shape[1],))
+        
         skysub_cube = zcube - scisky[:, np.newaxis, np.newaxis]
         newcube = np.zeros((len(def_wave), zcube.shape[1], zcube.shape[2]))
         newerrcube = np.zeros((len(def_wave), zcube.shape[1], zcube.shape[2]))
@@ -506,7 +507,8 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
                                              left=np.nan, right=np.nan)
                 newerrcube[:, j, k] = np.interp(def_wave, wave, ecube[:, j, k],
                                              left=np.nan, right=np.nan)
-                skycube[:, j, k] = scisky
+                skycube[:, j, k] = np.interp(def_wave, wave, scisky,
+                                             left=np.nan, right=np.nan)
         info.append([newcube, newerrcube, skycube, xgrid, ygrid])
         
         # Subtract sky in fiber space rather than on the cube
