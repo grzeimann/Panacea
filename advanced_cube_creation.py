@@ -590,10 +590,10 @@ def main():
             sky.append(np.median(SkySpectra[sel], axis=0))
     if len(sky) > 0:
         N = len(sky)
-        sky1 = np.mean([sky[i] for i in np.arange(N) if i < N/2], axis=0)
-        sky2 = np.mean([sky[i] for i in np.arange(N) if i >= N/2], axis=0)
-        cor1 = np.mean([cor[i] for i in np.arange(N) if i < N/2], axis=0)
-        cor2 = np.mean([cor[i] for i in np.arange(N) if i >= N/2], axis=0)
+        sky1 = np.array(np.mean([sky[i] for i in np.arange(N) if i < N/2], axis=0))
+        sky2 = np.array(np.mean([sky[i] for i in np.arange(N) if i >= N/2], axis=0))
+        cor1 = np.array(np.mean([cor[i] for i in np.arange(N) if i < N/2], axis=0))
+        cor2 = np.array(np.mean([cor[i] for i in np.arange(N) if i >= N/2], axis=0))
         print(cor1)
     else:
         sky1, sky2, cor1, cor2 = (None, None, None, None)
