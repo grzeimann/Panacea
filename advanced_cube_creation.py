@@ -552,7 +552,7 @@ def get_norm(cube, xgrid, ygrid, wave, dist=3.):
 def build_other_filenames(sciobs, channel, otherchannel):
     othersciobs = []
     for _sciobs in sciobs:
-        othersciobs = sciobs.replace(channel, otherchannel)
+        othersciobs.append(_sciobs.replace(channel, otherchannel))
     return sciobs + othersciobs
 
 def main():
