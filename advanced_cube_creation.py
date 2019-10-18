@@ -457,8 +457,8 @@ def get_ADR_RAdec(xoff, yoff, astrometry_object):
         ADRdec = (tDec - astrometry_object.dec0) * 3600.
         return ADRra, ADRdec
 
-def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, def_wave,
-             cors=None, sky_subtract=True, cal=False):
+def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
+             def_wave, sky_subtract=True, cal=False):
     F = []
     info = []
     if cors is None:
@@ -592,9 +592,8 @@ def main():
         N = len(sky)
         sky1 = np.array(np.mean([sky[i] for i in np.arange(N) if i < N/2], axis=0))
         sky2 = np.array(np.mean([sky[i] for i in np.arange(N) if i >= N/2], axis=0))
-        cor1 = np.array(np.mean([cor[i] for i in np.arange(N) if i < N/2], axis=0))
-        cor2 = np.array(np.mean([cor[i] for i in np.arange(N) if i >= N/2], axis=0))
-        print(cor1)
+        cor1 = None #np.array(np.mean([cor[i] for i in np.arange(N) if i < N/2], axis=0))
+        cor2 = None #np.array(np.mean([cor[i] for i in np.arange(N) if i >= N/2], axis=0))
     else:
         sky1, sky2, cor1, cor2 = (None, None, None, None)
 
