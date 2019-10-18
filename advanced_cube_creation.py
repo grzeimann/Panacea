@@ -620,6 +620,7 @@ def main():
     skies = []
     cors = []
     waves = []
+    print(sciobs)
     for j, _sciobs in enumerate(sciobs):
         if j >= N/2:
             sky = sky2
