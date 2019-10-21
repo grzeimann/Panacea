@@ -584,7 +584,7 @@ def main():
     side_dict = {'uv': 'LRS2B', 'orange': 'LRS2B', 'red': 'LRS2R', 'farred': 'LRS2R'}
     otherchannel_dict = {'uv': 'orange', 'orange': 'uv', 'red': 'farred',
                          'farred': 'red'}
-    sciobs, skyobs = ([], [])
+    sciobs = []
     B, R = (False, False)
     for obs in [bluesciobs, redsciobs]:
         if obs[0] != '':    
@@ -599,6 +599,14 @@ def main():
                 sciobs.append(itm)
             for itm in build_other_filenames(skyobs, channel, otherchannel):
                 skyobs.append(itm)
+    skyobs2 = []
+    for obs in [skyobs]:
+        if obs[0] != '':    
+            channel = obs[0].split('_')[-1][:-5]
+            otherchannel = otherchannel_dict[channel]
+            for itm in build_other_filenames(skyobs, channel, otherchannel):
+                skyobs2.append(itm)
+    skyobs = skyobs2
     scale = 0.25
     ran = [-3.6, 3.6, -6.4, 6.4]
     
