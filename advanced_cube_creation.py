@@ -732,11 +732,11 @@ def main():
     
 
     if args.delta_wavelength is None:
-        dw = np.min([waves[0][1] - waves[0][0], waves[-1][1] - waves[-1][0]])
+        dw = np.min(np.diff(np.array(waves), axis=1))
     else:
         dw = args.delta_wavelength
-    lw = np.min([waves[0][0], waves[-1][0]])
-    hw = np.max([waves[0][-1], waves[-1][-1]])
+    lw = np.min(np.array(waves))
+    hw = np.max(np.array(waves))
     def_wave = np.arange(lw, hw+dw, dw)
     args.log.info('Wavelength Range: %0.1f - %0.1f A, %0.2f A' % (lw, hw, dw))
     ############################### Science ###################################
