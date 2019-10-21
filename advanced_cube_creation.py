@@ -70,7 +70,7 @@ parser.add_argument("ra",  help='''RA of Galaxy''', type=str)
 
 parser.add_argument("dec",  help='''Dec of Galaxy''', type=str)
 
-parser.add_agrument("-dw", "--delta_wavelength",
+parser.add_argument("-dw", "--delta_wavelength",
                     help='''Delta Wavelength in linear units for output''',
                     default=None, type=float)
 
