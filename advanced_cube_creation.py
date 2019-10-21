@@ -21,7 +21,7 @@ from astropy.coordinates import SkyCoord
 from astropy.convolution import Gaussian1DKernel, convolve
 from astropy.convolution import interpolate_replace_nans
 from astropy.io import fits
-from astropy.modeling.models import Gaussian2D
+from astropy.modeling.models import Gaussian2D, Polynomial1D
 from astropy.modeling.fitting import LevMarLSQFitter, FittingWithOutlierRemoval
 from astropy.stats import biweight_midvariance, sigma_clipped_stats, mad_std
 from astropy.stats import sigma_clip
@@ -352,7 +352,11 @@ def get_adr_curve(pos, data):
         xp, yp = find_centroid(pos, yi)
         xk.append(xp)
         yk.append(yp)
-    return np.polyval(np.polyfit(xc, xk, 3), x/1000.), np.polyval(np.polyfit(xc, yk, 3), x/1000.)
+    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
+                                       stdfunc=mad_std)
+    fitx = fitter(Polynomial1D(3), xc, xk)
+    fity = fitter(Polynomial1D(3), xc, yk)
+    return fitx(x/1000.), fity(x/1000.)
 
 def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
               radius=0.7):
@@ -407,8 +411,8 @@ def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
         c[i] = interpolate_replace_nans(data[i], Gp)
     data = c * 1.
     for k in np.arange(b):
-        S[:, 0] = xloc + Dx[k]
-        S[:, 1] = yloc + Dy[k]
+        S[:, 0] = xloc - Dx[k]
+        S[:, 1] = yloc - Dy[k]
         sel = (data[:, k] / np.nansum(data[:, k] * W, axis=1)) <= 0.4
         sel *= np.isfinite(data[:, k]) * good * (error[:, k] > 0.)
         if np.sum(sel) > 15:
