@@ -22,6 +22,7 @@ from fiber_utils import bspline_x0
 from astropy.io import fits
 from astropy.table import Table
 from utils import biweight_location
+from math_utils import biweight
 from scipy.signal import savgol_filter
 from distutils.dir_util import mkpath
 from scipy.ndimage.filters import percentile_filter
@@ -165,7 +166,7 @@ cmp_path = op.join(baseraw, twi_date[:-2] + '*',  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_cmp.fits')
 twi_path = op.join(baseraw, twi_date[:-2] + '*',  '%s', '%s%s', 'exp*',
                    '%s', '2*_%sLL_twi.fits')
-bias_path = op.join(baseraw, twi_date[:-2] + '*', '%s', '%s%s', 'exp*',
+bias_path = op.join(baseraw, twi_date, '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
 
 
@@ -646,13 +647,11 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
 
 def get_masterbias(zro_path, amp):
     files = glob.glob(zro_path.replace('LL', amp))
-    biassum = np.zeros((1032, 2064))
-    cnt = np.zeros((1032, 2064))
-    for filename in files:
+    biassum = np.zeros((len(files), 1032, 2064))
+    for j, filename in enumerate(files):
         a, error = base_reduction(filename)
-        biassum += a
-        cnt += 1.
-    return biassum / cnt
+        biassum[j] = a
+    return biweight(biassum, axis=0)
 
 
 def get_masterarc(arc_path, amp, arc_names, masterbias, specname, trace):
@@ -1962,7 +1961,6 @@ for info in listinfo:
         twibase, newdate = get_cal_path(twibase, args.date)
         twibase = twi_path % (instrument, instrument, '00000*', instrument,
                                         ifuslot)
-        print(twibase)
         if newdate != args.date:
             log.info('Found trace files on %s and using them for %s' % (newdate, args.date))
         
