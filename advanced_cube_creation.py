@@ -54,7 +54,11 @@ parser.add_argument("-c", "--caldirectory",
 
 parser.add_argument("galaxyname",  help='''Name of Galaxy''', type=str)
 
-parser.add_argument("sciobs",
+parser.add_argument("bluesciobs",
+                    help='''e.g., multi_20170126_0000011_exp02_orange.fits''',
+                    type=str)
+
+parser.add_argument("redsciobs",
                     help='''e.g., multi_20170126_0000011_exp02_farred.fits''',
                     type=str)
 
@@ -65,6 +69,10 @@ parser.add_argument("skyobs",
 parser.add_argument("ra",  help='''RA of Galaxy''', type=str)
 
 parser.add_argument("dec",  help='''Dec of Galaxy''', type=str)
+
+parser.add_agrument("-dw", "--delta_wavelength",
+                    help='''Delta Wavelength in linear units for output''',
+                    default=None, type=float)
 
 parser.add_argument("-dss", "--dont_subtract_sky",
                     help='''Don't Subtract Sky''',
@@ -335,6 +343,17 @@ def find_centroid(pos, y):
     yc = np.sum(image[sel] * grid_y[sel]) / np.sum(image[sel])
     return xc, yc
 
+def get_adr_curve(pos, data):
+    x = np.arange(data.shape[1])
+    xc = [np.mean(xi) / 1000. for xi in np.array_split(x, 9)]
+    yc = [biweight(di, axis=1) for di in np.array_split(data, 9, axis=1)]
+    xk, yk = ([], [])
+    for yi in yc:
+        xp, yp = find_centroid(pos, yi)
+        xk.append(xp)
+        yk.append(yp)
+    return np.polyval(np.polyfit(xc, xk, 3), x), np.polyval(np.polyfit(xc, yk, 3), x)
+
 def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
               radius=0.7):
     '''
@@ -558,47 +577,56 @@ def build_other_filenames(sciobs, channel, otherchannel):
     return sciobs + othersciobs
 
 def main():
-    sciobs = [x.replace(' ', '') for x in args.sciobs.split(',')]
+    bluesciobs = [x.replace(' ', '') for x in args.bluesciobs.split(',')]
+    redsciobs = [x.replace(' ', '') for x in args.redsciobs.split(',')]
+
     skyobs = [x.replace(' ', '') for x in args.skyobs.split(',')]
     side_dict = {'uv': 'LRS2B', 'orange': 'LRS2B', 'red': 'LRS2R', 'farred': 'LRS2R'}
     otherchannel_dict = {'uv': 'orange', 'orange': 'uv', 'red': 'farred',
                          'farred': 'red'}
-    channel = sciobs[0].split('_')[-1][:-5]
-    otherchannel = otherchannel_dict[channel]
-    side = side_dict[channel]
-    sciobs = build_other_filenames(sciobs, channel, otherchannel)
-    skyobs = build_other_filenames(skyobs, channel, otherchannel)
+    sciobs, skyobs = ([], [])
+    B, R = (False, False)
+    for obs in [bluesciobs, redsciobs]:
+        if obs[0] != '':    
+            channel = obs[0].split('_')[-1][:-5]
+            otherchannel = otherchannel_dict[channel]
+            side = side_dict[channel]
+            if side == 'LRS2B':
+                B = True
+            if side == 'LRS2R':
+                R = True
+            for itm in build_other_filenames(obs, channel, otherchannel):
+                sciobs.append(itm)
+            for itm in build_other_filenames(skyobs, channel, otherchannel):
+                skyobs.append(itm)
     scale = 0.25
     ran = [-3.6, 3.6, -6.4, 6.4]
     
 # =============================================================================
 # Fitting for Sky
 # =============================================================================
-    sky = []
-    cor = []
+    sky, cor, chan = ([], [], [])
     SkyFits_List = []
     for _skyobs in skyobs:
-        skyflag = _skyobs.lower() != ''
-        if skyflag:
-            SkyFits_List.append(fits.open(op.join(args.directory, _skyobs)))
-            args.log.info('Sky observation: %s loaded' % (_skyobs))
-            SkySpectra = SkyFits_List[-1][0].data
-            sel = (SkySpectra == 0.).sum(axis=1) < 200
-            y = np.nanmedian(SkySpectra[:, 410:440], axis=1)
-            mask = execute_sigma_clip(y)
-            sel = sel * ~mask.mask
-            correction = correct_amplifier_offsets(y)
-            cor.append(correction)
-            sky.append(np.median(SkySpectra[sel], axis=0))
-    if len(sky) > 0:
-        N = len(sky)
-        sky1 = np.array(np.mean([sky[i] for i in np.arange(N) if i < N/2], axis=0))
-        sky2 = np.array(np.mean([sky[i] for i in np.arange(N) if i >= N/2], axis=0))
-        cor1 = None #np.array(np.mean([cor[i] for i in np.arange(N) if i < N/2], axis=0))
-        cor2 = None #np.array(np.mean([cor[i] for i in np.arange(N) if i >= N/2], axis=0))
-    else:
-        sky1, sky2, cor1, cor2 = (None, None, None, None)
-
+        channel = _skyobs[0].split('_')[-1][:-5]
+        chan.append(channel)
+        SkyFits_List.append(fits.open(op.join(args.directory, _skyobs)))
+        args.log.info('Sky observation: %s loaded' % (_skyobs))
+        SkySpectra = SkyFits_List[-1][0].data
+        sel = (SkySpectra == 0.).sum(axis=1) < 200
+        y = np.nanmedian(SkySpectra[:, 410:440], axis=1)
+        mask = execute_sigma_clip(y)
+        sel = sel * ~mask.mask
+        correction = correct_amplifier_offsets(y)
+        cor.append(correction)
+        sky.append(np.median(SkySpectra[sel], axis=0))
+    sky_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
+    cor_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
+    for uchan in np.unique(chan):
+        sky_dict[uchan] = np.array(np.mean([sk for sk, ch in zip(sky, chan)
+                                            if ch == uchan]))
+        cor_dict[uchan] = np.array(np.mean([co for co, ch in zip(cor, chan)
+                                            if ch == uchan]))
 # =============================================================================
 # Reading cooridinates for Astrometry
 # =============================================================================
@@ -612,7 +640,6 @@ def main():
 # =============================================================================
 # Gathering science and calibration information        
 # =============================================================================
-    N = len(sciobs)
     ran_list = []
     SciFits_List = []
     CalFits_List = []
@@ -623,16 +650,12 @@ def main():
     cors = []
     waves = []
     for j, _sciobs in enumerate(sciobs):
-        if j >= N/2:
-            sky = sky2
-            cor = cor2
-        else:
-            sky = sky1
-            cor = cor1
+        channel = _sciobs[0].split('_')[-1][:-5]
+        sky = sky_dict[channel]
+        cor = cor_dict[channel]
         SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
         args.log.info('Science observation: %s loaded' % (_sciobs))
         date = _sciobs.split('_')[1]
-        channel = _sciobs.split('_')[-1][:-5]
         calname = 'cal_%s_%s.fits' % (date, channel)
         CalFits_List.append(fits.open(op.join(args.caldirectory, calname)))
         args.log.info('Cal observation: %s loaded' % calname)
@@ -651,6 +674,7 @@ def main():
         yint =  np.interp(wave_0, T[0]['wave'], T[0]['y_0'])
         xoff = np.interp(wave, T[-1]['wave'], T[-1]['x_0']) - xint
         yoff = np.interp(wave, T[-1]['wave'], T[-1]['y_0']) - yint
+        xoff, yoff = get_adr_curve(pos, SciFits_List[-1][0].data)
         xc, yc = (0., 0.) # find_centroid(pos, y)
         A = Astrometry(S.ra.deg, S.dec.deg, SciFits_List[-1][0].header['PARANGLE'],
                        xc, yc, x_scale=1., y_scale=1., kind='lrs2')
@@ -698,7 +722,10 @@ def main():
     
 
     sel = waves[-1] > waves[0][-1]
-    dw = np.min([waves[0][1] - waves[0][0], waves[-1][1] - waves[-1][0]])
+    if args.delta_wavelength is None:
+        dw = np.min([waves[0][1] - waves[0][0], waves[-1][1] - waves[-1][0]])
+    else:
+        dw = args.delta_wavelength
     lw = np.min([waves[0][0], waves[-1][0]])
     hw = np.max([waves[0][-1], waves[-1][-1]])
     def_wave = np.arange(lw, hw+dw, dw)
@@ -717,9 +744,15 @@ def main():
     ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
     scube = np.nanmean(np.array([i[2] for i in info]), axis=0)
     Header = SciFits_List[0][0].header
-    outname = '%s_%s_cube.fits' % (args.galaxyname,  side)
-    eoutname = '%s_%s_error_cube.fits' % (args.galaxyname,  side)
-    soutname = '%s_%s_sky_cube.fits' % (args.galaxyname,  side)
+    if B and R:
+        name = 'LRS2B+R'
+    if B and (not R):
+        name = 'LRS2B'
+    if R and (not B):
+        name = 'LRS2R'
+    outname = '%s_%s_cube.fits' % (args.galaxyname,  name)
+    eoutname = '%s_%s_error_cube.fits' % (args.galaxyname,  name)
+    soutname = '%s_%s_sky_cube.fits' % (args.galaxyname,  name)
     write_cube(def_wave, xgrid, ygrid, zcube, outname, Header)
     write_cube(def_wave, xgrid, ygrid, ecube, eoutname, Header)
     write_cube(def_wave, xgrid, ygrid, scube, soutname, Header)
