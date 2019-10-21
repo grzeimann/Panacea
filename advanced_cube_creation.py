@@ -654,7 +654,7 @@ def main():
     cors = []
     waves = []
     for j, _sciobs in enumerate(sciobs):
-        channel = _sciobs[0].split('_')[-1][:-5]
+        channel = _sciobs.split('_')[-1][:-5]
         sky = sky_dict[channel]
         cor = cor_dict[channel]
         SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
