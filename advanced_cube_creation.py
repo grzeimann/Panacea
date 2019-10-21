@@ -720,9 +720,9 @@ def main():
     outname = '%s_%s_cube.fits' % (args.galaxyname,  side)
     eoutname = '%s_%s_error_cube.fits' % (args.galaxyname,  side)
     soutname = '%s_%s_sky_cube.fits' % (args.galaxyname,  side)
-    write_cube(wave, xgrid, ygrid, zcube, outname, Header)
-    write_cube(wave, xgrid, ygrid, ecube, eoutname, Header)
-    write_cube(wave, xgrid, ygrid, scube, soutname, Header)
+    write_cube(def_wave, xgrid, ygrid, zcube, outname, Header)
+    write_cube(def_wave, xgrid, ygrid, ecube, eoutname, Header)
+    write_cube(def_wave, xgrid, ygrid, scube, soutname, Header)
 
     
     ################################# Sky #####################################
