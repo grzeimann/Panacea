@@ -685,7 +685,7 @@ def main():
         xoff = np.interp(wave, T[-1]['wave'], T[-1]['x_0']) - xint
         yoff = np.interp(wave, T[-1]['wave'], T[-1]['y_0']) - yint
         if side == 'LRS2B':
-            order = 1
+            order = 2
         else:
             order = 0
         xoff, yoff = get_adr_curve(pos, SciFits_List[-1][0].data, order=order)
