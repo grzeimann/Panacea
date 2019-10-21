@@ -570,11 +570,6 @@ def get_norm(cube, xgrid, ygrid, wave, dist=3.):
     print(fit)
     return area
 
-def build_other_filenames(sciobs, channel, otherchannel):
-    othersciobs = []
-    for _sciobs in sciobs:
-        othersciobs.append(_sciobs.replace(channel, otherchannel))
-    return sciobs + othersciobs
 
 def main():
     bluesciobs = [x.replace(' ', '') for x in args.bluesciobs.split(',')]
@@ -586,24 +581,26 @@ def main():
                          'farred': 'red'}
     sciobs = []
     B, R = (False, False)
-    for obs in [bluesciobs, redsciobs]:
-        if obs[0] != '':    
-            channel = obs[0].split('_')[-1][:-5]
-            otherchannel = otherchannel_dict[channel]
-            side = side_dict[channel]
-            if side == 'LRS2B':
-                B = True
-            if side == 'LRS2R':
-                R = True
-            for itm in build_other_filenames(obs, channel, otherchannel):
-                sciobs.append(itm)
+    for OBS in [bluesciobs, redsciobs]:
+        for obs in OBS:
+            if obs != '':    
+                channel = obs.split('_')[-1][:-5]
+                otherchannel = otherchannel_dict[channel]
+                side = side_dict[channel]
+                if side == 'LRS2B':
+                    B = True
+                if side == 'LRS2R':
+                    R = True
+                sciobs.append(obs)
+                sciobs.append(obs.replace(channel, otherchannel))
     skyobs2 = []
-    for obs in [skyobs]:
-        if obs[0] != '':    
-            channel = obs[0].split('_')[-1][:-5]
-            otherchannel = otherchannel_dict[channel]
-            for itm in build_other_filenames(skyobs, channel, otherchannel):
-                skyobs2.append(itm)
+    for OBS in [skyobs]:
+        for obs in OBS:
+            if obs[0] != '':    
+                channel = obs[0].split('_')[-1][:-5]
+                otherchannel = otherchannel_dict[channel]
+                skyobs2.append(obs)
+                skyobs2.append(obs.replace(channel, otherchannel))
     skyobs = skyobs2
     scale = 0.25
     ran = [-3.6, 3.6, -6.4, 6.4]
