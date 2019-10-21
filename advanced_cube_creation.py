@@ -699,8 +699,8 @@ def main():
 
     sel = waves[-1] > waves[0][-1]
     dw = np.min([waves[0][1] - waves[0][0], waves[-1][1] - waves[-1][0]])
-    lw = waves[0][0]
-    hw = waves[-1][-1]
+    lw = np.min([waves[0][0], waves[-1][0]])
+    hw = np.max([waves[0][-1], waves[-1][-1]])
     def_wave = np.arange(lw, hw+dw, dw)
     
     ############################### Science ###################################
