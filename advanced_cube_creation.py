@@ -407,8 +407,8 @@ def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
         c[i] = interpolate_replace_nans(data[i], Gp)
     data = c * 1.
     for k in np.arange(b):
-        S[:, 0] = xloc - Dx[k]
-        S[:, 1] = yloc - Dy[k]
+        S[:, 0] = xloc + Dx[k]
+        S[:, 1] = yloc + Dy[k]
         sel = (data[:, k] / np.nansum(data[:, k] * W, axis=1)) <= 0.4
         sel *= np.isfinite(data[:, k]) * good * (error[:, k] > 0.)
         if np.sum(sel) > 15:
