@@ -625,7 +625,6 @@ def main():
         sky.append(np.median(SkySpectra[sel], axis=0))
     sky_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
     cor_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
-    print(sciobs)
     for uchan in np.unique(chan):
         sky_dict[uchan] = np.array(np.mean([sk for sk, ch in zip(sky, chan)
                                             if ch == uchan]))
@@ -679,6 +678,7 @@ def main():
         xoff = np.interp(wave, T[-1]['wave'], T[-1]['x_0']) - xint
         yoff = np.interp(wave, T[-1]['wave'], T[-1]['y_0']) - yint
         xoff, yoff = get_adr_curve(pos, SciFits_List[-1][0].data)
+        args.log.info('%s: %0.2f, %0.2f' % (_sciobs, np.mean(xoff), np.mean(yoff)))
         xc, yc = (0., 0.) # find_centroid(pos, y)
         A = Astrometry(S.ra.deg, S.dec.deg, SciFits_List[-1][0].header['PARANGLE'],
                        xc, yc, x_scale=1., y_scale=1., kind='lrs2')
@@ -725,7 +725,6 @@ def main():
     
     
 
-    sel = waves[-1] > waves[0][-1]
     if args.delta_wavelength is None:
         dw = np.min([waves[0][1] - waves[0][0], waves[-1][1] - waves[-1][0]])
     else:
@@ -733,7 +732,7 @@ def main():
     lw = np.min([waves[0][0], waves[-1][0]])
     hw = np.max([waves[0][-1], waves[-1][-1]])
     def_wave = np.arange(lw, hw+dw, dw)
-    
+    args.log.info('Wavelength Range: %0.1f - %0.1f A, %0.2f A' % (lw, hw, dw))
     ############################### Science ###################################
     cnt = 0
     F, info = get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
