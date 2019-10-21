@@ -345,8 +345,8 @@ def find_centroid(pos, y):
 
 def get_adr_curve(pos, data):
     x = np.arange(data.shape[1])
-    xc = [np.mean(xi) / 1000. for xi in np.array_split(x, 9)]
-    yc = [biweight(di, axis=1) for di in np.array_split(data, 9, axis=1)]
+    xc = [np.mean(xi) / 1000. for xi in np.array_split(x, 7)]
+    yc = [biweight(di, axis=1) for di in np.array_split(data, 7, axis=1)]
     xk, yk = ([], [])
     for yi in yc:
         xp, yp = find_centroid(pos, yi)
