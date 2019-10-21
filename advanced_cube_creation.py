@@ -352,7 +352,7 @@ def get_adr_curve(pos, data):
         xp, yp = find_centroid(pos, yi)
         xk.append(xp)
         yk.append(yp)
-    return np.polyval(np.polyfit(xc, xk, 3), x), np.polyval(np.polyfit(xc, yk, 3), x)
+    return np.polyval(np.polyfit(xc, xk, 3), x/1000.), np.polyval(np.polyfit(xc, yk, 3), x/1000.)
 
 def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
               radius=0.7):
