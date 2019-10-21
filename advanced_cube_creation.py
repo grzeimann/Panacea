@@ -596,8 +596,8 @@ def main():
     skyobs2 = []
     for OBS in [skyobs]:
         for obs in OBS:
-            if obs[0] != '':    
-                channel = obs[0].split('_')[-1][:-5]
+            if obs != '':    
+                channel = obs.split('_')[-1][:-5]
                 otherchannel = otherchannel_dict[channel]
                 skyobs2.append(obs)
                 skyobs2.append(obs.replace(channel, otherchannel))
