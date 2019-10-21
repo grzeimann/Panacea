@@ -649,8 +649,8 @@ def main():
         wave_0 = np.mean(iwave)
         xint =  np.interp(wave_0, T[0]['wave'], T[0]['x_0'])
         yint =  np.interp(wave_0, T[0]['wave'], T[0]['y_0'])
-        xoff = np.interp(wave, T[-1]['wave'], T[-1]['x_0']) - xint
-        yoff = np.interp(wave, T[-1]['wave'], T[-1]['y_0']) - yint
+        xoff = wave * 0. #np.interp(wave, T[-1]['wave'], T[-1]['x_0']) - xint
+        yoff = wave * 0. #np.interp(wave, T[-1]['wave'], T[-1]['y_0']) - yint
         xc, yc = (0., 0.) # find_centroid(pos, y)
         A = Astrometry(S.ra.deg, S.dec.deg, SciFits_List[-1][0].header['PARANGLE'],
                        xc, yc, x_scale=1., y_scale=1., kind='lrs2')
