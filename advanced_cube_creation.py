@@ -333,6 +333,8 @@ def make_skyline_wave_offset_vs_wave_plot(wavecorrection_list, utc_list, wave,
     plt.savefig('Wave_offset_from_sky_vs_wave_%s.png' % galname, dpi=300)
 
 def find_centroid(pos, y):
+    mean, median, std = sigma_clipped_stats(y, stdfunc=mad_std)
+    y = y - median
     grid_x, grid_y = np.meshgrid(np.linspace(-7., 7., (14*5+1)),
                                  np.linspace(-3.5, 3.5, 7*5+1))
     image = griddata(pos[y>0., :2], y[y>0.], (grid_x, grid_y), method='cubic')
