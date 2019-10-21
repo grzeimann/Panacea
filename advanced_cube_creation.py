@@ -578,7 +578,7 @@ def main():
     cor = []
     SkyFits_List = []
     for _skyobs in skyobs:
-        skyflag = _skyobs.lower() != 'none'
+        skyflag = _skyobs.lower() != ''
         if skyflag:
             SkyFits_List.append(fits.open(op.join(args.directory, _skyobs)))
             args.log.info('Sky observation: %s loaded' % (_skyobs))
