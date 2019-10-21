@@ -345,7 +345,7 @@ def find_centroid(pos, y):
     yc = np.sum(image[sel] * grid_y[sel]) / np.sum(image[sel])
     return xc, yc
 
-def get_adr_curve(pos, data):
+def get_adr_curve(pos, data, order=1):
     x = np.arange(data.shape[1])
     xc = [np.mean(xi) / 1000. for xi in np.array_split(x, 7)]
     yc = [biweight(di, axis=1) for di in np.array_split(data, 7, axis=1)]
@@ -356,8 +356,8 @@ def get_adr_curve(pos, data):
         yk.append(yp)
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
-    masked, fitx = fitter(Polynomial1D(1), np.array(xc), np.array(xk))
-    masked, fity = fitter(Polynomial1D(1), np.array(xc), np.array(yk))
+    masked, fitx = fitter(Polynomial1D(order), np.array(xc), np.array(xk))
+    masked, fity = fitter(Polynomial1D(order), np.array(xc), np.array(yk))
     return fitx(x/1000.), fity(x/1000.)
 
 def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
@@ -660,6 +660,7 @@ def main():
     waves = []
     for j, _sciobs in enumerate(sciobs):
         channel = _sciobs.split('_')[-1][:-5]
+        side = side_dict[channel]
         sky = sky_dict[channel]
         cor = cor_dict[channel]
         SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
@@ -683,7 +684,11 @@ def main():
         yint =  np.interp(wave_0, T[0]['wave'], T[0]['y_0'])
         xoff = np.interp(wave, T[-1]['wave'], T[-1]['x_0']) - xint
         yoff = np.interp(wave, T[-1]['wave'], T[-1]['y_0']) - yint
-        xoff, yoff = get_adr_curve(pos, SciFits_List[-1][0].data)
+        if side == 'LRS2B':
+            order = 1
+        else:
+            order = 0
+        xoff, yoff = get_adr_curve(pos, SciFits_List[-1][0].data, order=order)
         args.log.info('%s: %0.2f, %0.2f' % (_sciobs, np.mean(xoff), np.mean(yoff)))
         xc, yc = (0., 0.) # find_centroid(pos, y)
         A = Astrometry(S.ra.deg, S.dec.deg, SciFits_List[-1][0].header['PARANGLE'],
