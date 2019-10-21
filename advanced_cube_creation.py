@@ -354,8 +354,8 @@ def get_adr_curve(pos, data):
         yk.append(yp)
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
-    fitx = fitter(Polynomial1D(3), xc, xk)
-    fity = fitter(Polynomial1D(3), xc, yk)
+    fitx = fitter(Polynomial1D(3), np.array(xc), np.array(xk))
+    fity = fitter(Polynomial1D(3), np.array(xc), np.array(yk))
     return fitx(x/1000.), fity(x/1000.)
 
 def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
