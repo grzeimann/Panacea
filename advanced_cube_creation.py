@@ -597,8 +597,6 @@ def main():
                 R = True
             for itm in build_other_filenames(obs, channel, otherchannel):
                 sciobs.append(itm)
-            for itm in build_other_filenames(skyobs, channel, otherchannel):
-                skyobs.append(itm)
     skyobs2 = []
     for obs in [skyobs]:
         if obs[0] != '':    
