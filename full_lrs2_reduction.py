@@ -1561,13 +1561,14 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
         for fn in final_list:
             fobj = T.extractfile(T.getmember(fn))
             f = fits.open(fobj)
-            M.append([])
             if f[1].header['GUIDLOOP'] == 'ACTIVE':
+                M.append([])
                 for att in attr:
                     M[-1].append(f[1].header[att])
     throughput = np.zeros((len(M),))
     for i, mi in enumerate(M):
-        print(mi)
+        if len(mi) < 2:
+            continue
         if mi[2] > 0.:
             throughput[i] = mi[2]
     t = np.mean(throughput[throughput>0.0])
