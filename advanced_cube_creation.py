@@ -690,6 +690,8 @@ def main():
         else:
             order = 1
         xoff, yoff = get_adr_curve(pos, SciFits_List[-1][0].data, order=order)
+        xoff = 0. * wave
+        yoff = 0. * wave
         args.log.info('%s: %0.2f, %0.2f' % (_sciobs, np.mean(xoff), np.mean(yoff)))
         xc, yc = (0., 0.) # find_centroid(pos, y)
         A = Astrometry(S.ra.deg, S.dec.deg, SciFits_List[-1][0].header['PARANGLE'],
