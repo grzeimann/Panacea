@@ -1565,6 +1565,7 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
             if f[1].header['GUIDLOOP'] == 'ACTIVE':
                 for att in attr:
                     M[-1].append(f[1].header[att])
+    print(M)
     throughput = np.zeros((len(M),))
     for i, mi in enumerate(M):
         if mi[2] > 0.:
