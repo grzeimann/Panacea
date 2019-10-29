@@ -37,6 +37,7 @@ from math_utils import biweight
 warnings.filterwarnings("ignore")
 
 
+
 def get_script_path():
     return op.dirname(op.realpath(sys.argv[0]))
 
@@ -685,9 +686,9 @@ def main():
         xoff = np.interp(wave, T[-1]['wave'], T[-1]['x_0']) - xint
         yoff = np.interp(wave, T[-1]['wave'], T[-1]['y_0']) - yint
         if side == 'LRS2B':
-            order = 2
+            order = 3
         else:
-            order = 0
+            order = 1
         xoff, yoff = get_adr_curve(pos, SciFits_List[-1][0].data, order=order)
         args.log.info('%s: %0.2f, %0.2f' % (_sciobs, np.mean(xoff), np.mean(yoff)))
         xc, yc = (0., 0.) # find_centroid(pos, y)
