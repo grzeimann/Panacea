@@ -1558,8 +1558,8 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
             p = (d - d0).seconds
             if (p > -10.) * (p < exptime+10.):
                 final_list.append(t)
-        for fn in final_list:
-            fobj = T.extractfile(T.getmember(fn))
+        for fnt in final_list:
+            fobj = T.extractfile(T.getmember(fnt))
             f = fits.open(fobj)
             if f[1].header['GUIDLOOP'] == 'ACTIVE':
                 M.append([])
@@ -1574,7 +1574,10 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
     t = np.mean(throughput[throughput>0.0])
     if np.isnan(t):
         log.warning('Could not find TRANSPAR measurments')
-        t = 1.00
+        t = 1.0
+    if t > 1.1:
+        log.info('The throughput for %s is %0.2f is too high, setting to 1.0' % (fn, t))
+        t = 1.0
     log.info('Throughput for %s is %0.2f' % (fn, t))
     return t
 
