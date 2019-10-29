@@ -1575,7 +1575,7 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
     if np.isnan(t):
         log.warning('Could not find TRANSPAR measurments')
         t = 1.00
-    log.info('Throughput for %s is %0.2f' % (path, t))
+    log.info('Throughput for %s is %0.2f' % (fn, t))
     return t
 
 
