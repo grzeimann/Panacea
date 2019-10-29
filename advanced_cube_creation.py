@@ -357,6 +357,7 @@ def get_adr_curve(pos, data, order=1):
         yk.append(yp)
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
+    fitter = LevMarLSQFitter()
     masked, fitx = fitter(Polynomial1D(1), np.array(xc), np.array(xk))
     masked, fity = fitter(Polynomial1D(order), np.array(xc), np.array(yk))
     return fitx(x/1000.), fity(x/1000.)
