@@ -1565,9 +1565,9 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
             if f[1].header['GUIDLOOP'] == 'ACTIVE':
                 for att in attr:
                     M[-1].append(f[1].header[att])
-    log.info('BOOO')
     throughput = np.zeros((len(M),))
     for i, mi in enumerate(M):
+        print(mi)
         if mi[2] > 0.:
             throughput[i] = mi[2]
     t = np.mean(throughput[throughput>0.0])
