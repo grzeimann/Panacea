@@ -1013,7 +1013,11 @@ def get_objects(basefiles, attrs, full=False):
             s[-1].append(F[0].header[att])
         if full:
             area = get_mirror_illumination_guider(fn, s[-1][1])
-            throughput = get_throughput(fn, s[-1][1])
+            try:
+                throughput = get_throughput(fn, s[-1][1])
+            except:
+                log.warning('Problem with throughput for %s' % fn)
+                throughput = 1.0
             s[-1].append(area)
             s[-1].append(throughput)
     return s
