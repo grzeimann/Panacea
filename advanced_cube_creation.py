@@ -350,7 +350,7 @@ def find_centroid(pos, y):
                                        stdfunc=mad_std)
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
     sel = (d < 3.0) * np.isfinite(y)
-    fit = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
+    mask, fit = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
     return fit.x_mean.value, fit.y_mean.value
 
 def get_adr_curve(pos, data, order=1):
