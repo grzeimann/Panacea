@@ -344,7 +344,14 @@ def find_centroid(pos, y):
     sel = (d < 2.) * np.isfinite(image)
     xc = np.sum(image[sel] * grid_x[sel]) / np.sum(image[sel])
     yc = np.sum(image[sel] * grid_y[sel]) / np.sum(image[sel])
-    return xc, yc
+    a = y[np.nanargmax(y)]
+    G = Gaussian2D(x_mean=xc, y_mean=yc, amplitude=a)
+    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
+                                       stdfunc=mad_std)
+    d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
+    sel = (d < 3.0) * np.isfinite(y)
+    fit = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
+    return fit.x_mean.value, fit.y_mean.value
 
 def get_adr_curve(pos, data, order=1):
     x = np.arange(data.shape[1])
