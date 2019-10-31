@@ -645,6 +645,7 @@ def main():
                                             if ch == uchan]))
         cor_dict[uchan] = np.array(np.mean([co for co, ch in zip(cor, chan)
                                             if ch == uchan]))
+        print(cor_dict[uchan])
 # =============================================================================
 # Reading cooridinates for Astrometry
 # =============================================================================
