@@ -627,7 +627,7 @@ def main():
     SkyFits_List = []
     print(skyobs)
     for _skyobs in skyobs:
-        channel = _skyobs[0].split('_')[-1][:-5]
+        channel = _skyobs.split('_')[-1][:-5]
         chan.append(channel)
         SkyFits_List.append(fits.open(op.join(args.directory, _skyobs)))
         args.log.info('Sky observation: %s loaded' % (_skyobs))
@@ -646,7 +646,6 @@ def main():
                                             if ch == uchan], axis=0))
         cor_dict[uchan] = np.array(np.mean([co for co, ch in zip(cor, chan)
                                             if ch == uchan], axis=0))
-        print(cor_dict[uchan])
 # =============================================================================
 # Reading cooridinates for Astrometry
 # =============================================================================
