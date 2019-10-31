@@ -625,6 +625,7 @@ def main():
 # =============================================================================
     sky, cor, chan = ([], [], [])
     SkyFits_List = []
+    print(skyobs)
     for _skyobs in skyobs:
         channel = _skyobs[0].split('_')[-1][:-5]
         chan.append(channel)
@@ -640,7 +641,6 @@ def main():
         sky.append(np.median(SkySpectra[sel], axis=0))
     sky_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
     cor_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
-    print(np.unique(chan))
     for uchan in np.unique(chan):
         sky_dict[uchan] = np.array(np.mean([sk for sk, ch in zip(sky, chan)
                                             if ch == uchan], axis=0))
