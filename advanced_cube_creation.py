@@ -508,7 +508,6 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             sel = SciSpectra > 0.
             SciError[sel]= np.sqrt(SciSpectra[sel]/np.sqrt(2) + 3**2*2.)
             SciError[~sel] = np.sqrt(3**2*2.)
-        print(cor)
         if cor is not None:
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
@@ -634,7 +633,7 @@ def main():
         args.log.info('Sky observation: %s loaded' % (_skyobs))
         SkySpectra = SkyFits_List[-1][0].data
         sel = (SkySpectra == 0.).sum(axis=1) < 200
-        y = np.nanmedian(SkySpectra[:, 410:440], axis=1)
+        y = np.nanmedian(SkySpectra[:, 200:-200], axis=1)
         mask = execute_sigma_clip(y)
         sel = sel * ~mask.mask
         correction = correct_amplifier_offsets(y)
