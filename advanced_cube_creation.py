@@ -508,6 +508,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             sel = SciSpectra > 0.
             SciError[sel]= np.sqrt(SciSpectra[sel]/np.sqrt(2) + 3**2*2.)
             SciError[~sel] = np.sqrt(3**2*2.)
+        print(cor)
         if cor is not None:
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
