@@ -640,11 +640,12 @@ def main():
         sky.append(np.median(SkySpectra[sel], axis=0))
     sky_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
     cor_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
+    print(np.unique(chan))
     for uchan in np.unique(chan):
         sky_dict[uchan] = np.array(np.mean([sk for sk, ch in zip(sky, chan)
-                                            if ch == uchan]))
+                                            if ch == uchan], axis=0))
         cor_dict[uchan] = np.array(np.mean([co for co, ch in zip(cor, chan)
-                                            if ch == uchan]))
+                                            if ch == uchan], axis=0))
         print(cor_dict[uchan])
 # =============================================================================
 # Reading cooridinates for Astrometry
