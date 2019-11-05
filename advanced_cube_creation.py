@@ -21,7 +21,7 @@ from astropy.coordinates import SkyCoord
 from astropy.convolution import Gaussian1DKernel, convolve
 from astropy.convolution import interpolate_replace_nans
 from astropy.io import fits
-from astropy.modeling.models import Gaussian2D, Polynomial1D
+from astropy.modeling.models import Gaussian2D, Polynomial1D, Polynomial2D
 from astropy.modeling.fitting import LevMarLSQFitter, FittingWithOutlierRemoval
 from astropy.stats import biweight_midvariance, sigma_clipped_stats, mad_std
 from astropy.stats import sigma_clip
@@ -214,15 +214,34 @@ def execute_sigma_clip(y):
     return mask
 
 
-def correct_amplifier_offsets(y, mask, xp, yp, order=1):
-    x = np.arange(len(y))
-    
-    modelL = np.polyval(np.polyfit(x[:140][~maskL.mask],
-                                   y[:140][~maskL.mask], order), x[:140])
-    modelR = np.polyval(np.polyfit(x[140:][~maskR.mask],
-                                   y[140:][~maskR.mask], order), x[140:])
-    avg = np.mean(np.hstack([modelL, modelR]))
-    return np.hstack([modelL / avg, modelR / avg])
+def correct_amplifier_offsets(y, xp, yp, order=1):
+    xc = xp[np.nanargmax(y)]
+    yc = yp[np.nanargmax(y)]
+    d = np.sqrt((xp-xc)**2 + (yp-yc)**2)
+    k = y * 1.
+    k[y==0.] = np.nan
+    def split_fit(var, ind=140):
+        model = k * 0.
+        model[:ind] = convolve(k[:ind], Gaussian1DKernel(12.), boundary='extend')
+        model[ind:] = convolve(k[ind:], Gaussian1DKernel(12.), boundary='extend')
+        return model
+    for i in np.arange(5.):
+        model = split_fit(k)
+        mstd = mad_std(k - model, ignore_nan=True)
+        k[(k-model)>2.5*mstd] = np.nan
+    model = split_fit(k)
+    loc = 2.5
+    k[y==0.] = np.nan
+    k[d < loc+1.0] = np.nan
+    model = convolve(k, Gaussian1DKernel(12.), boundary='fill',
+                     fill_value=np.nanmedian(k))
+    bad = np.isnan(k)
+    good = ~bad
+    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
+                                       stdfunc=mad_std)
+    fit, mask = fitter(Polynomial2D(1), xp[good], yp[good], (y/model)[good])
+    smodel = fit(xp, yp)
+    return model * smodel / biweight(model * smodel)
 
 def estimate_sky(data):
     y = np.mean(data[:, 400:-400], axis=1)
@@ -641,11 +660,12 @@ def main():
         SkyFits_List.append(fits.open(op.join(args.directory, _skyobs)))
         args.log.info('Sky observation: %s loaded' % (_skyobs))
         SkySpectra = SkyFits_List[-1][0].data
+        P = SkyFits_List[-1][5].data
         sel = (SkySpectra == 0.).sum(axis=1) < 200
         y = np.nanmedian(SkySpectra[:, 200:-200], axis=1)
         mask = execute_sigma_clip(y)
         sel = sel * ~mask.mask
-        correction = correct_amplifier_offsets(y)
+        correction = correct_amplifier_offsets(y, P[:, 0], P[:, 1])
         cor.append(correction)
         sky.append(np.median(SkySpectra[sel]/correction[sel], axis=0))
     sky_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
