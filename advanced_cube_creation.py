@@ -390,8 +390,8 @@ def get_adr_curve(pos, data, ordery=1, orderx=0.):
                                        stdfunc=mad_std)
     fitter = LevMarLSQFitter()
     if flag.sum()> 3.:
-        fitx = fitter(Polynomial1D(orderx), np.array(xc)[flag], np.array(xk)[flag])
-        fity = fitter(Polynomial1D(ordery), np.array(xc)[flag], np.array(yk)[flag])
+        fitx = fitter(Polynomial1D(orderx), np.array(xc)[flag>0], np.array(xk)[flag>0])
+        fity = fitter(Polynomial1D(ordery), np.array(xc)[flag>0], np.array(yk)[flag>0])
         return fitx(x/1000.), fity(x/1000.)
     else:
         args.log.warning('Problem fitting ADC curve.  Not enough points.')
