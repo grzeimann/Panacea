@@ -214,10 +214,9 @@ def execute_sigma_clip(y):
     return mask
 
 
-def correct_amplifier_offsets(y, order=1):
+def correct_amplifier_offsets(y, mask, xp, yp, order=1):
     x = np.arange(len(y))
-    maskL = execute_sigma_clip(y[:140])
-    maskR = execute_sigma_clip(y[140:])
+    
     modelL = np.polyval(np.polyfit(x[:140][~maskL.mask],
                                    y[:140][~maskL.mask], order), x[:140])
     modelR = np.polyval(np.polyfit(x[140:][~maskR.mask],
@@ -353,22 +352,32 @@ def find_centroid(pos, y):
     mask, fit = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
     return fit.x_mean.value, fit.y_mean.value
 
-def get_adr_curve(pos, data, order=1):
+def get_adr_curve(pos, data, ordery=1, orderx=0.):
     x = np.arange(data.shape[1])
     xc = [np.mean(xi) / 1000. for xi in np.array_split(x, 15)]
     yc = [biweight(di, axis=1) for di in np.array_split(data, 15, axis=1)]
+    init_y = biweight(data[:, 200:-200], axis=1)
+    xP, yP = find_centroid(pos, init_y)
     xk, yk = ([], [])
-    for yi in yc:
+    flag = np.zeros((len(xc),), dtype=bool)
+    for i, yi in enumerate(yc):
         xp, yp = find_centroid(pos, yi)
+        D = np.sqrt((xP - xp)**2 + (yp - yP)**2)
+        if D < 1.0:
+            flag[i] = True
         xk.append(xp)
         yk.append(yp)
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
     fitter = LevMarLSQFitter()
-    fitx = fitter(Polynomial1D(1), np.array(xc), np.array(xk))
-    fity = fitter(Polynomial1D(order), np.array(xc), np.array(yk))
-    return fitx(x/1000.), fity(x/1000.)
-
+    if flag.sum()> 3.:
+        fitx = fitter(Polynomial1D(orderx), np.array(xc)[flag], np.array(xk)[flag])
+        fity = fitter(Polynomial1D(ordery), np.array(xc)[flag], np.array(yk)[flag])
+        return fitx(x/1000.), fity(x/1000.)
+    else:
+        args.log.warning('Problem fitting ADC curve.  Not enough points.')
+        return np.ones(x.shape) * xP, np.ones(x.shape)* yP
+                
 def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
               radius=0.7):
     '''
@@ -517,7 +526,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
                                                P[2], P[3], good,
                                                scale, ran)
         d = np.sqrt(P[0]**2 + P[1]**2)
-        skysel = (d > np.max(d) - 1.5)
+        skysel = (d > np.max(d) - 2.5)
         pixsel = np.zeros(xgrid.shape, dtype=bool)
         for fib in np.where(skysel)[0]:    
             D = np.sqrt((xgrid-P[0][fib])**2 + (ygrid-P[1][fib])**2)
@@ -638,7 +647,7 @@ def main():
         sel = sel * ~mask.mask
         correction = correct_amplifier_offsets(y)
         cor.append(correction)
-        sky.append(np.median(SkySpectra[sel], axis=0))
+        sky.append(np.median(SkySpectra[sel]/correction[sel], axis=0))
     sky_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
     cor_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
     for uchan in np.unique(chan):
@@ -784,8 +793,8 @@ def main():
     
     ################################# Sky #####################################
 #    cnt = 1
-#    F1, info = get_cube(SkyFits_List, Pos, scale, ran, sky, wave, cnt, cor=cor,
-#                        sky_subtract=False)
+#    F1, info = get_cube(SkyFits_List, Pos, scale, ran, None, waves, cnt, None,
+#                        def_wave, sky_subtract=False)
 #    if len(info):
 #        xgrid = info[0][2]
 #        ygrid = info[0][3]
@@ -796,8 +805,6 @@ def main():
 #        eoutname = '%s_%s_sky_error_cube.fits' % (args.galaxyname,  channel)
 #        write_cube(wave, xgrid, ygrid, zcube, outname, Header)
 #        write_cube(wave, xgrid, ygrid, ecube, eoutname, Header)
-#    outname = '%s_%s_multi.fits' % (args.galaxyname,  channel)
-#    fits.HDUList(F+F1).writeto(outname, overwrite=True)
 #    
 #    ################################# Cal #####################################
 #    cnt = 1
