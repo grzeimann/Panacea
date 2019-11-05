@@ -374,10 +374,10 @@ def find_centroid(pos, y):
         fitquality = True
     return fit.x_mean.value, fit.y_mean.value, fitquality
 
-def get_adr_curve(pos, data, ordery=1, orderx=0):
+def get_adr_curve(pos, data, ordery=1, orderx=0, bins=7):
     x = np.arange(data.shape[1])
-    xc = [np.mean(xi) / 1000. for xi in np.array_split(x, 15)]
-    yc = [biweight(di, axis=1) for di in np.array_split(data, 15, axis=1)]
+    xc = [np.mean(xi) / 1000. for xi in np.array_split(x, bins)]
+    yc = [biweight(di, axis=1) for di in np.array_split(data, bins, axis=1)]
     init_y = biweight(data[:, 200:-200], axis=1)
     xP, yP, isgood = find_centroid(pos, init_y)
     xk, yk = ([], [])
@@ -728,9 +728,11 @@ def main():
         yoff = np.interp(wave, T[-1]['wave'], T[-1]['y_0']) - yint
         if side == 'LRS2B':
             order = 3
+            bins=11
         else:
             order = 1
-        xoff, yoff = get_adr_curve(pos, SciFits_List[-1][0].data, ordery=order)
+            bins = 5
+        xoff, yoff = get_adr_curve(pos, SciFits_List[-1][0].data, ordery=order, bins=bins)
         args.log.info('%s: %0.2f, %0.2f' % (_sciobs, np.mean(xoff), np.mean(yoff)))
         xc, yc = (0., 0.) # find_centroid(pos, y)
         A = Astrometry(S.ra.deg, S.dec.deg, SciFits_List[-1][0].header['PARANGLE'],
