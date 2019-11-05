@@ -667,7 +667,7 @@ def main():
         sel = sel * ~mask.mask
         correction = correct_amplifier_offsets(y, P[:, 0], P[:, 1])
         cor.append(correction)
-        sky.append(np.median(SkySpectra[sel]/correction[sel], axis=0))
+        sky.append(np.median(SkySpectra[sel]/correction[sel, np.newaxis], axis=0))
     sky_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
     cor_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
     for uchan in np.unique(chan):
