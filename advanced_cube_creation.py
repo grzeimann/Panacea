@@ -369,20 +369,23 @@ def find_centroid(pos, y):
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
     sel = (d < 3.0) * np.isfinite(y)
     mask, fit = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
-    return fit.x_mean.value, fit.y_mean.value
+    fitquality = False
+    if fit.amplitude > 5 * std:
+        fitquality = True
+    return fit.x_mean.value, fit.y_mean.value, fitquality
 
 def get_adr_curve(pos, data, ordery=1, orderx=0):
     x = np.arange(data.shape[1])
     xc = [np.mean(xi) / 1000. for xi in np.array_split(x, 15)]
     yc = [biweight(di, axis=1) for di in np.array_split(data, 15, axis=1)]
     init_y = biweight(data[:, 200:-200], axis=1)
-    xP, yP = find_centroid(pos, init_y)
+    xP, yP, isgood = find_centroid(pos, init_y)
     xk, yk = ([], [])
     flag = np.zeros((len(xc),), dtype=bool)
     for i, yi in enumerate(yc):
-        xp, yp = find_centroid(pos, yi)
+        xp, yp, isgood = find_centroid(pos, yi)
         D = np.sqrt((xP - xp)**2 + (yp - yP)**2)
-        if D < 1.0:
+        if (D < 1.0) and isgood:
             flag[i] = True
         xk.append(xp)
         yk.append(yp)
