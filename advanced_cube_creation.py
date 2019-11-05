@@ -239,7 +239,7 @@ def correct_amplifier_offsets(y, xp, yp, order=1):
     good = ~bad
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
-    fit, mask = fitter(Polynomial2D(1), xp[good], yp[good], (y/model)[good])
+    mask, fit = fitter(Polynomial2D(1), xp[good], yp[good], (y/model)[good])
     smodel = fit(xp, yp)
     return model * smodel / biweight(model * smodel)
 
