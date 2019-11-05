@@ -704,7 +704,6 @@ def main():
         channel = _sciobs.split('_')[-1][:-5]
         side = side_dict[channel]
         sky = sky_dict[channel]
-        cor = cor_dict[channel]
         SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
         args.log.info('Science observation: %s loaded' % (_sciobs))
         date = _sciobs.split('_')[1]
@@ -721,6 +720,8 @@ def main():
         pos = SciFits_List[0][5].data * 1.
         pos[:, 0] = SciFits_List[0][5].data[:, 0] * 1.
         pos[:, 1] = SciFits_List[0][5].data[:, 1] * 1.
+        correction = correct_amplifier_offsets(biweight(SciFits_List[-1][0].data[:, 200:-200], axis=1), pos[:, 0], pos[:, 1])
+
         wave_0 = np.mean(iwave)
         xint =  np.interp(wave_0, T[0]['wave'], T[0]['x_0'])
         yint =  np.interp(wave_0, T[0]['wave'], T[0]['y_0'])
@@ -746,7 +747,7 @@ def main():
         ran_list.append(ran1)
         Pos.append([delta_ra, delta_dec, raoff, decoff])
         skies.append(sky)
-        cors.append(cor)
+        cors.append(correction)
     ran_array = np.array(ran_list)
     rmax = np.max(ran_array, axis=0)
     rmin = np.min(ran_array, axis=0)
