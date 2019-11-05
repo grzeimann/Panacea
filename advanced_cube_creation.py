@@ -371,7 +371,7 @@ def find_centroid(pos, y):
     mask, fit = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
     return fit.x_mean.value, fit.y_mean.value
 
-def get_adr_curve(pos, data, ordery=1, orderx=0.):
+def get_adr_curve(pos, data, ordery=1, orderx=0):
     x = np.arange(data.shape[1])
     xc = [np.mean(xi) / 1000. for xi in np.array_split(x, 15)]
     yc = [biweight(di, axis=1) for di in np.array_split(data, 15, axis=1)]
@@ -390,8 +390,8 @@ def get_adr_curve(pos, data, ordery=1, orderx=0.):
                                        stdfunc=mad_std)
     fitter = LevMarLSQFitter()
     if flag.sum()> 3.:
-        fitx = fitter(Polynomial1D(orderx), np.array(xc)[flag>0], np.array(xk)[flag>0])
-        fity = fitter(Polynomial1D(ordery), np.array(xc)[flag>0], np.array(yk)[flag>0])
+        fitx = fitter(Polynomial1D(orderx), np.array(xc)[flag], np.array(xk)[flag])
+        fity = fitter(Polynomial1D(ordery), np.array(xc)[flag], np.array(yk)[flag])
         return fitx(x/1000.), fity(x/1000.)
     else:
         args.log.warning('Problem fitting ADC curve.  Not enough points.')
