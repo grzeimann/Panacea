@@ -31,15 +31,20 @@ filenames = sorted(glob.glob(op.join(args.directory, 'm*uv.fits')))
 
 #da = bname.split('_')[1]
 obj, ra, dec, ifuslot = ([], [], [], [])
+keep_files = []
 for filename in filenames:
     f = fits.open(filename)    
     n, r, d = (f[0].header['OBJECT'], f[0].header['QRA'], f[0].header['QDEC'])
+    
+    st = n.split(n[-6:])[0]
+    try:
+        ifuslot.append(n.split('_')[-2])
+    except:
+        continue
     ra.append(r)
     dec.append(d)
-    st = n.split(n[-6:])[0]
     obj.append(st)
-    ifuslot.append(n.split('_')[-2])
-
+    keep_files.append(filename)
 uobj = np.unique(obj)
 for o in uobj:
     inds = [i for i, ob in enumerate(obj) if o == ob]
@@ -49,7 +54,7 @@ for o in uobj:
     rah = raspl[0] + 'h' + raspl[1] + 'm' + raspl[2] + 's'
     dech = decspl[0] + 'd' + decspl[1] + 'm' + decspl[2] + 's'
     for ind in inds:
-        filename = filenames[ind]
+        filename = keep_files[ind]
         bname = op.basename(filename)
         bsky = bname.replace('uv', 'red')
         rname = bsky
