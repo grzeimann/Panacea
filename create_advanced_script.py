@@ -68,9 +68,9 @@ for o in uobj:
     blue = ','.join(blue)
     red = ','.join(red)
     sky = ','.join(sky)
-    call = ('python Panacea/advanced_cube_creation.py "' + blue + '" "' +
+    call = ('python %s Panacea/advanced_cube_creation.py "' + blue + '" "' +
             red + '" "' + sky + '" "' + rah + '" "' + dech + '" ' + 
-            "-d %s -c %s") % (args.directory, args.caldirectory)
+            "-d %s -c %s") % (o, args.directory, args.caldirectory)
     print(call)
         
         
