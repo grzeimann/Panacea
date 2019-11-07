@@ -53,6 +53,8 @@ for o in uobj:
     decspl = dec[inds[0]].split(':')
     rah = raspl[0] + 'h' + raspl[1] + 'm' + raspl[2] + 's'
     dech = decspl[0] + 'd' + decspl[1] + 'm' + decspl[2] + 's'
+    if '-' in decspl[0]:
+        dech = ' ' + dech
     for ind in inds:
         filename = keep_files[ind]
         bname = op.basename(filename)
