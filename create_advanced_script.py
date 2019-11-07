@@ -25,7 +25,13 @@ parser.add_argument("caldirectory",
 
 parser.add_argument("outname",
                     help='''Name of output file''', type=str)
+
+parser.add_argument("--atfile",
+                    help='''Name of at file for re-reduction''', type=str,
+                    default=None)
 args = parser.parse_args(args=None)
+
+atcall = 'echo "source ~hetdex/.bashrc; runlrs2wranglergeneral %s %s" | at 10:30 February 1'
 
 args.log = setup_logging('advance_cube_creation')
 
@@ -48,7 +54,7 @@ for filename in filenames:
     obj.append(st)
     keep_files.append(filename)
 uobj = np.unique(obj)
-calls = []
+calls, atcalls = ([], [])
 for o in uobj:
     inds = [i for i, ob in enumerate(obj) if o == ob]
     blue, red, sky = ([], [], [])
@@ -58,6 +64,7 @@ for o in uobj:
     dech = decspl[0] + 'd' + decspl[1] + 'm' + decspl[2] + 's'
     if '-' in decspl[0]:
         dech = ' ' + dech
+    dates = []
     for ind in inds:
         filename = keep_files[ind]
         bname = op.basename(filename)
@@ -70,6 +77,7 @@ for o in uobj:
         if ifuslot[ind] == '066':
             red.append(rname)
             sky.append(rsky)
+        date = bname.split('_')[1]
     blue = ','.join(blue)
     red = ','.join(red)
     sky = ','.join(sky)
@@ -77,12 +85,15 @@ for o in uobj:
             red + '" "' + sky + '" "' + rah + '" "' + dech + '" ' + 
             "-d %s -c %s") % (o, args.directory, args.caldirectory)
     calls.append(call)
+    atcalls.append(atcall % (date, o))
     
 with open(args.outname, 'w') as out_file:
     for call in calls:
         out_file.write(call + '\n')
-        
-        
+if args.atfile is not None:
+    with open(args.atfile, 'w') as out_file:
+        for call in atcalls:
+            out_file.write(call + '\n')        
 
 
             
