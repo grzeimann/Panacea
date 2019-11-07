@@ -7,7 +7,7 @@ Created on Thu Nov  7 09:31:56 2019
 """
 
 import glob
-
+import datetime
 import os.path as op
 import numpy as np
 import argparse as ap
@@ -31,7 +31,7 @@ parser.add_argument("--atfile",
                     default=None)
 args = parser.parse_args(args=None)
 
-atcall = 'echo "source ~hetdex/.bashrc; runlrs2wranglergeneral %s %s" | at 10:30 February 1'
+atcall = 'echo "source ~hetdex/.bashrc; runlrs2wranglergeneral %s %s" | at %s'
 
 args.log = setup_logging('advance_cube_creation')
 
@@ -55,6 +55,7 @@ for filename in filenames:
     keep_files.append(filename)
 uobj = np.unique(obj)
 calls, atcalls = ([], [])
+now = datetime.datetime.now()
 for o in uobj:
     inds = [i for i, ob in enumerate(obj) if o == ob]
     blue, red, sky = ([], [], [])
@@ -85,7 +86,9 @@ for o in uobj:
             red + '" "' + sky + '" "' + rah + '" "' + dech + '" ' + 
             "-d %s -c %s") % (o, args.directory, args.caldirectory)
     calls.append(call)
-    atcalls.append(atcall % (date, o))
+    now = now + datetime.timedelta(seconds=300)
+    tim = now.strftime('%H:%M %B %d')
+    atcalls.append(atcall % (date, o, tim))
     
 with open(args.outname, 'w') as out_file:
     for call in calls:
