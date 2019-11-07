@@ -23,6 +23,8 @@ parser.add_argument("directory",
 parser.add_argument("caldirectory",
                     help='''cal directory for reductions''', type=str)
 
+parser.add_argument("outname",
+                    help='''Name of output file''', type=str)
 args = parser.parse_args(args=None)
 
 args.log = setup_logging('advance_cube_creation')
@@ -46,6 +48,7 @@ for filename in filenames:
     obj.append(st)
     keep_files.append(filename)
 uobj = np.unique(obj)
+calls = []
 for o in uobj:
     inds = [i for i, ob in enumerate(obj) if o == ob]
     blue, red, sky = ([], [], [])
@@ -73,7 +76,11 @@ for o in uobj:
     call = ('python %s Panacea/advanced_cube_creation.py "' + blue + '" "' +
             red + '" "' + sky + '" "' + rah + '" "' + dech + '" ' + 
             "-d %s -c %s") % (o, args.directory, args.caldirectory)
-    print(call)
+    calls.append(call)
+    
+with open(args.outname, 'w') as out_file:
+    for call in calls:
+        out_file.write(call + '\n')
         
         
 
