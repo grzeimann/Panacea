@@ -465,9 +465,9 @@ def weighted_extraction(image, error, flat, trace, cthresh=8.):
     Fimage = image * 0.
     for fiber in np.arange(trace.shape[0]):
         T = np.zeros((4, trace.shape[1], 4))
-        indl = np.floor(trace[fiber]).astype(int)
+        indl = np.floor(trace[fiber]).astype(int)-1
         flag = False
-        for ss, k in enumerate(np.arange(0, 2)):
+        for ss, k in enumerate(np.arange(0, 4)):
             try:
                 T[0, :, ss] = Y[indl+k, x]
                 T[1, :, ss] = 1. / E[indl+k, x]**2
