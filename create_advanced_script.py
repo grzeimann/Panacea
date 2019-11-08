@@ -86,7 +86,7 @@ for o in uobj:
             red + '" "' + sky + '" "' + rah + '" "' + dech + '" ' + 
             "-d %s -c %s") % (o, args.directory, args.caldirectory)
     calls.append(call)
-    now = now + datetime.timedelta(seconds=300)
+    now = now + datetime.timedelta(seconds=120)
     tim = now.strftime('%H:%M %B %d')
     atcalls.append(atcall % (date, o, tim))
     
