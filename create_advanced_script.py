@@ -84,7 +84,7 @@ for o in uobj:
     sky = ','.join(sky)
     call = ('python Panacea/advanced_cube_creation.py %s "' + blue + '" "' +
             red + '" "' + sky + '" "' + rah + '" "' + dech + '" ' + 
-            "-d %s -c %s") % (o, args.directory, args.caldirectory)
+            "-d %s -c %s -dw 0.7") % (o, args.directory, args.caldirectory)
     calls.append(call)
     now = now + datetime.timedelta(seconds=120)
     tim = now.strftime('%H:%M %B %d')
