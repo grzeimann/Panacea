@@ -538,21 +538,19 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             sel = SciSpectra > 0.
             SciError[sel]= np.sqrt(SciSpectra[sel]/np.sqrt(2) + 3**2*2.)
             SciError[~sel] = np.sqrt(3**2*2.)
-        pos = _scifits[5].data
-        sel = (SciSpectra == 0.).sum(axis=1) < 200
-        y = biweight(SciSpectra[:, 200:-200], axis=1)
-        correction, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
-        mask = execute_sigma_clip(y / correction)
-        selm = mask.mask * sel
-        d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
-                    (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
-        for j in np.where(selm)[0]:
-            selm = selm + (d[j] < 2.)
-        sel = sel * ~selm
-        if sel.sum() < 5.:
-            args.log.warning('Not enough fibers for sky in science frame, '
-                             'using sky frame without scaling')
+        
         if cor is None:
+            pos = _scifits[5].data
+            sel = (SciSpectra == 0.).sum(axis=1) < 200
+            y = biweight(SciSpectra[:, 200:-200], axis=1)
+            correction, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
+            mask = execute_sigma_clip(y / correction)
+            selm = mask.mask * sel
+            d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
+                        (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
+            for j in np.where(selm)[0]:
+                selm = selm + (d[j] < 2.)
+            sel = sel * ~selm
             y = biweight(SciSpectra[:, 200:-200] /
                          biweight(SciSpectra[sel, 200:-200], axis=0), axis=1)
             cor, k = correct_amplifier_offsets(y, P[:, 0], P[:, 1])
@@ -569,20 +567,17 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
                                                    sky, 1.*np.isfinite(sky),
                                                    P[2], P[3], good,
                                                    scale, ran)
-        skysel = sel
-        pixsel = np.zeros(xgrid.shape, dtype=bool)
-        for fib in np.where(skysel)[0]:    
-            D = np.sqrt((xgrid-P[0][fib])**2 + (ygrid-P[1][fib])**2)
-            pixsel += D < 0.6
+        pixsel = np.sqrt(xgrid**2 + ygrid**2) > 4.
         if sky_subtract:
             scisky = biweight(zcube[:, pixsel], axis=1)
             if sky is not None:
-                R = biweight(sky, axis=0) / biweight(sky[skysel], axis=0)
-                scisky = biweight(zcube[:, pixsel], axis=1) * R
+                sky = biweight(scube[:, pixsel], axis=1)
+                R = scisky / sky
+                scisky = scube * R[:, np.newaxis, np.newaxis]
         else:
-            scisky = np.zeros((SciSpectra.shape[1],))
+            scisky = np.zeros(zcube.shape)
         
-        skysub_cube = zcube - scisky[:, np.newaxis, np.newaxis]
+        skysub_cube = zcube - scisky
         newcube = np.zeros((len(def_wave), zcube.shape[1], zcube.shape[2]))
         newerrcube = np.zeros((len(def_wave), zcube.shape[1], zcube.shape[2]))
         skycube = np.zeros((len(def_wave), zcube.shape[1], zcube.shape[2]))
