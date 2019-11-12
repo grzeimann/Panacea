@@ -549,7 +549,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
         for j in np.where(selm)[0]:
             selm = selm + (d[j] < 2.)
         sel = sel * ~selm
-        if sel < 5.:
+        if sel.sum() < 5.:
             args.log.warning('Not enough fibers for sky in science frame, '
                              'using sky frame without scaling')
         if cor is None:
