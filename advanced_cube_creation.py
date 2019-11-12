@@ -598,20 +598,20 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
         info.append([newcube, newerrcube, skycube, xgrid, ygrid])
         
         # Subtract sky in fiber space rather than on the cube
-        if sky_subtract:
-            skytemp = np.nanmedian(SciSpectra[skysel], axis=0)
-            if sky is not None:
-                ratio = biweight(SciSpectra[skysel] / sky, axis=0)
-                skytemp = sky * ratio
-        else:
-            skytemp = np.zeros((SciSpectra.shape[1],))
-        if cnt == 0:
-            func = fits.PrimaryHDU
-        else:
-            func = fits.ImageHDU
-        f1 = create_header_objection(wave, SciSpectra - skytemp,
-                                     func=func)
-        F.append(f1)
+#        if sky_subtract:
+#            skytemp = np.nanmedian(SciSpectra[skysel], axis=0)
+#            if sky is not None:
+#                ratio = biweight(SciSpectra[skysel] / sky, axis=0)
+#                skytemp = sky * ratio
+#        else:
+#            skytemp = np.zeros((SciSpectra.shape[1],))
+#        if cnt == 0:
+#            func = fits.PrimaryHDU
+#        else:
+#            func = fits.ImageHDU
+#        f1 = create_header_objection(wave, SciSpectra - skytemp,
+#                                     func=func)
+        F.append([])
         cnt += 1
     return F, info
 
