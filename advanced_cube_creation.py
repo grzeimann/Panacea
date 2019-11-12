@@ -539,6 +539,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             SciError[sel]= np.sqrt(SciSpectra[sel]/np.sqrt(2) + 3**2*2.)
             SciError[~sel] = np.sqrt(3**2*2.)
         pos = _scifits[5].data
+        sel = (SciSpectra == 0.).sum(axis=1) < 200
         y = biweight(SciSpectra[:, 200:-200], axis=1)
         correction, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
         mask = execute_sigma_clip(y / correction)
