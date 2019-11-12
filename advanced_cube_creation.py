@@ -214,7 +214,7 @@ def execute_sigma_clip(y):
     return mask
 
 
-def correct_amplifier_offsets(y, xp, yp, order=1):
+def correct_amplifier_offsets(y, xp, yp, order=1, kernel=12.):
     xc = xp[np.nanargmax(y)]
     yc = yp[np.nanargmax(y)]
     d = np.sqrt((xp-xc)**2 + (yp-yc)**2)
@@ -222,8 +222,8 @@ def correct_amplifier_offsets(y, xp, yp, order=1):
     k[y==0.] = np.nan
     def split_fit(var, ind=140):
         model = k * 0.
-        model[:ind] = convolve(k[:ind], Gaussian1DKernel(12.), boundary='extend')
-        model[ind:] = convolve(k[ind:], Gaussian1DKernel(12.), boundary='extend')
+        model[:ind] = convolve(k[:ind], Gaussian1DKernel(kernel), boundary='extend')
+        model[ind:] = convolve(k[ind:], Gaussian1DKernel(kernel), boundary='extend')
         return model
     for i in np.arange(5.):
         model = split_fit(k)
@@ -233,15 +233,14 @@ def correct_amplifier_offsets(y, xp, yp, order=1):
     loc = 2.5
     k[y==0.] = np.nan
     k[d < loc+1.0] = np.nan
-    model = convolve(k, Gaussian1DKernel(12.), boundary='fill',
-                     fill_value=np.nanmedian(k))
+    model = split_fit(k)
     bad = np.isnan(k)
     good = ~bad
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
     mask, fit = fitter(Polynomial2D(1), xp[good], yp[good], (y/model)[good])
     smodel = fit(xp, yp)
-    return model * smodel / biweight(model * smodel)
+    return model * smodel / biweight(model * smodel), k
 
 def estimate_sky(data):
     y = np.mean(data[:, 400:-400], axis=1)
@@ -539,6 +538,23 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             sel = SciSpectra > 0.
             SciError[sel]= np.sqrt(SciSpectra[sel]/np.sqrt(2) + 3**2*2.)
             SciError[~sel] = np.sqrt(3**2*2.)
+        pos = _scifits[5].data
+        y = biweight(SciSpectra[:, 200:-200], axis=1)
+        correction, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
+        mask = execute_sigma_clip(y / correction)
+        selm = mask.mask * sel
+        d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
+                    (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
+        for j in np.where(selm)[0]:
+            selm = selm + (d[j] < 2.)
+        sel = sel * ~selm
+        if sel < 5.:
+            args.log.warning('Not enough fibers for sky in science frame, '
+                             'using sky frame without scaling')
+        if cor is None:
+            y = biweight(SciSpectra[:, 200:-200] /
+                         biweight(SciSpectra[sel, 200:-200], axis=0), axis=1)
+            cor, k = correct_amplifier_offsets(y, P[:, 0], P[:, 1])
         if cor is not None:
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
@@ -547,17 +563,21 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
                                                SciSpectra, SciError,
                                                P[2], P[3], good,
                                                scale, ran)
-        d = np.sqrt(P[0]**2 + P[1]**2)
-        skysel = (d > np.max(d) - 2.5)
+        if sky is not None:
+            scube, secube, xgrid, ygrid = make_cube(P[0], P[1],
+                                                   sky, 1.*np.isfinite(sky),
+                                                   P[2], P[3], good,
+                                                   scale, ran)
+        skysel = sel
         pixsel = np.zeros(xgrid.shape, dtype=bool)
         for fib in np.where(skysel)[0]:    
             D = np.sqrt((xgrid-P[0][fib])**2 + (ygrid-P[1][fib])**2)
             pixsel += D < 0.6
         if sky_subtract:
-            scisky = np.nanmedian(zcube[:, pixsel], axis=1)
+            scisky = biweight(zcube[:, pixsel], axis=1)
             if sky is not None:
-                ratio = biweight(zcube[:, pixsel] / sky[:, np.newaxis], axis=1)
-                scisky = sky * ratio
+                R = biweight(sky, axis=0) / biweight(sky[skysel], axis=0)
+                scisky = biweight(zcube[:, pixsel], axis=1) * R
         else:
             scisky = np.zeros((SciSpectra.shape[1],))
         
@@ -572,7 +592,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
                                              left=np.nan, right=np.nan)
                 newerrcube[:, j, k] = np.interp(def_wave, wave, ecube[:, j, k],
                                              left=np.nan, right=np.nan)
-                skycube[:, j, k] = np.interp(def_wave, wave, scisky,
+                skycube[:, j, k] = np.interp(def_wave, wave, scube[:, j, k],
                                              left=np.nan, right=np.nan)
         info.append([newcube, newerrcube, skycube, xgrid, ygrid])
         
@@ -656,7 +676,7 @@ def main():
 # =============================================================================
     sky, cor, chan = ([], [], [])
     SkyFits_List = []
-    print(skyobs)
+
     for _skyobs in skyobs:
         channel = _skyobs.split('_')[-1][:-5]
         chan.append(channel)
@@ -665,18 +685,29 @@ def main():
         SkySpectra = SkyFits_List[-1][0].data
         P = SkyFits_List[-1][5].data
         sel = (SkySpectra == 0.).sum(axis=1) < 200
-        y = np.nanmedian(SkySpectra[:, 200:-200], axis=1)
-        mask = execute_sigma_clip(y)
-        sel = sel * ~mask.mask
-        correction = correct_amplifier_offsets(y, P[:, 0], P[:, 1])
+        y = biweight(SkySpectra[:, 200:-200], axis=1)
+        correction, k = correct_amplifier_offsets(y, P[:, 0], P[:, 1])
+        mask = execute_sigma_clip(y / correction)
+        selm = mask.mask * sel
+        #d = np.sqrt((P[:, 0, np.newaxis,] - P[:, 0])**2 + (P[:, 1, np.newaxis,] - P[:, 1])**2)
+        #for j in np.where(selm)[0]:
+        #    selm = selm + (d[j] < 3.)
+        sel = sel * ~selm
+        y = biweight(SkySpectra[:, 200:-200] /
+                     biweight(SkySpectra[sel, 200:-200], axis=0), axis=1)
+        correction, k = correct_amplifier_offsets(y, P[:, 0], P[:, 1])
         cor.append(correction)
-        sky.append(np.median(SkySpectra[sel]/correction[sel, np.newaxis], axis=0))
+        X = SkySpectra / correction[:, np.newaxis]
+        X[SkyFits_List[-1][3].data==0.] = np.nan
+        sky.append(X)
+        cor.append(correction)
     sky_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
     cor_dict = {'uv': None, 'orange': None, 'red': None, 'farred': None}
+
     for uchan in np.unique(chan):
-        sky_dict[uchan] = np.array(np.mean([sk for sk, ch in zip(sky, chan)
+        sky_dict[uchan] = np.array(np.nanmean([sk for sk, ch in zip(sky, chan)
                                             if ch == uchan], axis=0))
-        cor_dict[uchan] = np.array(np.mean([co for co, ch in zip(cor, chan)
+        cor_dict[uchan] = np.array(np.mean([sk for sk, ch in zip(cor, chan)
                                             if ch == uchan], axis=0))
 # =============================================================================
 # Reading cooridinates for Astrometry
@@ -704,6 +735,7 @@ def main():
         channel = _sciobs.split('_')[-1][:-5]
         side = side_dict[channel]
         sky = sky_dict[channel]
+        cor = cor_dict[channel]
         SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
         args.log.info('Science observation: %s loaded' % (_sciobs))
         date = _sciobs.split('_')[1]
@@ -720,8 +752,6 @@ def main():
         pos = SciFits_List[0][5].data * 1.
         pos[:, 0] = SciFits_List[0][5].data[:, 0] * 1.
         pos[:, 1] = SciFits_List[0][5].data[:, 1] * 1.
-        correction = correct_amplifier_offsets(biweight(SciFits_List[-1][0].data[:, 200:-200], axis=1), pos[:, 0], pos[:, 1])
-
         wave_0 = np.mean(iwave)
         xint =  np.interp(wave_0, T[0]['wave'], T[0]['x_0'])
         yint =  np.interp(wave_0, T[0]['wave'], T[0]['y_0'])
