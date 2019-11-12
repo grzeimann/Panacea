@@ -573,7 +573,8 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             if sky is not None:
                 sky = biweight(scube[:, pixsel], axis=1)
                 R = scisky / sky
-                scisky = scube * R[:, np.newaxis, np.newaxis]
+                scisky = scisky[:, np.newaxis, np.newaxis]
+                
         else:
             scisky = np.zeros(zcube.shape)
         
