@@ -521,6 +521,28 @@ def get_ADR_RAdec(xoff, yoff, astrometry_object):
         ADRdec = (tDec - astrometry_object.dec0) * 3600.
         return ADRra, ADRdec
     
+def correct_skyline_subtraction(y, xp, yp, d, order=1):
+    sel = y==0.
+    mask = execute_sigma_clip(y)
+    selm = mask.mask * sel
+    for j in np.where(selm)[0]:
+        selm = selm + (d[j] < 3.)
+    sel = sel * ~selm
+    back = biweight(y[sel])
+    res = y - back
+    good = sel
+    
+    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
+                                       stdfunc=mad_std)
+    res1 = res[:140][good[:140]]
+    res2 = res[140:][good[140:]]
+    smodel = []
+    for r in [res1, res2]:
+        mask, fit = fitter(Polynomial1D(order), np.arange(140)[good]/140., r)
+        smodel.append(fit(np.arange(140)/140.))
+    smodel = np.hstack(smodel)
+    return smodel   
+    
 def make_cor_plot(cor, k, y, name):
     ml = MultipleLocator(5)
     sns.set_context('talk')
@@ -558,7 +580,10 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             sel = SciSpectra > 0.
             SciError[sel]= np.sqrt(SciSpectra[sel]/np.sqrt(2) + 3**2*2.)
             SciError[~sel] = np.sqrt(3**2*2.)
-        
+        if cor is not None:
+            SciSpectra /= cor[:, np.newaxis]
+            SciError /= cor[:, np.newaxis]
+        good = (SciSpectra == 0.).sum(axis=1) < 200
         if cor is None:
             pos = _scifits[5].data
             sel = (SciSpectra == 0.).sum(axis=1) < 200
@@ -571,14 +596,20 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             for j in np.where(selm)[0]:
                 selm = selm + (d[j] < 3.)
             sel = sel * ~selm
-            y = biweight(SciSpectra[:, 200:-200] /
-                         biweight(SciSpectra[sel, 200:-200], axis=0), axis=1)
+            sky = biweight(SciSpectra[sel], axis=0)
+            y = biweight(SciSpectra[:, 200:-200] / sky[200:-200], axis=1)
             cor, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
             make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
-        if cor is not None:
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
-        good = (SciSpectra == 0.).sum(axis=1) < 200
+            mask, cont = identify_sky_pixels(sky)
+            
+            d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
+                        (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
+            for ind in np.where(mask)[0]:
+                res = correct_skyline_subtraction(SciSpectra[:, ind], pos[:, 0],
+                                                  pos[:, 1], d, order=1)
+                SciSpectra[good, ind] = SciSpectra[good, ind] - res[good]
         zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
                                                P[2], P[3], good,
@@ -592,6 +623,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
         pixsel = np.sqrt(xgrid**2 + ygrid**2) > 4.
         if sky_subtract:
             scisky = biweight(zcube[:, pixsel], axis=1)
+            
             if sky is not None:
                 sky = biweight(scube[:, pixsel], axis=1)
         else:
