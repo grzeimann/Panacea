@@ -706,6 +706,7 @@ def main():
                                             if ch == uchan], axis=0))
         cor_dict[uchan] = np.array(np.mean([sk for sk, ch in zip(cor, chan)
                                             if ch == uchan], axis=0))
+    print(sky_dict)
 # =============================================================================
 # Reading cooridinates for Astrometry
 # =============================================================================
