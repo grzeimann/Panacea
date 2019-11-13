@@ -537,8 +537,8 @@ def correct_skyline_subtraction(y, xp, yp, d, order=1):
     res1 = res[:140][good[:140]]
     res2 = res[140:][good[140:]]
     smodel = []
-    for r in [res1, res2]:
-        mask, fit = fitter(Polynomial1D(order), np.arange(140)[good]/140., r)
+    for r, g in zip([res1, res2], [good[:140], good[140:]]):
+        mask, fit = fitter(Polynomial1D(order), np.arange(140)[g]/140., r)
         smodel.append(fit(np.arange(140)/140.))
     smodel = np.hstack(smodel)
     return smodel   
