@@ -601,8 +601,8 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
                         (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
             sel = (SciSpectra == 0.).sum(axis=1) < 200
-            mask = execute_sigma_clip(y)
-            selm = mask.mask * sel
+            mask1 = execute_sigma_clip(y)
+            selm = mask1.mask * sel
             for j in np.where(selm)[0]:
                 selm = selm + (d[j] < 3.)
             sel = sel * ~selm
