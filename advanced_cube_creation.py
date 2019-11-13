@@ -601,9 +601,8 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             mask, cont = identify_sky_pixels(sky)
             d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
                         (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
-            sel = y==0.
+            sel = (SciSpectra == 0.).sum(axis=1) < 200
             mask = execute_sigma_clip(y)
-            print(mask.mask.sum())
             selm = mask.mask * sel
             for j in np.where(selm)[0]:
                 selm = selm + (d[j] < 3.)
