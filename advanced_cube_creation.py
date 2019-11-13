@@ -521,13 +521,7 @@ def get_ADR_RAdec(xoff, yoff, astrometry_object):
         ADRdec = (tDec - astrometry_object.dec0) * 3600.
         return ADRra, ADRdec
     
-def correct_skyline_subtraction(y, xp, yp, d, order=1):
-    sel = y==0.
-    mask = execute_sigma_clip(y)
-    selm = mask.mask * sel
-    for j in np.where(selm)[0]:
-        selm = selm + (d[j] < 3.)
-    sel = sel * ~selm
+def correct_skyline_subtraction(y, xp, yp, sel, order=1):
     back = biweight(y[sel])
     res = y - back
     good = sel
@@ -596,19 +590,25 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             for j in np.where(selm)[0]:
                 selm = selm + (d[j] < 3.)
             sel = sel * ~selm
-            sky = biweight(SciSpectra[sel], axis=0)
+            sky = biweight(SciSpectra[sel] / correction[sel, np.newaxis],
+                           axis=0)
             y = biweight(SciSpectra[:, 200:-200] / sky[200:-200], axis=1)
             cor, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
             make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
             mask, cont = identify_sky_pixels(sky)
-            
             d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
                         (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
+            sel = y==0.
+            mask = execute_sigma_clip(y)
+            selm = mask.mask * sel
+            for j in np.where(selm)[0]:
+                selm = selm + (d[j] < 3.)
+            sel = sel * ~selm
             for ind in np.where(mask)[0]:
                 res = correct_skyline_subtraction(SciSpectra[:, ind], pos[:, 0],
-                                                  pos[:, 1], d, order=1)
+                                                  pos[:, 1], sel, order=1)
                 SciSpectra[good, ind] = SciSpectra[good, ind] - res[good]
         zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
