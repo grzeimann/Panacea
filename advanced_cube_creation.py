@@ -792,7 +792,7 @@ def main():
         ran_list.append(ran1)
         Pos.append([delta_ra, delta_dec, raoff, decoff])
         skies.append(sky)
-        cors.append(correction)
+        cors.append(cor)
     ran_array = np.array(ran_list)
     rmax = np.max(ran_array, axis=0)
     rmin = np.min(ran_array, axis=0)
