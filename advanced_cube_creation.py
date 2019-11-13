@@ -562,6 +562,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
                                                SciSpectra, SciError,
                                                P[2], P[3], good,
                                                scale, ran)
+        scube = zcube * 0.
         if sky is not None:
             scube, secube, xgrid, ygrid = make_cube(P[0], P[1],
                                                    sky, 1.*np.isfinite(sky),
@@ -572,11 +573,8 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             scisky = biweight(zcube[:, pixsel], axis=1)
             if sky is not None:
                 sky = biweight(scube[:, pixsel], axis=1)
-                R = biweight(scisky / sky)
-                res = R * (scube - sky)
         else:
-            scisky = np.zeros(zcube.shape)
-            res = np.zeros(zcube.shape)
+            scisky = np.zeros((zcube.shape[0],)
         
         skysub_cube = zcube - scisky[:, np.newaxis, np.newaxis]
         newcube = np.zeros((len(def_wave), zcube.shape[1], zcube.shape[2]))
