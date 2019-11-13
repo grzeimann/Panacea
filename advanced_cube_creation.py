@@ -520,6 +520,25 @@ def get_ADR_RAdec(xoff, yoff, astrometry_object):
                       np.cos(np.deg2rad(astrometry_object.dec0)))
         ADRdec = (tDec - astrometry_object.dec0) * 3600.
         return ADRra, ADRdec
+    
+def make_cor_plot(cor, k, y, name):
+    ml = MultipleLocator(5)
+    sns.set_context('talk')
+    sns.set_style("ticks", {"xtick.major.size": 8, "ytick.major.size": 8,
+                            "xtick.minor.size": 2, "xtick.minor.size": 2})
+    plt.figure(figsize=(7, 5))
+    plt.gca().set_position([0.2, 0.2, 0.7, 0.7])
+    plt.plot(y)
+    plt.plot(k, lw=1)
+    plt.plot(cor, 'r-', lw=1)
+    
+    plt.axes().xaxis.set_minor_locator(ml)
+    plt.ylim([0.8, 1.2])
+    plt.xlim([0, 280])
+    plt.xlabel(r'Fiber Number')
+    plt.ylabel(r'Average Value with Respect to Sky')
+    plt.legend()
+    plt.savefig('cor_%s.png' % name, dpi=300)
 
 def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
              def_wave, sky_subtract=True, cal=False):
@@ -554,6 +573,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             y = biweight(SciSpectra[:, 200:-200] /
                          biweight(SciSpectra[sel, 200:-200], axis=0), axis=1)
             cor, k = correct_amplifier_offsets(y, P[:, 0], P[:, 1])
+            make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
         if cor is not None:
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
@@ -704,7 +724,6 @@ def main():
                                             if ch == uchan], axis=0))
         cor_dict[uchan] = np.array(np.mean([sk for sk, ch in zip(cor, chan)
                                             if ch == uchan], axis=0))
-    print(sky_dict)
 # =============================================================================
 # Reading cooridinates for Astrometry
 # =============================================================================
