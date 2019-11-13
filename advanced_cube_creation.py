@@ -528,8 +528,9 @@ def make_cor_plot(cor, k, y, name):
                             "xtick.minor.size": 2, "xtick.minor.size": 2})
     plt.figure(figsize=(7, 5))
     plt.gca().set_position([0.2, 0.2, 0.7, 0.7])
-    plt.plot(y)
-    plt.plot(k, lw=1)
+    norm = biweight(k)
+    plt.plot(y/norm)
+    plt.plot(k/norm, lw=1)
     plt.plot(cor, 'r-', lw=1)
     
     plt.axes().xaxis.set_minor_locator(ml)
@@ -568,7 +569,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
                         (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
             for j in np.where(selm)[0]:
-                selm = selm + (d[j] < 2.)
+                selm = selm + (d[j] < 3.)
             sel = sel * ~selm
             y = biweight(SciSpectra[:, 200:-200] /
                          biweight(SciSpectra[sel, 200:-200], axis=0), axis=1)
