@@ -528,11 +528,11 @@ def correct_skyline_subtraction(y, xp, yp, sel, order=1):
     
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
-    res1 = res[:140][good[:140]]
-    res2 = res[140:][good[140:]]
+    res1 = res[:140]
+    res2 = res[140:]
     smodel = []
     for r, g in zip([res1, res2], [good[:140], good[140:]]):
-        mask, fit = fitter(Polynomial1D(order), np.arange(140)[g]/140., r)
+        mask, fit = fitter(Polynomial1D(order), np.arange(140)[g]/140., r[g])
         smodel.append(fit(np.arange(140)/140.))
     smodel = np.hstack(smodel)
     return smodel   
@@ -609,7 +609,8 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             for ind in np.where(mask)[0]:
                 res = correct_skyline_subtraction(SciSpectra[:, ind], pos[:, 0],
                                                   pos[:, 1], sel, order=1)
-                SciSpectra[good, ind] = SciSpectra[good, ind] - res[good]
+                SciSpectra[:, ind] = SciSpectra[:, ind] - res[:]
+        SciSpectra[~good] = 0.
         zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
                                                P[2], P[3], good,
