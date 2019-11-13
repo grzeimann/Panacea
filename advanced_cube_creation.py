@@ -609,7 +609,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             for ind in np.where(mask)[0]:
                 res = correct_skyline_subtraction(SciSpectra[:, ind], pos[:, 0],
                                                   pos[:, 1], sel, order=1)
-                SciSpectra[:, ind] = SciSpectra[:, ind] - res[:]
+                SciSpectra[:, ind] = SciSpectra[:, ind] - res
         SciSpectra[~good] = 0.
         zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
