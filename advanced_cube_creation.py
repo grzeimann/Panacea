@@ -597,7 +597,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
-            mask, cont = identify_sky_pixels(sky)
+            mask, cont = identify_sky_pixels(Sky)
             d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
                         (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
             sel = (SciSpectra == 0.).sum(axis=1) < 200
