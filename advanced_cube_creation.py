@@ -590,9 +590,9 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             for j in np.where(selm)[0]:
                 selm = selm + (d[j] < 3.)
             sel = sel * ~selm
-            sky = biweight(SciSpectra[sel] / correction[sel, np.newaxis],
+            Sky = biweight(SciSpectra[sel] / correction[sel, np.newaxis],
                            axis=0)
-            y = biweight(SciSpectra[:, 200:-200] / sky[200:-200], axis=1)
+            y = biweight(SciSpectra[:, 200:-200] / Sky[200:-200], axis=1)
             cor, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
             make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
             SciSpectra /= cor[:, np.newaxis]
@@ -610,7 +610,6 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
                 res = correct_skyline_subtraction(SciSpectra[:, ind], pos[:, 0],
                                                   pos[:, 1], sel, order=1)
                 SciSpectra[good, ind] = SciSpectra[good, ind] - res[good]
-        print(SciSpectra.shape)
         zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
                                                P[2], P[3], good,
