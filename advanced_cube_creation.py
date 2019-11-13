@@ -572,7 +572,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
             sel = sel * ~selm
             y = biweight(SciSpectra[:, 200:-200] /
                          biweight(SciSpectra[sel, 200:-200], axis=0), axis=1)
-            cor, k = correct_amplifier_offsets(y, P[:, 0], P[:, 1])
+            cor, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
             make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
         if cor is not None:
             SciSpectra /= cor[:, np.newaxis]
