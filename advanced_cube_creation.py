@@ -603,7 +603,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             mask1 = execute_sigma_clip(y)
             selm = mask1.mask * sel
             sel = sel * ~selm
-            for ind in np.where(mask)[0]:
+            for ind in np.arange(SciSpectra.shape[1]):
                 res = correct_skyline_subtraction(SciSpectra[:, ind], sel,
                                                   pca)
                 SciSpectra[:, ind] = SciSpectra[:, ind] - res
