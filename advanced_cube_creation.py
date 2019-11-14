@@ -548,8 +548,9 @@ def make_cor_plot(cor, k, y, name):
     plt.legend()
     plt.savefig('cor_%s.png' % name, dpi=300)
 
-def get_arc_pca(spec, pos, components=15):
-    sky = biweight(spec, axis=0)
+def get_arc_pca(spec, pos, good, components=15):
+    spec[~good] = 0.
+    sky = biweight(spec[good], axis=0)
     mask, cont = identify_sky_pixels(sky)
     ratio = biweight(spec[:, mask] / sky[mask], axis=1)
     cor, k = correct_amplifier_offsets(ratio, pos[:, 0], pos[:, 1])
@@ -585,7 +586,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
         good = (SciSpectra == 0.).sum(axis=1) < 200
         if cor is None:
             pos = _scifits[5].data
-            pca = get_arc_pca(_calfits['arcspec'].data, pos, components=75)
+            pca = get_arc_pca(_calfits['arcspec'].data, pos, good, components=75)
             sel = (SciSpectra == 0.).sum(axis=1) < 200
             y = biweight(SciSpectra[:, 200:-200], axis=1)
             correction, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
