@@ -548,7 +548,7 @@ def make_cor_plot(cor, k, y, name):
     plt.legend()
     plt.savefig('cor_%s.png' % name, dpi=300)
 
-def get_arc_pca(spec, pos):
+def get_arc_pca(spec, pos, components=15):
     sky = biweight(spec, axis=0)
     mask, cont = identify_sky_pixels(sky)
     ratio = biweight(spec[:, mask] / sky[mask], axis=1)
@@ -557,7 +557,7 @@ def get_arc_pca(spec, pos):
     X = (spec / ratio[:, np.newaxis] - nsky)
     X[:, ~mask] = 0.
     X = X.swapaxes(0, 1)
-    pca, A = get_pca_sky_residuals(X, ncomponents=15)
+    pca, A = get_pca_sky_residuals(X, ncomponents=components)
     return pca
 
 def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
@@ -585,7 +585,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
         good = (SciSpectra == 0.).sum(axis=1) < 200
         if cor is None:
             pos = _scifits[5].data
-            pca = get_arc_pca(_calfits['arcspec'].data, pos)
+            pca = get_arc_pca(_calfits['arcspec'].data, pos, components=75)
             sel = (SciSpectra == 0.).sum(axis=1) < 200
             y = biweight(SciSpectra[:, 200:-200], axis=1)
             correction, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
@@ -609,8 +609,6 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             sel = (SciSpectra == 0.).sum(axis=1) < 200
             mask1 = execute_sigma_clip(y)
             selm = mask1.mask * sel
-            for j in np.where(selm)[0]:
-                selm = selm + (d[j] < 3.)
             sel = sel * ~selm
             for ind in np.where(mask)[0]:
                 res = correct_skyline_subtraction(SciSpectra[:, ind], sel,
