@@ -605,7 +605,8 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
         sel = good * ~mask1.mask
         sky = np.ones((280, 1)) * biweight(SciSpectra[sel], axis=0)[np.newaxis, :]
         for ind in np.arange(SciSpectra.shape[1]):
-            res = correct_skyline_subtraction(SciSpectra[:, ind], sel,
+            goodf = SciError[:, ind] > 0.
+            res = correct_skyline_subtraction(SciSpectra[:, ind], sel*goodf,
                                               pca)
             SciSpectra[:, ind] = SciSpectra[:, ind] - res
             sky[:, ind] += res
