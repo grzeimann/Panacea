@@ -242,7 +242,13 @@ def correct_amplifier_offsets(y, xp, yp, order=1, kernel=12.):
                                        stdfunc=mad_std)
     mask, fit = fitter(Polynomial2D(1), xp[good], yp[good], (y/model)[good])
     smodel = fit(xp, yp)
-    return model * smodel / biweight(model * smodel), k
+    cor = model * smodel 
+    bl, bml = biweight(k[:140]-cor[:140], calc_std=True)
+    bl, bmr = biweight(k[140:]-cor[140:], calc_std=True)
+    if (bml>0.03) or (bmr>0.03):
+        args.log.warning("Cannot Make Correction")
+        return np.ones(y.shape), k
+    return cor/biweight(cor), k
 
 def estimate_sky(data):
     y = np.mean(data[:, 400:-400], axis=1)
