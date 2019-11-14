@@ -557,6 +557,7 @@ def get_arc_pca(spec, pos, good, components=15):
     nsky = biweight(spec / ratio[:, np.newaxis], axis=0)
     X = (spec / ratio[:, np.newaxis] - nsky)
     X[:, ~mask] = 0.
+    X[~good] = 0.
     X = X.swapaxes(0, 1)
     pca, A = get_pca_sky_residuals(X, ncomponents=components)
     return pca
@@ -586,7 +587,8 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
         good = (SciSpectra == 0.).sum(axis=1) < 200
         if cor is None:
             pos = _scifits[5].data
-            pca = get_arc_pca(_calfits['arcspec'].data, pos, good, components=75)
+            pca = get_arc_pca(_calfits['arcspec'].data, pos, good,
+                              components=75)
             sel = (SciSpectra == 0.).sum(axis=1) < 200
             y = biweight(SciSpectra[:, 200:-200], axis=1)
             correction, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
