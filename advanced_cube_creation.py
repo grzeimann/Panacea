@@ -524,7 +524,7 @@ def get_ADR_RAdec(xoff, yoff, astrometry_object):
 def correct_skyline_subtraction(y, sel, pca):
     back = biweight(y[sel])
     res = y - back
-    coeff = np.dot(res[sel], pca.components_[sel].T)
+    coeff = np.dot(res[sel], pca.components_.T[sel])
     model = np.dot(coeff, pca.components_)
     return model
     
