@@ -29,6 +29,10 @@ parser.add_argument("outname",
 parser.add_argument("--atfile",
                     help='''Name of at file for re-reduction''', type=str,
                     default=None)
+
+parser.add_argument("-sd", "--sep_date",
+                    help='''Separate Dates''',
+                    action="count", default=0)
 args = parser.parse_args(args=None)
 
 atcall = 'echo "source ~hetdex/.bashrc; runlrs2wranglergeneral %s %s" | at %s'
