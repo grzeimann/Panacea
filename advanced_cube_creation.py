@@ -30,6 +30,7 @@ from input_utils import setup_logging
 from matplotlib.ticker import MultipleLocator
 from scipy.interpolate import LSQBivariateSpline, griddata
 from scipy.signal import medfilt, savgol_filter
+from scipy.ndimage import percentile_filter
 from sklearn.decomposition import PCA
 from math_utils import biweight
 
@@ -261,27 +262,16 @@ def get_pca_fit_residuals(data, pca):
     return model
 
 def identify_sky_pixels(sky):
-    G = Gaussian1DKernel(20.0)
-    cont = convolve(sky, G)
+    cont = percentile_filter(sky, 5, size=100)
     try:
         mask = sigma_clip(sky - cont, masked=True, maxiters=None,
-                          stdfunc=mad_std)
+                          stdfunc=mad_std, sigma=5)
     except:
-        mask = sigma_clip(sky - cont, iters=None, stdfunc=mad_std) 
-    for i in np.arange(5):
-        nsky = sky * 1.
-        mask.mask[1:] += mask.mask[:-1]
-        mask.mask[:-1] += mask.mask[1:]
-        nsky[mask.mask] = np.nan
-        cont = convolve(nsky, G, boundary='extend')
-        while np.isnan(cont).sum():
-            cont = interpolate_replace_nans(cont, G)
-        try:
-            mask = sigma_clip(sky - cont, masked=True, maxiters=None,
-                              stdfunc=mad_std)
-        except:
-            mask = sigma_clip(sky - cont, iters=None, stdfunc=mad_std) 
+        mask = sigma_clip(sky - cont, iters=None, stdfunc=mad_std,
+                          sigma=5) 
     return mask.mask, cont    
+
+    
 
 def correct_wavelength_to_sky(spectra, skylines, wave, thresh=4.5):
     nfibers = spectra.shape[0]
