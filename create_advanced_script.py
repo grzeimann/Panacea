@@ -79,17 +79,36 @@ for o in uobj:
             red.append(rname)
             sky.append(rsky)
         date = bname.split('_')[1]
-    blue = ','.join(blue)
-    red = ','.join(red)
-    sky = ','.join(sky)
-    call = ('python Panacea/advanced_cube_creation.py %s "' + blue + '" "' +
-            red + '" "' + sky + '" "' + rah + '" "' + dech + '" ' + 
-            "-d %s -c %s -dw 0.7") % (o, args.directory, args.caldirectory)
-    calls.append(call)
-    now = now + datetime.timedelta(seconds=120)
-    tim = now.strftime('%H:%M %B %d')
-    atcalls.append(atcall % (date, o, tim))
-    
+        dates.append(date)
+    udates = np.unique(dates)
+    if args.sep_date:
+        for udate in udates:
+            di = [i for i, d in enumerate(dates) if d == udate]
+            B = [blue[i] for i, d in enumerate(dates) if d == udate]
+            R = [red[i] for i, d in enumerate(dates) if d == udate]
+            S = [sky[i] for i, d in enumerate(dates) if d == udate]
+            B = ','.join(B)
+            R = ','.join(R)
+            S = ','.join(S)
+            call = ('python Panacea/advanced_cube_creation.py %s "' + B + '" "' +
+                    R + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
+                    "-d %s -c %s -dw 0.7") % (o, args.directory, args.caldirectory)
+            calls.append(call)
+            now = now + datetime.timedelta(seconds=120)
+            tim = now.strftime('%H:%M %B %d')
+            atcalls.append(atcall % (udate, o, tim))
+    else:
+        B = ','.join(blue)
+        R = ','.join(red)
+        S = ','.join(sky)
+        call = ('python Panacea/advanced_cube_creation.py %s "' + B + '" "' +
+                R + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
+                "-d %s -c %s -dw 0.7") % (o, args.directory, args.caldirectory)
+        calls.append(call)
+        for udate in udates:
+            now = now + datetime.timedelta(seconds=120)
+            tim = now.strftime('%H:%M %B %d')
+            atcalls.append(atcall % (udate, o, tim))
 with open(args.outname, 'w') as out_file:
     for call in calls:
         out_file.write(call + '\n')
