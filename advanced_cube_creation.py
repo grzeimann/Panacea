@@ -596,15 +596,10 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
+        y = biweight(SciSpectra[:, 200:-200], axis=1)
         mask = execute_sigma_clip(y / cor)
-        selm = mask.mask * sel
-        d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
-                    (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
-        for j in np.where(selm)[0]:
-            selm = selm + (d[j] < 3.)
-        sel = sel * ~selm
-        Sky = biweight(SciSpectra[sel] / cor[sel, np.newaxis],
-                       axis=0)
+        sel = good * ~mask.mask
+        Sky = biweight(SciSpectra[sel], axis=0)
         y = biweight(SciSpectra[:, 200:-200] / Sky[200:-200], axis=1)
         mask1 = execute_sigma_clip(y)
         sel = good * ~mask1.mask
