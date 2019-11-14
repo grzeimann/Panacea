@@ -575,40 +575,45 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
         good = (SciSpectra == 0.).sum(axis=1) < 200
+        pos = _scifits[5].data
+        pca = get_arc_pca(_calfits['arcspec'].data, pos, good,
+                          components=75)
         if cor is None:
-            pos = _scifits[5].data
-            pca = get_arc_pca(_calfits['arcspec'].data, pos, good,
-                              components=75)
             sel = (SciSpectra == 0.).sum(axis=1) < 200
             y = biweight(SciSpectra[:, 200:-200], axis=1)
-            correction, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
-            mask = execute_sigma_clip(y / correction)
+            cor, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
+            mask = execute_sigma_clip(y / cor)
             selm = mask.mask * sel
             d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
                         (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
             for j in np.where(selm)[0]:
                 selm = selm + (d[j] < 3.)
             sel = sel * ~selm
-            Sky = biweight(SciSpectra[sel] / correction[sel, np.newaxis],
+            Sky = biweight(SciSpectra[sel] / cor[sel, np.newaxis],
                            axis=0)
             y = biweight(SciSpectra[:, 200:-200] / Sky[200:-200], axis=1)
             cor, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
             make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
-            mask, cont = identify_sky_pixels(Sky)
-            d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
-                        (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
-            sel = (SciSpectra == 0.).sum(axis=1) < 200
-            mask1 = execute_sigma_clip(y)
-            selm = mask1.mask * sel
-            sel = sel * ~selm
-            sky = np.ones((280, 1)) * biweight(SciSpectra, axis=0)[np.newaxis, :]
-            for ind in np.arange(SciSpectra.shape[1]):
-                res = correct_skyline_subtraction(SciSpectra[:, ind], sel,
-                                                  pca)
-                SciSpectra[:, ind] = SciSpectra[:, ind] - res
-                sky[:, ind] += res
+        mask = execute_sigma_clip(y / cor)
+        selm = mask.mask * sel
+        d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
+                    (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
+        for j in np.where(selm)[0]:
+            selm = selm + (d[j] < 3.)
+        sel = sel * ~selm
+        Sky = biweight(SciSpectra[sel] / cor[sel, np.newaxis],
+                       axis=0)
+        y = biweight(SciSpectra[:, 200:-200] / Sky[200:-200], axis=1)
+        mask1 = execute_sigma_clip(y)
+        sel = good * ~mask1.mask
+        sky = np.ones((280, 1)) * biweight(SciSpectra[sel], axis=0)[np.newaxis, :]
+        for ind in np.arange(SciSpectra.shape[1]):
+            res = correct_skyline_subtraction(SciSpectra[:, ind], sel,
+                                              pca)
+            SciSpectra[:, ind] = SciSpectra[:, ind] - res
+            sky[:, ind] += res
         SciSpectra[~good] = 0.
         zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
