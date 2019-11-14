@@ -512,12 +512,15 @@ def get_ADR_RAdec(xoff, yoff, astrometry_object):
         return ADRra, ADRdec
     
 def correct_skyline_subtraction(y, sel, pca):
-    back = biweight(y[sel])
-    res = y - back
-    coeff = np.dot(res[sel], pca.components_.T[sel])
-    model = np.dot(coeff, pca.components_)
-    return model
-    
+    if sel.sum()>5:
+        back = biweight(y[sel])
+        res = y - back
+        coeff = np.dot(res[sel], pca.components_.T[sel])
+        model = np.dot(coeff, pca.components_)
+        return model
+    else:
+        return y * 0.
+
 def make_cor_plot(cor, k, y, name):
     ml = MultipleLocator(5)
     sns.set_context('talk')
