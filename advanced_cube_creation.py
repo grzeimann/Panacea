@@ -607,7 +607,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
         y = biweight(SciSpectra[:, 200:-200] / Sky[200:-200], axis=1)
         mask1 = execute_sigma_clip(y, sigma=2)
         sel = good * ~mask1.mask
-        sky = np.ones((280, 1)) * biweight(SciSpectra[sel], axis=0)[np.newaxis, :]
+        sky = np.zeros((280, 1)) * Sky[np.newaxis, :]
         for ind in np.arange(SciSpectra.shape[1]):
             goodf = SciError[:, ind] > 0.
             res = correct_skyline_subtraction(SciSpectra[:, ind], sel*goodf,
@@ -628,12 +628,11 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
         pixsel = np.sqrt(xgrid**2 + ygrid**2) > 4.
         if sky_subtract:
             scisky = biweight(zcube[:, pixsel], axis=1)
-            
             if sky is not None:
                 sky = biweight(scube[:, pixsel], axis=1)
         else:
             scisky = np.zeros((zcube.shape[0],))
-        
+        scube = scube + scisky[:, np.newaxis, np.newaxis]
         skysub_cube = zcube - scisky[:, np.newaxis, np.newaxis]
         newcube = np.zeros((len(def_wave), zcube.shape[1], zcube.shape[2]))
         newerrcube = np.zeros((len(def_wave), zcube.shape[1], zcube.shape[2]))
