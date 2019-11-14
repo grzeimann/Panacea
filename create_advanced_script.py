@@ -84,13 +84,17 @@ for o in uobj:
             sky.append(rsky)
         date = bname.split('_')[1]
         dates.append(date)
-    udates = np.unique(dates)
+    rdates = [name.split('_')[1] for name in red]
+    bdates = [name.split('_')[1] for name in blue]
+    sdates = [name.split('_')[1] for name in sky]
+
+    udates = np.unique(np.hstack([rdates, bdates, sdates]))
     if args.sep_date:
         for udate in udates:
             di = [i for i, d in enumerate(dates) if d == udate]
-            B = [blue[i] for i, d in enumerate(dates) if d == udate]
-            R = [red[i] for i, d in enumerate(dates) if d == udate]
-            S = [sky[i] for i, d in enumerate(dates) if d == udate]
+            B = [blue[i] for i, d in enumerate(bdates) if d == udate]
+            R = [red[i] for i, d in enumerate(rdates) if d == udate]
+            S = [sky[i] for i, d in enumerate(sdates) if d == udate]
             B = ','.join(B)
             R = ','.join(R)
             S = ','.join(S)
