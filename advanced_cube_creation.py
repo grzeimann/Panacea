@@ -521,21 +521,12 @@ def get_ADR_RAdec(xoff, yoff, astrometry_object):
         ADRdec = (tDec - astrometry_object.dec0) * 3600.
         return ADRra, ADRdec
     
-def correct_skyline_subtraction(y, xp, yp, sel, order=1):
+def correct_skyline_subtraction(y, sel, pca):
     back = biweight(y[sel])
     res = y - back
-    good = sel
-    
-    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
-                                       stdfunc=mad_std)
-    res1 = res[:140]
-    res2 = res[140:]
-    smodel = []
-    for r, g in zip([res1, res2], [good[:140], good[140:]]):
-        mask, fit = fitter(Polynomial1D(order), np.arange(140)[g]/140., r[g])
-        smodel.append(fit(np.arange(140)/140.))
-    smodel = np.hstack(smodel)
-    return smodel   
+    coeff = np.dot(res[sel], pca.components_[sel].T)
+    model = np.dot(coeff, pca.components_)
+    return model
     
 def make_cor_plot(cor, k, y, name):
     ml = MultipleLocator(5)
@@ -557,13 +548,27 @@ def make_cor_plot(cor, k, y, name):
     plt.legend()
     plt.savefig('cor_%s.png' % name, dpi=300)
 
-def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
-             def_wave, sky_subtract=True, cal=False):
+def get_arc_pca(spec, pos):
+    sky = biweight(spec, axis=0)
+    mask, cont = identify_sky_pixels(sky)
+    ratio = biweight(spec[:, mask] / sky[mask], axis=1)
+    cor, k = correct_amplifier_offsets(ratio, pos[:, 0], pos[:, 1])
+    nsky = biweight(spec / ratio[:, np.newaxis], axis=0)
+    X = (spec / ratio[:, np.newaxis] - nsky)
+    X[:, ~mask] = 0.
+    X = X.swapaxes(0, 1)
+    pca, A = get_pca_sky_residuals(X, ncomponents=15)
+    return pca
+
+def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
+             cors, def_wave, sky_subtract=True, cal=False):
     F = []
     info = []
     if cors is None:
         cors = [None] * len(skies)
-    for _scifits, P, sky, cor, wave in zip(SciFits_List, Pos, skies, cors, waves):
+    for _scifits, _calfits, P, sky, cor, wave in zip(SciFits_List,
+                                                     CalFits_List, Pos, skies,
+                                                     cors, waves):
         args.log.info('Working on reduction for %s' % _scifits.filename())
         if not cal:
             SciSpectra = _scifits[0].data
@@ -580,6 +585,7 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
         good = (SciSpectra == 0.).sum(axis=1) < 200
         if cor is None:
             pos = _scifits[5].data
+            pca = get_arc_pca(_calfits['arcspec'].data, pos)
             sel = (SciSpectra == 0.).sum(axis=1) < 200
             y = biweight(SciSpectra[:, 200:-200], axis=1)
             correction, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
@@ -607,8 +613,8 @@ def get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
                 selm = selm + (d[j] < 3.)
             sel = sel * ~selm
             for ind in np.where(mask)[0]:
-                res = correct_skyline_subtraction(SciSpectra[:, ind], pos[:, 0],
-                                                  pos[:, 1], sel, order=1)
+                res = correct_skyline_subtraction(SciSpectra[:, ind], sel,
+                                                  pca)
                 SciSpectra[:, ind] = SciSpectra[:, ind] - res
         SciSpectra[~good] = 0.
         zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
@@ -870,8 +876,8 @@ def main():
     args.log.info('Wavelength Range: %0.1f - %0.1f A, %0.2f A' % (lw, hw, dw))
     ############################### Science ###################################
     cnt = 0
-    F, info = get_cube(SciFits_List, Pos, scale, ran, skies, waves, cnt, cors,
-                       def_wave, sky_subtract=True)
+    F, info = get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, 
+                       waves, cnt, cors, def_wave, sky_subtract=True)
     xgrid = info[0][3]
     ygrid = info[0][4]
 #    norms = np.array([get_norm(i[0], xgrid, ygrid, wave) for i in info])
