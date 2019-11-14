@@ -207,11 +207,12 @@ def find_peaks(y, wave, thresh=8.):
     peak_wave = np.interp(peak_loc, np.arange(len(wave)), wave)
     return peak_loc, peaks/std, peaks, peak_wave
 
-def execute_sigma_clip(y):
+def execute_sigma_clip(y, sigma=3):
     try:
-        mask = sigma_clip(y, masked=True, maxiters=None, stdfunc=mad_std)
+        mask = sigma_clip(y, masked=True, maxiters=None, stdfunc=mad_std,
+                          sigma=sigma)
     except:
-        mask = sigma_clip(y, iters=None, stdfunc=mad_std)
+        mask = sigma_clip(y, iters=None, stdfunc=mad_std, sigma=sigma)
     return mask
 
 
@@ -604,7 +605,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
         sel = good * ~mask.mask
         Sky = biweight(SciSpectra[sel], axis=0)
         y = biweight(SciSpectra[:, 200:-200] / Sky[200:-200], axis=1)
-        mask1 = execute_sigma_clip(y)
+        mask1 = execute_sigma_clip(y, sigma=2)
         sel = good * ~mask1.mask
         sky = np.ones((280, 1)) * biweight(SciSpectra[sel], axis=0)[np.newaxis, :]
         for ind in np.arange(SciSpectra.shape[1]):
