@@ -90,7 +90,7 @@ for o in uobj:
 
     udates = np.unique(np.hstack([rdates, bdates, sdates]))
     if args.sep_date:
-        for udate in udates:
+        for j, udate in enumerate(udates):
             di = [i for i, d in enumerate(dates) if d == udate]
             B = [blue[i] for i, d in enumerate(bdates) if d == udate]
             R = [red[i] for i, d in enumerate(rdates) if d == udate]
@@ -100,7 +100,7 @@ for o in uobj:
             S = ','.join(S)
             call = ('python Panacea/advanced_cube_creation.py %s "' + B + '" "' +
                     R + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
-                    "-d %s -c %s -dw 0.7") % (o, args.directory, args.caldirectory)
+                    "-d %s -c %s -dw 0.7") % (o+'_%s' % udate , args.directory, args.caldirectory)
             calls.append(call)
             now = now + datetime.timedelta(seconds=120)
             tim = now.strftime('%H:%M %B %d')
