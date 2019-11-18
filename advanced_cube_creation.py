@@ -465,7 +465,7 @@ def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran, skysub=True,
                                        (xgrid, ygrid), method='linear') * area)
             Ecube[k, :, :] = (griddata(S[sel], error[sel, k],
                                        (xgrid, ygrid), method='linear') * area)
-    return Dcube, Ecube, xgrid, ygrid, sky
+    return Dcube, Ecube, xgrid, ygrid, sky * area
 
 def write_cube(wave, xgrid, ygrid, Dcube, outname, he):
     '''
