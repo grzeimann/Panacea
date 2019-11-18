@@ -538,7 +538,7 @@ def make_cor_plot(cor, k, y, name):
     norm = biweight(k)
     plt.plot(y/norm)
     plt.plot(k/norm, lw=1)
-    plt.plot(cor, 'r-', lw=1)
+    plt.plot(cor/norm, 'r-', lw=1)
     
     plt.axes().xaxis.set_minor_locator(ml)
     plt.ylim([0.8, 1.2])
