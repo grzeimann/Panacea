@@ -634,8 +634,6 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
         pixsel = np.sqrt(xgrid**2 + ygrid**2) > 4.
         if sky_subtract:
             scisky = biweight(zcube[:, pixsel], axis=1)
-            if sky is not None:
-                sky = biweight(scube[:, pixsel], axis=1)
         else:
             scisky = np.zeros((zcube.shape[0],))
         scube = scube + scisky[:, np.newaxis, np.newaxis]
