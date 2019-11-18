@@ -396,7 +396,7 @@ def get_adr_curve(pos, data, ordery=1, orderx=0, bins=7):
         args.log.warning('Problem fitting ADC curve.  Not enough points.')
         return np.ones(x.shape) * xP, np.ones(x.shape)* yP
                 
-def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran, skysub=True
+def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran, skysub=True,
               radius=0.7):
     '''
     Make data cube for a given ifuslot
