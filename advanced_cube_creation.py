@@ -396,7 +396,7 @@ def get_adr_curve(pos, data, ordery=1, orderx=0, bins=7):
         args.log.warning('Problem fitting ADC curve.  Not enough points.')
         return np.ones(x.shape) * xP, np.ones(x.shape)* yP
                 
-def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
+def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran, skysub=True
               radius=0.7):
     '''
     Make data cube for a given ifuslot
@@ -448,17 +448,24 @@ def make_cube(xloc, yloc, data, error, Dx, Dy, good, scale, ran,
     for i in np.arange(data.shape[0]):
         c[i] = interpolate_replace_nans(data[i], Gp)
     data = c * 1.
+    sky = np.zeros((data.shape[1],))
     for k in np.arange(b):
         S[:, 0] = xloc - Dx[k]
         S[:, 1] = yloc - Dy[k]
+        d = np.sqrt(S[:, 0]**2 + S[:, 1]**2)
         sel = (data[:, k] / np.nansum(data[:, k] * W, axis=1)) <= 0.4
         sel *= np.isfinite(data[:, k]) * good * (error[:, k] > 0.)
         if np.sum(sel) > 15:
-            Dcube[k, :, :] = (griddata(S[sel], data[sel, k],
-                                       (xgrid, ygrid), method='cubic') * area)
+            if skysub:
+                back = biweight(data[sel*(d>4.), k])
+            else:
+                back = 0.
+            sky[k] = back
+            Dcube[k, :, :] = (griddata(S[sel], data[sel, k]-back,
+                                       (xgrid, ygrid), method='linear') * area)
             Ecube[k, :, :] = (griddata(S[sel], error[sel, k],
-                                       (xgrid, ygrid), method='cubic') * area)
-    return Dcube, Ecube, xgrid, ygrid
+                                       (xgrid, ygrid), method='linear') * area)
+    return Dcube, Ecube, xgrid, ygrid, sky
 
 def write_cube(wave, xgrid, ygrid, Dcube, outname, he):
     '''
@@ -621,23 +628,17 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             SciSpectra[:, ind] = SciSpectra[:, ind] - res
             sky[:, ind] += res
         SciSpectra[~good] = 0.
-        zcube, ecube, xgrid, ygrid = make_cube(P[0], P[1],
+        zcube, ecube, xgrid, ygrid, sciky = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
                                                P[2], P[3], good,
-                                               scale, ran)
+                                               scale, ran, skysub=sky_subtract)
         scube = zcube * 0.
-        if sky is not None:
-            scube, secube, xgrid, ygrid = make_cube(P[0], P[1],
-                                                   sky, 1.*np.isfinite(sky),
-                                                   P[2], P[3], good,
-                                                   scale, ran)
-        pixsel = np.sqrt(xgrid**2 + ygrid**2) > 4.
-        if sky_subtract:
-            scisky = biweight(zcube[:, pixsel], axis=1)
-        else:
-            scisky = np.zeros((zcube.shape[0],))
+        scube, secube, xgrid, ygrid = make_cube(P[0], P[1],
+                                               sky, 1.*np.isfinite(sky),
+                                               P[2], P[3], good,
+                                               scale, ran, skysub=False)
         scube = scube + scisky[:, np.newaxis, np.newaxis]
-        skysub_cube = zcube - scisky[:, np.newaxis, np.newaxis]
+        skysub_cube = zcube
         newcube = np.zeros((len(def_wave), zcube.shape[1], zcube.shape[2]))
         newerrcube = np.zeros((len(def_wave), zcube.shape[1], zcube.shape[2]))
         skycube = np.zeros((len(def_wave), zcube.shape[1], zcube.shape[2]))
