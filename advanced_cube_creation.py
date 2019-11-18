@@ -628,12 +628,12 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             SciSpectra[:, ind] = SciSpectra[:, ind] - res
             sky[:, ind] += res
         SciSpectra[~good] = 0.
-        zcube, ecube, xgrid, ygrid, sciky = make_cube(P[0], P[1],
+        zcube, ecube, xgrid, ygrid, scisky = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
                                                P[2], P[3], good,
                                                scale, ran, skysub=sky_subtract)
         scube = zcube * 0.
-        scube, secube, xgrid, ygrid = make_cube(P[0], P[1],
+        scube, secube, xgrid, ygrid, dummy = make_cube(P[0], P[1],
                                                sky, 1.*np.isfinite(sky),
                                                P[2], P[3], good,
                                                scale, ran, skysub=False)
