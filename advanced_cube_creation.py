@@ -755,6 +755,7 @@ def main():
                      biweight(SkySpectra[sel, 200:-200], axis=0), axis=1)
         correction, k = correct_amplifier_offsets(y, P[:, 0], P[:, 1])
         cor.append(correction)
+        make_cor_plot(correction, k, y, op.basename(SkyFits_List[-1].filename()))
         X = SkySpectra / correction[:, np.newaxis]
         X[SkyFits_List[-1][3].data==0.] = np.nan
         sky.append(X)
