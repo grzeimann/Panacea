@@ -1582,6 +1582,9 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
     if t > 1.1:
         log.info('The throughput for %s is %0.2f is too high, setting to 1.0' % (fn, t))
         t = 1.0
+    if t < 0.1:
+        log.info('The throughput for %s is %0.2f is too high, setting to 1.0' % (fn, t))
+        t = 1.0
     log.info('Throughput for %s is %0.2f' % (fn, t))
     return t
 
