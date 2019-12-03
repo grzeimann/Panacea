@@ -1942,7 +1942,7 @@ for info in listinfo:
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
         
-        lampfiles = get_cal_path(lamp_path, args.date)
+        lampfiles = get_cal_path(lamp_path, args.date, ndays=7)
         masterarc = get_masterarc(lampfiles, amp, arc_names, masterbias,
                                   specname, trace)
         lampfiles = get_cal_path(lamp_path, '20181201', ndays=1)
