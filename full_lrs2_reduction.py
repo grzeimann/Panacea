@@ -1944,12 +1944,12 @@ for info in listinfo:
                  (ifuslot, amp))
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
-        lampfiles = get_cal_path(lamp_path, args.date)
+        lampfiles = get_cal_path(lamp_path, args.date, ndays=15)
         log.info('Number of arc files: %i' % len(lampfiles))
         masterarc = get_masterarc(lampfiles, amp, arc_names, masterbias,
                                   specname, trace)
         
-        lampfiles = get_cal_path(lamp_path, '20181201', ndays=1)
+        lampfiles = get_cal_path(lamp_path, '20181201', ndays=3)
         def_arc = get_masterarc(lampfiles, amp,
                                 arc_names, masterbias, specname, trace)
 
