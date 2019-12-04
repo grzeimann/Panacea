@@ -1904,11 +1904,12 @@ for info in listinfo:
     specid, ifuslot, ifuid = multi.split('_')
     package = []
     marc, mtwi, mflt = ([], [], [])
-    if args.use_flat:
-        twi_files = get_flt_base()
-    else:
-        twi_path = twi_path % (instrument, instrument, '00000*', instrument,
+    twi_path = twi_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
+    twifiles = get_cal_path(twi_path, args.date)
+    if args.use_flat:
+        twi_path = (twi_path.replace('twi', 'flt') %
+                    (instrument, instrument, '00000*', instrument, ifuslot))
         twifiles = get_cal_path(twi_path, args.date)
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
