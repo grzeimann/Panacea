@@ -570,12 +570,13 @@ def get_arc_pca(spec, pos, good, components=15):
     return pca
 
 def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
-             cors, def_wave, sky_subtract=True, cal=False):
+             cors, def_wave, sky_subtract=True, cal=False,
+             scale_sky=False):
     F = []
     info = []
     if cors is None:
         cors = [None] * len(skies)
-    for _scifits, _calfits, P, sky, cor, wave in zip(SciFits_List,
+    for _scifits, _calfits, P, skY, cor, wave in zip(SciFits_List,
                                                      CalFits_List, Pos, skies,
                                                      cors, waves):
         args.log.info('Working on reduction for %s' % _scifits.filename())
@@ -613,25 +614,29 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
-        y = biweight(SciSpectra[:, 200:-200], axis=1)
-        mask = execute_sigma_clip(y / cor)
-        sel = good * ~mask.mask
-        Sky = biweight(SciSpectra[sel], axis=0)
-        y = biweight(SciSpectra[:, 200:-200] / Sky[200:-200], axis=1)
-        mask1 = execute_sigma_clip(y, sigma=2)
-        sel = good * ~mask1.mask
-        sky = np.zeros((280, 1)) * Sky[np.newaxis, :]
-        for ind in np.arange(SciSpectra.shape[1]):
-            goodf = SciError[:, ind] > 0.
-            res = correct_skyline_subtraction(SciSpectra[:, ind], sel*goodf,
-                                              pca)
-            SciSpectra[:, ind] = SciSpectra[:, ind] - res
-            sky[:, ind] += res
+        if not scale_sky:
+            y = biweight(SciSpectra[:, 200:-200], axis=1)
+            mask = execute_sigma_clip(y / cor)
+            sel = good * ~mask.mask
+            Sky = biweight(SciSpectra[sel], axis=0)
+            y = biweight(SciSpectra[:, 200:-200] / Sky[200:-200], axis=1)
+            mask1 = execute_sigma_clip(y, sigma=2)
+            sel = good * ~mask1.mask
+            sky = np.zeros((280, 1)) * Sky[np.newaxis, :]
+            for ind in np.arange(SciSpectra.shape[1]):
+                goodf = SciError[:, ind] > 0.
+                res = correct_skyline_subtraction(SciSpectra[:, ind], sel*goodf,
+                                                  pca)
+                SciSpectra[:, ind] = SciSpectra[:, ind] - res
+                sky[:, ind] += res
+        
         SciSpectra[~good] = 0.
         zcube, ecube, xgrid, ygrid, scisky = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
                                                P[2], P[3], good,
-                                               scale, ran, skysub=sky_subtract)
+                                               scale, ran, 
+                                               skY=skY, skysub=sky_subtract,
+                                               scale_sky=scale_sky)
         scube = zcube * 0.
         scube, secube, xgrid, ygrid, dummy = make_cube(P[0], P[1],
                                                sky, 1.*np.isfinite(sky),
@@ -746,9 +751,6 @@ def main():
         correction, k = correct_amplifier_offsets(y, P[:, 0], P[:, 1])
         mask = execute_sigma_clip(y / correction)
         selm = mask.mask * sel
-        #d = np.sqrt((P[:, 0, np.newaxis,] - P[:, 0])**2 + (P[:, 1, np.newaxis,] - P[:, 1])**2)
-        #for j in np.where(selm)[0]:
-        #    selm = selm + (d[j] < 3.)
         sel = sel * ~selm
         y = biweight(SkySpectra[:, 200:-200] /
                      biweight(SkySpectra[sel, 200:-200], axis=0), axis=1)
@@ -794,7 +796,7 @@ def main():
         side = side_dict[channel]
         sky = sky_dict[channel]
         cor = cor_dict[channel]
-        SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
+        SciFits_List.append(fits.openp(op.join(args.directory, _sciobs)))
         args.log.info('Science observation: %s loaded' % (_sciobs))
         date = _sciobs.split('_')[1]
         calname = 'cal_%s_%s.fits' % (date, channel)
