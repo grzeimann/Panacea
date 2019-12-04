@@ -796,7 +796,7 @@ def main():
         side = side_dict[channel]
         sky = sky_dict[channel]
         cor = cor_dict[channel]
-        SciFits_List.append(fits.openp(op.join(args.directory, _sciobs)))
+        SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
         args.log.info('Science observation: %s loaded' % (_sciobs))
         date = _sciobs.split('_')[1]
         calname = 'cal_%s_%s.fits' % (date, channel)
