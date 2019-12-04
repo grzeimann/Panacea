@@ -1906,11 +1906,11 @@ for info in listinfo:
     marc, mtwi, mflt = ([], [], [])
     twi_path = twi_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
-    twifiles = get_cal_path(twi_path, args.date)
+    twifiles = get_cal_path(twi_path, args.date, ndays=15)
     if args.use_flat:
         twi_path = (twi_path.replace('twi', 'flt') %
                     (instrument, instrument, '00000*', instrument, ifuslot))
-        twifiles = get_cal_path(twi_path, args.date)
+        twifiles = get_cal_path(twi_path, args.date, ndays=15)
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
         ##############
