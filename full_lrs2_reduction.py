@@ -1905,7 +1905,7 @@ for info in listinfo:
     package = []
     marc, mtwi, mflt = ([], [], [])
     if args.use_flat:
-        flt_files = get_flt_base()
+        twi_files = get_flt_base()
     else:
         twi_path = twi_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
@@ -1941,12 +1941,12 @@ for info in listinfo:
                  (ifuslot, amp))
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
-        
         lampfiles = get_cal_path(lamp_path, args.date, ndays=7)
+        log.info('Number of arc files: %i' % len(lampfiles))
         masterarc = get_masterarc(lampfiles, amp, arc_names, masterbias,
                                   specname, trace)
+        
         lampfiles = get_cal_path(lamp_path, '20181201', ndays=1)
-
         def_arc = get_masterarc(lampfiles, amp,
                                 arc_names, masterbias, specname, trace)
 
