@@ -1930,6 +1930,8 @@ for info in listinfo:
                  (ifuslot, amp))
         log.info('Getting Trace for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
+        log.info('Number of twi files: %i' % len(twifiles))
+
         masterflt = get_mastertwi(twifiles, amp, masterbias)
         trace, dead = get_trace(masterflt, specid, ifuslot, ifuid, amp,
                                 args.date)
@@ -1942,6 +1944,7 @@ for info in listinfo:
                  (ifuslot, amp))
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
+        print(lamp_path)
         lampfiles = get_cal_path(lamp_path, args.date, ndays=7)
         log.info('Number of arc files: %i' % len(lampfiles))
         masterarc = get_masterarc(lampfiles, amp, arc_names, masterbias,
