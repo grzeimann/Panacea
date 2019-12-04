@@ -336,10 +336,10 @@ def get_bigF(array_trace, image):
     return bigF
 
 
-def get_twiflat_field(flt_path, amps, array_wave, array_trace, bigW,
+def get_twiflat_field(files, amps, array_wave, array_trace, bigW,
                       common_wave, masterbias, specname):
-    files1 = sorted(glob.glob(flt_path.replace('LL', amps[0])))
-    files2 = sorted(glob.glob(flt_path.replace('LL', amps[1])))
+    files1 = [file.replace('LL', amps[0]) for file in files]
+    files2 = [file.replace('LL', amps[1]) for file in files]
 
     array_list = []
     for filename1, filename2 in zip(files1, files2):
@@ -1982,7 +1982,7 @@ for info in listinfo:
     masterarc, masterflt, masterFlat = [np.vstack(x) for x in [marc, mtwi, mflt]]
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
     log.info('Getting flat for ifuslot, %s, side, %s' % (ifuslot, specname))
-    twiflat = get_twiflat_field(twibase, amps, calinfo[0], calinfo[1],
+    twiflat = get_twiflat_field(twifiles, amps, calinfo[0], calinfo[1],
                                 calinfo[2], commonwave, calinfo[3], specname)
     calinfo.insert(2, twiflat)
     flatspec = get_spectra(calinfo[2], calinfo[1])
