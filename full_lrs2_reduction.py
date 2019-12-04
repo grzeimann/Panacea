@@ -1949,7 +1949,8 @@ for info in listinfo:
         masterarc = get_masterarc(lampfiles, amp, arc_names, masterbias,
                                   specname, trace)
         
-        lampfiles = get_cal_path(lamp_path, '20181201', ndays=3)
+        lampfiles = get_cal_path(lamp_path.replace(args.date, '20181201'),
+                                 '20181201', ndays=3)
         def_arc = get_masterarc(lampfiles, amp,
                                 arc_names, masterbias, specname, trace)
 
