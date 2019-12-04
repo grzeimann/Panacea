@@ -1865,9 +1865,8 @@ def get_cal_path(pathname, date, ndays=31):
         for i in np.arange(ndays):
             ndate = datel + timedelta(days=i)
             daten = '%04d%02d%02d' % (ndate.year, ndate.month, ndate.day)
-            pathname.replace(date, daten)
-            if len(glob.glob(pathname)):
-                filenames.append(glob.glob(pathname))
+            npath = pathname.replace(date, daten)
+            filenames.append(glob.glob(npath))
         flat_list = [item for sublist in filenames for item in sublist]
         filenames = sorted(flat_list)
         ndays += 1
@@ -1945,7 +1944,7 @@ for info in listinfo:
                  (ifuslot, amp))
         lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
-        lampfiles = get_cal_path(lamp_path, args.date, ndays=31)
+        lampfiles = get_cal_path(lamp_path, args.date)
         log.info('Number of arc files: %i' % len(lampfiles))
         masterarc = get_masterarc(lampfiles, amp, arc_names, masterbias,
                                   specname, trace)
