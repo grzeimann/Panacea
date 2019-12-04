@@ -1904,9 +1904,9 @@ for info in listinfo:
     specid, ifuslot, ifuid = multi.split('_')
     package = []
     marc, mtwi, mflt = ([], [], [])
-    twi_path = twi_path % (instrument, instrument, '00000*', instrument,
+    twipath = twi_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
-    twifiles = get_cal_path(twi_path, args.date, ndays=15)
+    twifiles = get_cal_path(twipath, args.date, ndays=15)
     flt_path = (twi_path.replace('twi', 'flt') %
                     (instrument, instrument, '00000*', instrument, ifuslot))
     fltfiles = get_cal_path(flt_path, args.date, ndays=15)
