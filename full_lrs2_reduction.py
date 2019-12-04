@@ -1907,10 +1907,11 @@ for info in listinfo:
     twi_path = twi_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
     twifiles = get_cal_path(twi_path, args.date, ndays=15)
-    if args.use_flat:
-        twi_path = (twi_path.replace('twi', 'flt') %
+    flt_path = (twi_path.replace('twi', 'flt') %
                     (instrument, instrument, '00000*', instrument, ifuslot))
-        twifiles = get_cal_path(twi_path, args.date, ndays=15)
+    fltfiles = get_cal_path(flt_path, args.date, ndays=15)
+    if args.use_flat:
+        twifiles = fltfiles
     for amp in amps:
         amppos = get_ifucenfile(specname, amp)
         ##############
@@ -1968,10 +1969,9 @@ for info in listinfo:
                  (ifuslot, amp))
         bigW = get_bigW(amp, wave, trace, masterbias)
         package.append([wave, trace, bigW, masterbias, amppos, dead])
-        fltbase, newdate = get_flt_base()
-        if newdate != args.date:
-            log.info('Found flt files on %s and using them for %s' % (newdate, args.date))
-        masterFlat = get_mastertwi(fltbase, amp, masterbias)
+        log.info('Number of flt files: %i' % len(fltfiles))
+
+        masterFlat = get_mastertwi(fltfiles, amp, masterbias)
 
         marc.append(masterarc)
         mtwi.append(masterflt)
