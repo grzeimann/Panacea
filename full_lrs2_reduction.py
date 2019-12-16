@@ -1946,7 +1946,6 @@ for info in listinfo:
         zro_path = bias_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
         zrofiles = get_cal_path(zro_path, args.date, ndays=2)
-        print(zrofiles[0])
         masterbias = get_masterbias(zrofiles, amp)
 
         #####################
