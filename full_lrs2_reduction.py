@@ -1721,7 +1721,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             except:
                 log.warning('Astrometry Issue')
             fn = op.join(op.dirname(bf.replace('exp01', 'exp%02d' % cnt)), '*%sLL*.fits' % ifuslot)
-            fn = glob.glob(fn)
+            fn = get_filenames_from_tarfolder(get_tarname_from_filename(fn),
+                                          fn)
             mini = get_objects(fn, ['OBJECT', 'EXPTIME'], full=True)
             log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
             r[calinfo[6][:, 1] == 1.] = 0.
