@@ -665,7 +665,6 @@ def get_masterbias(files, amp):
     biassum = np.zeros((len(files), 1032, 2064))
     for j, filename in enumerate(files):
         tarname = tarnames[j]
-        print(tarname)
         a, error = base_reduction(filename, tarname=tarname)
         biassum[j] = a
     return biweight(biassum, axis=0)
@@ -1947,6 +1946,7 @@ for info in listinfo:
         zro_path = bias_path % (instrument, instrument, '00000*', instrument,
                                 ifuslot)
         zrofiles = get_cal_path(zro_path, args.date, ndays=2)
+        print(zrofiles[0])
         masterbias = get_masterbias(zrofiles, amp)
 
         #####################
