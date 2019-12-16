@@ -574,8 +574,10 @@ def modify_spectrum(spectrum, error, w, xloc, yloc):
 
 def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
                 masterbias, pos):
-    files1 = sorted(glob.glob(sci_path.replace('LL', amps[0])))
-    files2 = sorted(glob.glob(sci_path.replace('LL', amps[1])))
+    files1 = get_filenames_from_tarfolder(get_tarname_from_filename(sci_path),
+                                          sci_path.replace('LL', amps[0]))
+    files2 = get_filenames_from_tarfolder(get_tarname_from_filename(sci_path),
+                                          sci_path.replace('LL', amps[1]))
     tarnames = [get_tarname_from_filename(file) for file in files1]
     xloc, yloc = (pos[:, 0], pos[:, 1])
     array_list, hdr_list = ([], [])
