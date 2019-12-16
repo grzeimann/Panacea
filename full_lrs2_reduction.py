@@ -5,6 +5,7 @@ Created on Thu Oct  4 13:30:06 2018
 @author: gregz
 """
 import numpy as np
+import fnmatch
 import os.path as op
 import os
 import glob
@@ -160,6 +161,7 @@ dither_pattern = np.zeros((50, 2))
 baseraw = '/work/03946/hetdex/maverick'
 
 
+sci_tar = sci_path = op.join(baseraw, sci_date,  '%s', '%s000*.tar')
 sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*sci.fits')
 cmp_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp*',
@@ -226,8 +228,12 @@ def make_avg_spec(wave, spec, binsize=35, per=50):
     return nwave, nspec[nind]
 
 
-def base_reduction(filename, get_header=False):
-    a = fits.open(filename)
+def base_reduction(filename, tarname=None, get_header=False):
+    if tarname is None:
+        a = fits.open(filename)
+    else:
+        t = tarfile.open(tarname, 'r')
+        a = fits.open(t.extractfile('/'.join(filename.split('/')[-4:])))
     image = np.array(a[0].data, dtype=float)
     # overscan sub
     overscan_length = 32 * (image.shape[1] / 1064)
@@ -248,6 +254,8 @@ def base_reduction(filename, get_header=False):
     header = a[0].header
     a = orient_image(image, amp, ampname) * gain
     E = np.sqrt(rdnoise**2 + np.where(a > 0., a, 0.))
+    if tarname is not None:
+        t.close()
     if get_header:
         return a, E, header
     return a, E
@@ -335,17 +343,20 @@ def get_bigF(array_trace, image):
         bigF[:, j] = np.polyval(p0, YY[:, j])
     return bigF
 
+def get_tarname_from_filename(filename):
+    tarname = op.dirname(op.dirname(op.dirname(filename))) + '.tar'
+    return tarname
 
 def get_twiflat_field(files, amps, array_wave, array_trace, bigW,
                       common_wave, masterbias, specname):
     files1 = [file.replace('LL', amps[0]) for file in files]
     files2 = [file.replace('LL', amps[1]) for file in files]
-
+    tarnames = [get_tarname_from_filename(file) for file in files]
     array_list = []
-    for filename1, filename2 in zip(files1, files2):
+    for filename1, filename2, tarname in zip(files1, files2, tarnames):
         log.info('Prepping flat %s' % filename1)
-        array_flt1, e1 = base_reduction(filename1)
-        array_flt2, e2 = base_reduction(filename2)
+        array_flt1, e1 = base_reduction(filename1, tarname=tarname)
+        array_flt2, e2 = base_reduction(filename2, tarname=tarname)
         array_flt = np.vstack([array_flt1, array_flt2])
         array_flt[:] -= masterbias
         array_list.append(array_flt)
@@ -565,12 +576,14 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
                 masterbias, pos):
     files1 = sorted(glob.glob(sci_path.replace('LL', amps[0])))
     files2 = sorted(glob.glob(sci_path.replace('LL', amps[1])))
+    tarnames = [get_tarname_from_filename(file) for file in files1]
     xloc, yloc = (pos[:, 0], pos[:, 1])
     array_list, hdr_list = ([], [])
-    for filename1, filename2 in zip(files1, files2):
+    for filename1, filename2, tarname in zip(files1, files2, tarnames):
         log.info('Prepping sci %s' % filename1)
-        array_flt1, e1, header = base_reduction(filename1, get_header=True)
-        array_flt2, e2 = base_reduction(filename2)
+        array_flt1, e1, header = base_reduction(filename1, tarname=tarname,
+                                                get_header=True)
+        array_flt2, e2 = base_reduction(filename2, tarname=tarname)
         array_flt = np.vstack([array_flt1, array_flt2])
         array_flt[:] -= masterbias
         array_list.append(array_flt)
@@ -592,10 +605,10 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
     spec_list, error_list = ([], [])
     orig_list = []
     clist, flist, Flist = ([], [], [])
-    for filename1, filename2 in zip(files1, files2):
+    for filename1, filename2, tarname in zip(files1, files2, tarnames):
         log.info('Fiber extraction sci %s' % filename1)
-        array_flt1, e1 = base_reduction(filename1)
-        array_flt2, e2 = base_reduction(filename2)
+        array_flt1, e1 = base_reduction(filename1, tarname=tarname)
+        array_flt2, e2 = base_reduction(filename2, tarname=tarname)
         array_flt = np.vstack([array_flt1, array_flt2])
         array_err = np.vstack([e1, e2])
 
@@ -647,21 +660,26 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
 
 def get_masterbias(files, amp):
     files = [file.replace('LL', amp) for file in files]
+    tarnames = [get_tarname_from_filename(file) for file in files]
+
     biassum = np.zeros((len(files), 1032, 2064))
     for j, filename in enumerate(files):
-        a, error = base_reduction(filename)
+        tarname = tarnames[j]
+        a, error = base_reduction(filename, tarname=tarname)
         biassum[j] = a
     return biweight(biassum, axis=0)
 
 
 def get_masterarc(files, amp, arc_names, masterbias, specname, trace):
     files = [file.replace('LL', amp) for file in files]
+    tarnames = [get_tarname_from_filename(file) for file in files]
     arcsum = np.zeros((1032, 2064))
     cnt = np.zeros((1032, 2064))
-    for filename in files:
-        f = fits.open(filename)
+    for filename, tarname in zip(files, tarnames):
+        t = tarfile.open(tarname, 'r')
+        f = fits.open(t.extractfile('/'.join(filename.split('/')[-4:])))
         if f[0].header['OBJECT'].lower() in arc_names:
-            a, e = base_reduction(filename)
+            a, e = base_reduction(filename, tarname=tarname)
             a[:] -= masterbias
             if np.median(a) < 3000.:
                 #c = find_cosmics(a, e, trace, thresh=15., ran=0)
@@ -672,9 +690,10 @@ def get_masterarc(files, amp, arc_names, masterbias, specname, trace):
 
 def get_mastertwi(files, amp, masterbias):
     files = [file.replace('LL', amp) for file in files]
+    tarnames = [get_tarname_from_filename(file) for file in files]
     listtwi = []
-    for filename in files:
-        a, e = base_reduction(filename)
+    for filename, tarname in zip(files, tarnames):
+        a, e = base_reduction(filename, tarname=tarname)
         a[:] -= masterbias
         if np.percentile(a, 75) > 100.:
             listtwi.append(a)
@@ -1007,7 +1026,9 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
 def get_objects(basefiles, attrs, full=False):
     s = []
     for fn in basefiles:
-        F = fits.open(fn)
+        tarname = get_tarname_from_filename(fn)
+        t = tarfile.open(tarname, 'r')
+        F = fits.open(t.extractfile('/'.join(fn.split('/')[-4:])))
         s.append([])
         for att in attrs:
             s[-1].append(F[0].header[att])
@@ -1020,6 +1041,7 @@ def get_objects(basefiles, attrs, full=False):
                 throughput = 1.0
             s[-1].append(area)
             s[-1].append(throughput)
+        t.close()
     return s
 
 
@@ -1857,6 +1879,15 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             log.warning('Exposure %i Failed' % cnt)
             cnt += 1
 
+def get_filenames_from_tarfolder(tarfolder, path):
+    T = tarfile.open(tarfolder, 'r')
+    names = T.getnames()
+    matches = fnmatch.filter(names, op.join('*', op.basename(path)))
+    matches = [op.join(op.basename(tarfolder), match) for match in matches]
+    matches = sorted(matches)
+    T.close()
+    return matches
+
 def get_cal_path(pathname, date, ndays=31):
     date_ = datetime(int(date[:4]), int(date[4:6]), int(date[6:]))
     filenames = []
@@ -1866,12 +1897,13 @@ def get_cal_path(pathname, date, ndays=31):
             ndate = datel + timedelta(days=i)
             daten = '%04d%02d%02d' % (ndate.year, ndate.month, ndate.day)
             npath = pathname.replace(date, daten)
-            filenames.append(glob.glob(npath))
+            tarpath = get_tarname_from_filename(npath)
+            for tarname in sorted(glob.glob(tarpath)):
+                filenames.append(get_filenames_from_tarfolder(tarname, npath))
         flat_list = [item for sublist in filenames for item in sublist]
         filenames = sorted(flat_list)
         ndays += 1
     return filenames
-
 
 def get_previous_night(daten):    
     datec_ = datetime(int(daten[:4]), int(daten[4:6]), int(daten[6:]))
@@ -1879,14 +1911,6 @@ def get_previous_night(daten):
     daten = '%04d%02d%02d' % (daten_.year, daten_.month, daten_.day)
     return daten
 
-def get_flt_base():
-    flt_check_path = op.join(baseraw, args.date,  'lrs2', 'lrs20000*',
-                             'exp01', 'lrs2', '2*_056LL_flt.fits')
-    i_date = args.date
-    
-    flt_files = get_cal_path(flt_check_path, i_date)
-
-    return flt_files
 
 # LRS2-R
 fiberpos, fiberspec = ([], [])
@@ -2003,24 +2027,9 @@ for info in listinfo:
     # SCIENCE REDUCTION #
     #####################
     response = None
-    if args.standard_star_obsid is not None:
-        log.info('Using standard star on %s, obs %s' % (args.standard_star_date,
-                                                        args.standard_star_obsid))
-        basefiles = sorted(glob.glob(
-                           sci_path.replace(args.date, args.standard_star_date)
-                           % (instrument, instrument, args.standard_star_obsid,
-                              '01', instrument, ifuslot)))
-        all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
-                       for fn in basefiles]
-        objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
-        for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-            if check_if_standard(obj[0]) and (ifuslot in obj[0]):
-                log.info('Getting Response Function from %s' % obj[0])
-                response = big_reduction(obj, bf, instrument, sci_obs, calinfo,
-                                         amps, commonwave, ifuslot, specname,
-                                         standard=True)
-    basefiles = sorted(glob.glob(sci_path % (instrument, instrument, '0000*',
-                                             '01', instrument, ifuslot)))
+    pathS = sci_path % (instrument, instrument, '0000*',
+                                             '01', instrument, ifuslot)
+    basefiles = get_filenames_from_tarfolder(get_tarname_from_filename(pathS), pathS)
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
                    for fn in basefiles]
     objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
