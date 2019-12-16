@@ -1883,7 +1883,7 @@ def get_filenames_from_tarfolder(tarfolder, path):
     T = tarfile.open(tarfolder, 'r')
     names = T.getnames()
     matches = fnmatch.filter(names, op.join('*', op.basename(path)))
-    matches = [op.join(op.basename(tarfolder), match) for match in matches]
+    matches = [op.join(op.dirname(tarfolder), match) for match in matches]
     matches = sorted(matches)
     T.close()
     return matches
