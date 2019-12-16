@@ -661,10 +661,11 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
 def get_masterbias(files, amp):
     files = [file.replace('LL', amp) for file in files]
     tarnames = [get_tarname_from_filename(file) for file in files]
-
+    
     biassum = np.zeros((len(files), 1032, 2064))
     for j, filename in enumerate(files):
         tarname = tarnames[j]
+        print(tarname)
         a, error = base_reduction(filename, tarname=tarname)
         biassum[j] = a
     return biweight(biassum, axis=0)
