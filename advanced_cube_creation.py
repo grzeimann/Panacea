@@ -15,7 +15,7 @@ import seaborn as sns
 import sys
 import warnings
 
-from astrometry import Astrometryz
+from astrometry import Astrometry
 from astropy import units as U
 from astropy.coordinates import SkyCoord
 from astropy.convolution import Gaussian1DKernel, convolve
