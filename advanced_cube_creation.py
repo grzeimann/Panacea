@@ -356,11 +356,11 @@ def find_centroid(pos, y):
     G = Gaussian2DKernel(4.)
     image = griddata(pos[y>0., :2], y[y>0.], (grid_x, grid_y), method='linear')
     i_d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
-    i_d_sel = i_d < 4.
+    i_d_sel = i_d < 3.0
     ind = np.where(i_d_sel)[0][np.nanargmax(y[i_d_sel])]
     xc, yc = (pos[ind, 0], pos[ind, 1])
     d = np.sqrt((grid_x - xc)**2 + (grid_y - yc)**2)
-    sel = (d < 2.5) * np.isfinite(image)
+    sel = (d < 1.5) * np.isfinite(image)
     newimage = image * 1.
     newimage[np.isnan(newimage)] = 0.0
     newimage[sel] = np.nan
