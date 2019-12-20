@@ -787,7 +787,7 @@ def main():
 # Gathering science and calibration information        
 # =============================================================================
     ran_list = []
-    SciFits_List = []az
+    SciFits_List = []
     CalFits_List = []
     T = []
     Pos = []
