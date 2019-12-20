@@ -18,7 +18,7 @@ import warnings
 from astrometry import Astrometry
 from astropy import units as U
 from astropy.coordinates import SkyCoord
-from astropy.convolution import Gaussian1DKernel, convolve
+from astropy.convolution import Gaussian1DKernel, convolve, Gaussian2DKernel
 from astropy.convolution import interpolate_replace_nans
 from astropy.io import fits
 from astropy.modeling.models import Gaussian2D, Polynomial1D, Polynomial2D
@@ -355,22 +355,30 @@ def find_centroid(pos, y):
     y = y - median
     grid_x, grid_y = np.meshgrid(np.linspace(-7., 7., (14*5+1)),
                                  np.linspace(-3.5, 3.5, 7*5+1))
-    image = griddata(pos[y>0., :2], y[y>0.], (grid_x, grid_y), method='cubic')
+    G = Gaussian2DKernel(4.)
+    image = griddata(pos[y>0., :2], y[y>0.], (grid_x, grid_y), method='linear')
     i_d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
     i_d_sel = i_d < 4.
     ind = np.where(i_d_sel)[0][np.nanargmax(y[i_d_sel])]
     xc, yc = (pos[ind, 0], pos[ind, 1])
     d = np.sqrt((grid_x - xc)**2 + (grid_y - yc)**2)
-    sel = (d < 2.) * np.isfinite(image)
+    sel = (d < 2.5) * np.isfinite(image)
+    newimage = image * 1.
+    newimage[np.isnan(newimage)] = 0.0
+    newimage[sel] = np.nan
+    back = interpolate_replace_nans(newimage, G)
+    back[back==0.] = np.nan
+    smooth_back = convolve(back, G, boundary='extend')
+    image = image - smooth_back
     xc = np.sum(image[sel] * grid_x[sel]) / np.sum(image[sel])
     yc = np.sum(image[sel] * grid_y[sel]) / np.sum(image[sel])
-    a = y[np.nanargmax(y)]
-    G = Gaussian2D(x_mean=xc, y_mean=yc, amplitude=a)
+    a = np.nanmax(image[sel])
+    image = image / a
+    G = Gaussian2D(x_mean=xc, y_mean=yc, amplitude=1.)
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
-    d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
-    sel = (d < 3.0) * np.isfinite(y)
-    mask, fit = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
+    mask, fit = fitter(G, grid_x[sel], grid_y[sel], image[sel])
+    bl, std = biweight(image[~sel], calc_std=True)
     fitquality = False
     if fit.amplitude > 5 * std:
         fitquality = True
