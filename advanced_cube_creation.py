@@ -15,7 +15,7 @@ import seaborn as sns
 import sys
 import warnings
 
-from astrometry import Astrometry
+from astrometry import Astrometryz
 from astropy import units as U
 from astropy.coordinates import SkyCoord
 from astropy.convolution import Gaussian1DKernel, convolve
@@ -217,8 +217,11 @@ def execute_sigma_clip(y, sigma=3):
 
 
 def correct_amplifier_offsets(y, xp, yp, order=1, kernel=12.):
-    xc = xp[np.nanargmax(y)]
-    yc = yp[np.nanargmax(y)]
+    i_d = np.sqrt(xp**2 + yp**2)
+    i_d_sel = i_d < 3.
+    ind = np.where(i_d_sel)[0][np.argmax(y[i_d_sel])]
+    xc = xp[ind]
+    yc = yp[ind]
     d = np.sqrt((xp-xc)**2 + (yp-yc)**2)
     k = y * 1.
     k[y==0.] = np.nan
@@ -353,7 +356,10 @@ def find_centroid(pos, y):
     grid_x, grid_y = np.meshgrid(np.linspace(-7., 7., (14*5+1)),
                                  np.linspace(-3.5, 3.5, 7*5+1))
     image = griddata(pos[y>0., :2], y[y>0.], (grid_x, grid_y), method='cubic')
-    xc, yc = (pos[np.nanargmax(y), 0], pos[np.nanargmax(y), 1])
+    i_d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
+    i_d_sel = i_d < 3.
+    ind = np.where(i_d_sel)[0][np.nanargmax(y[i_d_sel])]
+    xc, yc = (pos[ind, 0], pos[ind, 1])
     d = np.sqrt((grid_x - xc)**2 + (grid_y - yc)**2)
     sel = (d < 2.) * np.isfinite(image)
     xc = np.sum(image[sel] * grid_x[sel]) / np.sum(image[sel])
@@ -781,7 +787,7 @@ def main():
 # Gathering science and calibration information        
 # =============================================================================
     ran_list = []
-    SciFits_List = []
+    SciFits_List = []az
     CalFits_List = []
     T = []
     Pos = []
