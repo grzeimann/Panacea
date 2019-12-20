@@ -218,7 +218,7 @@ def execute_sigma_clip(y, sigma=3):
 
 def correct_amplifier_offsets(y, xp, yp, order=1, kernel=12.):
     i_d = np.sqrt(xp**2 + yp**2)
-    i_d_sel = i_d < 3.
+    i_d_sel = i_d < 8.
     ind = np.where(i_d_sel)[0][np.argmax(y[i_d_sel])]
     xc = xp[ind]
     yc = yp[ind]
@@ -357,7 +357,7 @@ def find_centroid(pos, y):
                                  np.linspace(-3.5, 3.5, 7*5+1))
     image = griddata(pos[y>0., :2], y[y>0.], (grid_x, grid_y), method='cubic')
     i_d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
-    i_d_sel = i_d < 3.
+    i_d_sel = i_d < 4.
     ind = np.where(i_d_sel)[0][np.nanargmax(y[i_d_sel])]
     xc, yc = (pos[ind, 0], pos[ind, 1])
     d = np.sqrt((grid_x - xc)**2 + (grid_y - yc)**2)
@@ -394,7 +394,7 @@ def get_adr_curve(pos, data, ordery=1, orderx=0, bins=7):
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
     fitter = LevMarLSQFitter()
-    if flag.sum()>= 2.:
+    if flag.sum()>= ordery+1:
         fitx = fitter(Polynomial1D(orderx), np.array(xc)[flag], np.array(xk)[flag])
         fity = fitter(Polynomial1D(ordery), np.array(xc)[flag], np.array(yk)[flag])
         return fitx(x/1000.), fity(x/1000.)
