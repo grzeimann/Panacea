@@ -33,7 +33,7 @@ https://portal.tacc.utexas.edu/
   <img src="images/tacc_create_account.png" width="650"/>
 </p>
 
-After creating an accounting using the link above, please send Matthew Shetrone <shetrone@astro.as.utexas.edu> your TACC username and he will add you to the HET group.  When that step is complete, you can ssh into TACC using:
+After creating an accounting using the link above, please send Greg Zeimann <gregz@astro.as.utexas.edu> your TACC username and he will add you to the HET group.  When that step is complete, you can ssh into TACC using:
 ```
 ssh -Y USERNAME@wrangler.tacc.utexas.edu
 ```
