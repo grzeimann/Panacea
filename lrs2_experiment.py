@@ -366,7 +366,7 @@ if not too_bright:
     std_sky = mad_std((quick_sky-cont)[~mask])
     loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
     loc = np.array(np.round(loc), dtype=int)
-    loc = loc[loc>10]
+    loc = loc[(loc>10) * (loc<(len(quick_sky)-10))]
     # Remove Continuum (gaussian filter)
     Dummy = skysub_rect * 1.
     for i in np.arange(-6, 7):
