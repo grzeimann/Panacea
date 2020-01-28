@@ -345,6 +345,7 @@ too_bright = np.nanmax((y-1.)/std) > 500.
 if not too_bright:
     Waves, Norms = get_wave_cor(spec, newftf, wave, I(def_wave), def_wave)
     shift = biweight(Waves - biweight(Waves, axis=0), axis=1)
+    args.log.info('Wavelength Shift: %0.2f' % biweight(shift))
     shift[np.isnan(shift)] = 0.0
     wave = wave - shift[:, np.newaxis]
     adj = biweight(Norms / biweight(Norms, axis=0), axis=1)
