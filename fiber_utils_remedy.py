@@ -316,7 +316,7 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate, tr_folder):
     return trace, ref
 
 
-def get_spectra(array_flt, array_trace, npix=5):
+def get_spectra(array_flt, array_trace, array_mod=None, npix=5):
     '''
     Extract spectra by dividing the flat field and averaging the central
     two pixels
@@ -337,6 +337,11 @@ def get_spectra(array_flt, array_trace, npix=5):
     twi_spectrum : 2d numpy array
         rectified twilight spectrum for each fiber  
     '''
+    if array_mod is not None:
+        pois_var = array_flt
+        pois_var[pois_var<0.] = 0.
+        error_array = np.sqrt(pois_var + 3.5**2)
+        chi2 = np.zeros((array_trace.shape[0], array_trace.shape[1]))
     spec = np.zeros((array_trace.shape[0], array_trace.shape[1]))
     N = array_flt.shape[0]
     x = np.arange(array_flt.shape[1])
@@ -348,6 +353,8 @@ def get_spectra(array_flt, array_trace, npix=5):
         if np.round(array_trace[fiber]).max() >= (N-LB):
             continue
         indv = np.round(array_trace[fiber]).astype(int)
+        if array_mod is not None:
+            chi2_a = np.zeros((3, array_trace.shape[1], HB+LB))
         for j in np.arange(-LB, HB):
             if j == -LB:
                 w = indv + j + 1 - (array_trace[fiber] - npix/2.)
@@ -355,7 +362,18 @@ def get_spectra(array_flt, array_trace, npix=5):
                 w = (npix/2. + array_trace[fiber]) - (indv + j) 
             else:
                 w = 1.
+            if array_mod is not None:
+                chi2_a[0, :, j+LB] = array_flt[indv+j, x] * w
+                chi2_a[1, :, j+LB] = array_mod[indv+j, x] * w
+                chi2_a[2, :, j+LB] = error_array[indv+j, x] * w
             spec[fiber] += array_flt[indv+j, x] * w
+        if array_mod is not None:
+            norm = chi2_a[0].sum(axis=1) / chi2_a[1].sum(axis=1)
+            num = (chi2_a[0] - chi2_a[1] * norm[:, np.newaxis])**2
+            denom = (chi2_a[2] + 0.01*chi2_a[0].sum(axis=1)[:, np.newaxis])**2
+            chi2[fiber] = 1. / (1. + 5.) * np.sum(num / denom, axis=1)
+    if array_mod is not None:
+        return spec, chi2
     return spec
 
 
