@@ -632,7 +632,8 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
         loc = np.array(np.round(loc), dtype=int)
         loc = loc[(loc>10) * (loc<len(quick_sky)-10)]
         # Remove Continuum (gaussian filter)
-        Dummy = SciSpectra * 1.
+        skysub_rect = SciSpectra - quick_sky[np.newaxis, :]
+        Dummy = skysub_rect
         for i in np.arange(-6, 7):
             Dummy[:, loc+i] = np.nan
         Smooth = Dummy * np.nan
@@ -640,7 +641,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
             while np.isnan(Smooth[i]).sum():
                 Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
-        res = get_residual_map(SciSpectra-Smooth, pca, good)
+        res = get_residual_map(skysub_rect-Smooth, pca, good)
         SciSpectra = SciSpectra - res
         
         SciSpectra[~good] = 0.
