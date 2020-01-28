@@ -33,6 +33,7 @@ from scipy.signal import medfilt, savgol_filter
 from scipy.ndimage import percentile_filter
 from sklearn.decomposition import PCA
 from math_utils import biweight
+from fiber_utils_remedy import find_peaks
 
 
 warnings.filterwarnings("ignore")
@@ -191,26 +192,6 @@ def solve_system(sci_list, sky_list, x, y, xoff, yoff, sci_image):
         newsky[:, j] = C[:, 1] * sol[1]
     return newsky, newsci, norm1, norm2
 
-def find_peaks(y, wave, thresh=8.):
-    def get_peaks(flat, XN):
-        YM = np.arange(flat.shape[0])
-        inds = np.zeros((3, len(XN)))
-        inds[0] = XN - 1.
-        inds[1] = XN + 0.
-        inds[2] = XN + 1.
-        inds = np.array(inds, dtype=int)
-        Peaks = (YM[inds[1]] - (flat[inds[2]] - flat[inds[0]]) /
-                 (2. * (flat[inds[2]] - 2. * flat[inds[1]] + flat[inds[0]])))
-        return Peaks
-    diff_array = y[1:] - y[:-1]
-    loc = np.where((diff_array[:-1] > 0.) * (diff_array[1:] < 0.))[0]
-    peaks = y[loc+1]
-    std = np.sqrt(biweight_midvariance(y))
-    loc = loc[peaks > (thresh * std)]+1
-    peak_loc = get_peaks(y, loc)
-    peaks = y[np.round(peak_loc).astype(int)]
-    peak_wave = np.interp(peak_loc, np.arange(len(wave)), wave)
-    return peak_loc, peaks/std, peaks, peak_wave
 
 def execute_sigma_clip(y, sigma=3):
     try:
