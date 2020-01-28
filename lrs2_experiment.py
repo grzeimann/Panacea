@@ -423,8 +423,7 @@ calibrated_all = (spectrum_sum * m['extracted_spectrum'].data[-1] /
               m[0].header['EXPTIME'] /  m[0].header['MILLUM'] /
               m[0].header['THROUGHP'])
 
-    
 fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all], header=m[0].header).writeto(
                 args.multiname.replace('multi', 'spectrum'), overwrite=True)
-fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname,
+fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
                                                          overwrite=True)
