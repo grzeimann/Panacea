@@ -586,6 +586,15 @@ def get_arc_pca(spec, pos, good, components=15):
     pca, A = get_pca_sky_residuals(X, ncomponents=components)
     return pca
 
+def get_residual_map(data, pca, good):
+    res = data * 0.
+    for i in np.arange(data.shape[1]):
+        sel = good * np.isfinite(data[:, i])
+        coeff = np.dot(data[sel, i], pca.components_.T[sel])
+        model = np.dot(coeff, pca.components_)
+        res[:, i] = model
+    return res
+
 def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
              cors, def_wave, sky_subtract=True, cal=False,
              scale_sky=False):
@@ -631,21 +640,24 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
-        if not scale_sky:
-            y = biweight(SciSpectra[:, 200:-200], axis=1)
-            mask = execute_sigma_clip(y / cor)
-            sel = good * ~mask.mask
-            Sky = biweight(SciSpectra[sel], axis=0)
-            y = biweight(SciSpectra[:, 200:-200] / Sky[200:-200], axis=1)
-            mask1 = execute_sigma_clip(y, sigma=2)
-            sel = good * ~mask1.mask
-            sky = np.zeros((280, 1)) * Sky[np.newaxis, :]
-            for ind in np.arange(SciSpectra.shape[1]):
-                goodf = SciError[:, ind] > 0.
-                res = correct_skyline_subtraction(SciSpectra[:, ind], sel*goodf,
-                                                  pca)
-                SciSpectra[:, ind] = SciSpectra[:, ind] - res
-                sky[:, ind] += res
+        
+        quick_sky = biweight(SciSpectra, axis=0)
+        mask, cont = identify_sky_pixels(quick_sky)
+        std_sky = mad_std((quick_sky-cont)[~mask])
+        loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
+        loc = np.array(np.round(loc), dtype=int)
+        loc = loc[loc>10]
+        # Remove Continuum (gaussian filter)
+        Dummy = SciSpectra * 1.
+        for i in np.arange(-6, 7):
+            Dummy[:, loc+i] = np.nan
+        Smooth = Dummy * np.nan
+        for i in np.arange(Dummy.shape[0]):
+            Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
+            while np.isnan(Smooth[i]).sum():
+                Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
+        res = get_residual_map(SciSpectra-Smooth, pca, good)
+        SciSpectra = SciSpectra - res
         
         SciSpectra[~good] = 0.
         zcube, ecube, xgrid, ygrid, scisky = make_cube(P[0], P[1],
@@ -654,7 +666,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
                                                scale, ran, skysub=sky_subtract)
         scube = zcube * 0.
         scube, secube, xgrid, ygrid, dummy = make_cube(P[0], P[1],
-                                               sky, 1.*np.isfinite(sky),
+                                               quick_sky+res, 1.*np.isfinite(quick_sky+res),
                                                P[2], P[3], good,
                                                scale, ran, skysub=False)
         scube = scube + scisky[:, np.newaxis, np.newaxis]
