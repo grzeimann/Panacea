@@ -229,6 +229,9 @@ def correct_amplifier_offsets(y, xp, yp, order=1, kernel=12.):
     good = ~bad
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
+    if good.sum() < 3:
+        args.log.warning("Cannot Make Correction")
+        return np.ones(y.shape), k
     mask, fit = fitter(Polynomial2D(1), xp[good], yp[good], (y/model)[good])
     smodel = fit(xp, yp)
     cor = model * smodel 
