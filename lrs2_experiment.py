@@ -430,7 +430,7 @@ for i in np.arange(skysub.shape[0]):
         weight[i] = interp1d(w[fsel], Nmod[fsel, i], kind='quadratic',
                              fill_value='extrapolate')(def_wave)
 
-spec = extract_columns(weight, chunk)
+spec = extract_columns(weight, skysub_rect)
 model = spec[np.newaxis, :] * weight
 res = get_residual_map(skysub_rect_orig-model, pca, good)
 skysub_rect = skysub_rect_orig - res
