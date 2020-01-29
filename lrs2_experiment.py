@@ -404,7 +404,7 @@ for chunk in np.array_split(skysub_rect, nchunks, axis=1):
     mod = biweight(chunk, axis=1)
     xc, yc, q, fit, nmod = find_centroid(pos, mod)
     model = nmod * fibarea 
-    print(xc, yc, nmod.sum())
+    print(xc, yc, q, model.sum())
     spectra_chunk = extract_columns(model, chunk)
     mod = biweight(chunk / spectra_chunk[np.newaxis, :], axis=1)
     xc, yc, q, fit, nmod = find_centroid(pos, mod)
