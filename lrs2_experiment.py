@@ -181,7 +181,10 @@ def find_centroid(pos, y):
         fitquality = True
     new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
     new_model[np.isnan(new_model)] = 0.0
-    return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model
+    grid_x, grid_y = np.meshgrid(np.linspace(-10., 10., 201),
+                                 np.linspace(-10., 10., 201))
+    norm = np.sum(fit(grid_x, grid_y)) * 0.1**2
+    return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm
 
 def get_standard(objname, commonwave):
     filename = op.join('/Users/gregz/cure/virus_early/virus_config/'
@@ -400,12 +403,12 @@ XC, YC, Nmod = ([], [], [])
 for chunk in np.array_split(skysub_rect, nchunks, axis=1):
     mod = biweight(chunk, axis=1)
     xc, yc, q, fit, nmod = find_centroid(pos, mod)
-    model = nmod / fit.amplitude * fibarea / np.sqrt(2. * np.pi * fit.x_stddev.value * fit.y_stddev.value)
+    model = nmod * fibarea 
     print(xc, yc, model.sum())
     spectra_chunk = extract_columns(model, chunk)
     mod = biweight(chunk / spectra_chunk[np.newaxis, :], axis=1)
     xc, yc, q, fit, nmod = find_centroid(pos, mod)
-    model = nmod / fit.amplitude * fibarea / np.sqrt(2. * np.pi * fit.x_stddev.value * fit.y_stddev.value)
+    model = nmod * fibarea
     spectra_chunk = extract_columns(model, chunk)
     Nmod.append(model)
 
