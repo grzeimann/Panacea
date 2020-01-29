@@ -293,6 +293,9 @@ spec, chi2 = get_spectra(image, trace, array_mod=fltimage)
 fltspec, arcspec, spec = [norm_spec_to_per_A(X, wave)
                           for X in [fltspec, arcspec, spec]]
 
+fibarea = 1. / 2. * np.sqrt(3.) * 0.59**2
+
+
 # =============================================================================
 # Masking high chi2 values (cosmics and defects that don't flatfield)
 # =============================================================================
@@ -337,7 +340,7 @@ sel = (np.abs(y - 1.) < 3. * std) * good
 # =============================================================================
 # Get fit to collapsed spectra
 # =============================================================================
-xc, yc, quality_flag, fit, mod = find_centroid(pos, y)
+xc, yc, quality_flag, fit, mod, apcor = find_centroid(pos, y, fibarea)
 if quality_flag:
     d = np.sqrt((xp - xc)**2 + (yp -yc)**2)
     sel = d > (np.max(d) - 2.5)
@@ -398,7 +401,6 @@ if not too_bright:
 # =============================================================================
 # Get Extraction Model
 # =============================================================================
-fibarea = 1. / 2. * np.sqrt(3.) * 0.59**2
 nchunks = 15
 w = np.array([np.mean(wi) for wi in np.array_split(def_wave, nchunks)])
 XC, YC, Nmod = ([], [], [])
