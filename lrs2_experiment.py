@@ -151,7 +151,7 @@ def rectify(skysub, wave, def_wave):
                                fill_value=0.0)(def_wave)
     return skysub_rect
 
-def find_centroid(pos, y):
+def find_centroid(pos, y, fibarea):
     mean, median, std = sigma_clipped_stats(y, stdfunc=mad_std)
     y = y - median
     grid_x, grid_y = np.meshgrid(np.linspace(-7., 7., (14*5+1)),
@@ -182,10 +182,12 @@ def find_centroid(pos, y):
     fitquality = False
     if np.nanmax(new_model) > 5 * std:
         fitquality = True
-    grid_x, grid_y = np.meshgrid(np.linspace(-10., 10., 201),
-                                 np.linspace(-10., 10., 201))
+    grid_x, grid_y = np.meshgrid(np.linspace(xc-5., xc+5., 101),
+                                 np.linspace(yc-5., yc+5., 101))
     norm = np.sum(fit(grid_x.ravel(), grid_y.ravel())) * 0.1**2
-    return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm
+    sel = d < 5.
+    apcor = np.sum(fit(pos[sel, 0], pos[sel, 1])) / norm * fibarea
+    return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm * fibarea, apcor
 
 def get_standard(objname, commonwave):
     filename = op.join('/Users/gregz/cure/virus_early/virus_config/'
@@ -403,13 +405,13 @@ XC, YC, Nmod = ([], [], [])
 
 for chunk in np.array_split(skysub_rect, nchunks, axis=1):
     mod = biweight(chunk, axis=1)
-    xc, yc, q, fit, nmod = find_centroid(pos, mod)
-    model = nmod * fibarea 
-    print(xc, yc, q, model.sum(), fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
+    xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
+    model = nmod 
+    print(xc, yc, q, model.sum(), apcor, fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
     spectra_chunk = extract_columns(model, chunk)
     mod = biweight(chunk / spectra_chunk[np.newaxis, :], axis=1)
-    xc, yc, q, fit, nmod = find_centroid(pos, mod)
-    model = nmod * fibarea
+    xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
+    model = nmod
     spectra_chunk = extract_columns(model, chunk)
     Nmod.append(model)
 
