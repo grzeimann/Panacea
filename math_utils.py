@@ -76,6 +76,9 @@ def biweight(a, nan_treatment=True, c=9.0, axis=None, calc_std=False):
     if type(BL) is np.ndarray:
         badpix = np.isnan(BL)
         BL[badpix] = a_median[badpix]
+    else:
+        if np.isnan(BL):
+            BL = a_median
     if calc_std:
          u = u ** 2
          n = sumfunc(mask, axis=axis)
