@@ -228,8 +228,8 @@ def get_wave_cor(spec, ftf, wave, mastersky, masterwave):
 
 def extract_columns(model, chunk):
     mask = np.isfinite(chunk)
-    num1 = np.nansum(chunk * model[:, np.newaxis]**2 * mask, axis=1)
-    num2 = np.nansum(model[:, np.newaxis]**3 * mask, axis=1)
+    num1 = np.nansum(chunk * model[:, np.newaxis]**2 * mask, axis=0)
+    num2 = np.nansum(model[:, np.newaxis]**3 * mask, axis=0)
     norm = num1 / num2
     return norm
 
@@ -401,7 +401,7 @@ for chunk in np.array_split(skysub_rect, nchunks, axis=1):
     mod = biweight(chunk, axis=1)
     xc, yc, q, fit, nmod = find_centroid(pos, mod)
     model = nmod / fit.amplitude * fibarea
-    print(model.sum())
+    print(xc, yc, model.sum())
     spectra_chunk = extract_columns(model, chunk)
     mod = biweight(chunk / spectra_chunk[np.newaxis, :], axis=1)
     xc, yc, q, fit, nmod = find_centroid(pos, mod)
