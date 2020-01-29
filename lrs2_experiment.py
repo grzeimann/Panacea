@@ -179,7 +179,7 @@ def find_centroid(pos, y):
     fitquality = False
     if fit.amplitude > 5 * std:
         fitquality = True
-    new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y)
+    new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
     new_model[np.isnan(new_model)] = 0.0
     return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model
 
@@ -224,7 +224,14 @@ def get_wave_cor(spec, ftf, wave, mastersky, masterwave):
                         Waves[i, j] = wav[np.argmin(np.abs(wav - waves[j]))]
                         Norms[i, j] = I(Waves[i, j])
     return Waves, Norms
-            
+
+
+def extract_columns(model, chunk):
+    mask = np.isfinite(chunk)
+    num1 = np.nansum(chunk * model[:, np.newaxis]**2 * mask, axis=1)
+    num2 = np.nansum(model[:, np.newaxis]**3 * mask, axis=1)
+    norm = num1 / num2
+    return norm
 
 
 warnings.filterwarnings("ignore")
@@ -381,20 +388,27 @@ if not too_bright:
     res = get_residual_map(skysub_rect-Smooth, pca, good)
     skysub_rect = skysub_rect - res
     sky_rect = sky_rect + res
-    
+
 # =============================================================================
 # Get Extraction Model
 # =============================================================================
+fibarea = 3. / 4. * np.sqrt(3.) * 0.59**2
 nchunks = 15
 w = np.array([np.mean(wi) for wi in np.array_split(def_wave, nchunks)])
 XC, YC, Nmod = ([], [], [])
+
 for chunk in np.array_split(skysub_rect, nchunks, axis=1):
     mod = biweight(chunk, axis=1)
     xc, yc, q, fit, nmod = find_centroid(pos, mod)
-    if not too_bright:
-        Nmod.append(nmod / fit.amplitude)
-    else:
-        Nmod.append(mod / np.nansum(mod))
+    model = nmod / fit.amplitude * fibarea
+    print(model.sum())
+    spectra_chunk = extract_columns(model, chunk)
+    mod = biweight(chunk / spectra_chunk[np.newaxis, :], axis=1)
+    xc, yc, q, fit, nmod = find_centroid(pos, mod)
+    model = nmod / fit.amplitude * fibarea
+    spectra_chunk = extract_columns(model, chunk)
+    Nmod.append(model)
+
 Nmod = np.array(Nmod)
 weight = skysub * 0.
 for i in np.arange(skysub.shape[0]):
@@ -402,7 +416,9 @@ for i in np.arange(skysub.shape[0]):
     if fsel.sum() > 2:
         weight[i] = interp1d(w[fsel], Nmod[fsel, i], kind='quadratic',
                              fill_value='extrapolate')(def_wave)
-weight = weight / np.nansum(weight, axis=0)[np.newaxis, :]
+fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
+                                                         overwrite=True)
+
 
 
 # =============================================================================
