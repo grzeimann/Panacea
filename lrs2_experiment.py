@@ -400,12 +400,12 @@ XC, YC, Nmod = ([], [], [])
 for chunk in np.array_split(skysub_rect, nchunks, axis=1):
     mod = biweight(chunk, axis=1)
     xc, yc, q, fit, nmod = find_centroid(pos, mod)
-    model = nmod / fit.amplitude * fibarea
+    model = nmod / fit.amplitude * fibarea / np.sqrt(2. * np.pi * fit.x_stddev.value * fit.y_stddev.value)
     print(xc, yc, model.sum())
     spectra_chunk = extract_columns(model, chunk)
     mod = biweight(chunk / spectra_chunk[np.newaxis, :], axis=1)
     xc, yc, q, fit, nmod = find_centroid(pos, mod)
-    model = nmod / fit.amplitude * fibarea
+    model = nmod / fit.amplitude * fibarea / np.sqrt(2. * np.pi * fit.x_stddev.value * fit.y_stddev.value)
     spectra_chunk = extract_columns(model, chunk)
     Nmod.append(model)
 
