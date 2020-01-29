@@ -176,11 +176,12 @@ def find_centroid(pos, y):
     except:
         fit = D[1]
         mask = D[0]
-    fitquality = False
-    if fit.amplitude > 5 * std:
-        fitquality = True
+    
     new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
     new_model[np.isnan(new_model)] = 0.0
+    fitquality = False
+    if np.nanmax(new_model) > 5 * std:
+        fitquality = True
     grid_x, grid_y = np.meshgrid(np.linspace(-10., 10., 201),
                                  np.linspace(-10., 10., 201))
     norm = np.sum(fit(grid_x, grid_y)) * 0.1**2
