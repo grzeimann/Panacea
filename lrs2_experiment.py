@@ -396,7 +396,7 @@ if not too_bright:
 # =============================================================================
 # Get Extraction Model
 # =============================================================================
-fibarea = 3. / 4. * np.sqrt(3.) * 0.59**2
+fibarea = 1. / 2. * np.sqrt(3.) * 0.59**2
 nchunks = 15
 w = np.array([np.mean(wi) for wi in np.array_split(def_wave, nchunks)])
 XC, YC, Nmod = ([], [], [])
