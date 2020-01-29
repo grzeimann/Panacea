@@ -184,7 +184,7 @@ def find_centroid(pos, y):
         fitquality = True
     grid_x, grid_y = np.meshgrid(np.linspace(-10., 10., 201),
                                  np.linspace(-10., 10., 201))
-    norm = np.sum(fit(grid_x, grid_y)) * 0.1**2
+    norm = np.sum(fit(grid_x.ravel(), grid_y.ravel())) * 0.1**2
     return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm
 
 def get_standard(objname, commonwave):
