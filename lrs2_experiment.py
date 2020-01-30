@@ -420,7 +420,10 @@ for chunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
     spectra_chunk = extract_columns(model, chunk)
     mod = biweight(chunk / spectra_chunk[np.newaxis, :], axis=1)
     xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
-    model = nmod
+    if not too_bright:
+        model = nmod 
+    else:
+        model = mod
     spectra_chunk = extract_columns(model, chunk)
     if q:
         Nmod.append(model)
