@@ -1833,7 +1833,10 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 continue
             if ('BSCALE' in key) or ('BZERO' in key):
                 continue
-            f1.header[key] = he[key]
+            try:
+                f1.header[key] = he[key]
+            except:
+                continue
         if loc is not None:
             f1.header['SOURCEX'] = loc[0]
             f1.header['SOURCEY'] = loc[1]
@@ -1866,7 +1869,10 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 continue
             if ('BSCALE' in key) or ('BZERO' in key):
                 continue
-            f1.header[key] = he[key]
+            try:
+                f1.header[key] = he[key]
+            except:
+                continue
         names = ['wavelength', 'F_lambda', 'Sky_lambda', 'e_F_lambda',
                  'e_Sky_lambda', 'response']
         f1.header['DWAVE'] = commonwave[1] - commonwave[0]
