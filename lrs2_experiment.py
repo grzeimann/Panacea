@@ -406,10 +406,10 @@ if not too_bright:
 # Get Extraction Model
 # =============================================================================
 nchunks = 15
-w = np.array([np.mean(wi) for wi in np.array_split(def_wave, nchunks)])
-XC, YC, Nmod = ([], [], [])
+XC, YC, Nmod, w = ([], [], [], [])
 
-for chunk in np.array_split(skysub_rect, nchunks, axis=1):
+for chunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
+                     np.array_split(def_wave, nchunks)):
     mod = biweight(chunk, axis=1)
     xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
     model = nmod 
@@ -421,7 +421,8 @@ for chunk in np.array_split(skysub_rect, nchunks, axis=1):
     spectra_chunk = extract_columns(model, chunk)
     if q:
         Nmod.append(model)
-
+        w.append(np.mean(wi))
+w = np.array(w)
 Nmod = np.array(Nmod)
 weight = skysub * 0.
 for i in np.arange(skysub.shape[0]):
