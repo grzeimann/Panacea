@@ -107,6 +107,10 @@ parser.add_argument("-td", "--twi_date",
                     help='''Twilight Date for reduction''',
                     type=str, default=None)
 
+parser.add_argument("-re", "--reduce_eng",
+                    help='''Reduce Engineer Data''',
+                    type=str, default=None)
+
 args = parser.parse_args(args=None)
 
 if args.standard_star_obsid is not None:
@@ -124,6 +128,9 @@ for i in ['source_x', 'source_y']:
                 sys.exit(1)
 
 args.sides = [x.replace(' ', '') for x in args.sides.split(',')]
+
+if args.reduce_eng:
+    sci_path = sci_path.replace('sci', 'eng')
 
 blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4645.], ['LL', 'LU'],
              [4350., 4375.], ['hg_b', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']],
