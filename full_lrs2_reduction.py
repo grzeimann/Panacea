@@ -109,7 +109,7 @@ parser.add_argument("-td", "--twi_date",
 
 parser.add_argument("-re", "--reduce_eng",
                     help='''Reduce Engineer Data''',
-                    type=str, default=None)
+                    action="count", default=0)
 
 args = parser.parse_args(args=None)
 
