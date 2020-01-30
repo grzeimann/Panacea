@@ -167,6 +167,8 @@ def find_centroid(pos, y, fibarea):
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
+    Xc = pos[:, 0] - xc
+    Yc = pos[:, 1] - yc
     sel = (d < 3.0) * np.isfinite(y)
     D = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
     try:
@@ -185,8 +187,22 @@ def find_centroid(pos, y, fibarea):
     grid_x, grid_y = np.meshgrid(np.linspace(xc-5., xc+5., 101),
                                  np.linspace(yc-5., yc+5., 101))
     norm = np.sum(fit(grid_x.ravel(), grid_y.ravel())) * 0.1**2
-    sel = d < 5.
-    apcor = np.sum(fit(pos[sel, 0], pos[sel, 1])) / norm * fibarea
+    x = np.linspace(0, 5.5, 13)
+    A = x * 0.
+    for i in np.arange(len(x)):
+        theta = np.random.rand(20000) * 2. * np.pi
+        r = np.random.rand(20000)*0.5 + x[i]
+        xr = np.cos(theta) * r
+        yr = np.sin(theta) * r
+        fr = 0.59 / np.sqrt(3.)
+        in_footprint = np.zeros(r.shape, dtype=bool)
+        sel = (d > (x[i] - fr)) * (d < (x[i]+0.5+fr))
+        for xC, yC in zip(Xc[sel], Yc[sel]):
+            in_footprint += np.sqrt((xr-xC)**2 + (yr-yC)**2) < fr
+        coverage = (in_footprint > 0).sum() / 20000.
+        A[i] = coverage
+    c = np.interp(d, x, A, right=0.0)
+    apcor = np.nansum(y[d<5.]) / np.nansum(y[d<5.]/c[d<5.])
     return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm * fibarea, apcor
 
 def get_standard(objname, commonwave):
