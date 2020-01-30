@@ -428,14 +428,18 @@ weight = skysub * 0.
 for i in np.arange(skysub.shape[0]):
     fsel = np.isfinite(Nmod[:, i])
     if fsel.sum() > 2:
+        osel = (def_wave < w[fsel][0]) + (def_wave > w[fsel][-1])
         weight[i] = interp1d(w[fsel], Nmod[fsel, i], kind='quadratic',
                              fill_value='extrapolate')(def_wave)
+        weight[i][osel] = interp1d(w[fsel], Nmod[fsel, i], kind='nearest',
+                                 fill_value='extrapolate')(def_wave[osel])
 
-spec = extract_columns(weight, skysub_rect)
-model = spec[np.newaxis, :] * weight
-res = get_residual_map(skysub_rect_orig-model, pca, good)
-skysub_rect = skysub_rect_orig - res
-sky_rect = sky_rect_orig + res
+if not too_bright:
+    spec = extract_columns(weight, skysub_rect)
+    model = spec[np.newaxis, :] * weight
+    res = get_residual_map(skysub_rect_orig-model, pca, good)
+    skysub_rect = skysub_rect_orig - res
+    sky_rect = sky_rect_orig + res
 fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
                                                          overwrite=True)
 
