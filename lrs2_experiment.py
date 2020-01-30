@@ -430,16 +430,21 @@ for chunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
     xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
     if not too_bright:
         model = nmod 
+        model = model / np.nansum(model) * apcor
     else:
-        model = mod / np.nansum(mod)
+        model = mod
+        model = model / np.nansum(model) * apcor
+
     print(xc, yc, q, '%0.3f' % apcor, fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
     spectra_chunk = extract_columns(model, chunk)
     mod = biweight(chunk / spectra_chunk[np.newaxis, :], axis=1)
     xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
     if not too_bright:
         model = nmod 
+        model = model / np.nansum(model) * apcor
     else:
-        model = mod / np.nansum(mod)
+        model = mod
+        model = model / np.nansum(model) * apcor
     spectra_chunk = extract_columns(model, chunk)
     if q:
         Nmod.append(model)
