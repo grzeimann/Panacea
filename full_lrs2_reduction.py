@@ -240,7 +240,7 @@ def base_reduction(filename, tarname=None, get_header=False):
     O = biweight_location(image[:, -(overscan_length-2):])
     image[:] = image - O
     # trim image
-    image = image[:, :-overscan_length]
+    image = image[:, :-overscan_length]s
     gain = a[0].header['GAIN']
     gain = np.where(gain > 0., gain, 0.85)
     rdnoise = a[0].header['RDNOISE']
@@ -1705,7 +1705,7 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             try:
                 PA = float(he['PARANGLE'])
                 RA = float(he['TRAJRA'])
-                DEC = float(he['TRAJDEC'])
+                DEC = float(he['TRAJDEC']ba)
                 log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
                 A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
                 ra, dec = A.get_ifupos_ra_dec(ifuslot, calinfo[5][:, 0],
@@ -1868,6 +1868,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 f1.header['SOURCEY'] = loc[1]
                 f1.header['SEEING'] = loc[2]
                 f1.header['MILLUM'] = mini[0][2]
+                f1.header['THROUGHP'] = mini[0][3]
+
             if response is not None:
                 f1.header['FLUXUNIT'] = 'ergs/s/cm2/A'
             else:
@@ -1878,7 +1880,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             if standard and ((skysubspec != 0.).sum() > 500):
                 return get_response(obj[0], commonwave, skysubspec, specname)
             cnt += 1
-        except:
+        except Exception as e: 
+            log.warning(e) 
             log.warning('Exposure %i Failed' % cnt)
             cnt += 1
 
