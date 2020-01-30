@@ -1697,200 +1697,199 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
             np.interp(wave_0, T['wave'], T['y_0']))
     for im, r, s, c, fli, Fii, e, he in zip(images, rect, spec, cos,
                                             fl, Fi, E, header):
+#        try:
         try:
-            try:
-                basename = 'LRS2/' + he['QPROG']
-            except:
-                if check_if_standard(obj[0]) and (ifuslot in obj[0]):
-                    basename = 'LRS2/STANDARDS'
-                else:
-                    basename = 'LRS2/ORPHANS'
-            mkpath(basename)
+            basename = 'LRS2/' + he['QPROG']
+        except:
+            if check_if_standard(obj[0]) and (ifuslot in obj[0]):
+                basename = 'LRS2/STANDARDS'
+            else:
+                basename = 'LRS2/ORPHANS'
+        mkpath(basename)
+        
+        pos = np.zeros((len(calinfo[5]), 6))
+        pos[:, 0:2] = calinfo[5]
+        try:
+            PA = float(he['PARANGLE'])
+            RA = float(he['TRAJRA'])
+            DEC = float(he['TRAJDEC'])
+            log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
+            A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
+            ra, dec = A.get_ifupos_ra_dec(ifuslot, calinfo[5][:, 0],
+                                          calinfo[5][:, 1])
+
+            fpx = A.fplane.by_ifuslot(ifuslot).y + calinfo[5][:, 0]
+            fpy = A.fplane.by_ifuslot(ifuslot).x + calinfo[5][:, 1]
+
+            pos[:, 2] = fpx
+            pos[:, 3] = fpy
+            pos[:, 4] = ra
+            pos[:, 5] = dec
+        except:
+            log.warning('Astrometry Issue')
+        fn = op.join(op.dirname(bf.replace('exp01', 'exp%02d' % cnt)), '*%sLL*.fits' % ifuslot)
+        fn = get_filenames_from_tarfolder(get_tarname_from_filename(fn),
+                                      fn)
+        mini = get_objects(fn, ['OBJECT', 'EXPTIME'], full=True)
+        log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
+        r[calinfo[6][:, 1] == 1.] = 0.
+        e[calinfo[6][:, 1] == 1.] = 0.
+
+        r /= mini[0][1]
+        r /= mini[0][2]
+        r /= mini[0][3]
+        e /= mini[0][1]
+        e /= mini[0][2]
+        e /= mini[0][3]
+        if args.correct_ftf:
+            r, e = correct_ftf(r, e)
+        bad = get_all_cosmics(pos[:, 0], pos[:, 1], r*1., e * 1.)
+        e[bad] = 0.
+        sky = sky_subtraction(r, e, pos[:, 0], pos[:, 1])
+        sky[calinfo[6][:, 1] == 1.] = 0.
+        skysub = r - sky
+        if response is not None:
+            r *= response
+            e *= response
+            sky *= response
+            skysub *= response
+        X = np.array([T['wave'], T['x_0'], T['y_0']])
+        for S, name in zip([r, sky, skysub], ['obs', 'sky', 'skysub']):
+            outname = ('%s_%s_%s_%s_%s_cube.fits' % (args.date, sci_obs,
+                       'exp%02d' % cnt, specname, name))
+            outname = op.join(basename, outname)
             
-            pos = np.zeros((len(calinfo[5]), 6))
-            pos[:, 0:2] = calinfo[5]
-            try:
-                PA = float(he['PARANGLE'])
-                RA = float(he['TRAJRA'])
-                DEC = float(he['TRAJDEC'])
-                log.info('Observation at %0.4f %0.4f, PA: %0.3f' % (RA, DEC, PA))
-                A = Astrometry(RA, DEC, PA, 0., 0., fplane_file=fplane_file)
-                ra, dec = A.get_ifupos_ra_dec(ifuslot, calinfo[5][:, 0],
-                                              calinfo[5][:, 1])
-    
-                fpx = A.fplane.by_ifuslot(ifuslot).y + calinfo[5][:, 0]
-                fpy = A.fplane.by_ifuslot(ifuslot).x + calinfo[5][:, 1]
-    
-                pos[:, 2] = fpx
-                pos[:, 3] = fpy
-                pos[:, 4] = ra
-                pos[:, 5] = dec
-            except:
-                log.warning('Astrometry Issue')
-            fn = op.join(op.dirname(bf.replace('exp01', 'exp%02d' % cnt)), '*%sLL*.fits' % ifuslot)
-            fn = get_filenames_from_tarfolder(get_tarname_from_filename(fn),
-                                          fn)
-            mini = get_objects(fn, ['OBJECT', 'EXPTIME'], full=True)
-            log.info('Subtracting sky %s, exp%02d' % (obj[0], cnt))
-            r[calinfo[6][:, 1] == 1.] = 0.
-            e[calinfo[6][:, 1] == 1.] = 0.
-    
-            r /= mini[0][1]
-            r /= mini[0][2]
-            r /= mini[0][3]
-            e /= mini[0][1]
-            e /= mini[0][2]
-            e /= mini[0][3]
-            if args.correct_ftf:
-                r, e = correct_ftf(r, e)
-            bad = get_all_cosmics(pos[:, 0], pos[:, 1], r*1., e * 1.)
-            e[bad] = 0.
-            sky = sky_subtraction(r, e, pos[:, 0], pos[:, 1])
-            sky[calinfo[6][:, 1] == 1.] = 0.
-            skysub = r - sky
-            if response is not None:
-                r *= response
-                e *= response
-                sky *= response
-                skysub *= response
-            X = np.array([T['wave'], T['x_0'], T['y_0']])
-            for S, name in zip([r, sky, skysub], ['obs', 'sky', 'skysub']):
-                outname = ('%s_%s_%s_%s_%s_cube.fits' % (args.date, sci_obs,
-                           'exp%02d' % cnt, specname, name))
-                outname = op.join(basename, outname)
-                
-                zcube, zimage, xgrid, ygrid = make_frame(calinfo[5][:, 0],
-                                                         calinfo[5][:, 1], S, e,
+            zcube, zimage, xgrid, ygrid = make_frame(calinfo[5][:, 0],
+                                                     calinfo[5][:, 1], S, e,
+                                                     commonwave,
+                                                     T['wave'],
+                                                     xoff, yoff,
+                                                     wstart=wave_0-wb,
+                                                     wend=wave_0+wb)
+            write_cube(commonwave, xgrid, ygrid, zcube, outname, he)
+        loc = None
+        if args.source_x is None:
+            wi = np.searchsorted(commonwave, wave_0-wb, side='left')
+            we = np.searchsorted(commonwave, wave_0+wb, side='right')
+            dimage = np.median(skysub[:, wi:we+1], axis=1)
+            derror = np.sqrt(np.sum(e[:, wi:we+1]**2, axis=1))*1.253 / np.sqrt(we-wi+1)
+            loc1 = find_source(pos[:, 0], pos[:, 1],
+                               skysub, commonwave, obj[0], specname, e,
+                               xoff, yoff, wave_0, r)
+            if loc1 is not None:
+                loc = [0., 0., 0.]
+                loc[0] = loc1[0]
+                loc[1] = loc1[1]                
+                loc[2] = 2.35 * np.mean(np.sqrt(loc1[2]*loc1[3]))
+                xstd = loc1[2]
+                ystd = loc1[3]
+                xoff = loc1[4]
+                yoff = loc1[4]
+                log.info('Source seeing initially found to be: %0.2f' % loc[2])
+        if args.source_x is not None:
+            loc = [args.source_x, args.source_y, 1.5]
+            xstd = np.ones(commonwave.shape) * 0.75
+            ystd = np.ones(commonwave.shape) * 0.75
+            
+        if loc is not None:
+            log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
+            skyspec, errorskyspec, w, m = extract_source(sky, loc[0], loc[1], xoff,
+                                                   yoff, commonwave,
+                                                   calinfo[5][:, 0],
+                                                   calinfo[5][:, 1], e,
+                                                   xstd, ystd)
+            skysubspec, errorskysubspec, w, m = extract_source(skysub, loc[0],
+                                                         loc[1], xoff, yoff,
                                                          commonwave,
-                                                         T['wave'],
-                                                         xoff, yoff,
-                                                         wstart=wave_0-wb,
-                                                         wend=wave_0+wb)
-                write_cube(commonwave, xgrid, ygrid, zcube, outname, he)
-            loc = None
-            if args.source_x is None:
-                wi = np.searchsorted(commonwave, wave_0-wb, side='left')
-                we = np.searchsorted(commonwave, wave_0+wb, side='right')
-                dimage = np.median(skysub[:, wi:we+1], axis=1)
-                derror = np.sqrt(np.sum(e[:, wi:we+1]**2, axis=1))*1.253 / np.sqrt(we-wi+1)
-                loc1 = find_source(pos[:, 0], pos[:, 1],
-                                   skysub, commonwave, obj[0], specname, e,
-                                   xoff, yoff, wave_0, r)
-                if loc1 is not None:
-                    loc = [0., 0., 0.]
-                    loc[0] = loc1[0]
-                    loc[1] = loc1[1]                
-                    loc[2] = 2.35 * np.mean(np.sqrt(loc1[2]*loc1[3]))
-                    xstd = loc1[2]
-                    ystd = loc1[3]
-                    xoff = loc1[4]
-                    yoff = loc1[4]
-                    log.info('Source seeing initially found to be: %0.2f' % loc[2])
-            if args.source_x is not None:
-                loc = [args.source_x, args.source_y, 1.5]
-                xstd = np.ones(commonwave.shape) * 0.75
-                ystd = np.ones(commonwave.shape) * 0.75
-                
-            if loc is not None:
-                log.info('Source found at %0.2f, %0.2f' % (loc[0], loc[1]))
-                skyspec, errorskyspec, w, m = extract_source(sky, loc[0], loc[1], xoff,
-                                                       yoff, commonwave,
-                                                       calinfo[5][:, 0],
-                                                       calinfo[5][:, 1], e,
-                                                       xstd, ystd)
-                skysubspec, errorskysubspec, w, m = extract_source(skysub, loc[0],
-                                                             loc[1], xoff, yoff,
-                                                             commonwave,
-                                                             calinfo[5][:, 0],
-                                                             calinfo[5][:, 1], e,
-                                                             xstd, ystd)
-            else:
-                skyspec = commonwave * 0.
-                skysubspec = commonwave * 0.
-                errorskyspec = commonwave * 0.
-                errorskysubspec = commonwave * 0.
-            if response is not None:
-                f5 = np.vstack([commonwave, skysubspec, skyspec,
-                                errorskysubspec, errorskyspec,
-                                response])
-            else:
-                f5 = np.vstack([commonwave, skysubspec, skyspec,
-                                errorskysubspec, errorskyspec,
-                                np.ones(commonwave.shape)])
-    
-            f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
-            f2 = create_header_objection(commonwave, sky)
-            f3 = create_header_objection(commonwave, skysub)
-            f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
-            f6 = create_header_objection(commonwave, e)
-            for key in he.keys():
-                if key in f1.header:
-                    continue
-                if 'SEC' in key:
-                    continue
-                if ('BSCALE' in key) or ('BZERO' in key):
-                    continue
-                f1.header[key] = he[key]
-            if loc is not None:
-                f1.header['SOURCEX'] = loc[0]
-                f1.header['SOURCEY'] = loc[1]
-                f1.header['SEEING'] = loc[2]
-                
+                                                         calinfo[5][:, 0],
+                                                         calinfo[5][:, 1], e,
+                                                         xstd, ystd)
+        else:
+            skyspec = commonwave * 0.
+            skysubspec = commonwave * 0.
+            errorskyspec = commonwave * 0.
+            errorskysubspec = commonwave * 0.
+        if response is not None:
+            f5 = np.vstack([commonwave, skysubspec, skyspec,
+                            errorskysubspec, errorskyspec,
+                            response])
+        else:
+            f5 = np.vstack([commonwave, skysubspec, skyspec,
+                            errorskysubspec, errorskyspec,
+                            np.ones(commonwave.shape)])
+
+        f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
+        f2 = create_header_objection(commonwave, sky)
+        f3 = create_header_objection(commonwave, skysub)
+        f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
+        f6 = create_header_objection(commonwave, e)
+        for key in he.keys():
+            if key in f1.header:
+                continue
+            if 'SEC' in key:
+                continue
+            if ('BSCALE' in key) or ('BZERO' in key):
+                continue
+            f1.header[key] = he[key]
+        if loc is not None:
+            f1.header['SOURCEX'] = loc[0]
+            f1.header['SOURCEY'] = loc[1]
+            f1.header['SEEING'] = loc[2]
+            
+        f1.header['MILLUM'] = mini[0][2]
+        f1.header['THROUGHP'] = mini[0][3]
+        names = ['observed_spectra', 'sky_spectra', 'skysub_spectra',
+                 'error_spectra', 'collapsed_image', 'fiber_positions',
+                 'extracted_spectrum', 'adr', 'bigw', 'image',
+                 'flattened_image', 'trace', 'cosmics', 'unrectified_spectra']
+        flist = [f1, f2, f3, f6, f4, fits.ImageHDU(pos), fits.ImageHDU(f5),
+                 fits.ImageHDU(X), fits.ImageHDU(calinfo[3]),
+                 fits.ImageHDU(im), fits.ImageHDU(fli), fits.ImageHDU(Fii),
+                 fits.ImageHDU(c), fits.ImageHDU(s)]
+        for fl, name in zip(flist, names):
+            fl.header['EXTNAME'] = name
+        outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
+                                            'exp%02d' % cnt, specname))
+        outname = op.join(basename, outname)
+        fits.HDUList(flist).writeto(outname, overwrite=True)
+        outname = ('%s_%s_%s_%s_%s.fits' % ('spectrum', args.date, sci_obs,
+                                            'exp%02d' % cnt, specname))
+        outname = op.join(basename, outname)
+        f1 = fits.PrimaryHDU(f5)
+        for key in he.keys():
+            if key in f1.header:
+                continue
+            if 'SEC' in key:
+                continue
+            if ('BSCALE' in key) or ('BZERO' in key):
+                continue
+            f1.header[key] = he[key]
+        names = ['wavelength', 'F_lambda', 'Sky_lambda', 'e_F_lambda',
+                 'e_Sky_lambda', 'response']
+        f1.header['DWAVE'] = commonwave[1] - commonwave[0]
+        f1.header['WAVE0'] = commonwave[0]
+        f1.header['WAVESOL'] = 'WAVE0 + DWAVE * linspace(0, NAXIS1)'
+        f1.header['WAVEUNIT'] = 'A'
+        if loc is not None:
+            f1.header['SOURCEX'] = loc[0]
+            f1.header['SOURCEY'] = loc[1]
+            f1.header['SEEING'] = loc[2]
             f1.header['MILLUM'] = mini[0][2]
             f1.header['THROUGHP'] = mini[0][3]
-            names = ['observed_spectra', 'sky_spectra', 'skysub_spectra',
-                     'error_spectra', 'collapsed_image', 'fiber_positions',
-                     'extracted_spectrum', 'adr', 'bigw', 'image',
-                     'flattened_image', 'trace', 'cosmics', 'unrectified_spectra']
-            flist = [f1, f2, f3, f6, f4, fits.ImageHDU(pos), fits.ImageHDU(f5),
-                     fits.ImageHDU(X), fits.ImageHDU(calinfo[3]),
-                     fits.ImageHDU(im), fits.ImageHDU(fli), fits.ImageHDU(Fii),
-                     fits.ImageHDU(c), fits.ImageHDU(s)]
-            for fl, name in zip(flist, names):
-                fl.header['EXTNAME'] = name
-            outname = ('%s_%s_%s_%s_%s.fits' % ('multi', args.date, sci_obs,
-                                                'exp%02d' % cnt, specname))
-            outname = op.join(basename, outname)
-            fits.HDUList(flist).writeto(outname, overwrite=True)
-            outname = ('%s_%s_%s_%s_%s.fits' % ('spectrum', args.date, sci_obs,
-                                                'exp%02d' % cnt, specname))
-            outname = op.join(basename, outname)
-            f1 = fits.PrimaryHDU(f5)
-            for key in he.keys():
-                if key in f1.header:
-                    continue
-                if 'SEC' in key:
-                    continue
-                if ('BSCALE' in key) or ('BZERO' in key):
-                    continue
-                f1.header[key] = he[key]
-            names = ['wavelength', 'F_lambda', 'Sky_lambda', 'e_F_lambda',
-                     'e_Sky_lambda', 'response']
-            f1.header['DWAVE'] = commonwave[1] - commonwave[0]
-            f1.header['WAVE0'] = commonwave[0]
-            f1.header['WAVESOL'] = 'WAVE0 + DWAVE * linspace(0, NAXIS1)'
-            f1.header['WAVEUNIT'] = 'A'
-            if loc is not None:
-                f1.header['SOURCEX'] = loc[0]
-                f1.header['SOURCEY'] = loc[1]
-                f1.header['SEEING'] = loc[2]
-                f1.header['MILLUM'] = mini[0][2]
-                f1.header['THROUGHP'] = mini[0][3]
 
-            if response is not None:
-                f1.header['FLUXUNIT'] = 'ergs/s/cm2/A'
-            else:
-                f1.header['FLUXUNIT'] = 'e-/s/cm2/A'
-            for i, name in enumerate(names):
-                f1.header['ROW%i' % (i+1)] = name
-            f1.writeto(outname, overwrite=True)
-            if standard and ((skysubspec != 0.).sum() > 500):
-                return get_response(obj[0], commonwave, skysubspec, specname)
-            cnt += 1
-        except Exception as e: 
-            log.warning(e) 
-            log.warning('Exposure %i Failed' % cnt)
-            cnt += 1
+        if response is not None:
+            f1.header['FLUXUNIT'] = 'ergs/s/cm2/A'
+        else:
+            f1.header['FLUXUNIT'] = 'e-/s/cm2/A'
+        for i, name in enumerate(names):
+            f1.header['ROW%i' % (i+1)] = name
+        f1.writeto(outname, overwrite=True)
+        if standard and ((skysubspec != 0.).sum() > 500):
+            return get_response(obj[0], commonwave, skysubspec, specname)
+        cnt += 1
+#        except Exception as e: 
+#            log.warning('Exposure %i Failed' % cnt)
+#            cnt += 1
 
 def get_filenames_from_tarfolder(tarfolder, path):
     T = tarfile.open(tarfolder, 'r')
