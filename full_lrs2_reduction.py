@@ -247,7 +247,7 @@ def base_reduction(filename, tarname=None, get_header=False):
     O = biweight_location(image[:, -(overscan_length-2):])
     image[:] = image - O
     # trim image
-    image = image[:, :-overscan_length]s
+    image = image[:, :-overscan_length]
     gain = a[0].header['GAIN']
     gain = np.where(gain > 0., gain, 0.85)
     rdnoise = a[0].header['RDNOISE']
