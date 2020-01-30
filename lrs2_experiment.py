@@ -412,7 +412,10 @@ for chunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
                      np.array_split(def_wave, nchunks)):
     mod = biweight(chunk, axis=1)
     xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
-    model = nmod 
+    if not too_bright:
+        model = nmod 
+    else:
+        model = mod
     print(xc, yc, q, model.sum(), apcor, fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
     spectra_chunk = extract_columns(model, chunk)
     mod = biweight(chunk / spectra_chunk[np.newaxis, :], axis=1)
@@ -440,12 +443,11 @@ if not too_bright:
     res = get_residual_map(skysub_rect_orig-model, pca, good)
     skysub_rect = skysub_rect_orig - res
     sky_rect = sky_rect_orig + res
-fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
-                                                         overwrite=True)
-
 
 apcor = np.nansum(weight, axis=0)
 weight = weight / apcor[np.newaxis, :]
+fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
+                                                         overwrite=True)
 # =============================================================================
 # Get Extraction
 # =============================================================================
