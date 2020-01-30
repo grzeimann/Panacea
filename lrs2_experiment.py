@@ -444,24 +444,22 @@ fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('mult
                                                          overwrite=True)
 
 
-
+apcor = np.nansum(weight, axis=0)
+weight = weight / apcor[np.newaxis, :]
 # =============================================================================
 # Get Extraction
 # =============================================================================
 mask = np.isfinite(skysub_rect)
-spectrum = np.nansum(mask * weight * skysub_rect, axis=0) / np.nansum(mask * weight**2, axis=0)
-calibrated = (spectrum * m['extracted_spectrum'].data[-1] /
+total_cal = (m['extracted_spectrum'].data[-1] /
               m[0].header['EXPTIME'] /  m[0].header['MILLUM'] /
-              m[0].header['THROUGHP'])
+              m[0].header['THROUGHP'] / apcor)
+spectrum = np.nansum(mask * weight * skysub_rect, axis=0) / np.nansum(mask * weight**2, axis=0)
+calibrated = spectrum * total_cal
 mask = np.isfinite(sky_rect)
 spectrum_sky = np.nansum(mask * weight * sky_rect, axis=0) / np.nansum(mask * weight**2, axis=0)
-calibrated_sky = (spectrum_sky * m['extracted_spectrum'].data[-1] /
-              m[0].header['EXPTIME'] /  m[0].header['MILLUM'] /
-              m[0].header['THROUGHP'])
+calibrated_sky = spectrum_sky * total_cal
 spectrum_sum = np.nansum(skysub_rect, axis=0)
-calibrated_all = (spectrum_sum * m['extracted_spectrum'].data[-1] /
-              m[0].header['EXPTIME'] /  m[0].header['MILLUM'] /
-              m[0].header['THROUGHP'])
+calibrated_all = spectrum_sum * total_cal
 
 fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all], header=m[0].header).writeto(
                 args.multiname.replace('multi', 'spectrum'), overwrite=True)
