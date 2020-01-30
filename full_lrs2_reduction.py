@@ -129,8 +129,6 @@ for i in ['source_x', 'source_y']:
 
 args.sides = [x.replace(' ', '') for x in args.sides.split(',')]
 
-if args.reduce_eng:
-    sci_path = sci_path.replace('sci', 'eng')
 
 blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4645.], ['LL', 'LU'],
              [4350., 4375.], ['hg_b', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']],
@@ -178,6 +176,8 @@ twi_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp*',
 bias_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp*',
                     '%s', '2*_%sLL_zro.fits')
 
+if args.reduce_eng:
+    sci_path = sci_path.replace('sci', 'eng')
 
 def get_script_path():
     return op.dirname(op.realpath(sys.argv[0]))
