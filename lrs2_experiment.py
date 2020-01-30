@@ -468,10 +468,11 @@ if not too_bright:
     skysub_rect = skysub_rect_orig - res
     sky_rect = sky_rect_orig + res
 
-apcor = np.nansum(weight, axis=0)
-weight = weight / apcor[np.newaxis, :]
 fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
                                                          overwrite=True)
+apcor = np.nansum(weight, axis=0)
+weight = weight / apcor[np.newaxis, :]
+
 # =============================================================================
 # Get Extraction
 # =============================================================================
