@@ -1233,7 +1233,10 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname, he):
             continue
         if ('BSCALE' in key) or ('BZERO' in key):
             continue
-        hdu.header[key] = he[key]
+        try:
+            hdu.header[key] = he[key]
+        except:
+            continue
     hdu.writeto(outname, overwrite=True)
 
 
