@@ -450,7 +450,7 @@ for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
         model = model / np.nansum(model) * apcor
     spectra_chunk = extract_columns(model, chunk)
     model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
-    good = np.isfinite(chunk)
+    good = np.isfinite(chunk).sum(axis=1) > 0.75 * chunk.shape[1]
     res = get_residual_map(chunk-model_chunk, pca, good)
     blank_image = chunk-model_chunk-res
     bl, bm = biweight(blank_image, axis=0, calc_std=True)
