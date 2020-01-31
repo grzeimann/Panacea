@@ -30,6 +30,10 @@ parser.add_argument("--atfile",
                     help='''Name of at file for re-reduction''', type=str,
                     default=None)
 
+parser.add_argument("--object",
+                    help='''Name of Object''', type=str,
+                    default=None)
+
 parser.add_argument("-sd", "--sep_date",
                     help='''Separate Dates''',
                     action="count", default=0)
@@ -47,12 +51,14 @@ keep_files = []
 for filename in filenames:
     f = fits.open(filename)    
     n, r, d = (f[0].header['OBJECT'], f[0].header['QRA'], f[0].header['QDEC'])
-    
     st = n.split(n[-6:])[0]
     try:
         ifuslot.append(n.split('_')[-2])
     except:
         continue
+    if args.object is not None:
+        if args.object.lower() not in st.lower():
+            continue
     ra.append(r)
     dec.append(d)
     obj.append(st)
