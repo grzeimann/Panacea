@@ -431,37 +431,30 @@ for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
                              np.array_split(sky_rect, nchunks, axis=1),
                              np.array_split(def_wave, nchunks)):
     mod = biweight(chunk, axis=1)
-    xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
-    if not too_bright:
-        model = nmod 
-        model = model / np.nansum(model) * apcor
-    else:
-        model = mod
-        model = model / np.nansum(model) * apcor
-    print(xc, yc, q, '%0.3f' % apcor, fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
-    spectra_chunk = extract_columns(model, chunk)
-    mod = biweight(chunk / spectra_chunk[np.newaxis, :], axis=1)
-    xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
-    if not too_bright:
-        model = nmod 
-        model = model / np.nansum(model) * apcor
-    else:
-        model = mod
-        model = model / np.nansum(model) * apcor
-    spectra_chunk = extract_columns(model, chunk)
-    model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
-    good = np.isfinite(chunk).sum(axis=1) > 0.75 * chunk.shape[1]
-    res = get_residual_map(chunk-model_chunk, pca, good)
-    blank_image = chunk-model_chunk-res
-    bl, bm = biweight(blank_image, axis=0, calc_std=True)
-    good_sel = ((np.isfinite(chunk)) *
-                (np.abs(blank_image-bl[np.newaxis, :])<3.*bm[np.newaxis,:]))
-    goodpca = good_sel.sum(axis=1) > 0.75 * chunk.shape[1]
-    spectra_chunk = extract_columns(model, chunk-res-bl[np.newaxis, :],
-                                    mask=good_sel)
-    res = get_residual_map(chunk-model_chunk-bl[np.newaxis, :], pca, goodpca)
-    skysub_chunks.append(chunk - res - bl[np.newaxis, :])
-    sky_chunks.append(schunk + res + bl[np.newaxis, :])
+    clean_chunk = chunk * 1.
+    for n in np.arange(1, 4):
+        xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
+        print('Iteration %i:' % n, xc, yc, q, '%0.3f' % apcor, fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
+        if not too_bright:
+            model = nmod 
+            model = model / np.nansum(model) * apcor
+        else:
+            model = mod
+            model = model / np.nansum(model) * apcor
+        spectra_chunk = extract_columns(model, clean_chunk)
+        model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
+        goodpca = np.isfinite(chunk).sum(axis=1) > 0.75 * chunk.shape[1]
+        res = get_residual_map(clean_chunk-model_chunk, pca, goodpca)
+        blank_image = clean_chunk-model_chunk-res
+        bl, bm = biweight(blank_image, axis=0, calc_std=True)
+        clean_chunk = clean_chunk - res - bl[np.newaxis, :]
+        bad = np.abs(blank_image-bl[np.newaxis, :]) > 3. * bm[np.newaxis, :]
+        clean_chunk[bad] = np.nan
+        spectra_chunk = extract_columns(model, clean_chunk)
+        mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
+        schunk = schunk + res + bl[np.newaxis, :]
+    skysub_chunks.append(clean_chunk)
+    sky_chunks.append(schunk)
     spec_chunks.append(spectra_chunk)
     if q:
         Nmod.append(model)
