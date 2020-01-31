@@ -335,18 +335,18 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
             clean_chunk[bad] = np.nan
             spectra_chunk = extract_columns(model, clean_chunk)
             mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
-            schunk = schunk + res + bl[np.newaxis, :] 
         blank_image = clean_chunk-model_chunk-res - bl[np.newaxis, :]
         avg = biweight(blank_image, axis=1)
         mult = biweight(blank_image / avg[:, np.newaxis], axis=0)
-        clean_chunk = clean_chunk - mult[np.newaxis, :] * avg[:, np.newaxis]
+        mres = mult[np.newaxis, :] * avg[:, np.newaxis]
+        clean_chunk = clean_chunk - mres
         spectra_chunk = extract_columns(model, clean_chunk)
         model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
         goodpca = np.isfinite(clean_chunk).sum(axis=1) > 0.75 * chunk.shape[1]
-        res = get_residual_map(clean_chunk-model_chunk, pca, goodpca)
-        clean_chunk = clean_chunk - res
+        res = get_residual_map(chunk-model_chunk-mres, pca, goodpca)
+        clean_chunk = chunk - res - mres
         spectra_chunk = extract_columns(model, clean_chunk)
-        schunk = schunk + mult[np.newaxis, :] * avg[:, np.newaxis] + res
+        schunk = schunk + mres + res
         skysub_chunks.append(clean_chunk)
         sky_chunks.append(schunk)
         spec_chunks.append(spectra_chunk)
