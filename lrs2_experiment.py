@@ -157,7 +157,9 @@ def find_centroid(pos, y, fibarea):
     grid_x, grid_y = np.meshgrid(np.linspace(-7., 7., (14*5+1)),
                                  np.linspace(-3.5, 3.5, 7*5+1))
     image = griddata(pos[y>0., :2], y[y>0.], (grid_x, grid_y), method='cubic')
-    xc, yc = (pos[np.nanargmax(y), 0], pos[np.nanargmax(y), 1])
+    init_d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
+    sel = init_d < 3.0
+    xc, yc = (pos[sel, 0][np.nanargmax(y[sel])], pos[sel, 1][np.nanargmax(y[sel])])
     d = np.sqrt((grid_x - xc)**2 + (grid_y - yc)**2)
     sel = (d < 2.) * np.isfinite(image)
     xc = np.sum(image[sel] * grid_x[sel]) / np.sum(image[sel])
@@ -436,7 +438,6 @@ for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
     else:
         model = mod
         model = model / np.nansum(model) * apcor
-
     print(xc, yc, q, '%0.3f' % apcor, fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
     spectra_chunk = extract_columns(model, chunk)
     mod = biweight(chunk / spectra_chunk[np.newaxis, :], axis=1)
