@@ -453,11 +453,12 @@ for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
     res = get_residual_map(chunk-model_chunk, pca, good)
     blank_image = chunk-model_chunk-res
     bl, bm = biweight(blank_image, axis=0, calc_std=True)
-    good = ((np.isfinite(chunk)) *
-            (np.abs(blank_image-bl[np.newaxis, :])<3.*bm[np.newaxis,:]))
+    good_sel = ((np.isfinite(chunk)) *
+                (np.abs(blank_image-bl[np.newaxis, :])<3.*bm[np.newaxis,:]))
+    goodpca = good_sel.sum(axis=1) > 0.75 * chunk.shape[1]
     spectra_chunk = extract_columns(model, chunk-res-bl[np.newaxis, :],
-                                    mask=good)
-    res = get_residual_map(chunk-model_chunk-bl[np.newaxis, :], pca, good)
+                                    mask=good_sel)
+    res = get_residual_map(chunk-model_chunk-bl[np.newaxis, :], pca, goodpca)
     skysub_chunks.append(chunk - res - bl[np.newaxis, :])
     sky_chunks.append(schunk + res + bl[np.newaxis, :])
     spec_chunks.append(spectra_chunk)
