@@ -217,20 +217,20 @@ def fix_centroid(pos, y, fibarea, fit_param=None):
     init_d = np.sqrt((pos[:, 0]-fit_param[0])**2 + (pos[:, 1]-fit_param[0])**2)
     a = y[np.nanargmax(y[init_d<1.5])]
     G = Gaussian2D(x_mean=xc, y_mean=yc, x_stddev=xs, y_stddev=ys,
-                   theta=th, amplitude=a)
+                   theta=th, amplitude=1.)
     G.x_mean.fixed = True
     G.y_mean.fixed = True
     G.x_stddev.fixed = True
     G.y_stddev.fixed = True
     G.theta.fixed = True
-    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
-                                       stdfunc=mad_std)
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
     Xc = pos[:, 0] - xc
     Yc = pos[:, 1] - yc
     sel = (d < 3.0) * np.isfinite(y)
-    fit = LevMarLSQFitter()(G, pos[sel, 0], pos[sel, 1], y[sel])
-    
+    M = Gaussian2D(pos[sel, 0], pos[sel, 1])
+    norm = biweight(y[sel] / M)
+    G.amplitude.value = norm
+    fit = G
     new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
     new_model[np.isnan(new_model)] = 0.0
     fitquality = False
