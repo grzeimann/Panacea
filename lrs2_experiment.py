@@ -546,6 +546,7 @@ fit_params = [np.interp(def_wave, T['wave'], T['x_0']+xoff),
 info, Nmod, skysub_rect, sky_rect, spec_rect = get_extraction_model(skysub_rect,
                                                                     sky_rect,
                                                                     def_wave,
+                                                             func=fix_centroid,
                                                          fit_params=fit_params)
 w, xc, yc, xs, ys, th = info
 
