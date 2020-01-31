@@ -49,8 +49,19 @@ filenames = sorted(glob.glob(op.join(args.directory, 'm*uv.fits')))
 obj, ra, dec, ifuslot = ([], [], [], [])
 keep_files = []
 for filename in filenames:
-    f = fits.open(filename)    
-    n, r, d = (f[0].header['OBJECT'], f[0].header['QRA'], f[0].header['QDEC'])
+    f = fits.open(filename)
+    try:
+        n = f[0].header['OBJECT']
+    except:
+        continue
+    try:
+        r = f[0].header['QRA']
+    except:
+        r = '12:00:00'
+    try:
+        d = f[0].header['QDEC']
+    except:
+        d = '+00:00:00'
     st = n.split(n[-6:])[0]
     try:
         ifuslot.append(n.split('_')[-2])
