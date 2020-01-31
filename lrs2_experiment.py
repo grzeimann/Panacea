@@ -229,7 +229,12 @@ def fix_centroid(pos, y, fibarea, fit_param=None):
     Xc = pos[:, 0] - xc
     Yc = pos[:, 1] - yc
     sel = (d < 3.0) * np.isfinite(y)
-    D = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
+    try:
+        D = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
+    except:
+        print(xc, yc, y, d)
+        sys.exit(1)
+
     try:
         fit = D[0]
         dummy = fit(pos[:, 0], pos[:, 1])
