@@ -229,14 +229,7 @@ def fix_centroid(pos, y, fibarea, fit_param=None):
     Xc = pos[:, 0] - xc
     Yc = pos[:, 1] - yc
     sel = (d < 3.0) * np.isfinite(y)
-    D = LevMarLSQFitter()(G, pos[sel, 0], pos[sel, 1], y[sel])
-    try:
-        fit = D[0]
-        dummy = fit(pos[:, 0], pos[:, 1])
-        mask = D[1]
-    except:
-        fit = D[1]
-        mask = D[0]
+    fit = LevMarLSQFitter()(G, pos[sel, 0], pos[sel, 1], y[sel])
     
     new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
     new_model[np.isnan(new_model)] = 0.0
