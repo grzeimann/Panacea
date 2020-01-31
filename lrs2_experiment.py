@@ -316,8 +316,8 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
         if fit_params is None:
             fit_param = None
         else:
-            fit_param = [np.interp(wi, def_wave, fit_params[0]),
-                         np.interp(wi, def_wave, fit_params[1]),
+            fit_param = [np.interp(np.mean(wi), def_wave, fit_params[0]),
+                         np.interp(np.mean(wi), def_wave, fit_params[1]),
                          fit_params[2],fit_params[3], fit_params[4]]
         for n in np.arange(1, niter + 1):
             xc, yc, q, fit, nmod, apcor = func(pos, mod, fibarea,
