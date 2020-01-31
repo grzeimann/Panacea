@@ -615,9 +615,9 @@ weight = weight / apcor[np.newaxis, :]
 mask = np.isfinite(skysub_rect)
 total_cal = (m['extracted_spectrum'].data[-1] /
               m[0].header['EXPTIME'] /  m[0].header['MILLUM'] /
-              m[0].header['THROUGHP'] / apcor)
+              m[0].header['THROUGHP'])
 spectrum = np.nansum(mask * weight * skysub_rect, axis=0) / np.nansum(mask * weight**2, axis=0)
-calibrated = spectrum * total_cal
+calibrated = spectrum * total_cal / apcor
 mask = np.isfinite(sky_rect)
 spectrum_sky = np.nansum(mask * weight * sky_rect, axis=0) / np.nansum(mask * weight**2, axis=0)
 calibrated_sky = spectrum_sky * total_cal
