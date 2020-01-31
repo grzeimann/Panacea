@@ -536,8 +536,8 @@ TH = biweight(th)
 fit_params = [np.interp(def_wave, T['wave'], T['x_0']+xoff),
               np.interp(def_wave, T['wave'], T['y_0']+yoff),
               XS, YS, TH]
-info, Nmod, skysub_rect, sky_rect, spec_rect = get_extraction_model(skysub_rect,
-                                                                    sky_rect,
+info, Nmod, skysub_rect, sky_rect, spec_rect = get_extraction_model(skysub_rect_orig,
+                                                                    sky_rect_orig,
                                                                     def_wave,
                                                              func=fix_centroid,
                                                          fit_params=fit_params)
