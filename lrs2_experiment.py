@@ -399,27 +399,27 @@ skysub_rect = rectify(skysub, wave, def_wave)
 spec_rect = rectify(spec, wave, def_wave)
 sky_rect = rectify(sky, wave, def_wave)
 
-#skysub_rect_orig = skysub_rect * 1.
-#sky_rect_orig = sky_rect * 1.
-#if not too_bright:
-#    quick_sky = biweight(spec_rect, axis=0)
-#    mask, cont = identify_sky_pixels(quick_sky)
-#    std_sky = mad_std((quick_sky-cont)[~mask])
-#    loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
-#    loc = np.array(np.round(loc), dtype=int)
-#    loc = loc[(loc>10) * (loc<(len(quick_sky)-10))]
-#    # Remove Continuum (gaussian filter)
-#    Dummy = skysub_rect * 1.
-#    for i in np.arange(-6, 7):
-#        Dummy[:, loc+i] = np.nan
-#    Smooth = Dummy * np.nan
-#    for i in np.arange(Dummy.shape[0]):
-#        Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
-#        while np.isnan(Smooth[i]).sum():
-#            Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
-#    res = get_residual_map(skysub_rect-Smooth, pca, good)
-#    skysub_rect = skysub_rect - res
-#    sky_rect = sky_rect + res
+skysub_rect_orig = skysub_rect * 1.
+sky_rect_orig = sky_rect * 1.
+if not too_bright:
+    quick_sky = biweight(spec_rect, axis=0)
+    mask, cont = identify_sky_pixels(quick_sky)
+    std_sky = mad_std((quick_sky-cont)[~mask])
+    loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
+    loc = np.array(np.round(loc), dtype=int)
+    loc = loc[(loc>10) * (loc<(len(quick_sky)-10))]
+    # Remove Continuum (gaussian filter)
+    Dummy = skysub_rect * 1.
+    for i in np.arange(-6, 7):
+        Dummy[:, loc+i] = np.nan
+    Smooth = Dummy * np.nan
+    for i in np.arange(Dummy.shape[0]):
+        Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
+        while np.isnan(Smooth[i]).sum():
+            Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
+    res = get_residual_map(skysub_rect-Smooth, pca, good)
+    skysub_rect = skysub_rect - res
+    sky_rect = sky_rect + res
 
 # =============================================================================
 # Get Extraction Model
@@ -432,9 +432,11 @@ for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
                              np.array_split(def_wave, nchunks)):
     mod = biweight(chunk, axis=1)
     clean_chunk = chunk * 1.
-    for n in np.arange(1, 4):
+    for n in np.arange(1, 5):
         xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
-        print('Iteration %i:' % n, xc, yc, q, '%0.3f' % apcor, fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
+        if n == 4:
+            print('Iteration %i:' % n, xc, yc, q, '%0.3f' % apcor,
+                  fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
         if not too_bright:
             model = nmod 
             model = model / np.nansum(model) * apcor
@@ -448,7 +450,7 @@ for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
         blank_image = clean_chunk-model_chunk-res
         bl, bm = biweight(blank_image, axis=0, calc_std=True)
         clean_chunk = clean_chunk - res - bl[np.newaxis, :]
-        bad = np.abs(blank_image-bl[np.newaxis, :]) > 3. * bm[np.newaxis, :]
+        bad = np.abs(blank_image-bl[np.newaxis, :]) > 5. * bm[np.newaxis, :]
         clean_chunk[bad] = np.nan
         spectra_chunk = extract_columns(model, clean_chunk)
         mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
