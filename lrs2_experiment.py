@@ -23,8 +23,7 @@ from astropy.modeling.fitting import LevMarLSQFitter, FittingWithOutlierRemoval
 from astropy.stats import sigma_clip, sigma_clipped_stats, mad_std
 from fiber_utils_remedy import find_peaks, identify_sky_pixels, get_spectra
 from sklearn.decomposition import PCA
-
-
+from astropy.table import Table
 
 def get_fiber_to_fiber(spec, wave):
     aw = wave.ravel()
@@ -151,7 +150,26 @@ def rectify(skysub, wave, def_wave):
                                fill_value=0.0)(def_wave)
     return skysub_rect
 
-def find_centroid(pos, y, fibarea):
+def get_apcor(Xc, Yc, d):
+    x = np.linspace(0, 5.5, 13)
+    A = x * 0.
+    for i in np.arange(len(x)):
+        theta = np.random.rand(20000) * 2. * np.pi
+        r = np.random.rand(20000)*0.5 + x[i]
+        xr = np.cos(theta) * r
+        yr = np.sin(theta) * r
+        fr = 0.59 / np.sqrt(3.)
+        in_footprint = np.zeros(r.shape, dtype=bool)
+        sel = (d > (x[i] - fr)) * (d < (x[i]+0.5+fr))
+        for xC, yC in zip(Xc[sel], Yc[sel]):
+            in_footprint += np.sqrt((xr-xC)**2 + (yr-yC)**2) < fr
+        coverage = (in_footprint > 0).sum() / 20000.
+        A[i] = coverage
+    c = np.interp(d, x, A, right=0.0)
+    apcor = np.nansum(y[d<5.]) / np.nansum(y[d<5.]/c[d<5.])
+    return apcor
+
+def find_centroid(pos, y, fibarea, fit_param=None):
     mean, median, std = sigma_clipped_stats(y, stdfunc=mad_std)
     y = y - median
     grid_x, grid_y = np.meshgrid(np.linspace(-7., 7., (14*5+1)),
@@ -189,23 +207,48 @@ def find_centroid(pos, y, fibarea):
     grid_x, grid_y = np.meshgrid(np.linspace(xc-5., xc+5., 101),
                                  np.linspace(yc-5., yc+5., 101))
     norm = np.sum(fit(grid_x.ravel(), grid_y.ravel())) * 0.1**2
-    x = np.linspace(0, 5.5, 13)
-    A = x * 0.
-    for i in np.arange(len(x)):
-        theta = np.random.rand(20000) * 2. * np.pi
-        r = np.random.rand(20000)*0.5 + x[i]
-        xr = np.cos(theta) * r
-        yr = np.sin(theta) * r
-        fr = 0.59 / np.sqrt(3.)
-        in_footprint = np.zeros(r.shape, dtype=bool)
-        sel = (d > (x[i] - fr)) * (d < (x[i]+0.5+fr))
-        for xC, yC in zip(Xc[sel], Yc[sel]):
-            in_footprint += np.sqrt((xr-xC)**2 + (yr-yC)**2) < fr
-        coverage = (in_footprint > 0).sum() / 20000.
-        A[i] = coverage
-    c = np.interp(d, x, A, right=0.0)
-    apcor = np.nansum(y[d<5.]) / np.nansum(y[d<5.]/c[d<5.])
+    apcor = get_apcor(Xc, Yc, d)
     return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm * fibarea, apcor
+
+def fix_centroid(pos, y, fibarea, fit_param=None):
+    mean, median, std = sigma_clipped_stats(y, stdfunc=mad_std)
+    y = y - median
+    xc, yc, xs, ys, th = fit_param
+    init_d = np.sqrt((pos[:, 0]-fit_param[0])**2 + (pos[:, 1]-fit_param[0])**2)
+    a = y[np.nanargmax(y[init_d<1.5])]
+    G = Gaussian2D(x_mean=xc, y_mean=yc, x_stddev=xs, y_stddev=ys,
+                   theta=th, amplitude=a)
+    G.x_mean.fixed = True
+    G.y_mean.fixed = True
+    G.x_stddev.fixed = True
+    G.y_stddev.fixed = True
+    G.theta.fixed = True
+    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
+                                       stdfunc=mad_std)
+    d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
+    Xc = pos[:, 0] - xc
+    Yc = pos[:, 1] - yc
+    sel = (d < 3.0) * np.isfinite(y)
+    D = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
+    try:
+        fit = D[0]
+        dummy = fit(pos[:, 0], pos[:, 1])
+        mask = D[1]
+    except:
+        fit = D[1]
+        mask = D[0]
+    
+    new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
+    new_model[np.isnan(new_model)] = 0.0
+    fitquality = False
+    if np.nanmax(new_model) > 5 * std:
+        fitquality = True
+    grid_x, grid_y = np.meshgrid(np.linspace(xc-5., xc+5., 101),
+                                 np.linspace(yc-5., yc+5., 101))
+    norm = np.sum(fit(grid_x.ravel(), grid_y.ravel())) * 0.1**2
+    apcor = get_apcor(Xc, Yc, d)
+    return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm * fibarea, apcor
+
 
 def get_standard(objname, commonwave):
     filename = op.join('/Users/gregz/cure/virus_early/virus_config/'
@@ -260,6 +303,64 @@ def extract_columns(model, chunk, mask=None):
     norm = num1 / num2
     return norm
 
+def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
+                         niter=4, func=find_centroid, fit_params=None):
+    XC, YC, Nmod, w, XS, YS, TH = ([], [], [], [], [], [], [])
+    skysub_chunks, sky_chunks, spec_chunks = ([], [], [])
+   
+    for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
+                                 np.array_split(sky_rect, nchunks, axis=1),
+                                 np.array_split(def_wave, nchunks)):
+        mod = biweight(chunk, axis=1)
+        clean_chunk = chunk * 1.
+        if fit_params is None:
+            fit_param = None
+        else:
+            fit_param = [np.interp(wi, def_wave, fit_params[0]),
+                         np.interp(wi, def_wave, fit_params[1]),
+                         fit_params[2],fit_params[3], fit_params[4]]
+        for n in np.arange(1, niter + 1):
+            xc, yc, q, fit, nmod, apcor = func(pos, mod, fibarea,
+                                               fit_param=fit_param)
+            if n == niter:
+                print('Iteration %i:' % n, xc, yc, q, '%0.3f' % apcor,
+                      fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
+            if not too_bright:
+                model = nmod 
+                model = model / np.nansum(model) * apcor
+            else:
+                model = mod
+                model = model / np.nansum(model) * apcor
+            spectra_chunk = extract_columns(model, clean_chunk)
+            model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
+            goodpca = np.isfinite(chunk).sum(axis=1) > 0.75 * chunk.shape[1]
+            res = get_residual_map(clean_chunk-model_chunk, pca, goodpca)
+            blank_image = clean_chunk-model_chunk-res
+            bl, bm = biweight(blank_image, axis=0, calc_std=True)
+            clean_chunk = clean_chunk - res - bl[np.newaxis, :]
+            bad = np.abs(blank_image-bl[np.newaxis, :]) > 5. * bm[np.newaxis, :]
+            clean_chunk[bad] = np.nan
+            spectra_chunk = extract_columns(model, clean_chunk)
+            mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
+            schunk = schunk + res + bl[np.newaxis, :]
+        skysub_chunks.append(clean_chunk)
+        sky_chunks.append(schunk)
+        spec_chunks.append(spectra_chunk)
+        if q:
+            Nmod.append(model)
+            w.append(np.mean(wi))
+            XC.append(xc)
+            YC.append(yc)
+            XS.append(fit.x_stddev.value)
+            YS.append(fit.y_stddev.value)
+            TH.append(fit.theta.value)
+    skysub_rect, sky_rect, spec_rect = [np.hstack(x) 
+                                        for x in
+                                        [skysub_chunks, sky_chunks, spec_chunks]]
+    w, xc, yc, xs, ys, th = [np.array(x) for x in [w, XC, YC, XS, YS, TH]]
+    Nmod = np.array(Nmod)
+    return [w, xc, yc, xs, ys, th], Nmod, skysub_rect, sky_rect, spec_rect
+
 
 warnings.filterwarnings("ignore")
 
@@ -290,6 +391,8 @@ args = None
 #        '-c', '/Users/gregz/cure/dummy', '-d', '/Users/gregz/cure/dummy/']
 args = parser.parse_args(args=args)
 args.log = setup_logging('lrs2_experiment')
+
+channel_dict = {'uv': 'BL', 'orange': 'BR', 'red': 'RL', 'farred': 'RR'}
 
 # =============================================================================
 # Load Data (images and spectra)
@@ -424,48 +527,28 @@ if not too_bright:
 # =============================================================================
 # Get Extraction Model
 # =============================================================================
-nchunks = 15
-XC, YC, Nmod, w = ([], [], [], [])
-skysub_chunks, sky_chunks, spec_chunks = ([], [], [])
-for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
-                             np.array_split(sky_rect, nchunks, axis=1),
-                             np.array_split(def_wave, nchunks)):
-    mod = biweight(chunk, axis=1)
-    clean_chunk = chunk * 1.
-    for n in np.arange(1, 5):
-        xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
-        if n == 4:
-            print('Iteration %i:' % n, xc, yc, q, '%0.3f' % apcor,
-                  fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
-        if not too_bright:
-            model = nmod 
-            model = model / np.nansum(model) * apcor
-        else:
-            model = mod
-            model = model / np.nansum(model) * apcor
-        spectra_chunk = extract_columns(model, clean_chunk)
-        model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
-        goodpca = np.isfinite(chunk).sum(axis=1) > 0.75 * chunk.shape[1]
-        res = get_residual_map(clean_chunk-model_chunk, pca, goodpca)
-        blank_image = clean_chunk-model_chunk-res
-        bl, bm = biweight(blank_image, axis=0, calc_std=True)
-        clean_chunk = clean_chunk - res - bl[np.newaxis, :]
-        bad = np.abs(blank_image-bl[np.newaxis, :]) > 5. * bm[np.newaxis, :]
-        clean_chunk[bad] = np.nan
-        spectra_chunk = extract_columns(model, clean_chunk)
-        mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
-        schunk = schunk + res + bl[np.newaxis, :]
-    skysub_chunks.append(clean_chunk)
-    sky_chunks.append(schunk)
-    spec_chunks.append(spectra_chunk)
-    if q:
-        Nmod.append(model)
-        w.append(np.mean(wi))
-skysub_rect, sky_rect, spec_rect = [np.hstack(x) 
-                                    for x in
-                                    [skysub_chunks, sky_chunks, spec_chunks]]
-w = np.array(w)
-Nmod = np.array(Nmod)
+info, Nmod, skysub_rect, sky_rect, spec_rect = get_extraction_model(skysub_rect,
+                                                                    sky_rect,
+                                                                    def_wave)
+w, xc, yc, xs, ys, th = info
+darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % channel_dict[channel])
+T = Table.read(darfile, format='ascii.fixed_width_two_line')
+xdar = np.interp(w, T['wave'], T['x_0'])
+ydar = np.interp(w, T['wave'], T['y_0'])
+xoff = biweight(xc - xdar)
+yoff = biweight(yc - ydar)
+XS = biweight(xs)
+YS = biweight(ys)
+TH = biweight(th)
+fit_params = [np.interp(def_wave, T['wave'], T['x_0']+xoff),
+              np.interp(def_wave, T['wave'], T['y_0']+yoff),
+              XS, YS, TH]
+info, Nmod, skysub_rect, sky_rect, spec_rect = get_extraction_model(skysub_rect,
+                                                                    sky_rect,
+                                                                    def_wave,
+                                                         fit_params=fit_params)
+w, xc, yc, xs, ys, th = info
+
 weight = skysub * 0.
 for i in np.arange(skysub.shape[0]):
     fsel = np.isfinite(Nmod[:, i])
