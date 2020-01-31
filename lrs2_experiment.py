@@ -248,10 +248,11 @@ def get_wave_cor(spec, ftf, wave, mastersky, masterwave):
     return Waves, Norms
 
 
-def extract_columns(model, chunk):
+def extract_columns(model, chunk, mask=None):
     if model.ndim == 1:
         model = model[: , np.newaxis]
-    mask = np.isfinite(chunk)
+    if mask is None:
+        mask = np.isfinite(chunk)
     num1 = np.nansum(chunk * model**2 * mask, axis=0)
     num2 = np.nansum(model**3 * mask, axis=0)
     norm = num1 / num2
@@ -396,36 +397,37 @@ skysub_rect = rectify(skysub, wave, def_wave)
 spec_rect = rectify(spec, wave, def_wave)
 sky_rect = rectify(sky, wave, def_wave)
 
-skysub_rect_orig = skysub_rect * 1.
-sky_rect_orig = sky_rect * 1.
-if not too_bright:
-    quick_sky = biweight(spec_rect, axis=0)
-    mask, cont = identify_sky_pixels(quick_sky)
-    std_sky = mad_std((quick_sky-cont)[~mask])
-    loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
-    loc = np.array(np.round(loc), dtype=int)
-    loc = loc[(loc>10) * (loc<(len(quick_sky)-10))]
-    # Remove Continuum (gaussian filter)
-    Dummy = skysub_rect * 1.
-    for i in np.arange(-6, 7):
-        Dummy[:, loc+i] = np.nan
-    Smooth = Dummy * np.nan
-    for i in np.arange(Dummy.shape[0]):
-        Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
-        while np.isnan(Smooth[i]).sum():
-            Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
-    res = get_residual_map(skysub_rect-Smooth, pca, good)
-    skysub_rect = skysub_rect - res
-    sky_rect = sky_rect + res
+#skysub_rect_orig = skysub_rect * 1.
+#sky_rect_orig = sky_rect * 1.
+#if not too_bright:
+#    quick_sky = biweight(spec_rect, axis=0)
+#    mask, cont = identify_sky_pixels(quick_sky)
+#    std_sky = mad_std((quick_sky-cont)[~mask])
+#    loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
+#    loc = np.array(np.round(loc), dtype=int)
+#    loc = loc[(loc>10) * (loc<(len(quick_sky)-10))]
+#    # Remove Continuum (gaussian filter)
+#    Dummy = skysub_rect * 1.
+#    for i in np.arange(-6, 7):
+#        Dummy[:, loc+i] = np.nan
+#    Smooth = Dummy * np.nan
+#    for i in np.arange(Dummy.shape[0]):
+#        Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
+#        while np.isnan(Smooth[i]).sum():
+#            Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
+#    res = get_residual_map(skysub_rect-Smooth, pca, good)
+#    skysub_rect = skysub_rect - res
+#    sky_rect = sky_rect + res
 
 # =============================================================================
 # Get Extraction Model
 # =============================================================================
 nchunks = 15
 XC, YC, Nmod, w = ([], [], [], [])
-
-for chunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
-                     np.array_split(def_wave, nchunks)):
+skysub_chunks, sky_chunks, spec_chunks = ([], [], [])
+for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
+                             np.array_split(sky_rect, nchunks, axis=1),
+                             np.array_split(def_wave, nchunks)):
     mod = biweight(chunk, axis=1)
     xc, yc, q, fit, nmod, apcor = find_centroid(pos, mod, fibarea)
     if not too_bright:
@@ -446,9 +448,25 @@ for chunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
         model = mod
         model = model / np.nansum(model) * apcor
     spectra_chunk = extract_columns(model, chunk)
+    model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
+    good = np.isfinite(chunk)
+    res = get_residual_map(chunk-model_chunk, pca, good)
+    blank_image = chunk-model_chunk-res
+    bl, bm = biweight(blank_image, axis=0, calc_std=True)
+    good = ((np.isfinite(chunk)) *
+            (np.abs(blank_image-bl[np.newaxis, :])<3.*bm[np.newaxis,:]))
+    spectra_chunk = extract_columns(model, chunk-res-bl[np.newaxis, :],
+                                    mask=good)
+    res = get_residual_map(chunk-model_chunk-bl[np.newaxis, :], pca, good)
+    skysub_chunks.append(chunk - res - bl[np.newaxis, :])
+    sky_chunks.append(schunk + res + bl[np.newaxis, :])
+    spec_chunks.append(spectra_chunk)
     if q:
         Nmod.append(model)
         w.append(np.mean(wi))
+skysub_rect, sky_rect, spec_rect = [np.hstack(x) 
+                                    for x in
+                                    [skysub_chunks, sky_chunks, spec_chunks]]
 w = np.array(w)
 Nmod = np.array(Nmod)
 weight = skysub * 0.
@@ -461,12 +479,12 @@ for i in np.arange(skysub.shape[0]):
         weight[i][osel] = interp1d(w[fsel], Nmod[fsel, i], kind='nearest',
                                  fill_value='extrapolate')(def_wave[osel])
 
-if not too_bright:
-    spec = extract_columns(weight, skysub_rect)
-    model = spec[np.newaxis, :] * weight
-    res = get_residual_map(skysub_rect_orig-model, pca, good)
-    skysub_rect = skysub_rect_orig - res
-    sky_rect = sky_rect_orig + res
+#if not too_bright:
+#    spec = extract_columns(weight, skysub_rect)
+#    model = spec[np.newaxis, :] * weight
+#    res = get_residual_map(skysub_rect_orig-model, pca, good)
+#    skysub_rect = skysub_rect_orig - res
+#    sky_rect = sky_rect_orig + res
 
 fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
                                                          overwrite=True)
@@ -487,8 +505,9 @@ spectrum_sky = np.nansum(mask * weight * sky_rect, axis=0) / np.nansum(mask * we
 calibrated_sky = spectrum_sky * total_cal
 spectrum_sum = np.nansum(skysub_rect, axis=0)
 calibrated_all = spectrum_sum * total_cal
+calibrated_ext = spec_rect * total_cal
 
-fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all], header=m[0].header).writeto(
+fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all, calibrated_ext], header=m[0].header).writeto(
                 args.multiname.replace('multi', 'spectrum'), overwrite=True)
 fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
                                                          overwrite=True)
