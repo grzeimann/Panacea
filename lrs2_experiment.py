@@ -312,7 +312,7 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
     for chunk, schunk, wi, marray in zip(np.array_split(skysub_rect, nchunks, axis=1),
                                          np.array_split(sky_rect, nchunks, axis=1),
                                          np.array_split(def_wave, nchunks),
-                                         np.array_split(Marray, nchunk, axis=1)):
+                                         np.array_split(Marray, nchunks, axis=1)):
         mod = biweight(chunk, axis=1)
         clean_chunk = chunk * 1.
         
