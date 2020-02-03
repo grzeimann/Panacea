@@ -341,8 +341,6 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
             blank_image = clean_chunk-model_chunk-res
             bl, bm = biweight(blank_image, axis=0, calc_std=True)
             clean_chunk = clean_chunk - res - bl[np.newaxis, :]
-            bad = np.abs(blank_image-bl[np.newaxis, :]) > 5. * bm[np.newaxis, :]
-            clean_chunk[bad] = np.nan
             spectra_chunk = extract_columns(model, clean_chunk)
             mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
         blank_image = clean_chunk-model_chunk-res - bl[np.newaxis, :]
