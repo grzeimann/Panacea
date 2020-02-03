@@ -111,6 +111,10 @@ parser.add_argument("-re", "--reduce_eng",
                     help='''Reduce Engineer Data''',
                     action="count", default=0)
 
+parser.add_argument("-rd", "--reduce_drk",
+                    help='''Reduce Dark Data''',
+                    action="count", default=0)
+
 args = parser.parse_args(args=None)
 
 if args.standard_star_obsid is not None:
@@ -178,6 +182,9 @@ bias_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp*',
 
 if args.reduce_eng:
     sci_path = sci_path.replace('sci', 'eng')
+    
+if args.reduce_drk:
+    sci_path = sci_path.replace('sci', 'drk')
 
 def get_script_path():
     return op.dirname(op.realpath(sys.argv[0]))
