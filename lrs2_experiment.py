@@ -344,10 +344,6 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
         
         spectra_chunk = extract_columns(model, clean_chunk)
         model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
-        BL = blank_image * 1.
-        BL[np.isfinite(Marray)] = np.nan
-        fib_res = biweight(BL, axis=1)
-        
         spectra_chunk = extract_columns(model, clean_chunk)
         schunk = schunk + res
         skysub_chunks.append(clean_chunk)
