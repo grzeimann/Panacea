@@ -343,13 +343,14 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
             clean_chunk = clean_chunk - res - bl[np.newaxis, :]
             spectra_chunk = extract_columns(model, clean_chunk)
             mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
-        blank_image = clean_chunk-model_chunk-res - bl[np.newaxis, :]
-        avg = biweight(blank_image, axis=1)
-        norm = extract_columns(model, avg)
-        avg = avg - norm * model
-        mult = biweight(blank_image / avg[:, np.newaxis], axis=0)
-        mres = mult[np.newaxis, :] * avg[:, np.newaxis]
-        clean_chunk = clean_chunk - mres
+#        blank_image = clean_chunk-model_chunk-res - bl[np.newaxis, :]
+#        avg = biweight(blank_image, axis=1)
+#        norm = extract_columns(model, avg)
+#        avg = avg - norm * model
+#        mult = biweight(blank_image / avg[:, np.newaxis], axis=0)
+#        mres = mult[np.newaxis, :] * avg[:, np.newaxis]
+#        clean_chunk = clean_chunk - mres
+        mres = 0. * chunk
         spectra_chunk = extract_columns(model, clean_chunk)
         model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
         goodpca = np.isfinite(clean_chunk).sum(axis=1) > 0.75 * chunk.shape[1]
