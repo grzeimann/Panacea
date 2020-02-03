@@ -334,30 +334,22 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
             else:
                 model = mod
                 model = model / np.nansum(model) * apcor
-            spectra_chunk = extract_columns(model, clean_chunk)
+            spectra_chunk = extract_columns(model, chunk)
             model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
             goodpca = np.isfinite(chunk).sum(axis=1) > 0.75 * chunk.shape[1]
-            res = get_residual_map(clean_chunk-model_chunk, pca, goodpca)
-            blank_image = clean_chunk-model_chunk-res
+            res = get_residual_map(chunk-model_chunk, pca, goodpca)
+            blank_image = chunk-model_chunk-res
             bl, bm = biweight(blank_image, axis=0, calc_std=True)
-            clean_chunk = clean_chunk - res - bl[np.newaxis, :]
+            clean_chunk = chunk - res - bl[np.newaxis, :]
             spectra_chunk = extract_columns(model, clean_chunk)
             mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
-#        blank_image = clean_chunk-model_chunk-res - bl[np.newaxis, :]
-#        avg = biweight(blank_image, axis=1)
-#        norm = extract_columns(model, avg)
-#        avg = avg - norm * model
-#        mult = biweight(blank_image / avg[:, np.newaxis], axis=0)
-#        mres = mult[np.newaxis, :] * avg[:, np.newaxis]
-#        clean_chunk = clean_chunk - mres
-        mres = 0. * chunk
         spectra_chunk = extract_columns(model, clean_chunk)
         model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
         goodpca = np.isfinite(clean_chunk).sum(axis=1) > 0.75 * chunk.shape[1]
-        res = get_residual_map(chunk-model_chunk-mres, pca, goodpca)
-        clean_chunk = chunk - res - mres
+        res = get_residual_map(chunk-model_chunk, pca, goodpca)
+        clean_chunk = chunk - res
         spectra_chunk = extract_columns(model, clean_chunk)
-        schunk = schunk + mres + res
+        schunk = schunk + res
         skysub_chunks.append(clean_chunk)
         sky_chunks.append(schunk)
         spec_chunks.append(spectra_chunk)
