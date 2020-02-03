@@ -324,7 +324,7 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
         for i in np.arange(Dummy.shape[0]):
             Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
             while np.isnan(Smooth[i]).sum():
-                Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(6.0))
+                Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(2.0))
         if fit_params is None:
             fit_param = None
         else:
@@ -350,7 +350,7 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
             for i in np.arange(model_chunk.shape[0]):
                 while np.isnan(dummy[i]).sum():
                     dummy[i] = interpolate_replace_nans(dummy[i],
-                                                        Gaussian1DKernel(6.0))
+                                                        Gaussian1DKernel(2.0))
             model_chunk = dummy
             goodpca = np.isfinite(chunk).sum(axis=1) > 0.75 * chunk.shape[1]
             res = get_residual_map(clean_chunk-model_chunk, pca, goodpca)
@@ -373,7 +373,7 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
         for i in np.arange(model_chunk.shape[0]):
             while np.isnan(dummy[i]).sum():
                 dummy[i] = interpolate_replace_nans(dummy[i],
-                                                    Gaussian1DKernel(6.0))
+                                                    Gaussian1DKernel(2.0))
         model_chunk = dummy
         goodpca = np.isfinite(clean_chunk).sum(axis=1) > 0.75 * chunk.shape[1]
         res = get_residual_map(chunk-model_chunk-mres, pca, goodpca)
