@@ -336,13 +336,6 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
                 model = model / np.nansum(model) * apcor
             spectra_chunk = extract_columns(model, clean_chunk)
             model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
-#            dummy = model_chunk * 1.
-#            dummy[np.isnan(marray)] = np.nan
-#            for i in np.arange(model_chunk.shape[0]):
-#                while np.isnan(dummy[i]).sum():
-#                    dummy[i] = interpolate_replace_nans(dummy[i],
-#                                                        Gaussian1DKernel(4.0))
-#            model_chunk = dummy
             goodpca = np.isfinite(chunk).sum(axis=1) > 0.75 * chunk.shape[1]
             res = get_residual_map(clean_chunk-model_chunk, pca, goodpca)
             blank_image = clean_chunk-model_chunk-res
@@ -354,18 +347,13 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
             mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
         blank_image = clean_chunk-model_chunk-res - bl[np.newaxis, :]
         avg = biweight(blank_image, axis=1)
+        norm = extract_columns(model, blank_image)
+        avg = avg - norm * model
         mult = biweight(blank_image / avg[:, np.newaxis], axis=0)
         mres = mult[np.newaxis, :] * avg[:, np.newaxis]
         clean_chunk = clean_chunk - mres
         spectra_chunk = extract_columns(model, clean_chunk)
         model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
-#        dummy = model_chunk * 1.
-#        dummy[np.isnan(marray)] = np.nan
-#        for i in np.arange(model_chunk.shape[0]):
-#            while np.isnan(dummy[i]).sum():
-#                dummy[i] = interpolate_replace_nans(dummy[i],
-#                                                    Gaussian1DKernel(4.0))
-#        model_chunk = dummy
         goodpca = np.isfinite(clean_chunk).sum(axis=1) > 0.75 * chunk.shape[1]
         res = get_residual_map(chunk-model_chunk-mres, pca, goodpca)
         clean_chunk = chunk - res - mres
