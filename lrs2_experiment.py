@@ -323,8 +323,8 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
         Smooth = Dummy * np.nan
         for i in np.arange(Dummy.shape[0]):
             Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
-        while np.isnan(Smooth[i]).sum():
-            Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(6.0))
+            while np.isnan(Smooth[i]).sum():
+                Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(6.0))
         if fit_params is None:
             fit_param = None
         else:
