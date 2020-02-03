@@ -315,16 +315,7 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
                                          np.array_split(Marray, nchunks, axis=1)):
         mod = biweight(chunk, axis=1)
         clean_chunk = chunk * 1.
-        
-        # Remove Continuum (gaussian filter)
-        Dummy = skysub_rect * 1.
-        for i in np.arange(-6, 7):
-            Dummy[:, loc+i] = np.nan
-        Smooth = Dummy * np.nan
-        for i in np.arange(Dummy.shape[0]):
-            Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
-            while np.isnan(Smooth[i]).sum():
-                Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
+    
         if fit_params is None:
             fit_param = None
         else:
@@ -345,13 +336,13 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
                 model = model / np.nansum(model) * apcor
             spectra_chunk = extract_columns(model, clean_chunk)
             model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
-            dummy = model_chunk * 1.
-            dummy[np.isnan(marray)] = np.nan
-            for i in np.arange(model_chunk.shape[0]):
-                while np.isnan(dummy[i]).sum():
-                    dummy[i] = interpolate_replace_nans(dummy[i],
-                                                        Gaussian1DKernel(4.0))
-            model_chunk = dummy
+#            dummy = model_chunk * 1.
+#            dummy[np.isnan(marray)] = np.nan
+#            for i in np.arange(model_chunk.shape[0]):
+#                while np.isnan(dummy[i]).sum():
+#                    dummy[i] = interpolate_replace_nans(dummy[i],
+#                                                        Gaussian1DKernel(4.0))
+#            model_chunk = dummy
             goodpca = np.isfinite(chunk).sum(axis=1) > 0.75 * chunk.shape[1]
             res = get_residual_map(clean_chunk-model_chunk, pca, goodpca)
             blank_image = clean_chunk-model_chunk-res
@@ -368,13 +359,13 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
         clean_chunk = clean_chunk - mres
         spectra_chunk = extract_columns(model, clean_chunk)
         model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
-        dummy = model_chunk * 1.
-        dummy[np.isnan(marray)] = np.nan
-        for i in np.arange(model_chunk.shape[0]):
-            while np.isnan(dummy[i]).sum():
-                dummy[i] = interpolate_replace_nans(dummy[i],
-                                                    Gaussian1DKernel(4.0))
-        model_chunk = dummy
+#        dummy = model_chunk * 1.
+#        dummy[np.isnan(marray)] = np.nan
+#        for i in np.arange(model_chunk.shape[0]):
+#            while np.isnan(dummy[i]).sum():
+#                dummy[i] = interpolate_replace_nans(dummy[i],
+#                                                    Gaussian1DKernel(4.0))
+#        model_chunk = dummy
         goodpca = np.isfinite(clean_chunk).sum(axis=1) > 0.75 * chunk.shape[1]
         res = get_residual_map(chunk-model_chunk-mres, pca, goodpca)
         clean_chunk = chunk - res - mres
