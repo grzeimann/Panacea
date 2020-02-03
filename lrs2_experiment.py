@@ -455,7 +455,7 @@ pca = get_arc_pca(arcskysub_rect, goodfibers, mask, components=95)
 sky, I = get_mastersky(spec, ftf, wave)
 y = biweight(spec / ftf / sky, axis=1)
 cor, keep = correct_amplifier_offsets(y, xp, yp)
-newftf = ftf * cor[:, np.newaxis]
+newftf = ftf * 1. # cor[:, np.newaxis]
 good = biweight(newftf, axis=1) > 0.5
 spec[~good] = np.nan
 sel = np.isfinite(keep)
