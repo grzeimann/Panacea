@@ -189,7 +189,7 @@ def find_centroid(pos, y, fibarea, fit_param=None):
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
     Xc = pos[:, 0] - xc
     Yc = pos[:, 1] - yc
-    sel = (d < 3.0) * np.isfinite(y)
+    sel = (d <= 2.0) * np.isfinite(y)
     D = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
     try:
         fit = D[0]
@@ -214,8 +214,6 @@ def fix_centroid(pos, y, fibarea, fit_param=None):
     mean, median, std = sigma_clipped_stats(y, stdfunc=mad_std)
     y = y - median
     xc, yc, xs, ys, th = fit_param
-    init_d = np.sqrt((pos[:, 0]-fit_param[0])**2 + (pos[:, 1]-fit_param[0])**2)
-    a = y[np.nanargmax(y[init_d<1.5])]
     G = Gaussian2D(x_mean=xc, y_mean=yc, x_stddev=xs, y_stddev=ys,
                    theta=th, amplitude=1.)
     G.x_mean.fixed = True
@@ -226,7 +224,7 @@ def fix_centroid(pos, y, fibarea, fit_param=None):
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
     Xc = pos[:, 0] - xc
     Yc = pos[:, 1] - yc
-    sel = (d < 3.0) * np.isfinite(y)
+    sel = (d < 2.0) * np.isfinite(y)
     M = G(pos[sel, 0], pos[sel, 1])
     norm = biweight(y[sel] / M)
     G.amplitude.value = norm
@@ -297,7 +295,7 @@ def extract_columns(model, chunk, mask=None):
     return norm
 
 def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
-                         niter=4, func=find_centroid, fit_params=None):
+                         niter=1, func=find_centroid, fit_params=None):
     XC, YC, Nmod, w, XS, YS, TH = ([], [], [], [], [], [], [])
     skysub_chunks, sky_chunks, spec_chunks = ([], [], [])
     quick_sky = biweight(sky_rect, axis=0)
@@ -343,11 +341,13 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
             clean_chunk = chunk - res - bl[np.newaxis, :]
             spectra_chunk = extract_columns(model, clean_chunk)
             mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
+        
         spectra_chunk = extract_columns(model, clean_chunk)
         model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
-        goodpca = np.isfinite(clean_chunk).sum(axis=1) > 0.75 * chunk.shape[1]
-        res = get_residual_map(chunk-model_chunk, pca, goodpca)
-        clean_chunk = chunk - res
+        BL = blank_image * 1.
+        BL[np.isfinite(Marray)] = np.nan
+        fib_res = biweight(BL, axis=1)
+        
         spectra_chunk = extract_columns(model, clean_chunk)
         schunk = schunk + res
         skysub_chunks.append(clean_chunk)
@@ -578,5 +578,5 @@ calibrated_ext = spec_rect * total_cal
 
 fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all, calibrated_ext], header=m[0].header).writeto(
                 args.multiname.replace('multi', 'spectrum'), overwrite=True)
-fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
+fits.PrimaryHDU(skysub_rect_orig, header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
                                                          overwrite=True)
