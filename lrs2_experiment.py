@@ -407,8 +407,8 @@ parser.add_argument("-dw", "--delta_wavelength",
                     default=None, type=float)
 
 args = None
-args = ['dummy', 'multi_20181116_0000010_exp01_red.fits',
-        '-c', '/Users/gregz/cure/panacea', '-d', '/Users/gregz/cure/panacea']
+#args = ['dummy', 'multi_20181116_0000010_exp01_red.fits',
+#        '-c', '/Users/gregz/cure/panacea', '-d', '/Users/gregz/cure/panacea']
 args = parser.parse_args(args=args)
 args.log = setup_logging('lrs2_experiment')
 
