@@ -305,7 +305,7 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
     loc = np.array(np.round(loc), dtype=int)
     loc = loc[(loc>10) * (loc<(len(quick_sky)-10))]
     Marray = skysub_rect[0, :] * 0.
-    G = Gaussian1DKernel(2.5)
+    G = Gaussian1DKernel(10.)
     for i in np.arange(-6, 7):
         Marray[loc+i] = np.nan
     for chunk, schunk, wi, marray in zip(np.array_split(skysub_rect, nchunks, axis=1),
