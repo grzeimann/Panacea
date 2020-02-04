@@ -150,7 +150,7 @@ def rectify(skysub, wave, def_wave):
                                fill_value=0.0)(def_wave)
     return skysub_rect
 
-def get_apcor(Xc, Yc, d):
+def get_apcor(Xc, Yc, d, y):
     x = np.linspace(0, 5.5, 13)
     A = x * 0.
     for i in np.arange(len(x)):
@@ -207,7 +207,7 @@ def find_centroid(pos, y, fibarea, fit_param=None):
     grid_x, grid_y = np.meshgrid(np.linspace(xc-5., xc+5., 101),
                                  np.linspace(yc-5., yc+5., 101))
     norm = np.sum(fit(grid_x.ravel(), grid_y.ravel())) * 0.1**2
-    apcor = get_apcor(Xc, Yc, d)
+    apcor = get_apcor(Xc, Yc, d, y)
     return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm * fibarea, apcor
 
 def fix_centroid(pos, y, fibarea, fit_param=None):
@@ -237,7 +237,7 @@ def fix_centroid(pos, y, fibarea, fit_param=None):
     grid_x, grid_y = np.meshgrid(np.linspace(xc-5., xc+5., 101),
                                  np.linspace(yc-5., yc+5., 101))
     norm = np.sum(fit(grid_x.ravel(), grid_y.ravel())) * 0.1**2
-    apcor = get_apcor(Xc, Yc, d)
+    apcor = get_apcor(Xc, Yc, d, y)
     return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm * fibarea, apcor
 
 
@@ -293,6 +293,18 @@ def extract_columns(model, chunk, mask=None):
     num2 = np.nansum(model**3 * mask, axis=0)
     norm = num1 / num2
     return norm
+
+def get_skyline_mask(sky_rect):
+    quick_sky = biweight(sky_rect, axis=0)
+    mask, cont = identify_sky_pixels(quick_sky)
+    std_sky = mad_std((quick_sky-cont)[~mask])
+    loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
+    loc = np.array(np.round(loc), dtype=int)
+    loc = loc[(loc>10) * (loc<(len(quick_sky)-10))]
+    Marray = sky_rect * 0.
+    for i in np.arange(-3, 4):
+        Marray[:, loc+i] = np.nan
+    return Marray
 
 def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
                          niter=3, func=find_centroid, fit_params=None):
@@ -395,8 +407,8 @@ parser.add_argument("-dw", "--delta_wavelength",
                     default=None, type=float)
 
 args = None
-#args = ['dummy', 'multi_20181213_0000012_exp01_red.fits',
-#        '-c', '/Users/gregz/cure/dummy', '-d', '/Users/gregz/cure/dummy/']
+args = ['dummy', 'multi_20181116_0000010_exp01_red.fits',
+        '-c', '/Users/gregz/cure/panacea', '-d', '/Users/gregz/cure/panacea']
 args = parser.parse_args(args=args)
 args.log = setup_logging('lrs2_experiment')
 
@@ -532,34 +544,48 @@ TH = biweight(th)
 fit_params = [np.interp(def_wave, T['wave'], T['x_0']+xoff),
               np.interp(def_wave, T['wave'], T['y_0']+yoff),
               XS, YS, TH]
-info, Nmod, skysub_rect, sky_rect, spec_rect = get_extraction_model(skysub_rect_orig,
-                                                                    sky_rect_orig,
-                                                                    def_wave,
-                                                             func=fix_centroid,
-                                                         fit_params=fit_params)
-w, xc, yc, xs, ys, th = info
 
+N = int(len(def_wave) / 25)
+inds = np.arange(int(N/2), len(def_wave), N)
+apcor = inds * 0.
+W = inds * 0.
+for j, i in enumerate(inds):
+    W[j] = def_wave[i]
+    xc = fit_params[0][i]
+    yc = fit_params[1][i]
+    d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
+    Xc = pos[:, 0] - xc
+    Yc = pos[:, 1] - yc
+    y = Gaussian2D(x_mean=xc, y_mean=yc, x_stddev=fit_params[2],
+                   y_stddev=fit_params[3], theta=fit_params[4])(pos[:, 0], pos[:, 1])
+    apcor[j] = get_apcor(Xc, Yc, d, y)
+
+apcor = np.polyval(np.polyfit(W, apcor, 3), def_wave)
 weight = skysub * 0.
-for i in np.arange(skysub.shape[0]):
-    fsel = np.isfinite(Nmod[:, i])
-    if fsel.sum() > 2:
-        osel = (def_wave < w[fsel][0]) + (def_wave > w[fsel][-1])
-        weight[i] = interp1d(w[fsel], Nmod[fsel, i], kind='quadratic',
-                             fill_value='extrapolate')(def_wave)
-        weight[i][osel] = interp1d(w[fsel], Nmod[fsel, i], kind='nearest',
-                                 fill_value='extrapolate')(def_wave[osel])
+for i in np.arange(skysub.shape[1]):
+    xc = fit_params[0][i]
+    yc = fit_params[1][i]
+    y = Gaussian2D(x_mean=xc, y_mean=yc, x_stddev=fit_params[2],
+                   y_stddev=fit_params[3], theta=fit_params[4])(pos[:, 0], pos[:, 1])
+    weight[:, i] = y / np.sum(y)
+spec_rect = extract_columns(weight, skysub_rect_orig)
+model_image = weight * spec_rect[np.newaxis, :]
+skyline_mask = get_skyline_mask(sky_rect)
+G = Gaussian1DKernel(2.0)
+dummy = skysub_rect_orig - model_image
+dummy[np.isnan(skyline_mask)] = np.nan
+smooth = dummy * 0.
+for i in np.arange(smooth.shape[0]):
+    smooth[i] = convolve(dummy[i], G, boundary='extend')
+    while np.isnan(smooth[i]).sum():
+        smooth[i] = interpolate_replace_nans(smooth[i], G) 
 
-#if not too_bright:
-#    spec = extract_columns(weight, skysub_rect)
-#    model = spec[np.newaxis, :] * weight
-#    res = get_residual_map(skysub_rect_orig-model, pca, good)
-#    skysub_rect = skysub_rect_orig - res
-#    sky_rect = sky_rect_orig + res
+res = get_residual_map(skysub_rect_orig - model_image - smooth, pca, good)
+skysub_rect = skysub_rect_orig - res
+sky_rect = sky_rect_orig + res
 
 fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
                                                          overwrite=True)
-apcor = np.nansum(weight, axis=0)
-weight = weight / apcor[np.newaxis, :]
 
 # =============================================================================
 # Get Extraction
