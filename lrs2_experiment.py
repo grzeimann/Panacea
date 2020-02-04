@@ -580,8 +580,10 @@ for i in np.arange(smooth.shape[0]):
     smooth[i] = convolve(dummy[i], G, boundary='extend')
     while np.isnan(smooth[i]).sum():
         smooth[i] = interpolate_replace_nans(smooth[i], G) 
-
-res = get_residual_map(skysub_rect_orig - model_image - smooth, pca, good)
+if not too_bright:
+    res = get_residual_map(skysub_rect_orig - model_image - smooth, pca, good)
+else:
+    res = 0. * skysub_rect_orig
 skysub_rect = skysub_rect_orig - res
 sky_rect = sky_rect_orig + res
 
