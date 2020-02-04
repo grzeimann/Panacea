@@ -320,7 +320,7 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
         else:
             fit_param = [np.interp(np.mean(wi), def_wave, fit_params[0]),
                          np.interp(np.mean(wi), def_wave, fit_params[1]),
-                         fit_params[2],fit_params[3], fit_params[4]]
+                         fit_params[2], fit_params[3], fit_params[4]]
         for n in np.arange(1, niter + 1):
             xc, yc, q, fit, nmod, apcor = func(pos, mod, fibarea,
                                                fit_param=fit_param)
@@ -344,6 +344,11 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
             res = get_residual_map(chunk-model_chunk, pca, goodpca)
             clean_chunk = chunk - res
             spectra_chunk = extract_columns(model, clean_chunk)
+            dummy = spectra_chunk * 1.
+            dummy[np.isnan(marray)] = np.nan
+            while np.isnan(dummy).sum():
+                dummy = interpolate_replace_nans(dummy, G)
+            spectra_chunk = dummy
             mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
         schunk = schunk + res
         skysub_chunks.append(clean_chunk)
