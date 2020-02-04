@@ -473,6 +473,7 @@ sky, I = get_mastersky(spec, ftf, wave)
 y = biweight(spec / ftf / sky, axis=1)
 cor, keep = correct_amplifier_offsets(y, xp, yp)
 newftf = ftf * cor[:, np.newaxis]
+fits.PrimaryHDU(newftf).writeto(args.multiname.replace('multi', 'ftf'), overwrite=True)
 good = biweight(newftf, axis=1) > 0.5
 spec[~good] = np.nan
 sel = np.isfinite(keep)
