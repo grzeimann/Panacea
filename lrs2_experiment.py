@@ -295,7 +295,7 @@ def extract_columns(model, chunk, mask=None):
     return norm
 
 def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
-                         niter=1, func=find_centroid, fit_params=None):
+                         niter=3, func=find_centroid, fit_params=None):
     XC, YC, Nmod, w, XS, YS, TH = ([], [], [], [], [], [], [])
     skysub_chunks, sky_chunks, spec_chunks = ([], [], [])
     quick_sky = biweight(sky_rect, axis=0)
@@ -304,9 +304,10 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
     loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
     loc = np.array(np.round(loc), dtype=int)
     loc = loc[(loc>10) * (loc<(len(quick_sky)-10))]
-    Marray = skysub_rect * 0.
+    Marray = skysub_rect[0, :] * 0.
+    G = Gaussian1DKernel(2.5)
     for i in np.arange(-6, 7):
-        Marray[:, loc+i] = np.nan
+        Marray[loc+i] = np.nan
     for chunk, schunk, wi, marray in zip(np.array_split(skysub_rect, nchunks, axis=1),
                                          np.array_split(sky_rect, nchunks, axis=1),
                                          np.array_split(def_wave, nchunks),
@@ -333,18 +334,17 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
                 model = mod
                 model = model / np.nansum(model) * apcor
             spectra_chunk = extract_columns(model, chunk)
+            dummy = spectra_chunk * 1.
+            dummy[np.isnan(marray)] = np.nan
+            while np.isnan(dummy).sum():
+                dummy = interpolate_replace_nans(dummy, G)
+            spectra_chunk = dummy
             model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
             goodpca = np.isfinite(chunk).sum(axis=1) > 0.75 * chunk.shape[1]
             res = get_residual_map(chunk-model_chunk, pca, goodpca)
-            blank_image = chunk-model_chunk-res
-            bl, bm = biweight(blank_image, axis=0, calc_std=True)
-            clean_chunk = chunk - res - bl[np.newaxis, :]
+            clean_chunk = chunk - res
             spectra_chunk = extract_columns(model, clean_chunk)
             mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
-        
-        spectra_chunk = extract_columns(model, clean_chunk)
-        model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
-        spectra_chunk = extract_columns(model, clean_chunk)
         schunk = schunk + res
         skysub_chunks.append(clean_chunk)
         sky_chunks.append(schunk)
