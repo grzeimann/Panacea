@@ -396,8 +396,6 @@ parser.add_argument("-c", "--caldirectory",
                     help='''cal directory for reductions''',
                     type=str, default="/work/03946/hetdex/maverick/LRS2/CALS")
 
-parser.add_argument("galaxyname",  help='''Name of Galaxy''', type=str)
-
 parser.add_argument("multiname",
                     help='''e.g., multi_20170126_0000011_exp02_orange.fits''',
                     type=str)
