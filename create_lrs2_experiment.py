@@ -67,7 +67,7 @@ for filename in filenames:
 
 N = int(np.ceil(len(make_calls) / 20.))
 chunks = np.array_split(make_calls, N)
-for j, chunk in chunks:
+for j, chunk in enumerate(chunks):
     with open('%s_%i' % (args.outname, j+1), 'w') as out_file:
         for prog in chunk:
             out_file.write(prog + '\n')
