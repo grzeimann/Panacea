@@ -39,7 +39,7 @@ parser.add_argument("-sd", "--sep_date",
                     action="count", default=0)
 args = parser.parse_args(args=None)
 
-atcall = 'echo "source ~hetdex/.bashrc; runlrs2wranglergeneral %s %s" | at %s'
+atcall = 'echo "source ~hetdex/.bashrc_greg; runlrs2wranglergeneral %s %s" | at %s'
 
 args.log = setup_logging('advance_cube_creation')
 
@@ -119,7 +119,7 @@ for o in uobj:
                     R + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
                     "-d %s -c %s -dw 0.7") % (o+'_%s' % udate , args.directory, args.caldirectory)
             calls.append(call)
-            now = now + datetime.timedelta(seconds=120)
+            now = now + datetime.timedelta(seconds=240)
             tim = now.strftime('%H:%M %B %d')
             atcalls.append(atcall % (udate, o, tim))
     else:
