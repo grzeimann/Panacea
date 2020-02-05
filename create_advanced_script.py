@@ -131,7 +131,7 @@ for o in uobj:
                 "-d %s -c %s -dw 0.7") % (o, args.directory, args.caldirectory)
         calls.append(call)
         for udate in udates:
-            now = now + datetime.timedelta(seconds=120)
+            now = now + datetime.timedelta(seconds=240)
             tim = now.strftime('%H:%M %B %d')
             atcalls.append(atcall % (udate, o, tim))
 with open(args.outname, 'w') as out_file:
