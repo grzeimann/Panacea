@@ -170,7 +170,7 @@ def get_apcor(Xc, Yc, d, y):
     return apcor
 
 def find_centroid(pos, y, fibarea, fit_param=None):
-    mean, median, std = sigma_clipped_stats(y, stdfunc=mad_std)
+    median, std = biweight(y, calc_std=True)
     y = y - median
     ind = np.nanargmax(y)
     xc, yc = (pos[ind, 0], pos[ind, 1])
