@@ -63,7 +63,7 @@ for filename in filenames:
     if args.object is not None:
         if args.object.lower() not in st.lower():
             continue
-    make_calls.append(call % (op.basename(filename), args.directory, args.caldirectory)
+    make_calls.append(call % (op.basename(filename), args.directory, args.caldirectory))
 
 N = int(np.ceil(len(make_calls) / 20.))
 chunks = np.array_split(make_calls, N)
