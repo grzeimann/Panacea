@@ -180,6 +180,7 @@ def find_centroid(pos, y, fibarea, fit_param=None):
     Xc = pos[:, 0] - xc
     Yc = pos[:, 1] - yc
     sel = (d <= 3.0) * np.isfinite(y)
+    print(sel.sum())
     fit = LevMarLSQFitter()(G, pos[sel, 0], pos[sel, 1], y[sel])
     new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
     new_model[np.isnan(new_model)] = 0.0
@@ -193,7 +194,7 @@ def find_centroid(pos, y, fibarea, fit_param=None):
     return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm * fibarea, apcor
 
 def fix_centroid(pos, y, fibarea, fit_param=None):
-    mean, median, std = sigma_clipped_stats(y, stdfunc=mad_std)
+    median, std = biweight(y, calc_std=True)
     y = y - median
     xc, yc, xs, ys, th = fit_param
     G = Gaussian2D(x_mean=xc, y_mean=yc, x_stddev=xs, y_stddev=ys,
