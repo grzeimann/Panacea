@@ -180,7 +180,6 @@ def find_centroid(pos, y, fibarea, fit_param=None):
     Xc = pos[:, 0] - xc
     Yc = pos[:, 1] - yc
     sel = (d <= 3.0) * np.isfinite(y)
-    print(y)
     fit = LevMarLSQFitter()(G, pos[sel, 0], pos[sel, 1], y[sel])
     new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
     new_model[np.isnan(new_model)] = 0.0
@@ -312,7 +311,7 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
             XS.append(fit.x_stddev.value)
             YS.append(fit.y_stddev.value)
             TH.append(fit.theta.value)
-    return [w, xc, yc, xs, ys, th], Nmod, skysub_rect, sky_rect
+    return [np.array(xi) for xi in [w, XC, YC, XS, YS, TH]], Nmod, skysub_rect, sky_rect
 
 
 warnings.filterwarnings("ignore")
