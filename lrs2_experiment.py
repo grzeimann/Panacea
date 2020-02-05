@@ -292,63 +292,18 @@ def get_skyline_mask(sky_rect):
 def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
                          niter=3, func=find_centroid, fit_params=None):
     XC, YC, Nmod, w, XS, YS, TH = ([], [], [], [], [], [], [])
-    skysub_chunks, sky_chunks, spec_chunks = ([], [], [])
-    quick_sky = biweight(sky_rect, axis=0)
-    mask, cont = identify_sky_pixels(quick_sky)
-    std_sky = mad_std((quick_sky-cont)[~mask])
-    loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
-    loc = np.array(np.round(loc), dtype=int)
-    loc = loc[(loc>10) * (loc<(len(quick_sky)-10))]
-    Marray = skysub_rect[0, :] * 0.
-    G = Gaussian1DKernel(15.)
-    for i in np.arange(-6, 7):
-        Marray[loc+i] = np.nan
-    for chunk, schunk, wi, marray in zip(np.array_split(skysub_rect, nchunks, axis=1),
-                                         np.array_split(sky_rect, nchunks, axis=1),
-                                         np.array_split(def_wave, nchunks),
-                                         np.array_split(Marray, nchunks)):
+    for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
+                                 np.array_split(sky_rect, nchunks, axis=1),
+                                 np.array_split(def_wave, nchunks)):
         mod = biweight(chunk, axis=1)
-        clean_chunk = chunk * 1.
-    
-        if fit_params is None:
-            fit_param = None
+        xc, yc, q, fit, nmod, apcor = func(pos, mod, fibarea,
+                                           fit_param=fit_params)
+        if not too_bright:
+            model = nmod 
+            model = model / np.nansum(model) * apcor
         else:
-            fit_param = [np.interp(np.mean(wi), def_wave, fit_params[0]),
-                         np.interp(np.mean(wi), def_wave, fit_params[1]),
-                         fit_params[2], fit_params[3], fit_params[4]]
-        for n in np.arange(1, niter + 1):
-            xc, yc, q, fit, nmod, apcor = func(pos, mod, fibarea,
-                                               fit_param=fit_param)
-            if n == niter:
-                print('Iteration %i:' % n, xc, yc, q, '%0.3f' % apcor,
-                      fit.x_stddev.value, fit.y_stddev.value, fit.theta.value)
-            if not too_bright:
-                model = nmod 
-                model = model / np.nansum(model) * apcor
-            else:
-                model = mod
-                model = model / np.nansum(model) * apcor
-            spectra_chunk = extract_columns(model, chunk)
-            dummy = spectra_chunk * 1.
-            dummy[np.isnan(marray)] = np.nan
-            while np.isnan(dummy).sum():
-                dummy = interpolate_replace_nans(dummy, G)
-            spectra_chunk = dummy
-            model_chunk = model[:, np.newaxis] * spectra_chunk[np.newaxis, :]
-            goodpca = np.isfinite(chunk).sum(axis=1) > 0.75 * chunk.shape[1]
-            res = get_residual_map(chunk-model_chunk, pca, goodpca)
-            clean_chunk = chunk - res
-            spectra_chunk = extract_columns(model, clean_chunk)
-            dummy = spectra_chunk * 1.
-            dummy[np.isnan(marray)] = np.nan
-            while np.isnan(dummy).sum():
-                dummy = interpolate_replace_nans(dummy, G)
-            spectra_chunk = dummy
-            mod = biweight(clean_chunk / spectra_chunk[np.newaxis, :], axis=1)
-        schunk = schunk + res
-        skysub_chunks.append(clean_chunk)
-        sky_chunks.append(schunk)
-        spec_chunks.append(spectra_chunk)
+            model = mod
+            model = model / np.nansum(model) * apcor
         if q:
             Nmod.append(model)
             w.append(np.mean(wi))
@@ -357,12 +312,7 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
             XS.append(fit.x_stddev.value)
             YS.append(fit.y_stddev.value)
             TH.append(fit.theta.value)
-    skysub_rect, sky_rect, spec_rect = [np.hstack(x) 
-                                        for x in
-                                        [skysub_chunks, sky_chunks, spec_chunks]]
-    w, xc, yc, xs, ys, th = [np.array(x) for x in [w, XC, YC, XS, YS, TH]]
-    Nmod = np.array(Nmod)
-    return [w, xc, yc, xs, ys, th], Nmod, skysub_rect, sky_rect, spec_rect
+    return [w, xc, yc, xs, ys, th], Nmod, skysub_rect, sky_rect
 
 
 warnings.filterwarnings("ignore")
@@ -510,9 +460,9 @@ sky_rect_orig = sky_rect * 1.
 # =============================================================================
 # Get Extraction Model
 # =============================================================================
-info, Nmod, skysub_rect, sky_rect, spec_rect = get_extraction_model(skysub_rect,
-                                                                    sky_rect,
-                                                                    def_wave)
+info, Nmod, skysub_rect, sky_rect = get_extraction_model(skysub_rect,
+                                                         sky_rect,
+                                                         def_wave)
 w, xc, yc, xs, ys, th = info
 darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % channel_dict[channel])
 T = Table.read(darfile, format='ascii.fixed_width_two_line')
