@@ -184,21 +184,13 @@ def find_centroid(pos, y, fibarea, fit_param=None):
     yc = np.sum(image[sel] * grid_y[sel]) / np.sum(image[sel])
     a = y[np.nanargmax(y)]
     G = Gaussian2D(x_mean=xc, y_mean=yc, amplitude=a)
-    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
-                                       stdfunc=mad_std)
+#    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
+#                                       stdfunc=mad_std)
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
     Xc = pos[:, 0] - xc
     Yc = pos[:, 1] - yc
     sel = (d <= 2.0) * np.isfinite(y)
-    D = fitter(G, pos[sel, 0], pos[sel, 1], y[sel])
-    try:
-        fit = D[0]
-        dummy = fit(pos[:, 0], pos[:, 1])
-        mask = D[1]
-    except:
-        fit = D[1]
-        mask = D[0]
-    
+    fit = LevMarLSQFitter()(G, pos[sel, 0], pos[sel, 1], y[sel])
     new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
     new_model[np.isnan(new_model)] = 0.0
     fitquality = False
@@ -471,7 +463,7 @@ sky, I = get_mastersky(spec, ftf, wave)
 y = biweight(spec / ftf / sky, axis=1)
 cor, keep = correct_amplifier_offsets(y, xp, yp)
 newftf = ftf * cor[:, np.newaxis]
-fits.PrimaryHDU(newftf).writeto(args.multiname.replace('multi', 'ftf'), overwrite=True)
+#fits.PrimaryHDU(newftf).writeto(args.multiname.replace('multi', 'ftf'), overwrite=True)
 good = biweight(newftf, axis=1) > 0.5
 spec[~good] = np.nan
 sel = np.isfinite(keep)
@@ -585,8 +577,8 @@ else:
 skysub_rect = skysub_rect_orig - res
 sky_rect = sky_rect_orig + res
 
-fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
-                                                         overwrite=True)
+#fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
+#                                                         overwrite=True)
 
 # =============================================================================
 # Get Extraction
@@ -606,5 +598,5 @@ calibrated_ext = spec_rect * total_cal
 
 fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all, calibrated_ext], header=m[0].header).writeto(
                 args.multiname.replace('multi', 'spectrum'), overwrite=True)
-fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
-                                                         overwrite=True)
+#fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
+#                                                         overwrite=True)
