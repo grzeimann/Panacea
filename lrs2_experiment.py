@@ -178,12 +178,16 @@ def find_centroid(pos, y, fibarea, fit_param=None):
     init_d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
     sel = (init_d < 12.0) * np.isfinite(y)
     xc, yc = (pos[sel, 0][np.nanargmax(y[sel])], pos[sel, 1][np.nanargmax(y[sel])])
+
     d = np.sqrt((grid_x - xc)**2 + (grid_y - yc)**2)
     sel = (d < 2.) * np.isfinite(image)
     xc = np.sum(image[sel] * grid_x[sel]) / np.sum(image[sel])
     yc = np.sum(image[sel] * grid_y[sel]) / np.sum(image[sel])
     a = y[np.nanargmax(y)]
     G = Gaussian2D(x_mean=xc, y_mean=yc, amplitude=a)
+    if np.sqrt(xc**2 + yc**2) > 3.:
+        args.log.warning('Centroid > 3" from center: Cowardly exiting')
+        return 0., 0., False, G, y, 1.
 #    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
 #                                       stdfunc=mad_std)
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
