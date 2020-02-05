@@ -172,28 +172,14 @@ def get_apcor(Xc, Yc, d, y):
 def find_centroid(pos, y, fibarea, fit_param=None):
     mean, median, std = sigma_clipped_stats(y, stdfunc=mad_std)
     y = y - median
-    grid_x, grid_y = np.meshgrid(np.linspace(-7., 7., (14*5+1)),
-                                 np.linspace(-3.5, 3.5, 7*5+1))
-    image = griddata(pos[y>0., :2], y[y>0.], (grid_x, grid_y), method='cubic')
-    init_d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
-    sel = (init_d < 12.0) * np.isfinite(y)
-    xc, yc = (pos[sel, 0][np.nanargmax(y[sel])], pos[sel, 1][np.nanargmax(y[sel])])
-
-    d = np.sqrt((grid_x - xc)**2 + (grid_y - yc)**2)
-    sel = (d < 2.) * np.isfinite(image)
-    xc = np.sum(image[sel] * grid_x[sel]) / np.sum(image[sel])
-    yc = np.sum(image[sel] * grid_y[sel]) / np.sum(image[sel])
-    a = y[np.nanargmax(y)]
+    ind = np.nanargmax(y)
+    xc, yc = (pos[ind, 0], pos[ind, 1])
+    a = y[ind]
     G = Gaussian2D(x_mean=xc, y_mean=yc, amplitude=a)
-    if np.sqrt(xc**2 + yc**2) > 3.:
-        args.log.warning('Centroid > 3" from center: Cowardly exiting')
-        return 0., 0., False, G, y, 1.
-#    fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
-#                                       stdfunc=mad_std)
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
     Xc = pos[:, 0] - xc
     Yc = pos[:, 1] - yc
-    sel = (d <= 2.0) * np.isfinite(y)
+    sel = (d <= 3.0) * np.isfinite(y)
     fit = LevMarLSQFitter()(G, pos[sel, 0], pos[sel, 1], y[sel])
     new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
     new_model[np.isnan(new_model)] = 0.0
