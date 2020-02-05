@@ -493,7 +493,7 @@ for j, i in enumerate(inds):
     y = Gaussian2D(x_mean=xc, y_mean=yc, x_stddev=fit_params[2],
                    y_stddev=fit_params[3], theta=fit_params[4])(pos[:, 0], pos[:, 1])
     apcor[j] = get_apcor(Xc, Yc, d, y)
-
+print(apcor)
 apcor = np.polyval(np.polyfit(W, apcor, 3), def_wave)
 weight = skysub * 0.
 for i in np.arange(skysub.shape[1]):
