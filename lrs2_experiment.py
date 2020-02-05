@@ -297,6 +297,9 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
         mod = biweight(chunk, axis=1)
         xc, yc, q, fit, nmod, apcor = func(pos, mod, fibarea,
                                            fit_param=fit_params)
+        args.log.info('%0.2f: %0.2f %0.2f %0.2f %0.2f' % (np.mean(wi), xc, yc,
+                                                          fit.x_stddev.value,
+                                                          fit.y_stddev.value))
         if not too_bright:
             model = nmod 
             model = model / np.nansum(model) * apcor
