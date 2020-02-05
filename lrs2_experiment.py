@@ -176,7 +176,7 @@ def find_centroid(pos, y, fibarea, fit_param=None):
                                  np.linspace(-3.5, 3.5, 7*5+1))
     image = griddata(pos[y>0., :2], y[y>0.], (grid_x, grid_y), method='cubic')
     init_d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
-    sel = init_d < 3.0
+    sel = (init_d < 12.0) * np.isfinite(y)
     xc, yc = (pos[sel, 0][np.nanargmax(y[sel])], pos[sel, 1][np.nanargmax(y[sel])])
     d = np.sqrt((grid_x - xc)**2 + (grid_y - yc)**2)
     sel = (d < 2.) * np.isfinite(image)
