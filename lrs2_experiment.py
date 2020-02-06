@@ -453,7 +453,7 @@ if not too_bright:
 # =============================================================================
 skysub = spec / newftf - sky
 skysub_rect = rectify(skysub, wave, def_wave)
-spec_rect = rectify(spec, wave, def_wave)
+spec_rect = rectify(spec / newftf, wave, def_wave)
 sky_rect = rectify(sky, wave, def_wave)
 
 skysub_rect_orig = skysub_rect * 1.
