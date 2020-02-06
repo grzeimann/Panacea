@@ -543,7 +543,7 @@ spectrum_sum = np.nansum(skysub_rect, axis=0)
 calibrated_all = spectrum_sum * total_cal
 calibrated_ext = spec_rect * total_cal
 
-fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all, calibrated_ext], header=m[0].header).writeto(
+fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all, calibrated_ext, spectrum_sum], header=m[0].header).writeto(
                 args.multiname.replace('multi', 'spectrum'), overwrite=True)
 fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
                                                          overwrite=True)
