@@ -406,7 +406,6 @@ sky, I = get_mastersky(spec, ftf, wave)
 y = biweight(spec / ftf / sky, axis=1)
 cor, keep = correct_amplifier_offsets(y, xp, yp)
 newftf = ftf * cor[:, np.newaxis]
-#fits.PrimaryHDU(newftf).writeto(args.multiname.replace('multi', 'ftf'), overwrite=True)
 good = biweight(newftf, axis=1) > 0.5
 spec[~good] = np.nan
 sel = np.isfinite(keep)
@@ -545,5 +544,5 @@ calibrated_ext = spec_rect * total_cal
 
 fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all, calibrated_ext], header=m[0].header).writeto(
                 args.multiname.replace('multi', 'spectrum'), overwrite=True)
-fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
+fits.PrimaryHDU(skysub_rect_orig, header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
                                                          overwrite=True)
