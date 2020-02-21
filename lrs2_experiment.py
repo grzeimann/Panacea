@@ -514,10 +514,11 @@ dummy = skysub_rect_orig - model_image
 dummy[np.isnan(skyline_mask)] = np.nan
 smooth = dummy * 0.
 
-for i in np.arange(smooth.shape[0]):
-    smooth[i] = convolve(dummy[i], G, boundary='extend')
-    while np.isnan(smooth[i]).sum():
-        smooth[i] = interpolate_replace_nans(smooth[i], G) 
+if not too_bright:
+    for i in np.arange(smooth.shape[0]):
+        smooth[i] = convolve(dummy[i], G, boundary='extend')
+        while np.isnan(smooth[i]).sum():
+            smooth[i] = interpolate_replace_nans(smooth[i], G) 
 if not too_bright:
     res = get_residual_map(skysub_rect_orig - model_image - smooth, pca, good)
 else:
