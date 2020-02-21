@@ -529,7 +529,7 @@ fits.PrimaryHDU(res, header=m[0].header).writeto(args.multiname.replace('multi',
                                                          overwrite=True)
 fits.PrimaryHDU(skysub_rect_orig, header=m[0].header).writeto(args.multiname.replace('multi', 'orig'),
                                                          overwrite=True)
-skysub_rect = skysub_rect_orig - res
+skysub_rect = skysub_rect_orig - res - smooth
 sky_rect = sky_rect_orig + res
 
 #fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
