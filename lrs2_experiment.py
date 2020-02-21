@@ -513,6 +513,9 @@ G = Gaussian1DKernel(2.0)
 dummy = skysub_rect_orig - model_image
 dummy[np.isnan(skyline_mask)] = np.nan
 smooth = dummy * 0.
+image = skysub_rect_orig - model_image - smooth
+fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'temp'),
+                                                         overwrite=True)
 for i in np.arange(smooth.shape[0]):
     smooth[i] = convolve(dummy[i], G, boundary='extend')
     while np.isnan(smooth[i]).sum():
