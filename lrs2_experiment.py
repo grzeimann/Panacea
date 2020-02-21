@@ -523,7 +523,7 @@ if not too_bright:
 else:
     res = 0. * skysub_rect_orig
 image = skysub_rect_orig - model_image - smooth
-fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'temp'),
+fits.PrimaryHDU(image, header=m[0].header).writeto(args.multiname.replace('multi', 'temp'),
                                                          overwrite=True)
 skysub_rect = skysub_rect_orig - res
 sky_rect = sky_rect_orig + res
