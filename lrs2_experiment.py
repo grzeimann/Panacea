@@ -525,6 +525,10 @@ else:
 image = skysub_rect_orig - model_image - smooth
 fits.PrimaryHDU(image, header=m[0].header).writeto(args.multiname.replace('multi', 'temp'),
                                                          overwrite=True)
+fits.PrimaryHDU(res, header=m[0].header).writeto(args.multiname.replace('multi', 'res'),
+                                                         overwrite=True)
+fits.PrimaryHDU(skysub_rect_orig, header=m[0].header).writeto(args.multiname.replace('multi', 'orig'),
+                                                         overwrite=True)
 skysub_rect = skysub_rect_orig - res
 sky_rect = sky_rect_orig + res
 
