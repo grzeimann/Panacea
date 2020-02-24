@@ -177,7 +177,6 @@ def find_centroid(pos, y, fibarea, fit_param=None):
     xc, yc = (pos[d<3.][ind, 0], pos[d<3.][ind, 1])
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
     median, std = biweight(y[d>3.], calc_std=True)
-    print(median)
     a = y[d<3.][ind]
     G = Gaussian2D(x_mean=xc, y_mean=yc, amplitude=a)
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
@@ -186,7 +185,6 @@ def find_centroid(pos, y, fibarea, fit_param=None):
     new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
     new_model[np.isnan(new_model)] = 0.0
     fitquality = False
-    print(np.nanmax(new_model), std)
     if np.nanmax(new_model) > 5 * std:
         fitquality = True
     grid_x, grid_y = np.meshgrid(np.linspace(xc-5., xc+5., 101),
