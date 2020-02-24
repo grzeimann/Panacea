@@ -513,7 +513,7 @@ skyline_mask = get_skyline_mask(sky_rect)
 G = Gaussian1DKernel(2.0)
 dummy = skysub_rect_orig - model_image
 dummy[np.isnan(skyline_mask)] = np.nan
-smooth = dummy * 0.
+smooth = np.zeros(dummy.shape)
 
 if not too_bright:
     for i in np.arange(smooth.shape[0]):
