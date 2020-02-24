@@ -195,7 +195,7 @@ def find_centroid(pos, y, fibarea, fit_param=None):
     Xc = pos[:, 0] - xc
     Yc = pos[:, 1] - yc
     apcor = get_apcor(Xc, Yc, d, y)
-    return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm * fibarea
+    return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm * fibarea, apcor
 
 def fix_centroid(pos, y, fibarea, fit_param=None):
     median, std = biweight(y, calc_std=True)
@@ -418,7 +418,7 @@ sel = (np.abs(y - 1.) < 3. * std) * good
 # =============================================================================
 # Get fit to collapsed spectra
 # =============================================================================
-xc, yc, quality_flag, fit, mod = find_centroid(pos, y, fibarea)
+xc, yc, quality_flag, fit, mod, apcor = find_centroid(pos, y, fibarea)
 if quality_flag:
     d = np.sqrt((xp - xc)**2 + (yp -yc)**2)
     sel = d > (np.max(d) - 2.5)
