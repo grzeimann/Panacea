@@ -509,9 +509,13 @@ for i in np.arange(skysub.shape[1]):
                    y_stddev=fit_params[3], theta=fit_params[4])(pos[:, 0], pos[:, 1])
     weight[:, i] = y / np.sum(y)
 spec_rect = extract_columns(weight, skysub_rect_orig)
-model_image = weight * spec_rect[np.newaxis, :]
 skyline_mask = get_skyline_mask(sky_rect)
 G = Gaussian1DKernel(2.0)
+skyline_mask_1d = np.sum(skyline_mask, axis=0)
+spec_rect[np.isnan(skyline_mask_1d)] = np.nan
+while np.isnan(spec_rect).sum(): 
+    spec_rect = interpolate_replace_nans(spec_rect, G)
+model_image = weight * spec_rect[np.newaxis, :]
 dummy = skysub_rect_orig - model_image
 dummy[np.isnan(skyline_mask)] = np.nan
 smooth = dummy * 0.
