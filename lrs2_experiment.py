@@ -495,13 +495,13 @@ try:
 except:
     args.log.warning('Aperture Correction failed due to modeling issue')
     apcor = np.ones(def_wave.shape)
-
+args.log.info('%s: %0.2f %0.2f %0.2f %0.2f' % (args.multiname, xoff, yoff, fit_params[2],
+                                                  fit_params[3]))
 weight = skysub * 0.
 for i in np.arange(skysub.shape[1]):
     xc = fit_params[0][i]
     yc = fit_params[1][i]
-    args.log.info('%s: %0.2f %0.2f %0.2f %0.2f' % (args.multiname, xc, yc, fit_params[2],
-                                                  fit_params[3]))
+    
     y = Gaussian2D(x_mean=xc, y_mean=yc, x_stddev=fit_params[2],
                    y_stddev=fit_params[3], theta=fit_params[4])(pos[:, 0], pos[:, 1])
     weight[:, i] = y / np.sum(y)
