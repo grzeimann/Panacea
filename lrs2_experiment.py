@@ -415,7 +415,7 @@ sel = (np.abs(y - 1.) < 3. * std) * good
 # =============================================================================
 # Get fit to collapsed spectra
 # =============================================================================
-xc, yc, quality_flag, fit, mod, apcor = find_centroid(pos, y, fibarea)
+xc, yc, quality_flag, fit, mod = find_centroid(pos, y, fibarea)
 if quality_flag:
     d = np.sqrt((xp - xc)**2 + (yp -yc)**2)
     sel = d > (np.max(d) - 2.5)
