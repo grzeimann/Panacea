@@ -510,7 +510,7 @@ for i in np.arange(skysub.shape[1]):
     weight[:, i] = y / np.sum(y)
 spec_rect = extract_columns(weight, skysub_rect_orig)
 skyline_mask = get_skyline_mask(sky_rect)
-G = Gaussian1DKernel(2.0)
+G = Gaussian1DKernel(4.0)
 skyline_mask_1d = np.sum(skyline_mask, axis=0)
 spec_rect[np.isnan(skyline_mask_1d)] = np.nan
 while np.isnan(spec_rect).sum(): 
