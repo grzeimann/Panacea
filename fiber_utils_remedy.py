@@ -342,6 +342,7 @@ def get_spectra(array_flt, array_trace, array_mod=None, npix=5):
         pois_var[pois_var<0.] = 0.
         error_array = np.sqrt(pois_var + 3.5**2)
         chi2 = np.zeros((array_trace.shape[0], array_trace.shape[1]))
+        error = np.zeros((array_trace.shape[0], array_trace.shape[1]))
     spec = np.zeros((array_trace.shape[0], array_trace.shape[1]))
     N = array_flt.shape[0]
     x = np.arange(array_flt.shape[1])
@@ -366,14 +367,16 @@ def get_spectra(array_flt, array_trace, array_mod=None, npix=5):
                 chi2_a[0, :, j+LB] = array_flt[indv+j, x] * w
                 chi2_a[1, :, j+LB] = array_mod[indv+j, x] * w
                 chi2_a[2, :, j+LB] = error_array[indv+j, x] * w
+                error[fiber] += error_array[indv+j, x]**2 * w
             spec[fiber] += array_flt[indv+j, x] * w
+            
         if array_mod is not None:
             norm = chi2_a[0].sum(axis=1) / chi2_a[1].sum(axis=1)
             num = (chi2_a[0] - chi2_a[1] * norm[:, np.newaxis])**2
             denom = (chi2_a[2] + 0.01*chi2_a[0].sum(axis=1)[:, np.newaxis])**2
             chi2[fiber] = 1. / (1. + 5.) * np.sum(num / denom, axis=1)
     if array_mod is not None:
-        return spec, chi2
+        return spec, chi2, np.sqrt(error)
     return spec
 
 
