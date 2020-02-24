@@ -172,12 +172,13 @@ def get_apcor(Xc, Yc, d, y):
 def find_centroid(pos, y, fibarea, fit_param=None):
     d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
     median, std = biweight(y, calc_std=True)
+    sel = d<3.
     y = y - np.nanpercentile(y, 25)
-    ind = np.nanargmax(y[d<3.])
-    xc, yc = (pos[d<3.][ind, 0], pos[d<3.][ind, 1])
+    ind = np.nanargmax(y[sel])
+    xc, yc = (pos[sel][ind, 0], pos[sel][ind, 1])
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
     median, std = biweight(y[d>3.], calc_std=True)
-    a = y[d<3.][ind]
+    a = y[sel][ind]
     G = Gaussian2D(x_mean=xc, y_mean=yc, amplitude=a)
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
     sel = (d <= 2.0) * np.isfinite(y)
