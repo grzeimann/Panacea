@@ -367,9 +367,9 @@ image = m['image'].data
 cosmics = m['cosmics'].data
 fltspec = get_spectra(fltimage, trace)
 arcspec = get_spectra(arcimage, trace)
-spec, chi2 = get_spectra(image, trace, array_mod=fltimage)
-fltspec, arcspec, spec = [norm_spec_to_per_A(X, wave)
-                          for X in [fltspec, arcspec, spec]]
+spec, chi2, errspec = get_spectra(image, trace, array_mod=fltimage)
+fltspec, arcspec, spec, errspec = [norm_spec_to_per_A(X, wave)
+                              for X in [fltspec, arcspec, spec, errspec]]
 
 fibarea = 1. / 2. * np.sqrt(3.) * 0.59**2
 
@@ -454,6 +454,7 @@ if not too_bright:
 skysub = spec / newftf - sky
 skysub_rect = rectify(skysub, wave, def_wave)
 spec_rect = rectify(spec / newftf, wave, def_wave)
+error_rect = rectify(errspec / newftf, wave, def_wave)
 sky_rect = rectify(sky, wave, def_wave)
 
 skysub_rect_orig = skysub_rect * 1.
@@ -544,6 +545,7 @@ total_cal = (m['extracted_spectrum'].data[-1] /
               m[0].header['EXPTIME'] /  m[0].header['MILLUM'] /
               m[0].header['THROUGHP'])
 spectrum = np.nansum(mask * weight * skysub_rect, axis=0) / np.nansum(mask * weight**2, axis=0)
+error = np.sqrt(np.nansum(mask * weight * error_rect**2, axis=0) / np.nansum(mask * weight**2, axis=0))
 calibrated = spectrum * total_cal / apcor
 mask = np.isfinite(sky_rect)
 spectrum_sky = np.nansum(mask * weight * sky_rect, axis=0) / np.nansum(mask * weight**2, axis=0)
@@ -551,8 +553,10 @@ calibrated_sky = spectrum_sky * total_cal
 spectrum_sum = np.nansum(skysub_rect, axis=0)
 calibrated_all = spectrum_sum * total_cal
 calibrated_ext = spec_rect * total_cal
+calibrated_err = error * total_cal /apcor
 
-fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all, calibrated_ext, spectrum_sum], header=m[0].header).writeto(
+fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all, calibrated_ext, spectrum_sum,
+                 calibrated_err], header=m[0].header).writeto(
                 args.multiname.replace('multi', 'spectrum'), overwrite=True)
 fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
                                                          overwrite=True)
