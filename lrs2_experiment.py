@@ -170,27 +170,29 @@ def get_apcor(Xc, Yc, d, y):
     return apcor
 
 def find_centroid(pos, y, fibarea, fit_param=None):
+    d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
     median, std = biweight(y, calc_std=True)
-    y = y - median
-    ind = np.nanargmax(y)
-    xc, yc = (pos[ind, 0], pos[ind, 1])
-    a = y[ind]
+    y = y - np.nanpercentile(y, 25)
+    ind = np.nanargmax(y[d<3.])
+    xc, yc = (pos[d<3.][ind, 0], pos[d<3.][ind, 1])
+    d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
+    median, std = biweight(y[d>3.], calc_std=True)
+    print(median)
+    a = y[d<3.][ind]
     G = Gaussian2D(x_mean=xc, y_mean=yc, amplitude=a)
     d = np.sqrt((pos[:, 0] - xc)**2 + (pos[:, 1] - yc)**2)
-    Xc = pos[:, 0] - xc
-    Yc = pos[:, 1] - yc
-    sel = (d <= 3.0) * np.isfinite(y)
+    sel = (d <= 2.0) * np.isfinite(y)
     fit = LevMarLSQFitter()(G, pos[sel, 0], pos[sel, 1], y[sel])
     new_model= np.sqrt(fit(pos[:, 0], pos[:, 1])*y) 
     new_model[np.isnan(new_model)] = 0.0
     fitquality = False
+    print(np.nanmax(new_model), std)
     if np.nanmax(new_model) > 5 * std:
         fitquality = True
     grid_x, grid_y = np.meshgrid(np.linspace(xc-5., xc+5., 101),
                                  np.linspace(yc-5., yc+5., 101))
     norm = np.sum(fit(grid_x.ravel(), grid_y.ravel())) * 0.1**2
-    apcor = get_apcor(Xc, Yc, d, y)
-    return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm * fibarea, apcor
+    return fit.x_mean.value, fit.y_mean.value, fitquality, fit, new_model / norm * fibarea
 
 def fix_centroid(pos, y, fibarea, fit_param=None):
     median, std = biweight(y, calc_std=True)
@@ -289,14 +291,13 @@ def get_skyline_mask(sky_rect):
     return Marray
 
 def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
-                         niter=3, func=find_centroid, fit_params=None):
+                         func=find_centroid, fit_params=None):
     XC, YC, Nmod, w, XS, YS, TH = ([], [], [], [], [], [], [])
     for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
                                  np.array_split(sky_rect, nchunks, axis=1),
                                  np.array_split(def_wave, nchunks)):
         mod = biweight(chunk, axis=1)
-        xc, yc, q, fit, nmod, apcor = func(pos, mod, fibarea,
-                                           fit_param=fit_params)
+        xc, yc, q, fit, nmod = func(pos, mod, fibarea, fit_param=fit_params)
         if not too_bright:
             model = nmod 
             model = model / np.nansum(model) * apcor
@@ -400,7 +401,7 @@ pca = get_arc_pca(arcskysub_rect, goodfibers, mask, components=95)
 # Reducing Science
 # =============================================================================
 sky, I = get_mastersky(spec, ftf, wave)
-y = biweight(spec / ftf / sky, axis=1)
+y = biweight((spec / ftf / sky)[:, 400:600], axis=1)
 cor, keep = correct_amplifier_offsets(y, xp, yp)
 newftf = ftf * cor[:, np.newaxis]
 good = biweight(newftf, axis=1) > 0.5
