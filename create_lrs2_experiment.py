@@ -55,12 +55,15 @@ for filename in filenames:
         d = f[0].header['QDEC']
     except:
         d = '+00:00:00'
-    st = n.split(n[-6:])[0]
     try:
         ifuslot.append(n.split('_')[-2])
     except:
         continue
     if args.object is not None:
+        try: 
+            st = n.split(n[-6:])[0]
+        except:
+            continue
         if args.object.lower() not in st.lower():
             continue
     make_calls.append(call % (op.basename(filename), args.directory, args.caldirectory))
