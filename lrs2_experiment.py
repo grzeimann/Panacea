@@ -472,7 +472,7 @@ darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % channel_dict[channel])
 T = Table.read(darfile, format='ascii.fixed_width_two_line')
 posx, posy, model = get_extraction_model(skysub_rect, sky_rect, def_wave, T)
 
-fits.PrimaryHDU(np.array([posx.ravel(), posy.ravel(), model.ravel()])).writeto('test.fits', overwrite=True)
+fits.PrimaryHDU(pca.components_).writeto('test.fits', overwrite=True)
 sys.exit(1)
 XS = biweight(xs)
 YS = biweight(ys)
