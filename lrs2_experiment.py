@@ -292,7 +292,7 @@ def get_skyline_mask(sky_rect):
         Marray[:, loc+i] = np.nan
     return Marray
 
-def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
+def get_extraction_model(skysub_rect, sky_rect, def_wave, T, nchunks=15,
                          func=find_centroid, fit_params=None):
     XC, YC, Nmod, w, XS, YS, TH = ([], [], [], [], [], [], [])
     for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
