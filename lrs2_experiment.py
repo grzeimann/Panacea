@@ -292,7 +292,7 @@ def get_skyline_mask(sky_rect):
         Marray[:, loc+i] = np.nan
     return Marray
 
-def get_extraction_model(skysub_rect, sky_rect, def_wave, T, nchunks=15,
+def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
                          func=find_centroid, fit_params=None):
     XC, YC, Nmod, w, XS, YS, TH = ([], [], [], [], [], [], [])
     for chunk, schunk, wi in zip(np.array_split(skysub_rect, nchunks, axis=1),
@@ -300,7 +300,12 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, T, nchunks=15,
                                  np.array_split(def_wave, nchunks)):
         mod = biweight(chunk, axis=1)
         xc, yc, q, fit, nmod, apcor = func(pos, mod, fibarea, fit_param=fit_params)
-        model = mod / np.nansum(mod) * apcor
+        if not too_bright:
+            model = nmod 
+            model = model / np.nansum(model) * apcor
+        else:
+            model = mod
+            model = model / np.nansum(model) * apcor
         if q:
             Nmod.append(model)
             w.append(np.mean(wi))
@@ -309,18 +314,7 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, T, nchunks=15,
             XS.append(fit.x_stddev.value)
             YS.append(fit.y_stddev.value)
             TH.append(fit.theta.value)
-    w, xc, yc, xs, ys, th = [np.array(xi) for xi in [w, XC, YC, XS, YS, TH]] 
-    model = np.array(Nmod)
-    xdar = np.interp(w, T['wave'], T['x_0'])
-    ydar = np.interp(w, T['wave'], T['y_0'])
-    xoff = biweight(xc - xdar)
-    yoff = biweight(yc - ydar)
-    xc = np.interp(w, T['wave'], T['x_0']+xoff)
-    yc = np.interp(w, T['wave'], T['y_0']+yoff)
-    posx = pos[:, 0][np.newaxis, :] - xc[:, np.newaxis]
-    posy = pos[:, 1][np.newaxis, :] - yc[:, np.newaxis]
-    
-    return posx, posy, model
+    return [np.array(xi) for xi in [w, XC, YC, XS, YS, TH]], Nmod, skysub_rect, sky_rect
 
 
 warnings.filterwarnings("ignore")
@@ -468,12 +462,16 @@ sky_rect_orig = sky_rect * 1.
 # =============================================================================
 # Get Extraction Model
 # =============================================================================
+info, Nmod, skysub_rect, sky_rect = get_extraction_model(skysub_rect,
+                                                         sky_rect,
+                                                         def_wave)
+w, xc, yc, xs, ys, th = info
 darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % channel_dict[channel])
 T = Table.read(darfile, format='ascii.fixed_width_two_line')
-posx, posy, model = get_extraction_model(skysub_rect, sky_rect, def_wave, T)
-
-fits.PrimaryHDU(pca.components_).writeto('test.fits', overwrite=True)
-sys.exit(1)
+xdar = np.interp(w, T['wave'], T['x_0'])
+ydar = np.interp(w, T['wave'], T['y_0'])
+xoff = biweight(xc - xdar)
+yoff = biweight(yc - ydar)
 XS = biweight(xs)
 YS = biweight(ys)
 TH = biweight(th)
