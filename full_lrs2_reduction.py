@@ -2007,9 +2007,10 @@ for info in listinfo:
         def_arc = get_masterarc(lampfiles, amp,
                                 arc_names, masterbias, specname, trace)
 
-        #fits.PrimaryHDU(masterarc).writeto('wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
+        fits.PrimaryHDU(masterarc).writeto('wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
+        
         wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname,
                                        amp, otherimage=def_arc)
         #fits.PrimaryHDU(wave).writeto('test_wave.fits', overwrite=True)
