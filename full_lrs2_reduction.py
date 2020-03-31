@@ -882,7 +882,11 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
             lines['col3'][selhg] *= nrt / mxv
     found_lines = np.zeros((trace.shape[0], len(lines)))
     ls = np.argsort(lines['col3'])[::-1]
-    sel = np.abs(loc[fib] - lines['col2'][ls[0]]) < 50.
+    if side == 'farred':
+        distthresh = 15.
+    else:
+        distthresh = 50.
+    sel = np.abs(loc[fib] - lines['col2'][ls[0]]) < distthresh
     ind = np.where(sel)[0][np.argmax(pr[fib][sel])]
     off = loc[fib][ind] - lines['col2'][ls[0]]
 
