@@ -169,22 +169,28 @@ for j, _info in enumerate(shots_of_interest):
                     wl = 5001. * (1 + bintable['z'][ind])
                     wh = 5013. * (1 + bintable['z'][ind])
                     log.info('Collapsing around %0.2f-%0.2f' % (wl, wh))
-                    zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
-                                                  scale=0.25, seeing_fac=1.5, boxsize=10.,
-                                                  wrange=[wl, wh], nchunks=1,
-                                                  convolve_image=True,
-                                                  interp_kind='linear')
-                    nx, ny = centroid_2dg(zarray[0])
-                    nxc = np.interp(nx, np.arange(zarray[1].shape[1]),
-                                    zarray[1][0, :])
-                    nyc = np.interp(ny, np.arange(zarray[2].shape[0]),
-                                    zarray[2][:, 0])
-                    for n in [nxc, nyc]:
-                        if np.isnan(n):
-                            n = 0.0
-                    log.info('Original: %0.2f, %0.2f, Change: %0.2f, %0.2f' %
-                             (xc, yc, nxc, nyc))
-                    xc, yc = (nxc+xc, nyc+yc)
+                    try:
+                        zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
+                                                      scale=0.25, seeing_fac=1.5, boxsize=10.,
+                                                      wrange=[wl, wh], nchunks=1,
+                                                      convolve_image=True,
+                                                      interp_kind='linear')
+                        nx, ny = centroid_2dg(zarray[0])
+                        nxc = np.interp(nx, np.arange(zarray[1].shape[1]),
+                                        zarray[1][0, :])
+                        nyc = np.interp(ny, np.arange(zarray[2].shape[0]),
+                                        zarray[2][:, 0])
+                        for n in [nxc, nyc]:
+                            if np.isnan(n):
+                                n = 0.0
+                        log.info('Original: %0.2f, %0.2f, Change: %0.2f, %0.2f' %
+                                 (xc, yc, nxc, nyc))
+                        xc, yc = (nxc+xc, nyc+yc)
+                    except:
+                        log.warning('Image Collapse Failed')
+                        N = int(10. / 0.25)
+                        zarray = [np.zeros(N, N), np.zeros(N, N), np.zeros(N, N)]
+                   
 #                    zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
 #                                                  scale=0.25, seeing_fac=1.5, boxsize=4.,
 #                                                  wrange=[3470, 5540], nchunks=11,
