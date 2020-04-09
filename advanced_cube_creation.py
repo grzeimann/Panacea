@@ -232,7 +232,7 @@ def correct_amplifier_offsets(y, xp, yp, order=1, kernel=12.):
     if good.sum() < 5:
         args.log.warning("Cannot Make Correction")
         return np.ones(y.shape), k
-    mask, fit = fitter(Polynomial2D(1), xp[good], yp[good], (y/model)[good])
+    fit, model = fitter(Polynomial2D(1), xp[good], yp[good], (y/model)[good])
     smodel = fit(xp, yp)
     cor = model * smodel 
     bl, bml = biweight(k[:140]-cor[:140], calc_std=True)
