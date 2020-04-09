@@ -173,7 +173,7 @@ for j, _info in enumerate(shots_of_interest):
                         dra = (np.cos(np.deg2rad(np.median(dec))) * 3600. *
                                (ra - ncoords[ind].ra.deg))
                         ddec = (3600. * (dec - ncoords[ind].dec.deg))
-                        zarray1 = E.make_collapsed_image(xc, yc, dra, ddec, data, mask,
+                        zarray1 = E.make_collapsed_image(0., 0., dra, ddec, data, mask,
                                                       scale=0.25, seeing_fac=1.5, boxsize=10.,
                                                       wrange=[wl, wh], nchunks=1,
                                                       convolve_image=True,
