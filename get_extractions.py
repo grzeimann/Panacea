@@ -161,7 +161,7 @@ for j, _info in enumerate(shots_of_interest):
         log.info('Working on shot [%i / %i]: %s' % (j+1, N, name))
         E.load_shot(name, survey=args.survey)
         for ind in idx:
-            info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=7.)
+            info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=14.)
             if info_result is not None:
                 log.info('Extracting %s' % str(ID[ind]))
                 ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
