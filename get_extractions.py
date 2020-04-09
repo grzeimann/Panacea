@@ -166,9 +166,11 @@ for j, _info in enumerate(shots_of_interest):
                 log.info('Extracting %s' % str(ID[ind]))
                 ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
                 if args.recenter:
+                    wl = 5001. * (1 + bintable['z'][ind])
+                    wh = 5013. * (1 + bintable['z'][ind])
                     zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
-                                                  scale=0.25, seeing_fac=1.5, boxsize=4.,
-                                                  wrange=[3470, 5540], nchunks=11,
+                                                  scale=0.25, seeing_fac=1.5, boxsize=10.,
+                                                  wrange=[wl, wh], nchunks=1,
                                                   convolve_image=True,
                                                   interp_kind='linear')
                     nx, ny = centroid_2dg(zarray[0])
@@ -182,11 +184,11 @@ for j, _info in enumerate(shots_of_interest):
                     log.info('Original: %0.2f, %0.2f, Change: %0.2f, %0.2f' %
                              (xc, yc, nxc, nyc))
                     xc, yc = (nxc+xc, nyc+yc)
-                    zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
-                                                  scale=0.25, seeing_fac=1.5, boxsize=4.,
-                                                  wrange=[3470, 5540], nchunks=11,
-                                                  convolve_image=True,
-                                                  interp_kind='linear')
+#                    zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
+#                                                  scale=0.25, seeing_fac=1.5, boxsize=4.,
+#                                                  wrange=[3470, 5540], nchunks=11,
+#                                                  convolve_image=True,
+#                                                  interp_kind='linear')
                     Images.append(zarray[0])
                 weights = E.build_weights(xc, yc, ifux, ifuy, moffat)
                 second_mask = np.sqrt((ifux-xc)**2 + (ifuy-yc)**2) < 3.
