@@ -189,7 +189,8 @@ for j, _info in enumerate(shots_of_interest):
                     except:
                         log.warning('Image Collapse Failed')
                         N = int(10. / 0.25)
-                        zarray = [np.zeros(N, N), np.zeros(N, N), np.zeros(N, N)]
+                        zarray = [np.zeros((N, N)), np.zeros((N, N)),
+                                  np.zeros((N, N))]
                    
 #                    zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
 #                                                  scale=0.25, seeing_fac=1.5, boxsize=4.,
