@@ -177,7 +177,7 @@ for j, _info in enumerate(shots_of_interest):
                                                       scale=0.25, seeing_fac=1.5, boxsize=20.,
                                                       wrange=[wl, wh], nchunks=1,
                                                       convolve_image=True,
-                                                      interp_kind='linear')
+                                                      interp_kind='nearest')
                         zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
                                                       scale=0.25, seeing_fac=1.5, boxsize=10.,
                                                       wrange=[wl, wh], nchunks=1,
