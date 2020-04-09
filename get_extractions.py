@@ -69,17 +69,24 @@ parser.add_argument("outputname",
                     help='''Name of fits file output''',
                     type=str)
 
+parser.add_argument("-s", "--survey", type=str,
+		    help='''survey name; hdrX''',
+		    default='hdr1')
 parser.add_argument("-r", "--recenter",
                     help='''Re-centroid source''',
                     action="count", default=0)
 
 args = parser.parse_args(args=None)
 
+if args.survey == 'hdr1':
+    fname = 'fwhm_moffat'
+else:
+    fname = 'fwhm_virus'
 log = setup_logging('toy')
 log.info('Loading Survey')
-survey = Survey('hdr1')
+survey = Survey(args.survey)
 t = Table(survey.hdfile.root.Survey[:])
-sel = (t['response_4540'] > 0.08) * (t['fwhm_moffat'] < 2.6)
+sel = (t['response_4540'] > 0.01) * (t[fname] < 3.5)
 t = t[sel]
 survey.coords = survey.coords[sel]
 
@@ -129,7 +136,7 @@ for j, _info in enumerate(shots_of_interest):
     coord = _info[0]
     date = str(_info[1])
     i = _info[2]
-    fwhm = t['fwhm_moffat'][i]
+    fwhm = t[fname][i]
     moffat = E.moffat_psf(fwhm, 10.5, 0.25)
 
     epoch = Time(dt(int(date[:4]), int(date[4:6]), int(date[6:8]))).byear
@@ -152,7 +159,7 @@ for j, _info in enumerate(shots_of_interest):
     matched_sources[name] = idx
     if len(idx) > 0:
         log.info('Working on shot [%i / %i]: %s' % (j+1, N, name))
-        E.load_shot(name)
+        E.load_shot(name, survey=args.survey)
         for ind in idx:
             info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=7.)
             if info_result is not None:
