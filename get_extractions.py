@@ -196,7 +196,7 @@ for j, _info in enumerate(shots_of_interest):
                         xc, yc = (nxc+xc, nyc+yc)
                     except:
                         log.warning('Image Collapse Failed')
-                        N1 = int(10. / 0.25)
+                        N1 = int(20. / 0.25)
                         zarray1 = [np.zeros((N1, N1)), np.zeros((N1, N1)),
                                   np.zeros((N1, N1))]
                     Images.append(zarray1[0])
