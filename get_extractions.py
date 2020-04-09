@@ -170,6 +170,14 @@ for j, _info in enumerate(shots_of_interest):
                     wh = 5013. * (1 + bintable['z'][ind])
                     log.info('Collapsing around %0.2f-%0.2f' % (wl, wh))
                     try:
+                        dra = (np.cos(np.deg2rad(np.median(dec))) * 3600. *
+                               (ra - ncoords[ind].ra.deg))
+                        ddec = (3600. * (dec - ncoords[ind].dec.deg))
+                        zarray1 = E.make_collapsed_image(xc, yc, dra, ddec, data, mask,
+                                                      scale=0.25, seeing_fac=1.5, boxsize=10.,
+                                                      wrange=[wl, wh], nchunks=1,
+                                                      convolve_image=True,
+                                                      interp_kind='linear')
                         zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
                                                       scale=0.25, seeing_fac=1.5, boxsize=10.,
                                                       wrange=[wl, wh], nchunks=1,
@@ -188,16 +196,10 @@ for j, _info in enumerate(shots_of_interest):
                         xc, yc = (nxc+xc, nyc+yc)
                     except:
                         log.warning('Image Collapse Failed')
-                        N = int(10. / 0.25)
-                        zarray = [np.zeros((N, N)), np.zeros((N, N)),
-                                  np.zeros((N, N))]
-                   
-#                    zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
-#                                                  scale=0.25, seeing_fac=1.5, boxsize=4.,
-#                                                  wrange=[3470, 5540], nchunks=11,
-#                                                  convolve_image=True,
-#                                                  interp_kind='linear')
-                    Images.append(zarray[0])
+                        N1 = int(10. / 0.25)
+                        zarray1 = [np.zeros((N1, N1)), np.zeros((N1, N1)),
+                                  np.zeros((N1, N1))]
+                    Images.append(zarray1[0])
                 weights = E.build_weights(xc, yc, ifux, ifuy, moffat)
                 second_mask = np.sqrt((ifux-xc)**2 + (ifuy-yc)**2) < 3.
                 result = get_spectrum(data, error,
