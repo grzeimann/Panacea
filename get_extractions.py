@@ -161,7 +161,7 @@ for j, _info in enumerate(shots_of_interest):
         log.info('Working on shot [%i / %i]: %s' % (j+1, N, name))
         E.load_shot(name, survey=args.survey)
         for ind in idx:
-            info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=14.)
+            info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=8.)
             if info_result is not None:
                 log.info('Extracting %s' % str(ID[ind]))
                 ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
@@ -174,7 +174,7 @@ for j, _info in enumerate(shots_of_interest):
                                (ra - ncoords[ind].ra.deg))
                         ddec = (3600. * (dec - ncoords[ind].dec.deg))
                         zarray1 = E.make_collapsed_image(0., 0., dra, ddec, data, mask,
-                                                      scale=0.25, seeing_fac=1.5, boxsize=20.,
+                                                      scale=0.25, seeing_fac=1.5, boxsize=10.,
                                                       wrange=[wl, wh], nchunks=1,
                                                       convolve_image=True,
                                                       interp_kind='nearest')
