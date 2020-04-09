@@ -168,6 +168,7 @@ for j, _info in enumerate(shots_of_interest):
                 if args.recenter:
                     wl = 5001. * (1 + bintable['z'][ind])
                     wh = 5013. * (1 + bintable['z'][ind])
+                    log.info('Collapsing around %0.2f-%0.2f' % (wl, wh))
                     zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
                                                   scale=0.25, seeing_fac=1.5, boxsize=10.,
                                                   wrange=[wl, wh], nchunks=1,
