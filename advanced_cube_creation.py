@@ -624,25 +624,39 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
-        
-        quick_sky = biweight(SciSpectra, axis=0)
-        mask, cont = identify_sky_pixels(quick_sky)
-        std_sky = mad_std((quick_sky-cont)[~mask])
-        loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
-        loc = np.array(np.round(loc), dtype=int)
-        loc = loc[(loc>10) * (loc<len(quick_sky)-10)]
-        # Remove Continuum (gaussian filter)
-        skysub_rect = SciSpectra - quick_sky[np.newaxis, :]
-        Dummy = skysub_rect
-        for i in np.arange(-6, 7):
-            Dummy[:, loc+i] = np.nan
-        Smooth = Dummy * np.nan
-        for i in np.arange(Dummy.shape[0]):
-            Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
-            while np.isnan(Smooth[i]).sum():
-                Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
-        res = get_residual_map(skysub_rect-Smooth, pca, good)
-        SciSpectra = SciSpectra - res
+        if skY is None:
+            quick_sky = biweight(SciSpectra, axis=0)
+            mask, cont = identify_sky_pixels(quick_sky)
+            std_sky = mad_std((quick_sky-cont)[~mask])
+            loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
+            loc = np.array(np.round(loc), dtype=int)
+            loc = loc[(loc>10) * (loc<len(quick_sky)-10)]
+            # Remove Continuum (gaussian filter)
+            skysub_rect = SciSpectra - quick_sky[np.newaxis, :]
+            Dummy = skysub_rect
+            for i in np.arange(-6, 7):
+                Dummy[:, loc+i] = np.nan
+            Smooth = Dummy * np.nan
+            for i in np.arange(Dummy.shape[0]):
+                Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
+                while np.isnan(Smooth[i]).sum():
+                    Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
+            res = get_residual_map(skysub_rect-Smooth, pca, good)
+            SciSpectra = SciSpectra - res
+            skyval = quick_sky+res
+        else:
+            sel = (SciSpectra == 0.).sum(axis=1) < 200
+            y = biweight(SciSpectra[:, 200:-200], axis=1)
+            cor, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
+            mask = execute_sigma_clip(y / cor)
+            selm = mask.mask * sel
+            d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
+                        (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
+            for j in np.where(selm)[0]:
+                selm = selm + (d[j] < 3.)
+            sel = sel * ~selm
+            ratio = biweight(SciSpectra[sel] / skY, axis=0)
+            skyval = skY * ratio
         
         SciSpectra[~good] = 0.
         zcube, ecube, xgrid, ygrid, scisky = make_cube(P[0], P[1],
@@ -651,7 +665,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
                                                scale, ran, skysub=sky_subtract)
         scube = zcube * 0.
         scube, secube, xgrid, ygrid, dummy = make_cube(P[0], P[1],
-                                               quick_sky+res, 1.*np.isfinite(quick_sky+res),
+                                               skyval, 1.*np.isfinite(skyval),
                                                P[2], P[3], good,
                                                scale, ran, skysub=False)
         scube = scube + scisky[:, np.newaxis, np.newaxis]
@@ -919,38 +933,5 @@ def main():
     write_cube(def_wave, xgrid, ygrid, ecube, eoutname, Header)
     write_cube(def_wave, xgrid, ygrid, scube, soutname, Header)
 
-    
-    ################################# Sky #####################################
-#    cnt = 1
-#    F1, info = get_cube(SkyFits_List, Pos, scale, ran, None, waves, cnt, None,
-#                        def_wave, sky_subtract=False)
-#    if len(info):
-#        xgrid = info[0][2]
-#        ygrid = info[0][3]
-#        zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
-#        ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
-#        Header = SkyFits_List[0][0].header
-#        outname = '%s_%s_sky_cube.fits' % (args.galaxyname,  channel)
-#        eoutname = '%s_%s_sky_error_cube.fits' % (args.galaxyname,  channel)
-#        write_cube(wave, xgrid, ygrid, zcube, outname, Header)
-#        write_cube(wave, xgrid, ygrid, ecube, eoutname, Header)
-#    
-#    ################################# Cal #####################################
-#    cnt = 1
-#    F2, info = get_cube(CalFits_List, Pos, scale, ran, sky, wave, cnt,
-#                        sky_subtract=False, cal=True)
-#    if len(info):
-#        xgrid = info[0][2]
-#        ygrid = info[0][3]
-#        zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
-#        ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
-#        Header = CalFits_List[0].header
-#        outname = '%s_%s_lamp_cube.fits' % (args.galaxyname,  channel)
-#        eoutname = '%s_%s_lamp_error_cube.fits' % (args.galaxyname,  channel)
-#        write_cube(wave, xgrid, ygrid, zcube, outname, Header)
-#        write_cube(wave, xgrid, ygrid, ecube, eoutname, Header)
-#    outname = '%s_%s_multi.fits' % (args.galaxyname,  channel)
-#    
-#    fits.HDUList(F+F1+F2).writeto(outname, overwrite=True)
 
 main()
