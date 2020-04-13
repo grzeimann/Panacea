@@ -671,6 +671,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             for j in np.where(selm)[0]:
                 selm = selm + (d[j] < 3.)
             sel = sel * ~selm
+            args.log.info('Number of fibers for sky: %i' % sel.sum())
             ratio = biweight(SciSpectra[sel] / skY[sel], axis=0)
             skyval = skY * ratio
             SciSpectra = SciSpectra - skyval
