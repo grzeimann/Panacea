@@ -655,7 +655,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             for j in np.where(selm)[0]:
                 selm = selm + (d[j] < 3.)
             sel = sel * ~selm
-            ratio = biweight(SciSpectra[sel] / skY, axis=0)
+            ratio = biweight(SciSpectra[sel] / skY[sel], axis=0)
             skyval = skY * ratio
         
         SciSpectra[~good] = 0.
