@@ -77,6 +77,18 @@ parser.add_argument("-dw", "--delta_wavelength",
                     help='''Delta Wavelength in linear units for output''',
                     default=None, type=float)
 
+parser.add_argument("-bw", "--blue_wavelength",
+                    help='''blue wavelength''',
+                    default=None, type=float)
+
+parser.add_argument("-rw", "--red_wavelength",
+                    help='''Red Wavelength for object''',
+                    default=None, type=float)
+
+parser.add_argument("-ew", "--emission_width",
+                    help='''Emission width''',
+                    default=5., type=float)
+
 parser.add_argument("-dss", "--dont_subtract_sky",
                     help='''Don't Subtract Sky''',
                     action="count", default=0)
@@ -84,7 +96,6 @@ parser.add_argument("-dss", "--dont_subtract_sky",
 parser.add_argument("-uda", "--use_default_adr",
                     help='''Use Default ADR (only works for side)''',
                     action="count", default=0)
-
 
 parser.add_argument("-cws", "--correct_wavelength_to_sky",
                     help='''Correct wavelength to sky''',
@@ -580,15 +591,15 @@ def get_residual_map(data, pca, good):
     return res
 
 def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
-             cors, def_wave, sky_subtract=True, cal=False,
+             cors, def_wave, ems, sky_subtract=True, cal=False,
              scale_sky=False):
     F = []
     info = []
     if cors is None:
         cors = [None] * len(skies)
-    for _scifits, _calfits, P, skY, cor, wave in zip(SciFits_List,
+    for _scifits, _calfits, P, skY, cor, wave, em in zip(SciFits_List,
                                                      CalFits_List, Pos, skies,
-                                                     cors, waves):
+                                                     cors, waves, ems):
         args.log.info('Working on reduction for %s' % _scifits.filename())
         if not cal:
             SciSpectra = _scifits[0].data
@@ -646,6 +657,10 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             skyval = quick_sky+res
         else:
             sel = (SciSpectra == 0.).sum(axis=1) < 200
+            if em is not None:
+                wsel = np.abs(wave-em)<args.emission_width
+                if wsel.sum() > 0:
+                    y = biweight(SciSpectra[:, wsel], axis=1)
             y = biweight(SciSpectra[:, 200:-200], axis=1)
             cor, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
             mask = execute_sigma_clip(y / cor)
@@ -684,20 +699,6 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
                                              left=np.nan, right=np.nan)
         info.append([newcube, newerrcube, skycube, xgrid, ygrid])
         
-        # Subtract sky in fiber space rather than on the cube
-#        if sky_subtract:
-#            skytemp = np.nanmedian(SciSpectra[skysel], axis=0)
-#            if sky is not None:
-#                ratio = biweight(SciSpectra[skysel] / sky, axis=0)
-#                skytemp = sky * ratio
-#        else:
-#            skytemp = np.zeros((SciSpectra.shape[1],))
-#        if cnt == 0:
-#            func = fits.PrimaryHDU
-#        else:
-#            func = fits.ImageHDU
-#        f1 = create_header_objection(wave, SciSpectra - skytemp,
-#                                     func=func)
         F.append([])
         cnt += 1
     return F, info
@@ -733,6 +734,8 @@ def main():
     side_dict = {'uv': 'LRS2B', 'orange': 'LRS2B', 'red': 'LRS2R', 'farred': 'LRS2R'}
     otherchannel_dict = {'uv': 'orange', 'orange': 'uv', 'red': 'farred',
                          'farred': 'red'}
+    em_dict = {'uv': args.blue_wavelength, 'orange': args.blue_wavelength,
+               'red': args.red_wavelength, 'farred': args.red_wavelength}
     sciobs = []
     B, R = (False, False)
     for OBS in [bluesciobs, redsciobs]:
@@ -817,6 +820,7 @@ def main():
     skies = []
     cors = []
     waves = []
+    ems = []
     for j, _sciobs in enumerate(sciobs):
         channel = _sciobs.split('_')[-1][:-5]
         side = side_dict[channel]
@@ -850,9 +854,10 @@ def main():
             order = 1
             bins = 5
         if not args.use_default_adr:
-            xoff, yoff = get_adr_curve(pos, SciFits_List[-1][0].data, ordery=order, bins=bins)
+            xoff, yoff = get_adr_curve(pos, SciFits_List[-1][0].data, 
+                                       ordery=order, bins=bins)
         args.log.info('%s: %0.2f, %0.2f' % (_sciobs, np.mean(xoff), np.mean(yoff)))
-        xc, yc = (0., 0.) # find_centroid(pos, y)
+        xc, yc = (0., 0.)
         A = Astrometry(S.ra.deg, S.dec.deg, SciFits_List[-1][0].header['PARANGLE'],
                        xc, yc, x_scale=1., y_scale=1., kind='lrs2')
         raoff, decoff = get_ADR_RAdec(xoff+xc, yoff+yc, A)
@@ -865,6 +870,7 @@ def main():
         Pos.append([delta_ra, delta_dec, raoff, decoff])
         skies.append(sky)
         cors.append(cor)
+        ems.append(em_dict[channel])
     ran_array = np.array(ran_list)
     rmax = np.max(ran_array, axis=0)
     rmin = np.min(ran_array, axis=0)
@@ -909,7 +915,7 @@ def main():
     ############################### Science ###################################
     cnt = 0
     F, info = get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, 
-                       waves, cnt, cors, def_wave, sky_subtract=True)
+                       waves, cnt, cors, def_wave, ems, sky_subtract=True)
     xgrid = info[0][3]
     ygrid = info[0][4]
 #    norms = np.array([get_norm(i[0], xgrid, ygrid, wave) for i in info])
