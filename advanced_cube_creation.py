@@ -656,6 +656,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             SciSpectra = SciSpectra - res
             skyval = quick_sky+res
         else:
+            args.log.info('Using other sky for subtraction')
             sel = (SciSpectra == 0.).sum(axis=1) < 200
             if em is not None:
                 wsel = np.abs(wave-em)<args.emission_width
