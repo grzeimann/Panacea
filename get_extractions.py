@@ -72,6 +72,15 @@ parser.add_argument("outputname",
 parser.add_argument("-s", "--survey", type=str,
 		    help='''survey name; hdrX''',
 		    default='hdr1')
+
+parser.add_argument("-ra", "--RA", type=str,
+		    help='''ra name''',
+		    default='ra')
+
+parser.add_argument("-dec", "--Dec", type=str,
+		    help='''dec name''',
+		    default='dec')
+
 parser.add_argument("-r", "--recenter",
                     help='''Re-centroid source''',
                     action="count", default=0)
@@ -98,7 +107,7 @@ table = Table(bintable)
 
 ID = bintable['source_id']
 
-coords = SkyCoord(bintable['ra']*u.deg, bintable['dec']*u.deg)
+coords = SkyCoord(bintable[args.RA]*u.deg, bintable[args.Dec]*u.deg)
 
 max_sep = 11.0 * u.arcminute
 
@@ -142,12 +151,12 @@ for j, _info in enumerate(shots_of_interest):
     epoch = Time(dt(int(date[:4]), int(date[4:6]), int(date[6:8]))).byear
     try:
         deltaRA = ((epoch - 2015.5) * bintable['pmra'] / 1e3 / 3600. /
-                   np.cos(bintable['dec'] * np.pi / 180.))
+                   np.cos(bintable[args.Dec] * np.pi / 180.))
         deltaDE = (epoch - 2015.5) * bintable['pmdec'] / 1e3 / 3600.
         deltaRA[np.isnan(deltaRA)] = 0.0
         deltaDE[np.isnan(deltaDE)] = 0.0
-        ncoords = SkyCoord((bintable['ra']+deltaRA)*u.deg,
-                           (bintable['dec']+deltaDE)*u.deg)
+        ncoords = SkyCoord((bintable[args.RA]+deltaRA)*u.deg,
+                           (bintable[args.Dec]+deltaDE)*u.deg)
     except:
         log.warning("Can't convert proper motion for epoch")
         ncoords = coords
