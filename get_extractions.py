@@ -198,7 +198,7 @@ for j, _info in enumerate(shots_of_interest):
                         nra = ncoords[ind].ra.deg + nxc / np.cos(np.deg2rad(np.median(dec))) / 3600.
                         ndec = ncoords[ind].dec.deg + nyc / 3600.
                         log.info('%s: Shift: %0.2f, %0.2f, New: %0.6f, %0.5f' %
-                                 (nxc, nyc, nra, ndec))
+                                 (str(ID[ind]), nxc, nyc, nra, ndec))
                         zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
                                                       scale=0.25, seeing_fac=1.5, boxsize=10.,
                                                       wrange=[wl, wh], nchunks=1,
