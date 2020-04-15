@@ -186,7 +186,19 @@ for j, _info in enumerate(shots_of_interest):
                                                       scale=0.25, seeing_fac=1.5, boxsize=10.,
                                                       wrange=[wl, wh], nchunks=1,
                                                       convolve_image=True,
-                                                      interp_kind='nearest')
+                                                      interp_kind='linear')
+                        nx, ny = centroid_2dg(zarray1[0])
+                        nxc = np.interp(nx, np.arange(zarray1[1].shape[1]),
+                                        zarray1[1][0, :])
+                        nyc = np.interp(ny, np.arange(zarray1[2].shape[0]),
+                                        zarray1[2][:, 0])
+                        for n in [nxc, nyc]:
+                            if np.isnan(n):
+                                n = 0.0
+                        nra = ncoords[ind].ra.deg + nxc / np.cos(np.deg2rad(np.median(dec))) / 3600.
+                        ndec = ncoords[ind].dec.deg + nyc / 3600.
+                        log.info('%s: Shift: %0.2f, %0.2f, New: %0.6f, %0.5f' %
+                                 (nxc, nyc, nra, ndec))
                         zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
                                                       scale=0.25, seeing_fac=1.5, boxsize=10.,
                                                       wrange=[wl, wh], nchunks=1,
