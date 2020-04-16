@@ -170,7 +170,7 @@ for j, _info in enumerate(shots_of_interest):
         log.info('Working on shot [%i / %i]: %s' % (j+1, N, name))
         E.load_shot(name, survey=args.survey)
         for ind in idx:
-            info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=8.)
+            info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=10.)
             if info_result is not None:
                 log.info('Extracting %s' % str(ID[ind]))
                 ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
@@ -183,38 +183,38 @@ for j, _info in enumerate(shots_of_interest):
                                (ra - ncoords[ind].ra.deg))
                         ddec = (3600. * (dec - ncoords[ind].dec.deg))
                         zarray1 = E.make_collapsed_image(0., 0., dra, ddec, data, mask,
-                                                      scale=0.25, seeing_fac=1.5, boxsize=10.,
+                                                      scale=0.25, seeing_fac=1.5, boxsize=14.,
                                                       wrange=[wl, wh], nchunks=1,
                                                       convolve_image=True,
                                                       interp_kind='linear')
-                        nx, ny = centroid_2dg(zarray1[0])
-                        nxc = np.interp(nx, np.arange(zarray1[1].shape[1]),
-                                        zarray1[1][0, :])
-                        nyc = np.interp(ny, np.arange(zarray1[2].shape[0]),
-                                        zarray1[2][:, 0])
-                        for n in [nxc, nyc]:
-                            if np.isnan(n):
-                                n = 0.0
-                        nra = ncoords[ind].ra.deg + nxc / np.cos(np.deg2rad(np.median(dec))) / 3600.
-                        ndec = ncoords[ind].dec.deg + nyc / 3600.
-                        log.info('%s: Shift: %0.2f, %0.2f, New: %0.6f, %0.5f' %
-                                 (str(ID[ind]), nxc, nyc, nra, ndec))
-                        zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
-                                                      scale=0.25, seeing_fac=1.5, boxsize=10.,
-                                                      wrange=[wl, wh], nchunks=1,
-                                                      convolve_image=True,
-                                                      interp_kind='linear')
-                        nx, ny = centroid_2dg(zarray[0])
-                        nxc = np.interp(nx, np.arange(zarray[1].shape[1]),
-                                        zarray[1][0, :])
-                        nyc = np.interp(ny, np.arange(zarray[2].shape[0]),
-                                        zarray[2][:, 0])
-                        for n in [nxc, nyc]:
-                            if np.isnan(n):
-                                n = 0.0
-                        log.info('Original: %0.2f, %0.2f, Change: %0.2f, %0.2f' %
-                                 (xc, yc, nxc, nyc))
-                        xc, yc = (nxc+xc, nyc+yc)
+#                        nx, ny = centroid_2dg(zarray1[0])
+#                        nxc = np.interp(nx, np.arange(zarray1[1].shape[1]),
+#                                        zarray1[1][0, :])
+#                        nyc = np.interp(ny, np.arange(zarray1[2].shape[0]),
+#                                        zarray1[2][:, 0])
+#                        for n in [nxc, nyc]:
+#                            if np.isnan(n):
+#                                n = 0.0
+#                        nra = ncoords[ind].ra.deg + nxc / np.cos(np.deg2rad(np.median(dec))) / 3600.
+#                        ndec = ncoords[ind].dec.deg + nyc / 3600.
+#                        log.info('%s: Shift: %0.2f, %0.2f, New: %0.6f, %0.5f' %
+#                                 (str(ID[ind]), nxc, nyc, nra, ndec))
+#                        zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
+#                                                      scale=0.25, seeing_fac=1.5, boxsize=10.,
+#                                                      wrange=[wl, wh], nchunks=1,
+#                                                      convolve_image=True,
+#                                                      interp_kind='linear')
+#                        nx, ny = centroid_2dg(zarray[0])
+#                        nxc = np.interp(nx, np.arange(zarray[1].shape[1]),
+#                                        zarray[1][0, :])
+#                        nyc = np.interp(ny, np.arange(zarray[2].shape[0]),
+#                                        zarray[2][:, 0])
+#                        for n in [nxc, nyc]:
+#                            if np.isnan(n):
+#                                n = 0.0
+#                        log.info('Original: %0.2f, %0.2f, Change: %0.2f, %0.2f' %
+#                                 (xc, yc, nxc, nyc))
+#                        xc, yc = (nxc+xc, nyc+yc)
                     except:
                         log.warning('Image Collapse Failed')
                         N1 = int(10. / 0.25)
