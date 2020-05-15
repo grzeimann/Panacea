@@ -41,7 +41,7 @@ call = 'python Panacea/lrs2_experiment.py  %s -d %s -c %s'
 
 args.log = setup_logging('lrs2_experiment')
 
-filenames = sorted(glob.glob(op.join(args.directory, 'm*uv.fits')))
+filenames = sorted(glob.glob(op.join(args.directory, 'm*exp01*uv.fits')))
 
 #da = bname.split('_')[1]
 obj, ra, dec, ifuslot = ([], [], [], [])
@@ -58,36 +58,38 @@ def get_standards(date):
 channels = ['uv', 'orange']
 make_calls = []
 for filename in filenames:
-    f = fits.open(filename)
-    try:
-        n = f[0].header['OBJECT']
-    except:
-        continue
-    try:
-        r = f[0].header['QRA']
-    except:
-        r = '12:00:00'
-    try:
-        d = f[0].header['QDEC']
-    except:
-        d = '+00:00:00'
-    try:
-        ifuslot.append(n.split('_')[-2])
-    except:
-        continue
-    if args.object is not None:
-        try: 
-            st = n.split(n[-6:])[0]
+    allfilenames = sorted(glob.glob(filename.replace('exp01', 'exp*')))
+    for fn in allfilenames:
+        f = fits.open(fn)
+        try:
+            n = f[0].header['OBJECT']
         except:
             continue
-        if args.object.lower() not in st.lower():
+        try:
+            r = f[0].header['QRA']
+        except:
+            r = '12:00:00'
+        try:
+            d = f[0].header['QDEC']
+        except:
+            d = '+00:00:00'
+        try:
+            ifuslot.append(n.split('_')[-2])
+        except:
             continue
+        if args.object is not None:
+            try: 
+                st = n.split(n[-6:])[0]
+            except:
+                continue
+            if args.object.lower() not in st.lower():
+                continue
+        calls = []
+        for chan in channels:
+            calls.append(call % (op.basename(fn.replace('uv', chan)), args.directory, args.caldirectory))
     date = filename.split('_')[1]
-    calls = []
-    for chan in channels:
-        calls.append(call % (op.basename(filename.replace('uv', chan)), args.directory, args.caldirectory))
     standards = get_standards(date)
-    
+        
     for stan in standards:
         for chan in channels:
             calls.append(call % (op.basename(stan.replace('uv', chan)),
