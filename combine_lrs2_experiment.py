@@ -60,8 +60,8 @@ def get_cor(calbase, channel):
     p = np.polyfit(waves, Z, 2)
     init = np.polyval(p, k[0].data[0])
     cor = k[0].data[1] / (model * init)
-    cor[np.abs(k[0].data[0]-6563.)<40.] = np.nan
-    cor[np.abs(k[0].data[0]-4861.)<40.] = np.nan
+    cor[np.abs(k[0].data[0]-6563.)<50.] = np.nan
+    cor[np.abs(k[0].data[0]-4861.)<50.] = np.nan
     cor[np.isnan(cor)] = np.interp(k[0].data[0][np.isnan(cor)], k[0].data[0][np.isfinite(cor)],
                                    cor[np.isfinite(cor)], left=1.0, right=1.0)
     cor[k[0].data[0] < 4550.] = 1.
