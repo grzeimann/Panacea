@@ -76,6 +76,7 @@ for base, calbase, channels in zip([filename],
                                [filename2],
                                [['uv', 'orange']]):
     nexp = len(glob.glob('%s_exp*_%s.fits' % (base, channels[0])))
+    print('Found %i exposures' % nexp)
     for channel in channels:
         cor, CO = get_cor(calbase, channel)
         for i in np.arange(1, nexp+1):
