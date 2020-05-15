@@ -59,7 +59,7 @@ def get_cor(calbase, channel):
     cor = k[0].data[1] / (model * init)
     cor[np.abs(k[0].data[0]-6563.)<30.] = 1.
     cor[np.abs(k[0].data[0]-4861.)<30.] = 1.
-    cor[k[0].data[0] < 4710.] = 1.
+    cor[k[0].data[0] < 4550.] = 1.
     return init, cor
 
 def_wave = np.arange(3650., 10500., 0.7)
