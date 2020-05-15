@@ -379,6 +379,8 @@ fibarea = 1. / 2. * np.sqrt(3.) * 0.59**2
 mask = chi2 > 5
 spec[mask] = np.nan
 
+if channel == 'uv':
+    spec[:180, 197:199] = np.nan
 
 # =============================================================================
 # Getting Fiber to Fiber
