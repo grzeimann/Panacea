@@ -46,6 +46,14 @@ filenames = sorted(glob.glob(op.join(args.directory, 'm*uv.fits')))
 #da = bname.split('_')[1]
 obj, ra, dec, ifuslot = ([], [], [], [])
 
+def get_standards(date):
+    standards = []
+    while len(standards) == 0:
+        standards = sorted(glob.glob(op.join(args.standirectory, 'm*%s*uv.fits' % date)))
+        datet = datetime.datetime(int(date[:4]), int(date[4:6]), int(date[6:]))
+        datet = datetime.timedelta(days=-1) + datet
+        date = '%04d%02d%02d' % (datet.year, datet.month, datet.day)
+
 channels = ['uv', 'orange']
 make_calls = []
 for filename in filenames:
@@ -74,10 +82,11 @@ for filename in filenames:
         if args.object.lower() not in st.lower():
             continue
     date = filename.split('_')[1]
-    standards = sorted(glob.glob(op.join(args.standirectory, 'm*%s*uv.fits' % date)))
     calls = []
     for chan in channels:
         calls.append(call % (op.basename(filename.replace('uv', chan)), args.directory, args.caldirectory))
+    standards = get_standards(date)
+    
     for stan in standards:
         for chan in channels:
             calls.append(call % (op.basename(stan.replace('uv', chan)),
