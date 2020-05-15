@@ -128,7 +128,7 @@ allspec = allspec / norm[:, np.newaxis]
 allerr = allerr / norm[:, np.newaxis]
 weights = 1. / allerr**2
 weights = weights / np.nansum(weights, axis=0)[np.newaxis, :]
-Spec = np.sum(allspec*weights, axis=0)
+Spec = np.nansum(allspec*weights, axis=0)
 Err = np.nanmean(allerr, axis=0) / np.sqrt(np.isfinite(allerr).sum(axis=0))
 Sky = np.nanmean(allsky, axis=0)
 Cor = np.nanmean(c, axis=0)
