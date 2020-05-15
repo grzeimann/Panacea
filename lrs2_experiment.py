@@ -532,12 +532,12 @@ if not too_bright:
 else:
     res = 0. * skysub_rect_orig
 image = skysub_rect_orig - model_image - smooth
-fits.PrimaryHDU(image, header=m[0].header).writeto(args.multiname.replace('multi', 'temp'),
-                                                         overwrite=True)
-fits.PrimaryHDU(res, header=m[0].header).writeto(args.multiname.replace('multi', 'res'),
-                                                         overwrite=True)
-fits.PrimaryHDU(skysub_rect_orig, header=m[0].header).writeto(args.multiname.replace('multi', 'orig'),
-                                                         overwrite=True)
+#fits.PrimaryHDU(image, header=m[0].header).writeto(args.multiname.replace('multi', 'temp'),
+#                                                         overwrite=True)
+#fits.PrimaryHDU(res, header=m[0].header).writeto(args.multiname.replace('multi', 'res'),
+#                                                         overwrite=True)
+#fits.PrimaryHDU(skysub_rect_orig, header=m[0].header).writeto(args.multiname.replace('multi', 'orig'),
+#                                                         overwrite=True)
 skysub_rect = skysub_rect_orig - res - smooth
 sky_rect = sky_rect_orig + res
 
@@ -565,5 +565,9 @@ calibrated_err = error * total_cal /apcor
 fits.PrimaryHDU([def_wave, calibrated, calibrated_sky, calibrated_all, calibrated_ext, spectrum_sum,
                  calibrated_err], header=m[0].header).writeto(
                 args.multiname.replace('multi', 'spectrum'), overwrite=True)
-fits.PrimaryHDU(skysub_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
+fits.PrimaryHDU(np.array(skysub_rect, dtype='float32'), header=m[0].header).writeto(args.multiname.replace('multi', 'skysub'),
+                                                         overwrite=True)
+fits.PrimaryHDU(np.array(mask, dtype='float32'), header=m[0].header).writeto(args.multiname.replace('multi', 'mask'),
+                                                         overwrite=True)
+fits.PrimaryHDU(np.array(weight, dtype='float32', header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
                                                          overwrite=True)
