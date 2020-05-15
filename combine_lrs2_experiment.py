@@ -124,16 +124,19 @@ c = np.array(c)
 c[c==0.] = np.nan
 Spec = np.nanmean(allspec, axis=0)
 norm = np.nanmedian(allspec / Spec[np.newaxis, :], axis=1)
-
-Spec = np.nanmean(allspec / norm[:, np.newaxis], axis=0) * np.nanmedian(norm)
+allspec = allspec / norm[:, np.newaxis]
+allerr = allerr / norm[:, np.newaxis]
+weights = 1. / allerr**2
+weights = weights / np.nansum(weights, axis=0)[np.newaxis, :]
+Spec = np.sum(allspec*weights, axis=0)
 Err = np.nanmean(allerr, axis=0) / np.sqrt(np.isfinite(allerr).sum(axis=0))
 Sky = np.nanmean(allsky, axis=0)
 Cor = np.nanmean(c, axis=0)
 Spec[np.abs(def_wave-3735.7)<0.5] = np.nan
 Spec[np.abs(def_wave-4620.)<70.] = np.nan
 
-for s, n  in zip(allspec, norm):
-    plt.plot(def_wave, s/n * np.nanmedian(norm), lw=1.0, alpha=0.4, zorder=1)
+for s in allspec:
+    plt.plot(def_wave, s, lw=1.0, alpha=0.4, zorder=1)
 plt.plot(def_wave, Spec, 'k-', lw=1.0, alpha=0.4, zorder=2)
 Table([def_wave, Spec, Err, Sky, Cor], names=['wavelength', 'f_lam', 'e_lam', 'sky_lam', 'tel_cor']).write(base+'_coadd.txt', overwrite=True, format='ascii.fixed_width_two_line')
 plt.gca().tick_params(axis='both', which='both', direction='in')
