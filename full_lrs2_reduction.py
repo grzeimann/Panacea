@@ -43,7 +43,8 @@ standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
                   'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
                   'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
                   'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4',
-                  'BD+40_4032', 'HILTNER_102']
+                  'BD+40_4032', 'HILTNER_102',
+                  'BD_+26_2606']
 
 log = setup_logging('panacea_quicklook')
 
