@@ -27,7 +27,7 @@ sns.set_context('talk')
 sns.set_style('ticks')
 plt.figure(figsize=(10, 6))
 nexps = 1
-waves_dict = {'uv': np.array([3670., 4050., 4200., 4420., 4500., 4600.]),
+waves_dict = {'uv': np.array([3670., 4050., 4200., 4420., 4500., 4560.]),
               'orange': np.array([4750., 5050., 5600., 6000., 6650.]),
               'red': np.array([6700., 7100., 7450., 7700., 8000.]),
               'farred': np.array([8450, 8600., 8800., 9900., 10100.])}
@@ -54,7 +54,10 @@ def get_cor(calbase, channel):
         model = np.interp(k[0].data[0], M, Y)
     else:
         model = np.interp(k[0].data[0], m[:, 0], flux)
-    p = np.polyfit(waves, np.interp(waves, k[0].data[0], k[0].data[1] / model), 2)
+    Z = waves*0.
+    for j, wave in enumerate(waves):
+        Z[j] = np.nanmedian((k[0].data[1] / model)[np.abs(k[0].data[0] - wave)<5.])
+    p = np.polyfit(waves, Z, 2)
     init = np.polyval(p, k[0].data[0])
     cor = k[0].data[1] / (model * init)
     cor[np.abs(k[0].data[0]-6563.)<30.] = 1.
