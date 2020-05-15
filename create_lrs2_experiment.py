@@ -59,6 +59,7 @@ channels = ['uv', 'orange']
 make_calls = []
 for filename in filenames:
     allfilenames = sorted(glob.glob(filename.replace('exp01', 'exp*')))
+    calls = []
     for fn in allfilenames:
         f = fits.open(fn)
         try:
@@ -84,7 +85,6 @@ for filename in filenames:
                 continue
             if args.object.lower() not in st.lower():
                 continue
-        calls = []
         for chan in channels:
             calls.append(call % (op.basename(fn.replace('uv', chan)), args.directory, args.caldirectory))
     date = filename.split('_')[1]
