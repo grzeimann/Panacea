@@ -112,7 +112,7 @@ for i in np.arange(nexp):
     norm1 = np.polyval(p1, def_wave[sel])
     norm2 = np.polyval(p2, def_wave[sel])
     allspec[i][sel] = allspec[i][sel] / norm1 * norm
-    allspec[i+nexp][sel] = allspec[i+nexp][sel] / norm1 * norm
+    allspec[i+nexp][sel] = allspec[i+nexp][sel] / norm2 * norm
 #lims = [[4560., 4720., 4540., 4800.], [8275., 8400., 8100., 8550.]]
 #for j, a in enumerate(allspec):
 #    for lim in lims:
