@@ -91,8 +91,6 @@ for base, calbase, nexp, channels in zip([filename],
         c.append(np.interp(def_wave, f[0].data[0], CO*cor, left=0., right=0.))
 allspec = np.array(allspec)
 allspec[allspec==0.] = np.nan
-allspec[:, np.abs(def_wave-3735.7)<0.5] = np.nan
-allspec[:, np.abs(def_wave-4650.)<20.] = np.nan
 
 
 lims = [[6450., 6950., 6450., 7000.], [8275., 8400., 8100., 8550.]]
@@ -119,7 +117,7 @@ Sky = np.nanmean(allsky, axis=0)
 Cor = np.nanmean(c, axis=0)
 Spec[np.abs(def_wave-3735.7)<0.5] = np.nan
 Spec[np.abs(def_wave-4650.)<20.] = np.nan
-plt.plot(def_wave, convolve(np.nanmean(allspec, axis=0), Gaussian1DKernel(2.8)), lw=1.0, alpha=0.4, label=base, zorder=2)
+plt.plot(def_wave, Spec, lw=1.0, alpha=0.4, label=base, zorder=2)
 Table([def_wave, Spec, Err, Sky, Cor], names=['wavelength', 'f_lam', 'e_lam', 'sky_lam', 'tel_cor']).write(base+'_coadd.txt', overwrite=True, format='ascii.fixed_width_two_line')
 plt.gca().tick_params(axis='both', which='both', direction='in')
 plt.gca().tick_params(axis='y', which='both', left=True, right=True)
@@ -128,8 +126,8 @@ plt.gca().tick_params(axis='both', which='major', length=15, width=3)
 plt.gca().tick_params(axis='both', which='minor', length=6, width=2)
 ML = MultipleLocator(1000)
 ml = MultipleLocator(200)
-ran = (np.nanpercentile(Spec[-1], 98) - np.nanpercentile(Spec[-1], 2))
-low = np.nanpercentile(Spec[-1], 2)
+ran = (np.nanpercentile(Spec, 98) - np.nanpercentile(Spec, 2))
+low = np.nanpercentile(Spec, 2)
 plt.gca().xaxis.set_major_locator(ML)
 plt.gca().xaxis.set_minor_locator(ml)
 plt.xlabel('Wavelength')
