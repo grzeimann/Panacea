@@ -74,13 +74,13 @@ for filename in filenames:
         if args.object.lower() not in st.lower():
             continue
     date = filename.split('_')[1]
-    standards = sorted(glob.glob(op.join(args.directory, 'm*%s*uv.fits' % date)))
+    standards = sorted(glob.glob(op.join(args.standirectory, 'm*%s*uv.fits' % date)))
     calls = []
     for chan in channels:
         calls.append(call % (op.basename(filename.replace('uv', chan)), args.directory, args.caldirectory))
     for stan in standards:
         for chan in channels:
-            calls.append(call % (op.basename(filename.replace('uv', chan)),
+            calls.append(call % (op.basename(stan.replace('uv', chan)),
                                  args.standirectory, args.caldirectory))
     make_calls.append('; '.join(calls))
 
