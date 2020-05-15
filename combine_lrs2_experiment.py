@@ -94,7 +94,25 @@ for base, calbase, channels in zip([filename],
 allspec = np.array(allspec)
 allspec[allspec==0.] = np.nan
 
-
+for i in np.arange(nexp):
+    a1 = allspec[i]
+    a2 = allspec[i+nexp]
+    n1 = np.nanmedian(a1[np.abs(def_wave-4640.)<5.])
+    n2 = np.nanmedian(a2[np.abs(def_wave-4640.)<5.])
+    avg = (n1 + n2) / 2.
+    n3 = np.nanmedian(a1[np.abs(def_wave-4600.)<5.])
+    n4 = np.nanmedian(a2[np.abs(def_wave-4680.)<5.])
+    sel = (def_wave > 4600.) * (def_wave < 4680.)
+    sel1 = sel * np.isfinite(a1)
+    sel2 = sel * np.isfinite(a2)
+    p0 = np.polyfit([4600., 4640., 4680.], [n3, avg, n4], 2)
+    p1 = np.polyfit(def_wave[sel1], a1[sel1], 2)
+    p2 = np.polyfit(def_wave[sel2], a2[sel2], 2)
+    norm = np.polyval(p0, def_wave[sel])
+    norm1 = np.polyval(p1, def_wave[sel])
+    norm2 = np.polyval(p2, def_wave[sel])
+    allspec[i][sel] = allspec[i][sel] / norm1 * norm
+    allspec[i+nexp][sel] = allspec[i+nexp][sel] / norm1 * norm
 #lims = [[4560., 4720., 4540., 4800.], [8275., 8400., 8100., 8550.]]
 #for j, a in enumerate(allspec):
 #    for lim in lims:
