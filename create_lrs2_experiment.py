@@ -53,6 +53,7 @@ def get_standards(date):
         datet = datetime.datetime(int(date[:4]), int(date[4:6]), int(date[6:]))
         datet = datetime.timedelta(days=-1) + datet
         date = '%04d%02d%02d' % (datet.year, datet.month, datet.day)
+    return standards
 
 channels = ['uv', 'orange']
 make_calls = []
