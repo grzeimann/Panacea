@@ -93,6 +93,8 @@ for filename in filenames:
     standards = get_standards(date)
     name1 = '_'.join(op.basename(filename).split('_')[:3])  
     name2 = '_'.join(op.basename(standards[0]).split('_')[:3])
+    name1 = name1.replace('multi', 'spectrum')
+    name2 = name2.replace('multi', 'spectrum')
     for stan in standards:
         for chan in channels:
             calls.append(call % (op.basename(stan.replace('uv', chan)),
