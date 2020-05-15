@@ -113,12 +113,14 @@ allsky = np.array(allsky)
 allsky[allerr==0.] = np.nan
 c = np.array(c)
 c[c==0.] = np.nan
-Spec.append(np.nanmean(allspec, axis=0))
-Err.append(np.nanmean(allerr, axis=0) / np.sqrt(np.isfinite(allerr).sum(axis=0)))
-Sky.append(np.nanmean(allsky, axis=0))
-Cor.append(np.nanmean(c, axis=0))
+Spec = np.nanmean(allspec, axis=0)
+Err = np.nanmean(allerr, axis=0) / np.sqrt(np.isfinite(allerr).sum(axis=0))
+Sky = np.nanmean(allsky, axis=0)
+Cor = np.nanmean(c, axis=0)
+Spec[np.abs(def_wave-3735.7)<0.5] = np.nan
+Spec[np.abs(def_wave-4650.)<20.] = np.nan
 plt.plot(def_wave, convolve(np.nanmean(allspec, axis=0), Gaussian1DKernel(2.8)), lw=1.0, alpha=0.4, label=base, zorder=2)
-Table([def_wave, Spec[-1], Err[-1], Sky[-1], Cor[-1]], names=['wavelength', 'f_lam', 'e_lam', 'sky_lam', 'tel_cor']).write(base+'_coadd.txt', overwrite=True, format='ascii.fixed_width_two_line')
+Table([def_wave, Spec, Err, Sky, Cor], names=['wavelength', 'f_lam', 'e_lam', 'sky_lam', 'tel_cor']).write(base+'_coadd.txt', overwrite=True, format='ascii.fixed_width_two_line')
 plt.gca().tick_params(axis='both', which='both', direction='in')
 plt.gca().tick_params(axis='y', which='both', left=True, right=True)
 plt.gca().tick_params(axis='x', which='both', bottom=True, top=True)
