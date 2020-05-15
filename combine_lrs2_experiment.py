@@ -100,12 +100,12 @@ for i in np.arange(nexp):
     n1 = np.nanmedian(a1[np.abs(def_wave-4640.)<5.])
     n2 = np.nanmedian(a2[np.abs(def_wave-4640.)<5.])
     avg = (n1 + n2) / 2.
-    n3 = np.nanmedian(a1[np.abs(def_wave-4600.)<5.])
-    n4 = np.nanmedian(a2[np.abs(def_wave-4680.)<5.])
-    sel = (def_wave > 4600.) * (def_wave < 4680.)
+    n3 = np.nanmedian(a1[np.abs(def_wave-4580.)<5.])
+    n4 = np.nanmedian(a2[np.abs(def_wave-4710.)<5.])
+    sel = (def_wave > 4580.) * (def_wave < 4710.)
     sel1 = sel * np.isfinite(a1)
     sel2 = sel * np.isfinite(a2)
-    p0 = np.polyfit([4600., 4640., 4680.], [n3, avg, n4], 2)
+    p0 = np.polyfit([4580., 4640., 4710.], [n3, avg, n4], 2)
     p1 = np.polyfit(def_wave[sel1], a1[sel1], 2)
     p2 = np.polyfit(def_wave[sel2], a2[sel2], 2)
     norm = np.polyval(p0, def_wave[sel])
@@ -150,7 +150,6 @@ Err = np.nanmean(allerr, axis=0) / np.sqrt(np.isfinite(allerr).sum(axis=0))
 Sky = np.nanmean(allsky, axis=0)
 Cor = np.nanmean(c, axis=0)
 Spec[np.abs(def_wave-3735.7)<0.5] = np.nan
-Spec[np.abs(def_wave-4650.)<60.] = np.nan
 for s, n  in zip(allspec, norm):
     plt.plot(def_wave, s/n * np.nanmedian(norm), lw=1.0, alpha=0.4, zorder=1)
 plt.plot(def_wave, Spec, 'k-', lw=1.0, alpha=0.4, zorder=2)
