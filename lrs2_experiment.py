@@ -380,7 +380,7 @@ mask = chi2 > 5
 spec[mask] = np.nan
 
 if channel == 'uv':
-    spec[:180, 197:199] = np.nan
+    spec[:180, 209:212] = np.nan
 
 # =============================================================================
 # Getting Fiber to Fiber
