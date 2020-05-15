@@ -91,19 +91,20 @@ for base, calbase, nexp, channels in zip([filename],
         c.append(np.interp(def_wave, f[0].data[0], CO*cor, left=0., right=0.))
 allspec = np.array(allspec)
 allspec[allspec==0.] = np.nan
-#
-#lims = [[6450., 6950., 6450., 7000.], [8275., 8400., 8100., 8550.]]
-#for j, a in enumerate(allspec):
-#    for lim in lims:
-#        sel = np.isfinite(a) * (def_wave>lim[0]) * (def_wave<lim[1])
-#        if sel.sum():
-#            left = np.nanmedian(allspec[:, np.abs(def_wave-lim[2])<100.])
-#            right = np.nanmedian(allspec[:, np.abs(def_wave-lim[3])<100.])
-#            print(left, right, lim, j)
-#            m = (right - left) / (lim[3] - lim[2])
-#            d = np.polyval(np.polyfit(def_wave[sel], a[sel], 2), def_wave[sel])
-#            y = m * (def_wave[sel] - lim[2]) + left
-#            allspec[j][sel] = a[sel] * y / d
+allspec[np.abs(def_wave-3735.7)<0.5] = np.nan
+
+lims = [[6450., 6950., 6450., 7000.], [8275., 8400., 8100., 8550.]]
+for j, a in enumerate(allspec):
+    for lim in lims:
+        sel = np.isfinite(a) * (def_wave>lim[0]) * (def_wave<lim[1])
+        if sel.sum():
+            left = np.nanmedian(allspec[:, np.abs(def_wave-lim[2])<100.])
+            right = np.nanmedian(allspec[:, np.abs(def_wave-lim[3])<100.])
+            print(left, right, lim, j)
+            m = (right - left) / (lim[3] - lim[2])
+            d = np.polyval(np.polyfit(def_wave[sel], a[sel], 2), def_wave[sel])
+            y = m * (def_wave[sel] - lim[2]) + left
+            allspec[j][sel] = a[sel] * y / d
 allerr = np.array(allerr)
 allerr[allerr==0.] = np.nan
 allsky = np.array(allsky)
