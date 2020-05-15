@@ -91,8 +91,8 @@ for filename in filenames:
             calls.append(call % (op.basename(fn.replace('uv', chan)), args.directory, args.caldirectory))
     date = filename.split('_')[1]
     standards = get_standards(date)
-    name1 = '_'.join(filename.split('_')[:3])  
-    name2 = '_'.join(standards[0].split('_')[:3])
+    name1 = '_'.join(op.basename(filename).split('_')[:3])  
+    name2 = '_'.join(op.basename(standards[0]).split('_')[:3])
     for stan in standards:
         for chan in channels:
             calls.append(call % (op.basename(stan.replace('uv', chan)),
