@@ -39,6 +39,8 @@ args = parser.parse_args(args=None)
 
 call = 'python3 Panacea/lrs2_experiment.py  %s -d %s -c %s'
 
+com_call = 'python3 Panacea/combine_lrs2_experiment.py  %s %s'
+
 args.log = setup_logging('lrs2_experiment')
 
 filenames = sorted(glob.glob(op.join(args.directory, 'm*exp01*uv.fits')))
@@ -89,11 +91,13 @@ for filename in filenames:
             calls.append(call % (op.basename(fn.replace('uv', chan)), args.directory, args.caldirectory))
     date = filename.split('_')[1]
     standards = get_standards(date)
-        
+    name1 = '_'.join(filename.split('_')[:3])  
+    name2 = '_'.join(standards[0].split('_')[:3])
     for stan in standards:
         for chan in channels:
             calls.append(call % (op.basename(stan.replace('uv', chan)),
                                  args.standirectory, args.caldirectory))
+    calls.append(com_call % (name1, name2))
     make_calls.append('; '.join(calls))
 
 N = int(np.ceil(len(make_calls) / 20.))
