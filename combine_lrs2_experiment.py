@@ -59,7 +59,7 @@ def get_cor(calbase, channel):
     cor = k[0].data[1] / (model * init)
     cor[np.abs(k[0].data[0]-6563.)<30.] = 1.
     cor[np.abs(k[0].data[0]-4861.)<30.] = 1.
-    cor[k[0].data[0] < 4600.] = 1.
+    cor[k[0].data[0] < 4710.] = 1.
     return init, cor
 
 def_wave = np.arange(3650., 10500., 0.7)
@@ -113,29 +113,6 @@ for i in np.arange(nexp):
     norm2 = np.polyval(p2, def_wave[sel])
     allspec[i][sel] = allspec[i][sel] / norm1 * norm
     allspec[i+nexp][sel] = allspec[i+nexp][sel] / norm2 * norm
-#lims = [[4560., 4720., 4540., 4800.], [8275., 8400., 8100., 8550.]]
-#for j, a in enumerate(allspec):
-#    for lim in lims:
-#        sel = np.isfinite(a) * (def_wave>lim[0]) * (def_wave<lim[1])
-#        if sel.sum():
-#            left = np.nanmedian(allspec[:, np.abs(def_wave-lim[2])<20.])
-#            right = np.nanmedian(allspec[:, np.abs(def_wave-lim[3])<40.])
-#            m = (right - left) / (lim[3] - lim[2])
-#            d = np.polyval(np.polyfit(def_wave[sel], a[sel], 2), def_wave[sel])
-#            y = m * (def_wave[sel] - lim[2]) + left
-#            allspec[j][sel] = a[sel] * y / d
-
-#lims = [[6450., 6950., 6450., 7000.], [8275., 8400., 8100., 8550.]]
-#for j, a in enumerate(allspec):
-#    for lim in lims:
-#        sel = np.isfinite(a) * (def_wave>lim[0]) * (def_wave<lim[1])
-#        if sel.sum():
-#            left = np.nanmedian(allspec[:, np.abs(def_wave-lim[2])<100.])
-#            right = np.nanmedian(allspec[:, np.abs(def_wave-lim[3])<100.])
-#            m = (right - left) / (lim[3] - lim[2])
-#            d = np.polyval(np.polyfit(def_wave[sel], a[sel], 2), def_wave[sel])
-#            y = m * (def_wave[sel] - lim[2]) + left
-#            allspec[j][sel] = a[sel] * y / d
 allerr = np.array(allerr)
 allerr[allerr==0.] = np.nan
 allsky = np.array(allsky)
