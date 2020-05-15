@@ -119,7 +119,7 @@ Err = np.nanmean(allerr, axis=0) / np.sqrt(np.isfinite(allerr).sum(axis=0))
 Sky = np.nanmean(allsky, axis=0)
 Cor = np.nanmean(c, axis=0)
 Spec[np.abs(def_wave-3735.7)<0.5] = np.nan
-Spec[np.abs(def_wave-4650.)<20.] = np.nan
+Spec[np.abs(def_wave-4650.)<35.] = np.nan
 for s, n  in zip(allspec, norm):
     plt.plot(def_wave, s/n * np.nanmedian(norm), lw=1.0, alpha=0.4, zorder=1)
 plt.plot(def_wave, Spec, 'k-', lw=1.0, alpha=0.4, zorder=2)
