@@ -95,17 +95,17 @@ allspec = np.array(allspec)
 allspec[allspec==0.] = np.nan
 
 
-lims = [[4560., 4720., 4540., 4800.], [8275., 8400., 8100., 8550.]]
-for j, a in enumerate(allspec):
-    for lim in lims:
-        sel = np.isfinite(a) * (def_wave>lim[0]) * (def_wave<lim[1])
-        if sel.sum():
-            left = np.nanmedian(allspec[:, np.abs(def_wave-lim[2])<20.])
-            right = np.nanmedian(allspec[:, np.abs(def_wave-lim[3])<40.])
-            m = (right - left) / (lim[3] - lim[2])
-            d = np.polyval(np.polyfit(def_wave[sel], a[sel], 2), def_wave[sel])
-            y = m * (def_wave[sel] - lim[2]) + left
-            allspec[j][sel] = a[sel] * y / d
+#lims = [[4560., 4720., 4540., 4800.], [8275., 8400., 8100., 8550.]]
+#for j, a in enumerate(allspec):
+#    for lim in lims:
+#        sel = np.isfinite(a) * (def_wave>lim[0]) * (def_wave<lim[1])
+#        if sel.sum():
+#            left = np.nanmedian(allspec[:, np.abs(def_wave-lim[2])<20.])
+#            right = np.nanmedian(allspec[:, np.abs(def_wave-lim[3])<40.])
+#            m = (right - left) / (lim[3] - lim[2])
+#            d = np.polyval(np.polyfit(def_wave[sel], a[sel], 2), def_wave[sel])
+#            y = m * (def_wave[sel] - lim[2]) + left
+#            allspec[j][sel] = a[sel] * y / d
 
 #lims = [[6450., 6950., 6450., 7000.], [8275., 8400., 8100., 8550.]]
 #for j, a in enumerate(allspec):
