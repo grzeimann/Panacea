@@ -569,5 +569,5 @@ fits.PrimaryHDU(np.array(skysub_rect, dtype='float32'), header=m[0].header).writ
                                                          overwrite=True)
 fits.PrimaryHDU(np.array(mask, dtype='float32'), header=m[0].header).writeto(args.multiname.replace('multi', 'mask'),
                                                          overwrite=True)
-fits.PrimaryHDU(np.array(weight, dtype='float32', header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
+fits.PrimaryHDU(np.array(weight, dtype='float32'), header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
                                                          overwrite=True)
