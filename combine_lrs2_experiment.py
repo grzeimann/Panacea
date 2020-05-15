@@ -6,7 +6,7 @@ Created on Mon Feb 24 11:53:16 2020
 @author: gregz
 """
 import matplotlib
-matplotlib.use('aAgg')
+matplotlib.use('agg')
 import seaborn as sns
 import matplotlib.pyplot as plt
 from astropy.io import fits
