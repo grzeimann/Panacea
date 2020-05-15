@@ -95,6 +95,18 @@ allspec = np.array(allspec)
 allspec[allspec==0.] = np.nan
 
 
+lims = [[6380., 6520., 6300., 6650.], [8275., 8400., 8100., 8550.]]
+for j, a in enumerate(allspec):
+    for lim in lims:
+        sel = np.isfinite(a) * (def_wave>lim[0]) * (def_wave<lim[1])
+        if sel.sum():
+            left = np.nanmedian(allspec[:, np.abs(def_wave-lim[2])<40.])
+            right = np.nanmedian(allspec[:, np.abs(def_wave-lim[3])<40.])
+            m = (right - left) / (lim[3] - lim[2])
+            d = np.polyval(np.polyfit(def_wave[sel], a[sel], 2), def_wave[sel])
+            y = m * (def_wave[sel] - lim[2]) + left
+            allspec[j][sel] = a[sel] * y / d
+
 #lims = [[6450., 6950., 6450., 7000.], [8275., 8400., 8100., 8550.]]
 #for j, a in enumerate(allspec):
 #    for lim in lims:
@@ -119,7 +131,7 @@ Err = np.nanmean(allerr, axis=0) / np.sqrt(np.isfinite(allerr).sum(axis=0))
 Sky = np.nanmean(allsky, axis=0)
 Cor = np.nanmean(c, axis=0)
 Spec[np.abs(def_wave-3735.7)<0.5] = np.nan
-Spec[np.abs(def_wave-4650.)<35.] = np.nan
+#Spec[np.abs(def_wave-4650.)<20.] = np.nan
 for s, n  in zip(allspec, norm):
     plt.plot(def_wave, s/n * np.nanmedian(norm), lw=1.0, alpha=0.4, zorder=1)
 plt.plot(def_wave, Spec, 'k-', lw=1.0, alpha=0.4, zorder=2)
