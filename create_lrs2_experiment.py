@@ -20,9 +20,6 @@ parser = ap.ArgumentParser(add_help=True)
 parser.add_argument("directory",
                     help='''base directory for reductions''', type=str)
 
-parser.add_argument("caldirectory",
-                    help='''cal directory for reductions''', type=str)
-
 parser.add_argument("outname",
                     help='''Name of output file''', type=str)
 
@@ -30,16 +27,26 @@ parser.add_argument("--object",
                     help='''Name of Object''', type=str,
                     default=None)
 
+parser.add_argument("--caldirectory", 
+                    default='/work/03946/hetdex/maverick/LRS2/CALS',
+                    help='''cal directory for reductions''', type=str)
+
+parser.add_argument("--standirectory", 
+                    default='/work/03946/hetdex/maverick/LRS2/STANDARDS',
+                    help='''Standards directory for reductions''', type=str)
+
 args = parser.parse_args(args=None)
 
 call = 'python Panacea/lrs2_experiment.py  %s -d %s -c %s'
 
-args.log = setup_logging('advance_cube_creation')
+args.log = setup_logging('lrs2_experiment')
 
-filenames = sorted(glob.glob(op.join(args.directory, 'm*.fits')))
+filenames = sorted(glob.glob(op.join(args.directory, 'm*uv.fits')))
 
 #da = bname.split('_')[1]
 obj, ra, dec, ifuslot = ([], [], [], [])
+
+channels = ['uv', 'orange']
 make_calls = []
 for filename in filenames:
     f = fits.open(filename)
@@ -66,7 +73,16 @@ for filename in filenames:
             continue
         if args.object.lower() not in st.lower():
             continue
-    make_calls.append(call % (op.basename(filename), args.directory, args.caldirectory))
+    date = filename.split('_')[1]
+    standards = sorted(glob.glob(op.join(args.directory, 'm*%s*uv.fits' % date)))
+    calls = []
+    for chan in channels:
+        calls.append(call % (op.basename(filename.replace('uv', chan)), args.directory, args.caldirectory))
+    for stan in standards:
+        for chan in channels:
+            calls.append(call % (op.basename(filename.replace('uv', chan)),
+                                 args.standirectory, args.caldirectory))
+    make_calls.append('; '.join(calls))
 
 N = int(np.ceil(len(make_calls) / 20.))
 chunks = np.array_split(make_calls, N)
