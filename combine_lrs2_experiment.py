@@ -17,6 +17,7 @@ from astropy.convolution import convolve, Gaussian1DKernel
 from matplotlib.ticker import MultipleLocator
 from astropy.table import Table
 from scipy.signal import savgol_filter
+from math_utils import biweight
 
 
 filename = sys.argv[1]
@@ -112,6 +113,8 @@ allsky[allerr==0.] = np.nan
 c = np.array(c)
 c[c==0.] = np.nan
 Spec = np.nanmean(allspec, axis=0)
+norm = np.nanmedian(allspec / Spec[np.newaxis, :], axis=1)
+Spec = np.nanmean(allspec / norm[:, np.newaxis], axis=0) * np.nanmedian(norm)
 Err = np.nanmean(allerr, axis=0) / np.sqrt(np.isfinite(allerr).sum(axis=0))
 Sky = np.nanmean(allsky, axis=0)
 Cor = np.nanmean(c, axis=0)
