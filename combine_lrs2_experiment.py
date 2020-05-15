@@ -101,7 +101,6 @@ for j, a in enumerate(allspec):
         if sel.sum():
             left = np.nanmedian(allspec[:, np.abs(def_wave-lim[2])<100.])
             right = np.nanmedian(allspec[:, np.abs(def_wave-lim[3])<100.])
-            print(left, right, lim, j)
             m = (right - left) / (lim[3] - lim[2])
             d = np.polyval(np.polyfit(def_wave[sel], a[sel], 2), def_wave[sel])
             y = m * (def_wave[sel] - lim[2]) + left
