@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 import numpy as np
 import sys
+import glob
 from astropy.convolution import convolve, Gaussian1DKernel
 from matplotlib.ticker import MultipleLocator
 from astropy.table import Table
@@ -71,11 +72,10 @@ allspec = []
 allerr = []
 allsky = []
 c = []
-for base, calbase, nexp, channels in zip([filename],
+for base, calbase, channels in zip([filename],
                                [filename2],
-                               [1],
                                [['uv', 'orange']]):
-    
+    nexp = len(glob.glob('%s_exp*_%s.fits' % (base, channels[0])))
     for channel in channels:
         cor, CO = get_cor(calbase, channel)
         for i in np.arange(1, nexp+1):
