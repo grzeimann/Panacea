@@ -91,7 +91,7 @@ for base, calbase, nexp, channels in zip([filename],
         c.append(np.interp(def_wave, f[0].data[0], CO*cor, left=0., right=0.))
 allspec = np.array(allspec)
 allspec[allspec==0.] = np.nan
-allspec[np.abs(def_wave-3735.7)<0.5] = np.nan
+allspec[:, np.abs(def_wave-3735.7)<0.5] = np.nan
 
 lims = [[6450., 6950., 6450., 7000.], [8275., 8400., 8100., 8550.]]
 for j, a in enumerate(allspec):
