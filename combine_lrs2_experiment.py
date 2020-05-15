@@ -117,7 +117,9 @@ Sky = np.nanmean(allsky, axis=0)
 Cor = np.nanmean(c, axis=0)
 Spec[np.abs(def_wave-3735.7)<0.5] = np.nan
 Spec[np.abs(def_wave-4650.)<20.] = np.nan
-plt.plot(def_wave, Spec, lw=1.0, alpha=0.4, label=base, zorder=2)
+for s in allspec:
+    plt.plot(def_wave, s, lw=1.0, alpha=0.4, zorder=1)
+plt.plot(def_wave, Spec, 'k-', lw=1.0, alpha=0.4, zorder=2)
 Table([def_wave, Spec, Err, Sky, Cor], names=['wavelength', 'f_lam', 'e_lam', 'sky_lam', 'tel_cor']).write(base+'_coadd.txt', overwrite=True, format='ascii.fixed_width_two_line')
 plt.gca().tick_params(axis='both', which='both', direction='in')
 plt.gca().tick_params(axis='y', which='both', left=True, right=True)
@@ -132,7 +134,6 @@ plt.gca().xaxis.set_major_locator(ML)
 plt.gca().xaxis.set_minor_locator(ml)
 plt.xlabel('Wavelength')
 plt.ylabel('F$_{\lambda}$')
-plt.legend()
 plt.xlim([3650, 7000])
 plt.ylim([low-ran*0.2, low+ran*1.2])
 plt.savefig('%s.png' % filename, dpi=300)
