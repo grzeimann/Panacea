@@ -37,9 +37,9 @@ parser.add_argument("--standirectory",
 
 args = parser.parse_args(args=None)
 
-call = 'python3 Panacea/lrs2_experiment.py  %s -d %s -c %s'
+call = 'python3 /work/03730/gregz/maverick/Panacea/lrs2_experiment.py  %s -d %s -c %s'
 
-com_call = 'python3 Panacea/combine_lrs2_experiment.py  %s %s'
+com_call = 'python3 /work/03730/gregz/maverick/Panacea/combine_lrs2_experiment.py  %s %s'
 
 args.log = setup_logging('lrs2_experiment')
 
