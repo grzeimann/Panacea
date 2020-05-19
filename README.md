@@ -1,6 +1,3 @@
-(NOTE: This is still in progress and will finish 3/01/2019.  Beware of absolute fluxing issues.)
-
-
 # Panacea v1.0 (Automatic LRS2 Pipeline)
 ## Table of Contents
 [Overview](https://github.com/grzeimann/Panacea/blob/master/README.md#Overview)
