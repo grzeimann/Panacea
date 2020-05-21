@@ -62,6 +62,7 @@ make_calls = []
 for filename in filenames:
     allfilenames = sorted(glob.glob(filename.replace('exp01', 'exp*')))
     calls = []
+    flag = True
     for fn in allfilenames:
         f = fits.open(fn)
         try:
@@ -86,21 +87,23 @@ for filename in filenames:
             except:
                 continue
             if args.object.lower() not in st.lower():
+                flag = False
                 continue
         for chan in channels:
             calls.append(call % (op.basename(fn.replace('uv', chan)), args.directory, args.caldirectory))
-    date = filename.split('_')[1]
-    standards = get_standards(date)
-    name1 = '_'.join(op.basename(filename).split('_')[:3])  
-    name2 = '_'.join(op.basename(standards[0]).split('_')[:3])
-    name1 = name1.replace('multi', 'spectrum')
-    name2 = name2.replace('multi', 'spectrum')
-    for stan in standards:
-        for chan in channels:
-            calls.append(call % (op.basename(stan.replace('uv', chan)),
-                                 args.standirectory, args.caldirectory))
-    calls.append(com_call % (name1, name2))
-    make_calls.append('; '.join(calls))
+    if flag:
+        date = filename.split('_')[1]
+        standards = get_standards(date)
+        name1 = '_'.join(op.basename(filename).split('_')[:3])  
+        name2 = '_'.join(op.basename(standards[0]).split('_')[:3])
+        name1 = name1.replace('multi', 'spectrum')
+        name2 = name2.replace('multi', 'spectrum')
+        for stan in standards:
+            for chan in channels:
+                calls.append(call % (op.basename(stan.replace('uv', chan)),
+                                     args.standirectory, args.caldirectory))
+        calls.append(com_call % (name1, name2))
+        make_calls.append('; '.join(calls))
 
 N = int(np.ceil(len(make_calls) / 20.))
 chunks = np.array_split(make_calls, N)
