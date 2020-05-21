@@ -74,7 +74,7 @@ def get_rolling_mastersky(spec, ftf, wave, sel=None, size=24):
     return sky
 
 
-def correct_amplifier_offsets(y, xp, yp, order=1, kernel=12.):
+def correct_amplifier_offsets(y, xp, yp, channel, order=1, kernel=12.):
     xc = xp[np.nanargmax(y)]
     yc = yp[np.nanargmax(y)]
     d = np.sqrt((xp-xc)**2 + (yp-yc)**2)
@@ -110,7 +110,11 @@ def correct_amplifier_offsets(y, xp, yp, order=1, kernel=12.):
     bl, bmr = biweight(k[140:]-cor[140:], calc_std=True)
     if (bml>0.03) or (bmr>0.03):
         print("Cannot Make Correction")
-        return np.ones(y.shape), k
+        z = np.ones(y.shape)
+        if channel == 'orange':
+            z[:140] = 1.025
+            z[140:] = 0.975
+        return z, k
     return cor/biweight(cor), k
 
 
@@ -406,7 +410,7 @@ pca = get_arc_pca(arcskysub_rect, goodfibers, mask, components=95)
 # =============================================================================
 sky, I = get_mastersky(spec, ftf, wave)
 y = biweight((spec / ftf / sky)[:, 400:600], axis=1)
-cor, keep = correct_amplifier_offsets(y, xp, yp)
+cor, keep = correct_amplifier_offsets(y, xp, yp, channel)
 newftf = ftf * cor[:, np.newaxis]
 good = biweight(newftf, axis=1) > 0.5
 spec[~good] = np.nan
@@ -417,6 +421,11 @@ std = mad_std(y[sel])
 sel = (np.abs(y - 1.) < 3. * std) * good
 
 # =============================================================================
+# Bright Limit
+# =============================================================================
+too_bright = np.nanmax((y-1.)/std) > 500.
+
+# =============================================================================
 # Get fit to collapsed spectra
 # =============================================================================
 xc, yc, quality_flag, fit, mod, apcor = find_centroid(pos, y, fibarea)
@@ -425,13 +434,10 @@ if quality_flag:
     sel = d > (np.max(d) - 2.5)
     dum, std = biweight(y[sel], calc_std=True)
     args.log.info('Maximum S/N fiber: %0.2f' % (np.nanmax((y-1.)/std)))
-    if np.nanmax((y-1.)/std) > 500.:
+    if too_bright:
         sky, I = get_mastersky(spec, newftf, wave, sel=sel)
 
-# =============================================================================
-# Bright Limit
-# =============================================================================
-too_bright = np.nanmax((y-1.)/std) > 500.
+
 
 
 # =============================================================================
