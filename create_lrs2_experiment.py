@@ -67,6 +67,7 @@ for filename in filenames:
         f = fits.open(fn)
         try:
             n = f[0].header['OBJECT']
+            print(n)
         except:
             continue
         try:
@@ -80,7 +81,6 @@ for filename in filenames:
         try:
             ifuslot.append(n.split('_')[-2])
         except:
-            print('whoops')
             continue
         if args.object is not None:
             try: 
