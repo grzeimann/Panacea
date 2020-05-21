@@ -85,14 +85,13 @@ for filename in filenames:
             try: 
                 st = n.split(n[-6:])[0]
             except:
-                break
+                continue
             if args.object.lower() not in st.lower():
-                print(args.object.lower(), st.lower())
                 flag = False
-                break
+                continue
         for chan in channels:
             calls.append(call % (op.basename(fn.replace('uv', chan)), args.directory, args.caldirectory))
-    print(flag)
+    print(filename, flag)
     if flag:
         date = filename.split('_')[1]
         standards = get_standards(date)
