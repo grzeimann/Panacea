@@ -397,7 +397,7 @@ goodfibers = biweight(ftf, axis=1) > 0.5
 # =============================================================================
 arcsky, J = get_mastersky(arcspec, ftf, wave)
 yarc = biweight(arcspec / ftf / arcsky, axis=1)
-arccor, karc = correct_amplifier_offsets(yarc, xp, yp)
+arccor, karc = correct_amplifier_offsets(yarc, xp, yp, channel)
 arcftf = ftf * arccor[:, np.newaxis]
 arcsky, J = get_mastersky(arcspec, arcftf, wave)
 arcskysub = arcspec / arcftf - arcsky
