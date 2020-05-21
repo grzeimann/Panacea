@@ -80,6 +80,7 @@ for filename in filenames:
         try:
             ifuslot.append(n.split('_')[-2])
         except:
+            print('whoops')
             continue
         if args.object is not None:
             try: 
@@ -89,7 +90,6 @@ for filename in filenames:
             if args.object.lower() not in st.lower():
                 flag = False
                 continue
-            print(flag, st.lower())
         for chan in channels:
             calls.append(call % (op.basename(fn.replace('uv', chan)), args.directory, args.caldirectory))
     print(filename, flag)
