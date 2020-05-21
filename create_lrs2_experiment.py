@@ -87,6 +87,7 @@ for filename in filenames:
             except:
                 continue
             if args.object.lower() not in st.lower():
+                print(args.object.lower(), st.lower())
                 flag = False
                 continue
         for chan in channels:
