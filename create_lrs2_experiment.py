@@ -85,11 +85,11 @@ for filename in filenames:
             try: 
                 st = n.split(n[-6:])[0]
             except:
-                continue
+                break
             if args.object.lower() not in st.lower():
                 print(args.object.lower(), st.lower())
                 flag = False
-                continue
+                break
         for chan in channels:
             calls.append(call % (op.basename(fn.replace('uv', chan)), args.directory, args.caldirectory))
     if flag:
