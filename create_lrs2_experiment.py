@@ -67,7 +67,6 @@ for filename in filenames:
         f = fits.open(fn)
         try:
             n = f[0].header['OBJECT']
-            print(n)
         except:
             continue
         try:
@@ -81,6 +80,7 @@ for filename in filenames:
         try:
             ifuslot.append(n.split('_')[-2])
         except:
+            flag = False
             continue
         if args.object is not None:
             try: 
@@ -92,7 +92,6 @@ for filename in filenames:
                 continue
         for chan in channels:
             calls.append(call % (op.basename(fn.replace('uv', chan)), args.directory, args.caldirectory))
-    print(filename, flag)
     if flag:
         date = filename.split('_')[1]
         standards = get_standards(date)
