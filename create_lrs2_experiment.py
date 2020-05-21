@@ -92,6 +92,7 @@ for filename in filenames:
                 break
         for chan in channels:
             calls.append(call % (op.basename(fn.replace('uv', chan)), args.directory, args.caldirectory))
+    print(flag)
     if flag:
         date = filename.split('_')[1]
         standards = get_standards(date)
