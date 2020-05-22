@@ -94,6 +94,7 @@ for filename in filenames:
             calls.append(call % (op.basename(fn.replace('uv', chan)), args.directory, args.caldirectory))
     if flag:
         date = filename.split('_')[1]
+        date = '20191118'
         standards = get_standards(date)
         name1 = '_'.join(op.basename(filename).split('_')[:3])  
         name2 = '_'.join(op.basename(standards[0]).split('_')[:3])
