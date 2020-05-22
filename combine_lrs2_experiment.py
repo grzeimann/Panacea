@@ -131,11 +131,12 @@ allerr = allerr / norm[:, np.newaxis]
 weights = 1. / allerr**2
 weights = weights / np.nansum(weights, axis=0)[np.newaxis, :]
 Spec = np.nansum(allspec*weights, axis=0)
-Err = np.nanmean(allerr, axis=0) / np.sqrt(np.isfinite(allerr).sum(axis=0))
-Sky = np.nanmean(allsky, axis=0)
-Cor = np.nanmean(c, axis=0)
+Err = np.sqrt(np.nansum(allerr**2*weights, axis=0))
+Sky = np.nansum(allsky*weights, axis=0)
+Cor = np.nansum(c*weights, axis=0)
 Spec[np.abs(def_wave-3735.7)<0.5] = np.nan
-Spec[np.abs(def_wave-4620.)<70.] = np.nan
+sel = np.abs(def_wave-4620.)<70.
+Err[sel] = np.sqrt(Err[sel]**2 + (0.1*Spec[sel])**2)
 
 for s in allspec:
     plt.plot(def_wave, s, lw=1.0, alpha=0.4, zorder=1)
