@@ -120,9 +120,8 @@ for i in np.arange(nexp):
             norm2 = np.polyval(p2, def_wave[sel])
             allspec[i][sel] = allspec[i][sel] / norm1 * norm
             allspec[i+nexp][sel] = allspec[i+nexp][sel] / norm2 * norm
-            offset = n3 = np.nanmedian(a1[np.abs(def_wave-4260.)<10.])
-            nl = np.nanmedian(a2[np.abs(def_wave-4577.)<3.])
-            nh = np.nanmedian(a2[np.abs(def_wave-4583.)<3.])
+            nl = np.nanmedian(a1[np.abs(def_wave-4577.)<3.])
+            nh = np.nanmedian(a1[np.abs(def_wave-4583.)<3.])
             mult = nh / nl / 1.02
             allspec[i][def_wave<=4580] = allspec[i][def_wave<=4580] * mult
 allerr = np.array(allerr)
