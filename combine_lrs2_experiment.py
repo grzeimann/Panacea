@@ -100,25 +100,31 @@ allspec = np.array(allspec)
 allspec[allspec==0.] = np.nan
 
 for i in np.arange(nexp):
-    a1 = allspec[i]
-    a2 = allspec[i+nexp]
-    n1 = np.nanmedian(a1[np.abs(def_wave-4640.)<5.])
-    n2 = np.nanmedian(a2[np.abs(def_wave-4640.)<5.])
-    avg = (n1 + n2) / 2.
-    n3 = np.nanmedian(a1[np.abs(def_wave-4260.)<10.])
-    n4 = np.nanmedian(a2[np.abs(def_wave-4800.)<10.])
-    n5 = np.nanmedian(a2[np.abs(def_wave-5100.)<10.])
-    sel = (def_wave > 4580.) * (def_wave < 4690.)
-    sel1 = sel * np.isfinite(a1)
-    sel2 = sel * np.isfinite(a2)
-    p0 = np.polyfit([4260., 4800., 5100.], [n3, n4, n5], 2)
-    p1 = np.polyfit(def_wave[sel1], a1[sel1], 2)
-    p2 = np.polyfit(def_wave[sel2], a2[sel2], 2)
-    norm = np.polyval(p0, def_wave[sel])
-    norm1 = np.polyval(p1, def_wave[sel])
-    norm2 = np.polyval(p2, def_wave[sel])
-    allspec[i][sel] = allspec[i][sel] / norm1 * norm
-    allspec[i+nexp][sel] = allspec[i+nexp][sel] / norm2 * norm
+        for j in np.arange(3):
+            a1 = allspec[i]
+            a2 = allspec[i+nexp]
+            n1 = np.nanmedian(a1[np.abs(def_wave-4640.)<5.])
+            n2 = np.nanmedian(a2[np.abs(def_wave-4640.)<5.])
+            avg = (n1 + n2) / 2.
+            n3 = np.nanmedian(a1[np.abs(def_wave-4260.)<10.])
+            n4 = np.nanmedian(a2[np.abs(def_wave-4800.)<10.])
+            n5 = np.nanmedian(a2[np.abs(def_wave-5100.)<10.])
+            sel = (def_wave > 4580.) * (def_wave < 4690.)
+            sel1 = sel * np.isfinite(a1)
+            sel2 = sel * np.isfinite(a2)
+            p0 = np.polyfit([4260., 4800., 5100.], [n3, n4, n5], 2)
+            p1 = np.polyfit(def_wave[sel1], a1[sel1], 2)
+            p2 = np.polyfit(def_wave[sel2], a2[sel2], 2)
+            norm = np.polyval(p0, def_wave[sel])
+            norm1 = np.polyval(p1, def_wave[sel])
+            norm2 = np.polyval(p2, def_wave[sel])
+            allspec[i][sel] = allspec[i][sel] / norm1 * norm
+            allspec[i+nexp][sel] = allspec[i+nexp][sel] / norm2 * norm
+            offset = n3 = np.nanmedian(a1[np.abs(def_wave-4260.)<10.])
+            nl = np.nanmedian(a2[np.abs(def_wave-4577.)<3.])
+            nh = np.nanmedian(a2[np.abs(def_wave-4583.)<3.])
+            mult = nh / nl / 1.02
+            allspec[i][def_wave<=4580] = allspec[i][def_wave<=4580] * mult
 allerr = np.array(allerr)
 allerr[allerr==0.] = np.nan
 allsky = np.array(allsky)
