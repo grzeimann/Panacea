@@ -133,7 +133,7 @@ weights = weights / np.nansum(weights, axis=0)[np.newaxis, :]
 Spec = np.nansum(allspec*weights, axis=0)
 Err = np.sqrt(np.nansum(allerr**2*weights, axis=0))
 Sky = np.nansum(allsky*weights, axis=0)
-Cor = np.nansum(c*weights, axis=0)
+Cor = np.nanmean(c, axis=0)
 Spec[np.abs(def_wave-3735.7)<0.5] = np.nan
 sel = np.abs(def_wave-4620.)<70.
 Err[sel] = np.sqrt(Err[sel]**2 + (0.1*Spec[sel])**2)
