@@ -122,8 +122,12 @@ for i in np.arange(nexp):
             allspec[i+nexp][sel] = allspec[i+nexp][sel] / norm2 * norm
             nl = np.nanmedian(a1[np.abs(def_wave-4577.)<3.])
             nh = np.nanmedian(a1[np.abs(def_wave-4583.)<3.])
-            mult = nh / nl / 1.02
+            mult = nh / nl / 1.01
             allspec[i][def_wave<=4580] = allspec[i][def_wave<=4580] * mult
+            nl = np.nanmedian(a2[np.abs(def_wave-4687.)<3.])
+            nh = np.nanmedian(a2[np.abs(def_wave-4693.)<3.])
+            mult = nh / nl / 0.99
+            allspec[i+nexp][def_wave>=4690.] = allspec[i+nexp][def_wave>=4690] * mult
 allerr = np.array(allerr)
 allerr[allerr==0.] = np.nan
 allsky = np.array(allsky)
