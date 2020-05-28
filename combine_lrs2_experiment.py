@@ -74,30 +74,28 @@ def get_cor(calbase, channel):
 def connect_channels(spec1, spec2, def_wave, w1, w2, w3, lw, hw):
     niter = 3
     for j in np.arange(niter):
-        a1 = spec1
-        a2 = spec2
-        n3 = np.nanmedian(a1[np.abs(def_wave-w1)<10.])
-        n4 = np.nanmedian(a2[np.abs(def_wave-w2)<10.])
-        n5 = np.nanmedian(a2[np.abs(def_wave-w3)<10.])
+        n3 = np.nanmedian(spec1[np.abs(def_wave-w1)<10.])
+        n4 = np.nanmedian(spec2[np.abs(def_wave-w2)<10.])
+        n5 = np.nanmedian(spec2[np.abs(def_wave-w3)<10.])
         sel = (def_wave > lw) * (def_wave < hw)
-        sel1 = sel * np.isfinite(a1)
-        sel2 = sel * np.isfinite(a2)
+        sel1 = sel * np.isfinite(spec1)
+        sel2 = sel * np.isfinite(spec2)
         p0 = np.polyfit([4260., 4800., 5100.], [n3, n4, n5], 2)
-        p1 = np.polyfit(def_wave[sel1], a1[sel1], 2)
-        p2 = np.polyfit(def_wave[sel2], a2[sel2], 2)
+        p1 = np.polyfit(def_wave[sel1], spec1[sel1], 2)
+        p2 = np.polyfit(def_wave[sel2], spec2[sel2], 2)
         norm = np.polyval(p0, def_wave[sel])
         norm1 = np.polyval(p1, def_wave[sel])
         norm2 = np.polyval(p2, def_wave[sel])
-        spec1[sel] = allspec[i][sel] / norm1 * norm
-        spec2[sel] = allspec[i+nexp][sel] / norm2 * norm
-        nl = np.nanmedian(a1[np.abs(def_wave-(lw-3.))<3.])
-        nh = np.nanmedian(a1[np.abs(def_wave-(lw+3.))<3.])
+        spec1[sel] = spec1[sel] / norm1 * norm
+        spec2[sel] = spec2[sel] / norm2 * norm
+        nl = np.nanmedian(spec1[np.abs(def_wave-(lw-3.))<3.])
+        nh = np.nanmedian(spec1[np.abs(def_wave-(lw+3.))<3.])
         mult = nh / nl / 1.01
-        spec1[def_wave<=lw] = allspec[i][def_wave<=lw] * mult
-        nl = np.nanmedian(a2[np.abs(def_wave-(hw-3.))<3.])
-        nh = np.nanmedian(a2[np.abs(def_wave-(hw-3.))<3.])
+        spec1[def_wave<=lw] = spec1[def_wave<=lw] * mult
+        nl = np.nanmedian(spec2[np.abs(def_wave-(hw-3.))<3.])
+        nh = np.nanmedian(spec2[np.abs(def_wave-(hw-3.))<3.])
         mult = nl / nh / 1.01
-        spec2[def_wave>=hw] = allspec[i+nexp][def_wave>=hw] * mult
+        spec2[def_wave>=hw] = spec2[def_wave>=hw] * mult
     return spec1, spec2
 
 def_wave = np.arange(3650., 10500., 0.7)
