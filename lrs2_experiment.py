@@ -341,7 +341,7 @@ def get_maxsn_y(skysub, sky, wave, def_wave, pos):
     loc1, loc2 = np.unravel_index(np.nanargmax(T), T.shape)
     return T[:, loc2]
 
-def get_source(y, std, spec, pos, fibarea, newftf, wave, check=False):
+def get_source(y, std, spec, pos, fibarea, newftf, wave, sky, check=False):
     # =============================================================================
     # Bright Limit
     # =============================================================================
@@ -469,7 +469,7 @@ sel = (np.abs(y - 1.) < 3. * stdold) * good
 SN = []
 cnt = 0
 for y, std in zip([ynew, yold], [stdnew, stdold]):
-    sn = get_source(y, std, spec, pos, fibarea, newftf, wave, check=True)
+    sn = get_source(y, std, spec, pos, fibarea, newftf, wave, sky, check=True)
     if cnt == 0:
         args.log.info('Emission SN: %0.2f' % sn)
     if cnt == 1:
@@ -481,7 +481,7 @@ loc = np.argmax(SN)
 y = [ynew, yold][loc]
 std = [stdnew, stdold][loc]
 
-xc, yc, quality_flag, fit, mod, apcor, sky, sel, too_bright = get_source(y, std, spec, pos, fibarea, newftf, wave)
+xc, yc, quality_flag, fit, mod, apcor, sky, sel, too_bright = get_source(y, std, spec, pos, fibarea, newftf, wave, sky)
 
 
 
