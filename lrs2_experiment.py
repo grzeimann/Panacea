@@ -381,6 +381,8 @@ fibarea = 1. / 2. * np.sqrt(3.) * 0.59**2
 # Masking high chi2 values (cosmics and defects that don't flatfield)
 # =============================================================================
 mask = chi2 > 5
+N = mask.shape[0] * mask.shape[1] * 1.
+args.log.info('%s: %0.3f masked for chi2' % (args.multiname, (mask.sum() / N)))
 spec[mask] = np.nan
 
 if channel == 'uv':
