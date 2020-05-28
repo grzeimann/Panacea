@@ -325,7 +325,7 @@ def get_maxsn_y(skysub, sky, wave, def_wave, pos):
     sky_rect = rectify(sky, wave, def_wave)
     skysub_rect = rectify(skysub, wave, def_wave)
     skyline_mask = get_skyline_mask(sky_rect)
-    skysub_rect[:, skyline_mask] = np.nan
+    skysub_rect[np.isnan(skyline_mask)] = np.nan
     G1 = Gaussian1DKernel(1.5)
     smooth = skysub_rect * 0.
     for i in np.arange(skysub_rect.shape[0]):
