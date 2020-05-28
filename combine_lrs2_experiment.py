@@ -20,8 +20,12 @@ from scipy.signal import savgol_filter
 from math_utils import biweight
 
 
-filename = sys.argv[1]
-filename2 = sys.argv[2]
+filenames = [v.replace(' ', '') for v in sys.argv[1].split(',')]
+filenames2 = [v.replace(' ', '') for v in sys.argv[2].split(',')]
+sides = [v.replace(' ', '') for v in sys.argv[3].split(',')]
+outfile = sys.argv[4]
+sidedict = {'blue': ['uv', 'orange'], 'red': ['red', 'farred']}
+
 # Plot Style
 sns.set_context('talk')
 sns.set_style('ticks')
@@ -67,9 +71,40 @@ def get_cor(calbase, channel):
     cor[k[0].data[0] < 4550.] = 1.
     return init, cor
 
+def connect_channels(spec1, spec2, def_wave, w1, w2, w3, lw, hw):
+    niter = 3
+    for j in np.arange(niter):
+        a1 = spec1
+        a2 = spec2
+        n3 = np.nanmedian(a1[np.abs(def_wave-w1)<10.])
+        n4 = np.nanmedian(a2[np.abs(def_wave-w2)<10.])
+        n5 = np.nanmedian(a2[np.abs(def_wave-w3)<10.])
+        sel = (def_wave > lw) * (def_wave < hw)
+        sel1 = sel * np.isfinite(a1)
+        sel2 = sel * np.isfinite(a2)
+        p0 = np.polyfit([4260., 4800., 5100.], [n3, n4, n5], 2)
+        p1 = np.polyfit(def_wave[sel1], a1[sel1], 2)
+        p2 = np.polyfit(def_wave[sel2], a2[sel2], 2)
+        norm = np.polyval(p0, def_wave[sel])
+        norm1 = np.polyval(p1, def_wave[sel])
+        norm2 = np.polyval(p2, def_wave[sel])
+        spec1[sel] = allspec[i][sel] / norm1 * norm
+        spec2[sel] = allspec[i+nexp][sel] / norm2 * norm
+        nl = np.nanmedian(a1[np.abs(def_wave-(lw-3.))<3.])
+        nh = np.nanmedian(a1[np.abs(def_wave-(lw+3.))<3.])
+        mult = nh / nl / 1.01
+        spec1[def_wave<=lw] = allspec[i][def_wave<=lw] * mult
+        nl = np.nanmedian(a2[np.abs(def_wave-(hw-3.))<3.])
+        nh = np.nanmedian(a2[np.abs(def_wave-(hw-3.))<3.])
+        mult = nl / nh / 1.01
+        spec2[def_wave>=hw] = allspec[i+nexp][def_wave>=hw] * mult
+    return spec1, spec2
+
 def_wave = np.arange(3650., 10500., 0.7)
 spec = {'uv': [], 'orange': [], 'red': [], 'farred': []}
 wave = {'uv': None, 'orange': None, 'red': None, 'farred': None}
+normdict = {'blue': [4260, 4800, 5100, 4580, 4690], 
+            'red': [8100, 8600, 8700, 8200, 8500]}
 Spec = []
 Cor = []
 Err = []
@@ -78,9 +113,8 @@ allspec = []
 allerr = []
 allsky = []
 c = []
-for base, calbase, channels in zip([filename],
-                               [filename2],
-                               [['uv', 'orange']]):
+for base, calbase, side in zip(filenames, filenames2, sides):
+    channels = sidedict[side]
     nexp = len(glob.glob('%s_exp*_%s.fits' % (base, channels[0])))
     print('Found %i exposures' % nexp)
     for channel in channels:
@@ -96,38 +130,20 @@ for base, calbase, channels in zip([filename],
             allerr.append(e)
             allsky.append(s)
         c.append(np.interp(def_wave, f[0].data[0], CO*cor, left=0., right=0.))
+    N = nexp * len(channels)
+    w1, w2, w3, lw, hw = normdict[side]
+    for i in np.arange(nexp):
+        ind1 = -N + i
+        ind2 = -N + nexp + i
+        allspec[ind1], allspec[ind2] = connect_channels(allspec[ind1],
+                                                        allspec[ind2], 
+                                                        def_wave, w1, w2, w3,
+                                                        lw, hw)
+    
 allspec = np.array(allspec)
 allspec[allspec==0.] = np.nan
 
-for i in np.arange(nexp):
-        for j in np.arange(3):
-            a1 = allspec[i]
-            a2 = allspec[i+nexp]
-            n1 = np.nanmedian(a1[np.abs(def_wave-4640.)<5.])
-            n2 = np.nanmedian(a2[np.abs(def_wave-4640.)<5.])
-            avg = (n1 + n2) / 2.
-            n3 = np.nanmedian(a1[np.abs(def_wave-4260.)<10.])
-            n4 = np.nanmedian(a2[np.abs(def_wave-4800.)<10.])
-            n5 = np.nanmedian(a2[np.abs(def_wave-5100.)<10.])
-            sel = (def_wave > 4580.) * (def_wave < 4690.)
-            sel1 = sel * np.isfinite(a1)
-            sel2 = sel * np.isfinite(a2)
-            p0 = np.polyfit([4260., 4800., 5100.], [n3, n4, n5], 2)
-            p1 = np.polyfit(def_wave[sel1], a1[sel1], 2)
-            p2 = np.polyfit(def_wave[sel2], a2[sel2], 2)
-            norm = np.polyval(p0, def_wave[sel])
-            norm1 = np.polyval(p1, def_wave[sel])
-            norm2 = np.polyval(p2, def_wave[sel])
-            allspec[i][sel] = allspec[i][sel] / norm1 * norm
-            allspec[i+nexp][sel] = allspec[i+nexp][sel] / norm2 * norm
-            nl = np.nanmedian(a1[np.abs(def_wave-4577.)<3.])
-            nh = np.nanmedian(a1[np.abs(def_wave-4583.)<3.])
-            mult = nh / nl / 1.01
-            allspec[i][def_wave<=4580] = allspec[i][def_wave<=4580] * mult
-            nl = np.nanmedian(a2[np.abs(def_wave-4687.)<3.])
-            nh = np.nanmedian(a2[np.abs(def_wave-4693.)<3.])
-            mult = nl / nh / 1.01
-            allspec[i+nexp][def_wave>=4690.] = allspec[i+nexp][def_wave>=4690] * mult
+
 allerr = np.array(allerr)
 allerr[allerr==0.] = np.nan
 allsky = np.array(allsky)
@@ -165,6 +181,8 @@ plt.gca().xaxis.set_major_locator(ML)
 plt.gca().xaxis.set_minor_locator(ml)
 plt.xlabel('Wavelength')
 plt.ylabel('F$_{\lambda}$')
-plt.xlim([3650, 7000])
+locu = np.where(np.isfinite(Spec))[0][-1]
+locl = np.where(np.isfinite(Spec))[0][0]
+plt.xlim([def_wave[locl], def_wave[locu]])
 plt.ylim([low-ran*0.2, low+ran*1.2])
-plt.savefig('%s.png' % filename, dpi=300)
+plt.savefig('%s.png' % outfile, dpi=300)
