@@ -321,6 +321,47 @@ def get_extraction_model(skysub_rect, sky_rect, def_wave, nchunks=15,
     return [np.array(xi) for xi in [w, XC, YC, XS, YS, TH]], Nmod, skysub_rect, sky_rect
 
 
+def get_maxsn_y(skysub, sky, wave, def_wave, pos):
+    sky_rect = rectify(sky, wave, def_wave)
+    skysub_rect = rectify(skysub, wave, def_wave)
+    skyline_mask = get_skyline_mask(sky_rect)
+    skysub_rect[:, skyline_mask] = np.nan
+    G1 = Gaussian1DKernel(1.5)
+    smooth = skysub_rect * 0.
+    for i in np.arange(skysub_rect.shape[0]):
+        smooth[i] = convolve(skysub_rect[i], G1, preserve_nan=True)
+    x = pos[:, 0]
+    y = pos[:, 1]
+    D = np.sqrt((x - x[:, np.newaxis])**2 + (y - y[:, np.newaxis])**2)
+    for i in np.arange(D.shape[0]):
+        D[i, :] = np.array(D[i, :] < 1.5, dtype=float)
+    T = smooth * 0.
+    for i in np.arange(smooth.shape[1]):
+        T[:, i] = np.nansum(smooth[:, i] * D, axis=1)
+    loc1, loc2 = np.unravel_index(np.nanargmax(T))
+    return T[:, loc2]
+
+def get_source(y, std, spec, pos, fibarea, newftf, wave, check=False):
+    # =============================================================================
+    # Bright Limit
+    # =============================================================================
+    too_bright = np.nanmax((y-1.)/std) > 100000.
+    
+    # =============================================================================
+    # Get fit to collapsed spectra
+    # =============================================================================
+    xc, yc, quality_flag, fit, mod, apcor = find_centroid(pos, y, fibarea)
+    d = np.sqrt((xp - xc)**2 + (yp -yc)**2)
+    sel = d > (np.max(d) - 2.5)
+    dum, std = biweight(y[sel], calc_std=True)
+    SN = np.nanmax((y-1.)/std)
+    if check:
+        return SN
+    args.log.info('Maximum S/N fiber: %0.2f' % SN)
+    if too_bright:
+        sky, I = get_mastersky(spec, newftf, wave, sel=sel)
+    return xc, yc, quality_flag, fit, mod, apcor, sky, sel, too_bright
+
 warnings.filterwarnings("ignore")
 
 DIRNAME = get_script_path()
@@ -418,27 +459,22 @@ good = biweight(newftf, axis=1) > 0.5
 spec[~good] = np.nan
 sel = np.isfinite(keep)
 sky, I = get_mastersky(spec, newftf, wave, sel=sel)
-y = biweight(spec / newftf / sky, axis=1)
-std = mad_std(y[sel])
-sel = (np.abs(y - 1.) < 3. * std) * good
+iskysub = spec / newftf - sky
+ynew = get_maxsn_y(iskysub, sky, wave, def_wave) + 1.
+yold = biweight(spec / newftf / sky, axis=1)
+stdnew = mad_std(ynew[sel])
+stdold = mad_std(yold[sel])
+sel = (np.abs(y - 1.) < 3. * stdold) * good
 
-# =============================================================================
-# Bright Limit
-# =============================================================================
-too_bright = np.nanmax((y-1.)/std) > 100000.
+SN = []
+for y, std in zip([ynew, yold], [stdnew, stdold]):
+    SN.append(get_source(y, std, spec, pos, fibarea, newftf, wave, check=True))
 
-# =============================================================================
-# Get fit to collapsed spectra
-# =============================================================================
-xc, yc, quality_flag, fit, mod, apcor = find_centroid(pos, y, fibarea)
-if quality_flag:
-    d = np.sqrt((xp - xc)**2 + (yp -yc)**2)
-    sel = d > (np.max(d) - 2.5)
-    dum, std = biweight(y[sel], calc_std=True)
-    args.log.info('Maximum S/N fiber: %0.2f' % (np.nanmax((y-1.)/std)))
-    if too_bright:
-        sky, I = get_mastersky(spec, newftf, wave, sel=sel)
+loc = np.argmax(SN)
+y = [ynew, yold][loc]
+std = [stdnew, stdold][loc]
 
+xc, yc, quality_flag, fit, mod, apcor, sky, sel, too_bright = get_source(y, std, spec, pos, fibarea, newftf, wave)
 
 
 
