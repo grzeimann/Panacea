@@ -467,10 +467,17 @@ stdold = mad_std(yold[sel])
 sel = (np.abs(y - 1.) < 3. * stdold) * good
 
 SN = []
+cnt = 0
 for y, std in zip([ynew, yold], [stdnew, stdold]):
-    SN.append(get_source(y, std, spec, pos, fibarea, newftf, wave, check=True))
-
+    sn = get_source(y, std, spec, pos, fibarea, newftf, wave, check=True)
+    if cnt == 0:
+        args.log.info('Emission SN: %0.2f' % sn)
+    if cnt == 1:
+        args.log.info('Continuum SN: %0.2f' % sn)
+    SN.append(sn)
+    cnt += 1
 loc = np.argmax(SN)
+
 y = [ynew, yold][loc]
 std = [stdnew, stdold][loc]
 
