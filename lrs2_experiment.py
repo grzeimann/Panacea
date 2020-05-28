@@ -338,7 +338,7 @@ def get_maxsn_y(skysub, sky, wave, def_wave, pos):
     T = smooth * 0.
     for i in np.arange(smooth.shape[1]):
         T[:, i] = np.nansum(smooth[:, i] * D, axis=1)
-    loc1, loc2 = np.unravel_index(np.nanargmax(T))
+    loc1, loc2 = np.unravel_index(np.nanargmax(T), T.shape)
     return T[:, loc2]
 
 def get_source(y, std, spec, pos, fibarea, newftf, wave, check=False):
