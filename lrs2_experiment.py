@@ -460,7 +460,7 @@ spec[~good] = np.nan
 sel = np.isfinite(keep)
 sky, I = get_mastersky(spec, newftf, wave, sel=sel)
 iskysub = spec / newftf - sky
-ynew = get_maxsn_y(iskysub, sky, wave, def_wave) + 1.
+ynew = get_maxsn_y(iskysub, sky, wave, def_wave, pos) + 1.
 yold = biweight(spec / newftf / sky, axis=1)
 stdnew = mad_std(ynew[sel])
 stdold = mad_std(yold[sel])
