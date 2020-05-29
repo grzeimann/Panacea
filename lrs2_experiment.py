@@ -125,10 +125,10 @@ def get_pca_sky_residuals(data, ncomponents=5):
     A = np.dot(H, pca.components_)
     return pca, A
 
-def get_residual_map(data, pca, good):
+def get_residual_map(data, pca):
     res = data * 0.
     for i in np.arange(data.shape[1]):
-        sel = good * np.isfinite(data[:, i])
+        sel = np.isfinite(data[:, i])
         coeff = np.dot(data[sel, i], pca.components_.T[sel])
         model = np.dot(coeff, pca.components_)
         res[:, i] = model
@@ -340,7 +340,7 @@ def get_maxsn_y(skysub, sky, wave, def_wave, pos):
     for i in np.arange(smooth.shape[1]):
         T[:, i] = np.nansum(smooth[:, i] * D, axis=1)
     loc1, loc2 = np.unravel_index(np.nanargmax(T), T.shape)
-    return T[:, loc2]
+    return T[:, loc2], def_wave[loc2]
 
 def get_source(y, std, spec, pos, fibarea, newftf, wave, sky, check=False):
     # =============================================================================
@@ -514,10 +514,11 @@ spec[~good] = np.nan
 sel = np.isfinite(keep)
 sky, I = get_mastersky(spec, newftf, wave, sel=sel)
 iskysub = spec / newftf - sky
-ynew = get_maxsn_y(iskysub, sky, wave, def_wave, pos) + 1.
+ynew, wnew = get_maxsn_y(iskysub, sky, wave, def_wave, pos) + 1.
 yold = biweight(spec / newftf / sky, axis=1)
 stdnew = mad_std(ynew[sel])
 stdold = mad_std(yold[sel])
+wold = def_wave[int(len(def_wave)/2.)]
 sel = (np.abs(y - 1.) < 3. * stdold) * good
 
 SN = []
@@ -534,7 +535,7 @@ loc = np.argmax(SN)
 
 y = [ynew, yold][loc]
 std = [stdnew, stdold][loc]
-
+w = [wnew, wold][loc]
 xc, yc, quality_flag, fit, mod, apcor, sky, sel, too_bright = get_source(y, std, spec, pos, fibarea, newftf, wave, sky)
 
 
@@ -569,22 +570,18 @@ sky_rect_orig = sky_rect * 1.
 # =============================================================================
 # Get Extraction Model
 # =============================================================================
-info, Nmod, skysub_rect, sky_rect = get_extraction_model(skysub_rect,
-                                                         sky_rect,
-                                                         def_wave)
-w, xc, yc, xs, ys, th = info
+xs = fit.x_stddev.value
+ys = fit.y_stddev.value
+th = fit.theta.value
 darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % channel_dict[channel])
 T = Table.read(darfile, format='ascii.fixed_width_two_line')
 xdar = np.interp(w, T['wave'], T['x_0'])
 ydar = np.interp(w, T['wave'], T['y_0'])
 xoff = biweight(xc - xdar)
 yoff = biweight(yc - ydar)
-XS = biweight(xs)
-YS = biweight(ys)
-TH = biweight(th)
 fit_params = [np.interp(def_wave, T['wave'], T['x_0']+xoff),
               np.interp(def_wave, T['wave'], T['y_0']+yoff),
-              XS, YS, TH]
+              xs, ys, th]
 
 N = int(len(def_wave) / 25)
 inds = np.arange(int(N/2), len(def_wave), N)
