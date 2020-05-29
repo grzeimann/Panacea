@@ -145,8 +145,20 @@ for base, calbase, side in zip(filenames, filenames2, sides):
 #                                                        def_wave, w1, w2, w3,
 #                                                        lw, hw)
     
-for spec in [allspec, bluespec, redspec, blueerr, rederr, bluesky, redsky, c]:
-    spec = np.array(spec)
+bluespec = np.array(bluespec)
+bluespec[bluespec==0.] = np.nan
+redspec = np.array(redspec)
+redspec[redspec==0.] = np.nan
+blueerr = np.array(blueerr)
+blueerr[blueerr==0.] = np.nan
+rederr = np.array(rederr)
+rederr[rederr==0.] = np.nan
+bluesky = np.array(bluesky)
+bluesky[bluesky==0.] = np.nan
+redsky = np.array(redsky)
+redsky[redsky==0.] = np.nan
+c = np.array(c)
+c[c==0.] = np.nan
     spec[spec==0.] = np.nan
 print(bluespec)
 Blue = np.nanmean(bluespec, axis=0)
