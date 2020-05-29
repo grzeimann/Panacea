@@ -102,7 +102,7 @@ def_wave = np.arange(3650., 10500., 0.7)
 spec = {'uv': [], 'orange': [], 'red': [], 'farred': []}
 wave = {'uv': None, 'orange': None, 'red': None, 'farred': None}
 normdict = {'blue': [4260, 4800, 5100, 4580, 4690], 
-            'red': [8100, 8600, 8700, 8200, 8500]}
+            'red': [8100, 8600, 8700, 8000, 8500]}
 Spec = []
 Cor = []
 Err = []
