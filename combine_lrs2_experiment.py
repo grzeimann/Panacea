@@ -108,8 +108,12 @@ Cor = []
 Err = []
 Sky = []
 allspec = []
-allerr = []
-allsky = []
+redspec = []
+bluespec = []
+blueerr = []
+rederr = []
+bluesky = []
+redsky = []
 c = []
 for base, calbase, side in zip(filenames, filenames2, sides):
     channels = sidedict[side]
@@ -125,8 +129,14 @@ for base, calbase, side in zip(filenames, filenames2, sides):
             spec[channel].append(t)
             wave[channel] = def_wave
             allspec.append(t)
-            allerr.append(e)
-            allsky.append(s)
+            if side == 'blue':
+                bluespec.append(t)
+                blueerr.append(e)
+                bluesky.append(s)
+            else:
+                redspec.append(t)
+                rederr.append(e)
+                redsky.append(s)
         c.append(np.interp(def_wave, f[0].data[0], CO*cor, left=0., right=0.))
     N = nexp * len(channels)
     w1, w2, w3, lw, hw = normdict[side]
@@ -138,32 +148,45 @@ for base, calbase, side in zip(filenames, filenames2, sides):
 #                                                        def_wave, w1, w2, w3,
 #                                                        lw, hw)
     
-allspec = np.array(allspec)
-allspec[allspec==0.] = np.nan
+for spec in [allspec, bluespec, redspec, blueerr, rederr, bluesky, redsky, c]:
+    spec = np.array(spec)
+    spec[spec==0.] = np.nan
 
-
-allerr = np.array(allerr)
-allerr[allerr==0.] = np.nan
-allsky = np.array(allsky)
-allsky[allerr==0.] = np.nan
-c = np.array(c)
-c[c==0.] = np.nan
-Spec = np.nanmean(allspec, axis=0)
-norm = np.nanmedian(allspec / Spec[np.newaxis, :], axis=1)
-allspec = allspec / norm[:, np.newaxis]
-allerr = allerr / norm[:, np.newaxis]
-weights = 1. / allerr**2
+Blue = np.nanmean(bluespec, axis=0)
+norm = np.nanmedian(bluespec / Blue[np.newaxis, :], axis=1)
+bluespec = bluespec / norm[:, np.newaxis]
+blueerr = blueerr / norm[:, np.newaxis]
+weights = 1. / blueerr**2
 weights = weights / np.nansum(weights, axis=0)[np.newaxis, :]
-Spec = np.nansum(allspec*weights, axis=0)
-Err = np.sqrt(np.nansum(allerr**2*weights, axis=0))
-Sky = np.nansum(allsky*weights, axis=0)
-Cor = np.nanmean(c, axis=0)
-Spec[np.abs(def_wave-3735.7)<0.5] = np.nan
-sel = np.abs(def_wave-4620.)<70.
-Err[sel] = np.sqrt(Err[sel]**2 + (0.1*Spec[sel])**2)
+Blue = np.nansum(bluespec*weights, axis=0)
+BlueErr = np.sqrt(np.nansum(blueerr**2*weights, axis=0))
+BlueSky = np.nansum(bluesky*weights, axis=0)
+Blue[np.abs(def_wave-3735.7)<0.5] = np.nan
 
-for s in allspec:
-    plt.plot(def_wave, s, lw=1.0, alpha=0.4, zorder=1)
+Red = np.nanmean(redspec, axis=0)
+norm = np.nanmedian(redspec / Red[np.newaxis, :], axis=1)
+redspec = redspec / norm[:, np.newaxis]
+rederr = rederr / norm[:, np.newaxis]
+weights = 1. / rederr**2
+weights = weights / np.nansum(weights, axis=0)[np.newaxis, :]
+Red = np.nansum(redspec*weights, axis=0)
+RedErr = np.sqrt(np.nansum(rederr**2*weights, axis=0))
+RedSky = np.nansum(redsky*weights, axis=0)
+
+sel = np.isfinite(Red) * np.isfinite(Blue)
+Norm = biweight(Red[sel] / Blue[sel])
+Red *= Norm
+RedErr *= Norm
+RedSky *= Norm
+
+Spec = np.nanmean([Blue, Red], axis=0)
+Err = np.sqrt(np.nansum([BlueErr**2, RedErr**2], axis=0))
+Sky = np.nanmean([BlueSky, RedSky], axis=0)
+Cor = np.nanmean(c, axis=0)
+
+for spec in [bluespec, redspec]:
+    for s in spec:
+        plt.plot(def_wave, s, lw=1.0, alpha=0.4, zorder=1)
 plt.plot(def_wave, Spec, 'k-', lw=1.0, alpha=0.4, zorder=2)
 Table([def_wave, Spec, Err, Sky, Cor], names=['wavelength', 'f_lam', 'e_lam', 'sky_lam', 'tel_cor']).write(base+'_coadd.txt', overwrite=True, format='ascii.fixed_width_two_line')
 plt.gca().tick_params(axis='both', which='both', direction='in')
