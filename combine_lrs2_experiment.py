@@ -186,7 +186,7 @@ Red[Red==0.] = np.nan
 RedSky[RedSky==0.] = np.nan
 RedErr[RedErr==0.] = np.nan
 sel = np.isfinite(Red) * np.isfinite(Blue)
-Norm = biweight(Red[sel] / Blue[sel])
+Norm = biweight(Blue[sel] / Red[sel])
 print(Norm)
 Red *= Norm
 RedErr *= Norm
