@@ -159,10 +159,8 @@ redsky = np.array(redsky)
 redsky[redsky==0.] = np.nan
 c = np.array(c)
 c[c==0.] = np.nan
-print(bluespec)
 Blue = np.nanmean(bluespec, axis=0)
 norm = np.nanmedian(bluespec / Blue[np.newaxis, :], axis=1)
-print(norm)
 bluespec = bluespec / norm[:, np.newaxis]
 blueerr = blueerr / norm[:, np.newaxis]
 weights = 1. / blueerr**2
@@ -184,6 +182,7 @@ RedSky = np.nansum(redsky*weights, axis=0)
 
 sel = np.isfinite(Red) * np.isfinite(Blue)
 Norm = biweight(Red[sel] / Blue[sel])
+print(Norm)
 Red *= Norm
 RedErr *= Norm
 RedSky *= Norm
