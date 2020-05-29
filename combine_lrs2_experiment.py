@@ -154,6 +154,7 @@ for spec in [allspec, bluespec, redspec, blueerr, rederr, bluesky, redsky, c]:
 
 Blue = np.nanmean(bluespec, axis=0)
 norm = np.nanmedian(bluespec / Blue[np.newaxis, :], axis=1)
+print(norm)
 bluespec = bluespec / norm[:, np.newaxis]
 blueerr = blueerr / norm[:, np.newaxis]
 weights = 1. / blueerr**2
@@ -179,7 +180,7 @@ Red *= Norm
 RedErr *= Norm
 RedSky *= Norm
 
-Spec = Blue
+Spec = np.nanmean([Blue, Red], axis=0)
 Err = np.sqrt(np.nansum([BlueErr**2, RedErr**2], axis=0))
 Sky = np.nanmean([BlueSky, RedSky], axis=0)
 Cor = np.nanmean(c, axis=0)
