@@ -128,8 +128,8 @@ for base, calbase, side in zip(filenames, filenames2, sides):
             e = np.interp(def_wave, f[0].data[0], f[0].data[-1] / CO / cor, left=0., right=0.)
             spec[channel].append(t)
             wave[channel] = def_wave
-            allspec.append(t)
             if side == 'blue':
+                print(channel)
                 bluespec.append(t)
                 blueerr.append(e)
                 bluesky.append(s)
@@ -154,7 +154,6 @@ for spec in [allspec, bluespec, redspec, blueerr, rederr, bluesky, redsky, c]:
 
 Blue = np.nanmean(bluespec, axis=0)
 norm = np.nanmedian(bluespec / Blue[np.newaxis, :], axis=1)
-print(norm)
 bluespec = bluespec / norm[:, np.newaxis]
 blueerr = blueerr / norm[:, np.newaxis]
 weights = 1. / blueerr**2
