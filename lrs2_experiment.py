@@ -17,6 +17,7 @@ from scipy.interpolate import interp1d, griddata
 from math_utils import biweight
 from input_utils import setup_logging
 from astropy.convolution import Gaussian1DKernel, convolve, interpolate_replace_nans
+from astropy.convolution import Gaussian2DKernel
 from astropy.io import fits
 from astropy.modeling.models import Polynomial2D, Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter, FittingWithOutlierRemoval
@@ -362,6 +363,59 @@ def get_source(y, std, spec, pos, fibarea, newftf, wave, sky, check=False):
         sky, I = get_mastersky(spec, newftf, wave, sel=sel)
     return xc, yc, quality_flag, fit, mod, apcor, sky, sel, too_bright
 
+def get_skysub(S, sky, err, d, masksky, channel):
+    Sky = biweight(S[d > 5.], axis=0)
+    sci = biweight(S[d < 1.5], axis=0)
+    masksci = sci > Sky*1.2
+    masksky = masksky * (~masksci)
+    skysub = S - Sky
+    totsky = 0. * skysub
+    totsky[:] = Sky
+    intermediate = skysub * 1.
+    intermediate[:, masksky] = np.nan
+    G1 = Gaussian1DKernel(5.5)
+    for k in np.arange(S.shape[0]):
+        intermediate[k] = interpolate_replace_nans(intermediate[k], G1)
+    for k in np.arange(S.shape[1]):
+        intermediate[:, k] = interpolate_replace_nans(intermediate[:, k], G1)
+    if channel == 'farred':
+        mask = masksky * True
+        mask[1500:] = False
+        mask[:50] = False
+        pca = PCA(n_components=55)
+    else:
+        mask = masksky * True
+        mask[1900:] = False
+        mask[:50] = False
+        pca = PCA(n_components=35)
+    y = (skysub - intermediate)[:, mask]
+    y[np.isnan(y)] = 0.0
+    if mask.sum() > 60:
+        pca.fit_transform(y.swapaxes(0, 1))
+        res = get_residual_map(skysub - intermediate, pca)
+        res[:, ~masksky] = 0.0
+        skysub[:] -= res
+        totsky[:] += res
+    skyfibers = d > 2.
+    dummy = skysub * 1.
+    ll = np.nanpercentile(dummy, 5, axis=0)
+    hh = np.nanpercentile(dummy, 95, axis=0)
+    bl, norm = biweight(skysub[:, 200:-200] / err[:, 200:-200], calc_std=True)
+    err *= norm
+    dummy[dummy > 3.*err] = np.nan
+    dummy[(dummy<ll) + (dummy>hh)] = np.nan
+    dummy[~skyfibers, :] = np.nan
+    dummy[:, masksky] = np.nan
+    dummy1 = dummy * 1.
+    G = Gaussian2DKernel(7.)
+    dummy = convolve(dummy, G, boundary='extend')
+    while np.isnan(dummy).sum():
+        dummy = interpolate_replace_nans(dummy, G)
+    skysub[:] -= dummy
+    totsky[:] += dummy
+    totsky[:, ~masksky] = 0.0
+    return skysub, totsky, dummy1
+
 warnings.filterwarnings("ignore")
 
 DIRNAME = get_script_path()
@@ -557,42 +611,46 @@ weight = skysub * 0.
 for i in np.arange(skysub.shape[1]):
     xc = fit_params[0][i]
     yc = fit_params[1][i]
-    
     y = Gaussian2D(x_mean=xc, y_mean=yc, x_stddev=fit_params[2],
                    y_stddev=fit_params[3], theta=fit_params[4])(pos[:, 0], pos[:, 1])
     weight[:, i] = y / np.sum(y)
-spec_rect = extract_columns(weight, skysub_rect_orig)
-skyline_mask = get_skyline_mask(sky_rect)
-G = Gaussian1DKernel(4.0)
-skyline_mask_1d = np.sum(skyline_mask, axis=0)
-spec_rect[np.isnan(skyline_mask_1d)] = np.nan
-while np.isnan(spec_rect).sum(): 
-    spec_rect = interpolate_replace_nans(spec_rect, G)
-model_image = weight * spec_rect[np.newaxis, :]
-dummy = skysub_rect_orig - model_image
-dummy[np.isnan(skyline_mask)] = np.nan
-smooth = dummy * 0.
+d = np.sqrt((pos[:, 0] - fit_params[0][int(len(def_wave)/2)])**2 +
+            (pos[:, 1] - fit_params[1][int(len(def_wave)/2)])**2)
 
-if not too_bright:
-    for i in np.arange(smooth.shape[0]):
-        smooth[i] = convolve(dummy[i], G, boundary='extend')
-        while np.isnan(smooth[i]).sum():
-            smooth[i] = interpolate_replace_nans(smooth[i], G) 
-else:
-    smooth = np.zeros(dummy.shape)
-if not too_bright:
-    res = get_residual_map(skysub_rect_orig - model_image - smooth, pca, good)
-else:
-    res = 0. * skysub_rect_orig
-image = skysub_rect_orig - model_image - smooth
-fits.PrimaryHDU(sky_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'temp'),
-                                                         overwrite=True)
-#fits.PrimaryHDU(res, header=m[0].header).writeto(args.multiname.replace('multi', 'res'),
+skyline_mask = get_skyline_mask(sky_rect)
+skysub_rect, totsky, dummy1 = get_skysub(spec_rect, sky, error_rect, d, np.isnan(skyline_mask.sum(axis=0)), channel)    
+
+spec_rect = extract_columns(weight, skysub_rect_orig)
+#G = Gaussian1DKernel(4.0)
+#skyline_mask_1d = np.sum(skyline_mask, axis=0)
+#spec_rect[np.isnan(skyline_mask_1d)] = np.nan
+#while np.isnan(spec_rect).sum(): 
+#    spec_rect = interpolate_replace_nans(spec_rect, G)
+#model_image = weight * spec_rect[np.newaxis, :]
+#dummy = skysub_rect_orig - model_image
+#dummy[np.isnan(skyline_mask)] = np.nan
+#smooth = dummy * 0.
+#
+#if not too_bright:
+#    for i in np.arange(smooth.shape[0]):
+#        smooth[i] = convolve(dummy[i], G, boundary='extend')
+#        while np.isnan(smooth[i]).sum():
+#            smooth[i] = interpolate_replace_nans(smooth[i], G) 
+#else:
+#    smooth = np.zeros(dummy.shape)
+#if not too_bright:
+#    res = get_residual_map(skysub_rect_orig - model_image - smooth, pca, good)
+#else:
+#    res = 0. * skysub_rect_orig
+#image = skysub_rect_orig - model_image - smooth
+#fits.PrimaryHDU(sky_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'temp'),
 #                                                         overwrite=True)
-#fits.PrimaryHDU(skysub_rect_orig, header=m[0].header).writeto(args.multiname.replace('multi', 'orig'),
-#                                                         overwrite=True)
-skysub_rect = skysub_rect_orig - res - smooth
-sky_rect = sky_rect_orig + res
+##fits.PrimaryHDU(res, header=m[0].header).writeto(args.multiname.replace('multi', 'res'),
+##                                                         overwrite=True)
+##fits.PrimaryHDU(skysub_rect_orig, header=m[0].header).writeto(args.multiname.replace('multi', 'orig'),
+##                                                         overwrite=True)
+#skysub_rect = skysub_rect_orig - res - smooth
+#sky_rect = sky_rect_orig + res
 
 #fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
 #                                                         overwrite=True)
