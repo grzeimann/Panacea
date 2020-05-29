@@ -181,6 +181,7 @@ RedErr = np.sqrt(np.nansum(rederr**2*weights, axis=0))
 RedSky = np.nansum(redsky*weights, axis=0)
 
 sel = np.isfinite(Red) * np.isfinite(Blue)
+print(sel.sum())
 Norm = biweight(Red[sel] / Blue[sel])
 print(Norm)
 Red *= Norm
