@@ -162,6 +162,7 @@ c[c==0.] = np.nan
 print(bluespec)
 Blue = np.nanmean(bluespec, axis=0)
 norm = np.nanmedian(bluespec / Blue[np.newaxis, :], axis=1)
+print(norm)
 bluespec = bluespec / norm[:, np.newaxis]
 blueerr = blueerr / norm[:, np.newaxis]
 weights = 1. / blueerr**2
