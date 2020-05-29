@@ -160,7 +160,6 @@ redsky[redsky==0.] = np.nan
 c = np.array(c)
 c[c==0.] = np.nan
 Blue = np.nanmean(bluespec, axis=0)
-print(Blue)
 norm = np.nanmedian(bluespec / Blue[np.newaxis, :], axis=1)
 bluespec = bluespec / norm[:, np.newaxis]
 blueerr = blueerr / norm[:, np.newaxis]
@@ -170,6 +169,9 @@ Blue = np.nansum(bluespec*weights, axis=0)
 BlueErr = np.sqrt(np.nansum(blueerr**2*weights, axis=0))
 BlueSky = np.nansum(bluesky*weights, axis=0)
 Blue[np.abs(def_wave-3735.7)<0.5] = np.nan
+Blue[Blue==0.] = np.nan
+BlueSky[BlueSky==0.] = np.nan
+BlueErr[BlueErr==0.] = np.nan
 
 Red = np.nanmean(redspec, axis=0)
 norm = np.nanmedian(redspec / Red[np.newaxis, :], axis=1)
@@ -180,9 +182,10 @@ weights = weights / np.nansum(weights, axis=0)[np.newaxis, :]
 Red = np.nansum(redspec*weights, axis=0)
 RedErr = np.sqrt(np.nansum(rederr**2*weights, axis=0))
 RedSky = np.nansum(redsky*weights, axis=0)
-
+Red[Red==0.] = np.nan
+RedSky[RedSky==0.] = np.nan
+RedErr[RedErr==0.] = np.nan
 sel = np.isfinite(Red) * np.isfinite(Blue)
-print(Blue)
 Norm = biweight(Red[sel] / Blue[sel])
 print(Norm)
 Red *= Norm
