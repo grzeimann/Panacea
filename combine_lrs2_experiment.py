@@ -16,7 +16,7 @@ import glob
 from astropy.convolution import convolve, Gaussian1DKernel
 from matplotlib.ticker import MultipleLocator
 from astropy.table import Table
-from scipy.signal import savgol_filter
+from scipy.signal import savgol_filter, medfilt
 from math_utils import biweight
 
 
@@ -80,7 +80,7 @@ def connect_channels(spec1, spec2, def_wave, w1, w2, w3, lw, hw):
         sel = (def_wave > lw) * (def_wave < hw)
         sel1 = sel * np.isfinite(spec1)
         sel2 = sel * np.isfinite(spec2)
-        p0 = np.polyfit([4260., 4800., 5100.], [n3, n4, n5], 2)
+        p0 = np.polyfit([w1, w2, w3], [n3, n4, n5], 2)
         p1 = np.polyfit(def_wave[sel1], spec1[sel1], 2)
         p2 = np.polyfit(def_wave[sel2], spec2[sel2], 2)
         norm = np.polyval(p0, def_wave[sel])
@@ -102,7 +102,7 @@ def_wave = np.arange(3650., 10500., 0.7)
 spec = {'uv': [], 'orange': [], 'red': [], 'farred': []}
 wave = {'uv': None, 'orange': None, 'red': None, 'farred': None}
 normdict = {'blue': [4260, 4800, 5100, 4580, 4690], 
-            'red': [8000, 8600, 8700, 8000, 8500]}
+            'red': [8000, 8600, 8700, 8150, 8560]}
 Spec = []
 Cor = []
 Err = []
@@ -130,13 +130,13 @@ for base, calbase, side in zip(filenames, filenames2, sides):
         c.append(np.interp(def_wave, f[0].data[0], CO*cor, left=0., right=0.))
     N = nexp * len(channels)
     w1, w2, w3, lw, hw = normdict[side]
-#    for i in np.arange(nexp):
-#        ind1 = -N + i
-#        ind2 = -N + nexp + i
-#        allspec[ind1], allspec[ind2] = connect_channels(allspec[ind1],
-#                                                        allspec[ind2], 
-#                                                        def_wave, w1, w2, w3,
-#                                                        lw, hw)
+    for i in np.arange(nexp):
+        ind1 = -N + i
+        ind2 = -N + nexp + i
+        allspec[ind1], allspec[ind2] = connect_channels(allspec[ind1],
+                                                        allspec[ind2], 
+                                                        def_wave, w1, w2, w3,
+                                                        lw, hw)
     
 allspec = np.array(allspec)
 allspec[allspec==0.] = np.nan
