@@ -102,7 +102,7 @@ def_wave = np.arange(3650., 10500., 0.7)
 spec = {'uv': [], 'orange': [], 'red': [], 'farred': []}
 wave = {'uv': None, 'orange': None, 'red': None, 'farred': None}
 normdict = {'blue': [4260, 4800, 5100, 4580, 4690], 
-            'red': [8100, 8600, 8700, 8000, 8500]}
+            'red': [8000, 8600, 8700, 8000, 8500]}
 Spec = []
 Cor = []
 Err = []
@@ -130,13 +130,13 @@ for base, calbase, side in zip(filenames, filenames2, sides):
         c.append(np.interp(def_wave, f[0].data[0], CO*cor, left=0., right=0.))
     N = nexp * len(channels)
     w1, w2, w3, lw, hw = normdict[side]
-    for i in np.arange(nexp):
-        ind1 = -N + i
-        ind2 = -N + nexp + i
-        allspec[ind1], allspec[ind2] = connect_channels(allspec[ind1],
-                                                        allspec[ind2], 
-                                                        def_wave, w1, w2, w3,
-                                                        lw, hw)
+#    for i in np.arange(nexp):
+#        ind1 = -N + i
+#        ind2 = -N + nexp + i
+#        allspec[ind1], allspec[ind2] = connect_channels(allspec[ind1],
+#                                                        allspec[ind2], 
+#                                                        def_wave, w1, w2, w3,
+#                                                        lw, hw)
     
 allspec = np.array(allspec)
 allspec[allspec==0.] = np.nan
