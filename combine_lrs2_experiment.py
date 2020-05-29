@@ -152,8 +152,8 @@ for spec in [allspec, bluespec, redspec, blueerr, rederr, bluesky, redsky, c]:
     spec[spec==0.] = np.nan
 
 Blue = np.nanmean(bluespec, axis=0)
-fits.PrimaryHDU(Blue).writeto('test.fits', overwrite=True)
 norm = np.nanmedian(bluespec / Blue[np.newaxis, :], axis=1)
+print(norm)
 bluespec = bluespec / norm[:, np.newaxis]
 blueerr = blueerr / norm[:, np.newaxis]
 weights = 1. / blueerr**2
