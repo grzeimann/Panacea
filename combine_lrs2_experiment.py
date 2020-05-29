@@ -201,7 +201,7 @@ for spec in [bluespec, redspec]:
     for s in spec:
         plt.plot(def_wave, s, lw=1.0, alpha=0.4, zorder=1)
 plt.plot(def_wave, Spec, 'k-', lw=1.0, alpha=0.4, zorder=2)
-Table([def_wave, Spec, Err, Sky, Cor], names=['wavelength', 'f_lam', 'e_lam', 'sky_lam', 'tel_cor']).write(base+'_coadd.txt', overwrite=True, format='ascii.fixed_width_two_line')
+Table([def_wave, Spec, Err, Sky, Cor], names=['wavelength', 'f_lam', 'e_lam', 'sky_lam', 'tel_cor']).write(outfile+'_coadd.txt', overwrite=True, format='ascii.fixed_width_two_line')
 plt.gca().tick_params(axis='both', which='both', direction='in')
 plt.gca().tick_params(axis='y', which='both', left=True, right=True)
 plt.gca().tick_params(axis='x', which='both', bottom=True, top=True)
