@@ -179,7 +179,7 @@ Red *= Norm
 RedErr *= Norm
 RedSky *= Norm
 
-Spec = np.nanmean([Blue, Red], axis=0)
+Spec = Blue
 Err = np.sqrt(np.nansum([BlueErr**2, RedErr**2], axis=0))
 Sky = np.nanmean([BlueSky, RedSky], axis=0)
 Cor = np.nanmean(c, axis=0)
