@@ -160,6 +160,7 @@ redsky[redsky==0.] = np.nan
 c = np.array(c)
 c[c==0.] = np.nan
 Blue = np.nanmean(bluespec, axis=0)
+print(Blue)
 norm = np.nanmedian(bluespec / Blue[np.newaxis, :], axis=1)
 bluespec = bluespec / norm[:, np.newaxis]
 blueerr = blueerr / norm[:, np.newaxis]
