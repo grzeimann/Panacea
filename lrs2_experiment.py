@@ -591,7 +591,6 @@ fit_params = [np.interp(def_wave, T['wave'], T['x_0']+xoff),
               np.interp(def_wave, T['wave'], T['y_0']+yoff),
               xs, ys, th]
 
-
 N = int(len(def_wave) / 25)
 inds = np.arange(int(N/2), len(def_wave), N)
 apcor = inds * 0.
@@ -611,7 +610,7 @@ try:
 except:
     args.log.warning('Aperture Correction failed due to modeling issue')
     apcor = np.ones(def_wave.shape)
-args.log.info('%s: %0.2f %0.2f %0.2f %0.2f' % (args.multiname, xoff, yoff, fit_params[2],
+args.log.info('%s: %0.2f %0.2f %0.2f %0.2f' % (args.multiname, fit_params[0][1032], fit_params[1][1032], fit_params[2],
                                                   fit_params[3]))
 weight = skysub * 0.
 for i in np.arange(skysub.shape[1]):
