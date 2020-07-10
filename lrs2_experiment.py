@@ -438,6 +438,10 @@ parser.add_argument("-dw", "--delta_wavelength",
                     help='''Delta Wavelength in linear units for output''',
                     default=None, type=float)
 
+parser.add_argument("--fit_params", default=None,
+                    help='''e.g., "0.0, 0.0, 1.0, 1.0"''',
+                    type=str)
+
 args = None
 #args = ['dummy', 'multi_20181116_0000010_exp01_red.fits',
 #        '-c', '/Users/gregz/cure/panacea', '-d', '/Users/gregz/cure/panacea']
@@ -578,11 +582,15 @@ darfile = op.join(DIRNAME, 'lrs2_config/dar_%s.dat' % channel_dict[channel])
 T = Table.read(darfile, format='ascii.fixed_width_two_line')
 xdar = np.interp(w, T['wave'], T['x_0'])
 ydar = np.interp(w, T['wave'], T['y_0'])
+if args.fit_params is not None:
+    fit_p_list = [float(i.replace(' ', '')) for i in args.fit_params.split(',')]
+    xc, yc, xs, ys = fit_p_list
 xoff = biweight(xc - xdar)
 yoff = biweight(yc - ydar)
 fit_params = [np.interp(def_wave, T['wave'], T['x_0']+xoff),
               np.interp(def_wave, T['wave'], T['y_0']+yoff),
               xs, ys, th]
+
 
 N = int(len(def_wave) / 25)
 inds = np.arange(int(N/2), len(def_wave), N)
@@ -619,39 +627,7 @@ skyline_mask = get_skyline_mask(sky_rect)
 skysub_rect, totsky, dummy1 = get_skysub(spec_rect, sky, error_rect, d, np.isnan(skyline_mask.sum(axis=0)), channel)    
 
 spec_rect = extract_columns(weight, skysub_rect_orig)
-#G = Gaussian1DKernel(4.0)
-#skyline_mask_1d = np.sum(skyline_mask, axis=0)
-#spec_rect[np.isnan(skyline_mask_1d)] = np.nan
-#while np.isnan(spec_rect).sum(): 
-#    spec_rect = interpolate_replace_nans(spec_rect, G)
-#model_image = weight * spec_rect[np.newaxis, :]
-#dummy = skysub_rect_orig - model_image
-#dummy[np.isnan(skyline_mask)] = np.nan
-#smooth = dummy * 0.
-#
-#if not too_bright:
-#    for i in np.arange(smooth.shape[0]):
-#        smooth[i] = convolve(dummy[i], G, boundary='extend')
-#        while np.isnan(smooth[i]).sum():
-#            smooth[i] = interpolate_replace_nans(smooth[i], G) 
-#else:
-#    smooth = np.zeros(dummy.shape)
-#if not too_bright:
-#    res = get_residual_map(skysub_rect_orig - model_image - smooth, pca, good)
-#else:
-#    res = 0. * skysub_rect_orig
-#image = skysub_rect_orig - model_image - smooth
-#fits.PrimaryHDU(sky_rect, header=m[0].header).writeto(args.multiname.replace('multi', 'temp'),
-#                                                         overwrite=True)
-##fits.PrimaryHDU(res, header=m[0].header).writeto(args.multiname.replace('multi', 'res'),
-##                                                         overwrite=True)
-##fits.PrimaryHDU(skysub_rect_orig, header=m[0].header).writeto(args.multiname.replace('multi', 'orig'),
-##                                                         overwrite=True)
-#skysub_rect = skysub_rect_orig - res - smooth
-#sky_rect = sky_rect_orig + res
 
-#fits.PrimaryHDU(weight, header=m[0].header).writeto(args.multiname.replace('multi', 'weight'),
-#                                                         overwrite=True)
 
 # =============================================================================
 # Get Extraction
