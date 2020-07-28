@@ -327,7 +327,7 @@ for j, _info in enumerate(shots_of_interest):
         ampflags = badamprec['flag'][ampinds]
 
         for ind in idx:
-            info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=10.)
+            info_result = get_fiberinfo_for_coord(E, ncoords[ind], radius=10.)
             if info_result is not None:
                 log.info('Extracting %s' % str(ID[ind]))
                 ifux, ifuy, xc, yc, ra, dec, data, error, mask, mname = info_result
