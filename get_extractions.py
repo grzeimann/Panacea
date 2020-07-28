@@ -22,6 +22,76 @@ from hetdex_api.extract import Extract
 from hetdex_api.survey import Survey
 from photutils.centroids import centroid_2dg
 
+def get_fiberinfo_for_coord(self, coord, radius=8.0, ffsky=False):
+    """ 
+    Grab fibers within a radius and get relevant info
+    
+    Parameters
+    ----------
+    coord: SkyCoord Object
+        a single SkyCoord object for a given ra and dec
+    radius:
+        radius to extract fibers in arcsec
+    ffsky: bool
+        Flag to choose local (ffsky=False) or full frame (ffsky=True)
+        sky subtraction
+    
+    Returns
+    -------
+    ifux: numpy array (length of number of fibers)
+        ifu x-coordinate accounting for dither_pattern
+    ifuy: numpy array (length of number of fibers)
+        ifu y-coordinate accounting for dither_pattern
+    ra: numpy array (length of number of fibers)
+        Right ascension of fibers
+    dec: numpy array (length of number of fibers)
+        Declination of fibers
+    spec: numpy 2d array (number of fibers by wavelength dimension)
+        Calibrated spectra for each fiber
+    spece: numpy 2d array (number of fibers by wavelength dimension)
+        Error for calibrated spectra
+    mask: numpy 2d array (number of fibers by wavelength dimension)
+        Mask of good values for each fiber and wavelength
+    """
+    
+    fiber_lower_limit = 7
+    
+    idx = self.fibers.query_region_idx(coord, radius=radius)
+
+    if len(idx) < fiber_lower_limit:
+        return None
+
+    ifux = self.fibers.table.read_coordinates(idx, "ifux")
+    ifuy = self.fibers.table.read_coordinates(idx, "ifuy")
+    ra = self.fibers.table.read_coordinates(idx, "ra")
+    dec = self.fibers.table.read_coordinates(idx, "dec")
+    mname = [x.decode("utf-8") 
+             for x in self.fibers.table.read_coordinates(idx, "multi")]
+    if ffsky:
+        spec = self.fibers.table.read_coordinates(idx, "spec_fullsky_sub") / 2.0
+    else:
+        spec = self.fibers.table.read_coordinates(idx, "calfib") / 2.0
+
+    spece = self.fibers.table.read_coordinates(idx, "calfibe") / 2.0
+    ftf = self.fibers.table.read_coordinates(idx, "fiber_to_fiber")
+    
+    if self.survey == 'hdr1':
+        mask = self.fibers.table.read_coordinates(idx, "Amp2Amp")
+        mask = (mask > 1e-8) * (np.median(ftf, axis=1) > 0.5)[:, np.newaxis]
+    else:
+        mask = self.fibers.table.read_coordinates(idx, "calfibe")
+        mask = (mask > 1e-8) * (np.median(ftf, axis=1) > 0.5)[:, np.newaxis]
+    expn = np.array(
+        self.fibers.table.read_coordinates(idx, "expnum"), dtype=int
+    )
+    
+    ifux[:] = ifux + self.dither_pattern[expn - 1, 0]
+    ifuy[:] = ifuy + self.dither_pattern[expn - 1, 1]
+    xc, yc = self.convert_radec_to_ifux_ifuy(
+        ifux, ifuy, ra, dec, coord.ra.deg, coord.dec.deg
+    )
+    return ifux, ifuy, xc, yc, ra, dec, spec, spece, mask, mname
+
 def moffat_psf(seeing, boxsize, scale, alpha=3.5):
     '''
     Moffat PSF profile image
@@ -160,6 +230,10 @@ parser.add_argument("-r", "--recenter",
                     help='''Re-centroid source''',
                     action="count", default=0)
 
+parser.add_argument("-rv", "--recenter_var2",
+                    help='''Re-centroid source variation''',
+                    action="count", default=0)
+
 args = parser.parse_args(args=None)
 
 if args.survey == 'hdr1':
@@ -179,6 +253,9 @@ log.info('Loading External File')
 fitsfile = fits.open(args.filename)
 bintable = fitsfile[1].data
 table = Table(bintable)
+
+# Bad amplifier information
+badamprec = fits.open('/data/05350/ecooper/hdr2.1/survey/amp_flag.fits')[1].data
 
 ID = bintable['source_id']
 
@@ -238,17 +315,30 @@ for j, _info in enumerate(shots_of_interest):
     dist = ncoords.separation(coord)
     sep_constraint = dist < max_sep
     name = '%sv%03d' % (t['date'][i], t['obsid'][i])
+    shotid = int('%s%03d' % (t['date'][i], t['obsid'][i]))
     intname = int(name.replace('v', ''))
     idx = np.where(sep_constraint)[0]
     matched_sources[name] = idx
     if len(idx) > 0:
         log.info('Working on shot [%i / %i]: %s' % (j+1, N, name))
         E.load_shot(name, survey=args.survey)
+        ampinds = np.where(badamprec['shotid'] == shotid)[0]
+        ampnames = badamprec['multiframe'][ampinds]
+        ampflags = badamprec['flag'][ampinds]
+
         for ind in idx:
             info_result = E.get_fiberinfo_for_coord(ncoords[ind], radius=10.)
             if info_result is not None:
                 log.info('Extracting %s' % str(ID[ind]))
-                ifux, ifuy, xc, yc, ra, dec, data, error, mask = info_result
+                ifux, ifuy, xc, yc, ra, dec, data, error, mask, mname = info_result
+                any_in_bad_amp = False
+                for jiter in np.arange(len(mname)):
+                    s = mname[jiter] == ampnames
+                    if ampflags[s] < 1:
+                        mask[jiter] = False
+                        any_in_bad_amp = True
+                if any_in_bad_amp:
+                    log.info('Some Fibers in Bad Amplifier')
                 if args.recenter:
                     wl = 5001. * (1 + bintable['z'][ind])
                     wh = 5013. * (1 + bintable['z'][ind])
@@ -262,34 +352,35 @@ for j, _info in enumerate(shots_of_interest):
                                                       wrange=[wl, wh], nchunks=1,
                                                       convolve_image=True,
                                                       interp_kind='linear')
-#                        nx, ny = centroid_2dg(zarray1[0])
-#                        nxc = np.interp(nx, np.arange(zarray1[1].shape[1]),
-#                                        zarray1[1][0, :])
-#                        nyc = np.interp(ny, np.arange(zarray1[2].shape[0]),
-#                                        zarray1[2][:, 0])
-#                        for n in [nxc, nyc]:
-#                            if np.isnan(n):
-#                                n = 0.0
-#                        nra = ncoords[ind].ra.deg + nxc / np.cos(np.deg2rad(np.median(dec))) / 3600.
-#                        ndec = ncoords[ind].dec.deg + nyc / 3600.
-#                        log.info('%s: Shift: %0.2f, %0.2f, New: %0.6f, %0.5f' %
-#                                 (str(ID[ind]), nxc, nyc, nra, ndec))
-#                        zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
-#                                                      scale=0.25, seeing_fac=1.5, boxsize=10.,
-#                                                      wrange=[wl, wh], nchunks=1,
-#                                                      convolve_image=True,
-#                                                      interp_kind='linear')
-#                        nx, ny = centroid_2dg(zarray[0])
-#                        nxc = np.interp(nx, np.arange(zarray[1].shape[1]),
-#                                        zarray[1][0, :])
-#                        nyc = np.interp(ny, np.arange(zarray[2].shape[0]),
-#                                        zarray[2][:, 0])
-#                        for n in [nxc, nyc]:
-#                            if np.isnan(n):
-#                                n = 0.0
-#                        log.info('Original: %0.2f, %0.2f, Change: %0.2f, %0.2f' %
-#                                 (xc, yc, nxc, nyc))
-#                        xc, yc = (nxc+xc, nyc+yc)
+                        if args.recenter_var2:
+                            nx, ny = centroid_2dg(zarray1[0])
+                            nxc = np.interp(nx, np.arange(zarray1[1].shape[1]),
+                                            zarray1[1][0, :])
+                            nyc = np.interp(ny, np.arange(zarray1[2].shape[0]),
+                                            zarray1[2][:, 0])
+                            for n in [nxc, nyc]:
+                                if np.isnan(n):
+                                    n = 0.0
+                            nra = ncoords[ind].ra.deg + nxc / np.cos(np.deg2rad(np.median(dec))) / 3600.
+                            ndec = ncoords[ind].dec.deg + nyc / 3600.
+                            log.info('%s: Shift: %0.2f, %0.2f, New: %0.6f, %0.5f' %
+                                     (str(ID[ind]), nxc, nyc, nra, ndec))
+                            zarray = E.make_collapsed_image(xc, yc, ifux, ifuy, data, mask,
+                                                          scale=0.25, seeing_fac=1.5, boxsize=10.,
+                                                          wrange=[wl, wh], nchunks=1,
+                                                          convolve_image=True,
+                                                          interp_kind='linear')
+                            nx, ny = centroid_2dg(zarray[0])
+                            nxc = np.interp(nx, np.arange(zarray[1].shape[1]),
+                                            zarray[1][0, :])
+                            nyc = np.interp(ny, np.arange(zarray[2].shape[0]),
+                                            zarray[2][:, 0])
+                            for n in [nxc, nyc]:
+                                if np.isnan(n):
+                                    n = 0.0
+                            log.info('Original: %0.2f, %0.2f, Change: %0.2f, %0.2f' %
+                                     (xc, yc, nxc, nyc))
+                            xc, yc = (nxc+xc, nyc+yc)
                     except:
                         log.warning('Image Collapse Failed')
                         N1 = int(14. / 0.25)
