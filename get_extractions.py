@@ -52,8 +52,8 @@ def build_weights(self, xc, yc, ifux, ifuy, psf):
                              fill_value=0.0)
     weights = np.zeros((len(ifux), len(self.wave)))
     for i in np.arange(len(self.wave)):
-        S[:, 0] = ifux - self.ADRra[i] - xc
-        S[:, 1] = ifuy - self.ADRdec[i] - yc
+        S[:, 0] = ifux - self.ADRx[i] - xc
+        S[:, 1] = ifuy - self.ADRy[i] - yc
         weights[:, i] = I(S[:, 0], S[:, 1])
     self.log.info('Average weight is: %0.2f' % np.median(np.sum(weights, axis=0)))
     return weights
