@@ -161,7 +161,7 @@ def moffat_psf_integration(xloc, yloc, seeing, boxsize=14.,
     for xl, yl in zip(xloc, yloc):
         d = np.sqrt((xgrid-xl)**2 + (ygrid-yl)**2)
         sel = d <= 0.75
-        adj = np.pi * 0.75**2 / (sel.sum() * scale**2)
+        adj = 1. / sel.sum()
         V[cnt] = np.sum(Z[sel]) * adj
         cnt += 1
     return V
