@@ -21,6 +21,42 @@ from datetime import datetime as dt
 from hetdex_api.extract import Extract 
 from hetdex_api.survey import Survey
 from photutils.centroids import centroid_2dg
+from scipy.interpolate import LinearNDInterpolator
+
+
+def build_weights(self, xc, yc, ifux, ifuy, psf):
+    '''
+    Build weight matrix for spectral extraction
+    
+    Parameters
+    ----------
+    xc: float
+        The ifu x-coordinate for the center of the collapse frame
+    yc: float 
+        The ifu y-coordinate for the center of the collapse frame
+    xloc: numpy array
+        The ifu x-coordinate for each fiber
+    yloc: numpy array
+        The ifu y-coordinate for each fiber
+    psf: numpy 3d array
+        zeroth dimension: psf image, xgrid, ygrid
+    
+    Returns
+    -------
+    weights: numpy 2d array (len of fibers by wavelength dimension)
+        Weights for each fiber as function of wavelength for extraction
+    '''
+    S = np.zeros((len(ifux), 2))
+    T = np.array([psf[1].ravel(), psf[2].ravel()]).swapaxes(0, 1)
+    I = LinearNDInterpolator(T, psf[0].ravel(),
+                             fill_value=0.0)
+    weights = np.zeros((len(ifux), len(self.wave)))
+    for i in np.arange(len(self.wave)):
+        S[:, 0] = ifux - self.ADRra[i] - xc
+        S[:, 1] = ifuy - self.ADRdec[i] - yc
+        weights[:, i] = I(S[:, 0], S[:, 1])
+    self.log.info('Average weight is: %0.2f' % np.median(np.sum(weights, axis=0)))
+    return weights
 
 def get_fiberinfo_for_coord(self, coord, radius=8.0, ffsky=False):
     """ 
@@ -161,7 +197,7 @@ def moffat_psf_integration(xloc, yloc, seeing, boxsize=14.,
     for xl, yl in zip(xloc, yloc):
         d = np.sqrt((xgrid-xl)**2 + (ygrid-yl)**2)
         sel = d <= 0.75
-        adj = 1. / sel.sum()
+        adj = np.pi * 0.75**2 / (sel.sum() * scale**2)
         V[cnt] = np.sum(Z[sel]) * adj
         cnt += 1
     return V
@@ -387,7 +423,7 @@ for j, _info in enumerate(shots_of_interest):
                         zarray1 = [np.zeros((N1, N1)), np.zeros((N1, N1)),
                                   np.zeros((N1, N1))]
                     Images.append(zarray1[0])
-                weights = E.build_weights(xc, yc, ifux, ifuy, moffat)
+                weights = build_weights(E, xc, yc, ifux, ifuy, moffat)
                 second_mask = np.sqrt((ifux-xc)**2 + (ifuy-yc)**2) < 3.
                 result = get_spectrum(data, error,
                                       mask*second_mask[:, np.newaxis],
