@@ -66,7 +66,7 @@ def get_fiberinfo_for_coord(self, coord, radius=8.0, ffsky=False):
     ra = self.fibers.table.read_coordinates(idx, "ra")
     dec = self.fibers.table.read_coordinates(idx, "dec")
     mname = [x.decode("utf-8") 
-             for x in self.fibers.table.read_coordinates(idx, "multi")]
+             for x in self.fibers.table.read_coordinates(idx, "multiframe")]
     if ffsky:
         spec = self.fibers.table.read_coordinates(idx, "spec_fullsky_sub") / 2.0
     else:
