@@ -75,6 +75,7 @@ for filename in filenames:
     obj.append(st)
     keep_files.append(filename)
 uobj = np.unique(obj)
+print(uobj)
 calls, atcalls = ([], [])
 now = datetime.datetime.now()
 for o in uobj:
