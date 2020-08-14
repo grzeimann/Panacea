@@ -375,7 +375,7 @@ def find_centroid(pos, y):
     G = Gaussian2D(x_mean=xc, y_mean=yc, amplitude=1.)
     fitter = FittingWithOutlierRemoval(LevMarLSQFitter(), sigma_clip,
                                        stdfunc=mad_std)
-    mask, fit = fitter(G, grid_x[sel], grid_y[sel], image[sel])
+    fit, mask = fitter(G, grid_x[sel], grid_y[sel], image[sel])
     bl, std = biweight(image[~sel], calc_std=True)
     fitquality = False
     if fit.amplitude > 5 * std:
@@ -921,10 +921,6 @@ def main():
                        waves, cnt, cors, def_wave, ems, sky_subtract=True)
     xgrid = info[0][3]
     ygrid = info[0][4]
-#    norms = np.array([get_norm(i[0], xgrid, ygrid, wave) for i in info])
-#    norms = norms / np.mean(norms)
-#    for j, norm in enumerate(norms):
-#        args.log.info('Normalization for frame %i: %0.2f' % (j, norm))
     zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
     ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
     scube = np.nanmean(np.array([i[2] for i in info]), axis=0)
