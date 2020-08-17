@@ -266,6 +266,10 @@ parser.add_argument("-r", "--recenter",
                     help='''Re-centroid source''',
                     action="count", default=0)
 
+parser.add_argument("-iba", "--ignore_bad_amps",
+                    help='''Still use bad amplifiers ignoring that they are bad''',
+                    action="count", default=0)
+
 parser.add_argument("-rv", "--recenter_var2",
                     help='''Re-centroid source variation''',
                     action="count", default=0)
@@ -371,7 +375,8 @@ for j, _info in enumerate(shots_of_interest):
                 for jiter in np.arange(len(mname)):
                     s = mname[jiter] == ampnames
                     if ampflags[s] < 1:
-                        mask[jiter] = False
+                        if not args.ignore_bad_amps:
+                            mask[jiter] = False
                         any_in_bad_amp = True
                 if any_in_bad_amp:
                     log.info('Some Fibers in Bad Amplifier')
