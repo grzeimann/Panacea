@@ -61,6 +61,7 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
     flam = 10**(-0.4*(T[:, 1]-23.9))*1e-29 *3e18 / T[:, 0]**2
     wave = T[:, 0]
     s = []
+    ss = []
     dT = []
     for f in fn:
         g = fits.open(f)
@@ -68,7 +69,7 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
             norm = g[0].header['MILLUM'] / 51.4e4 * g[0].header['THROUGHP']
         except:
             print('Could not get header info from reduction for: %s' % f)
-            continue
+            norm = 1.0
         n.append(g[0].header['OBJECT'][:-6])
         if ('%s' % name) in g[0].header['OBJECT']:
             dt = f.split('_')[1]
@@ -88,7 +89,10 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
             dT.append(D)
             d = np.interp(g[0].data[0], wave, flam)
             s.append(biweight(g[0].data[1] * norm / d) / illum)
+            ss.append(through)
     plt.plot_date(dT, np.array(s), alpha=0.6, ms=10, marker='*')
+    plt.plot_date(dT, np.array(ss), alpha=0.6, ms=10, marker='s')
+
 plt.ylim([0, 1.2])
 plt.xlim([datetime.date(2018, 10, 1), datetime.date(2020, 9, 1)])
 plt.gcf().autofmt_xdate()
