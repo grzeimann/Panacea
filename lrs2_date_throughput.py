@@ -82,6 +82,13 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
             except:
                 print('Could not get header info from reduction for: %s' % f)
                 norm = 1.0
+            try:
+                thr = g[0].header['THROUGHP']
+                if (thr < 0.1) + (thr > 1.5):
+                    thr = 1.0
+                norm *= thr
+            except:
+                dummy = 0.0
             dt = f.split('_')[1]
             D = datetime.date(int(dt[:4]), int(dt[4:6]), int(dt[6:8]))
             try:
