@@ -76,7 +76,7 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
             D = datetime.date(int(dt[:4]), int(dt[4:6]), int(dt[6:8]))
             illum, through, active = get_illum_through(dt, g[0].header['DATE'])
             if active:    
-                print("Illumination/Throughput for %s is %0.2f" % (f, illum, through))
+                print("Illumination/Throughput for %s is %0.2f, %0.2f" % (f, illum, through))
             else:
                 print("No active guider info for: %s" % f)
                 illum = 1.0
