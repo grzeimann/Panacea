@@ -109,7 +109,7 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
             dT.append(D)
             d = np.interp(g[0].data[0], wave, flam)
             s.append(biweight(g[0].data[1][300:800] * norm / d[300:800]))
-            ss.append(through)
+            ss.append(norm)
     plt.plot_date(dT, np.array(s), alpha=0.6, ms=10, marker='*')
     plt.plot_date(dT, np.array(ss), alpha=0.6, ms=10, marker='s')
 
