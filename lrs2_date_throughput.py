@@ -66,7 +66,7 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
     for f in fn:
         g = fits.open(f)
         try:    
-            norm = f[0].data['MILLUM'] / 51.4e4 * f[0].data['THROUGHP']
+            norm = g[0].data['MILLUM'] / 51.4e4 * g[0].data['THROUGHP']
         except:
             print('Could not get header info from reduction for: %s' % f)
             continue
