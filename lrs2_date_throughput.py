@@ -52,7 +52,7 @@ def get_illum_through(date, fn):
     
 plt.figure(figsize=(20, 5))
 n = []
-fn = sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/STANDARDS/spectrum_20*orange*'))
+fn = sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/STANDARDS/spectrum_*orange*.fits'))
 for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
              'FEIGE_66', 'FEIGE_67', 'G191B2B', 'G193-74',
              'GD140', 'GD248', 'GD50', 'HD_19445', 'HD_84937', 'HILTNER_102',
@@ -73,7 +73,7 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
         n.append(g[0].header['OBJECT'][:-6])
         if ('%s' % name) in g[0].header['OBJECT']:
             try:    
-                norm = g[0].header['MILLUM'] / 51.4e4 * g[0].header['THROUGHP']
+                norm = g[0].header['MILLUM'] / 51.4e4
             except:
                 print('Could not get header info from reduction for: %s' % f)
                 norm = 1.0
