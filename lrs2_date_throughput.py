@@ -36,6 +36,7 @@ def get_illum_through(date, fn):
         N = names + [fns]
         v = np.sort(N)
         ind = np.where(v == fns)[0][0]
+        ind = np.where([v[ind+1] == op.basename(name) for name in onames])[0][0]
         try:
             f = fits.open(t.extractfile(onames[ind]))
         except:
