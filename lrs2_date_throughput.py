@@ -25,9 +25,9 @@ sns.set_style('ticks')
 
 def get_illum_through(date, fn):
     for gc in ['gc1', 'gc2']:
-        t = tarfile.open('/work/03946/hetdex/maverick/%s/gc1/gc1.tar' % date)
+        t = tarfile.open('/work/03946/hetdex/maverick/%s/%s/%s.tar' % (date, gc, gc))
         names = t.getnames()
-        fns = fn.replace('-', '').replace(':', '')[:-5] + '_gc1_sci.fits'
+        fns = fn.replace('-', '').replace(':', '')[:-5] + ('_%s_sci.fits' % gc)
         N = names + [fns]
         v = np.sort(N)
         ind = np.where(v == fns)[0][0]
@@ -43,7 +43,6 @@ def get_illum_through(date, fn):
         t.close()
         if active:
             continue
-    
     return illum, through, active
     
 plt.figure(figsize=(20, 5))
@@ -74,7 +73,11 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
         if ('%s' % name) in g[0].header['OBJECT']:
             dt = f.split('_')[1]
             D = datetime.date(int(dt[:4]), int(dt[4:6]), int(dt[6:8]))
-            illum, through, active = get_illum_through(dt, g[0].header['DATE'])
+            try:
+                illum, through, active = get_illum_through(dt, g[0].header['DATE'])
+            except:
+                print('Could not get guider info for %s' % f)
+                continue
             if active:    
                 print("Illumination/Throughput for %s is %0.2f, %0.2f" % (f, illum, through))
             else:
@@ -84,7 +87,7 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
                 continue
             dT.append(D)
             d = np.interp(g[0].data[0], wave, flam)
-            s.append(biweight(g[0].data[1] * norm / d) / illum / through)
+            s.append(biweight(g[0].data[1] * norm / d) / illum)
     plt.plot_date(dT, np.array(s), alpha=0.6, ms=10, marker='*')
 plt.ylim([0, 1.2])
 plt.xlim([datetime.date(2018, 10, 1), datetime.date(2020, 9, 1)])
