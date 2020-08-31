@@ -112,7 +112,7 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
     plt.plot_date(dT, np.array(ss), alpha=0.6, ms=10, marker='s')
 
 plt.ylim([0, 1.4])
-plt.xlim([datetime.date(2018, 10, 1), datetime.date(2020, 9, 1)])
+plt.xlim([datetime.date(2018, 6, 1), datetime.date(2020, 9, 1)])
 plt.gcf().autofmt_xdate()
 
 # Plot formatters
