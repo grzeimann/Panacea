@@ -23,25 +23,32 @@ sns.set_context('talk')
 sns.set_style('ticks')
 
 
-
-def get_illum(date, fn):
-    t = tarfile.open('/work/03946/hetdex/maverick/%s/gc1/gc1.tar' % date)
-    names = t.getnames()
-    fns = fn.replace('-', '').replace(':', '')[:-5] + '_gc1_sci.fits'
-    N = names + [fns]
-    v = np.sort(N)
-    ind = np.where(v == fns)[0][0]
-    try:
-        f = fits.open(t.extractfile(v[ind+1]))
-        illum = f[0].header['PUPILLUM']*1.03
-    except:
-        illum = 0.0
-    t.close()
-    return illum
+def get_illum_through(date, fn):
+    for gc in ['gc1', 'gc2']:
+        t = tarfile.open('/work/03946/hetdex/maverick/%s/gc1/gc1.tar' % date)
+        names = t.getnames()
+        fns = fn.replace('-', '').replace(':', '')[:-5] + '_gc1_sci.fits'
+        N = names + [fns]
+        v = np.sort(N)
+        ind = np.where(v == fns)[0][0]
+        try:
+            f = fits.open(t.extractfile(v[ind+1]))
+            illum = f[0].header['PUPILLUM']*1.03
+            through = f[0].header['TRANSPAR']
+            active = f[0].header['GUIDLOOP'] == 'ACTIVE'
+        except:
+            illum = 0.0
+            through = 0.0
+            active = False
+        t.close()
+        if active:
+            continue
+    
+    return illum, through, active
     
 plt.figure(figsize=(20, 5))
 n = []
-fn = sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/STANDARDS/spectrum_201*orange*'))
+fn = sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/STANDARDS/spectrum_20*orange*'))
 for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
              'FEIGE_66', 'FEIGE_67', 'G191B2B', 'G193-74',
              'GD140', 'GD248', 'GD50', 'HD_19445', 'HD_84937', 'HILTNER_102',
@@ -58,18 +65,26 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
     dT = []
     for f in fn:
         g = fits.open(f)
+        try:    
+            norm = f[0].data['MILLUM'] / 51.4e4 * f[0].data['THROUGHP']
+        except:
+            print('Could not get header info from reduction for: %s' % f)
+            continue
         n.append(g[0].header['OBJECT'][:-6])
         if ('%s' % name) in g[0].header['OBJECT']:
             dt = f.split('_')[1]
             D = datetime.date(int(dt[:4]), int(dt[4:6]), int(dt[6:8]))
-            if D > datetime.date(2019, 4, 1):
-                illum = get_illum(dt, g[0].header['DATE'])
-                print("Illumination for %s is %0.2f" % (f, illum))
+            illum, through, active = get_illum_through(dt, g[0].header['DATE'])
+            if active:    
+                print("Illumination/Throughput for %s is %0.2f" % (f, illum, through))
             else:
+                print("No active guider info for: %s" % f)
                 illum = 1.0
+                through = 1.0
+                continue
             dT.append(D)
             d = np.interp(g[0].data[0], wave, flam)
-            s.append(biweight(g[0].data[1] / d) / illum)
+            s.append(biweight(g[0].data[1] * norm / d) / illum / through)
     plt.plot_date(dT, np.array(s), alpha=0.6, ms=10, marker='*')
 plt.ylim([0, 1.2])
 plt.xlim([datetime.date(2018, 10, 1), datetime.date(2020, 9, 1)])
