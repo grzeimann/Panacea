@@ -33,11 +33,16 @@ def get_illum_through(date, fn):
         ind = np.where(v == fns)[0][0]
         try:
             f = fits.open(t.extractfile(v[ind+1]))
+        except:
+            continue
+        try:
             illum = f[0].header['PUPILLUM']*1.03
+        except:
+            illum = 0.0
+        try:
             through = f[0].header['TRANSPAR']
             active = f[0].header['GUIDLOOP'] == 'ACTIVE'
         except:
-            illum = 0.0
             through = 0.0
             active = False
         t.close()
@@ -65,13 +70,13 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
     dT = []
     for f in fn:
         g = fits.open(f)
-        try:    
-            norm = g[0].header['MILLUM'] / 51.4e4 * g[0].header['THROUGHP']
-        except:
-            print('Could not get header info from reduction for: %s' % f)
-            norm = 1.0
         n.append(g[0].header['OBJECT'][:-6])
         if ('%s' % name) in g[0].header['OBJECT']:
+            try:    
+                norm = g[0].header['MILLUM'] / 51.4e4 * g[0].header['THROUGHP']
+            except:
+                print('Could not get header info from reduction for: %s' % f)
+                norm = 1.0
             dt = f.split('_')[1]
             D = datetime.date(int(dt[:4]), int(dt[4:6]), int(dt[6:8]))
             try:
@@ -79,13 +84,11 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
             except:
                 print('Could not get guider info for %s' % f)
                 continue
-            if active:    
-                print("Illumination/Throughput for %s is %0.2f, %0.2f" % (f, illum, through))
-            else:
-                print("No active guider info for: %s" % f)
+            if (through < 0.1) + (through > 1.5):
+                through = 0.0
+            if illum < 0.1:
                 illum = 1.0
-                through = 1.0
-                continue
+            print("Illumination/Throughput for %s is %0.2f, %0.2f" % (f, illum, through))
             dT.append(D)
             d = np.interp(g[0].data[0], wave, flam)
             s.append(biweight(g[0].data[1] * norm / d) / illum)
