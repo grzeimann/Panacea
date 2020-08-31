@@ -87,7 +87,7 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
                 if (thr < 0.1) + (thr > 1.5):
                     thr_flag = False
                     thr = 0.0
-                print('Header throughput for %s: %0.2f, %0.2f' % (f, norm, thr))
+                print('Header throughput for %s: %0.2f' % (f, thr))
                 norm *= thr
             except:
                 continue
