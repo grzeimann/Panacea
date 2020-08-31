@@ -83,29 +83,32 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
             except:
                 print('Could not get header info from reduction for: %s' % f)
                 continue
+            thr_flag = True
             try:
                 thr = g[0].header['THROUGHP']
                 if (thr < 0.1) + (thr > 1.5):
-                    thr = 1.0
+                    thr_flag = False
                 print('Header throughput for %s: %0.2f, %0.2f' % (f, norm, thr))
-                norm *= thr
+                norm = thr
             except:
-                dummy = 0.0
+                continue
             dt = f.split('_')[1]
             D = datetime.date(int(dt[:4]), int(dt[4:6]), int(dt[6:8]))
-            try:
-                illum, through, active = get_illum_through(dt, g[0].header['DATE'])
-            except:
-                print('Could not get guider info for %s' % f)
+#            try:
+#                illum, through, active = get_illum_through(dt, g[0].header['DATE'])
+#            except:
+#                print('Could not get guider info for %s' % f)
+#                continue
+#            if (through < 0.1) + (through > 1.5):
+#                through = 0.0
+#            if illum < 0.1:
+#                illum = 1.0
+#            print("Illumination/Throughput for %s is %0.2f, %0.2f" % (f, illum, through))
+            if not thr_flag:
                 continue
-            if (through < 0.1) + (through > 1.5):
-                through = 0.0
-            if illum < 0.1:
-                illum = 1.0
-            print("Illumination/Throughput for %s is %0.2f, %0.2f" % (f, illum, through))
             dT.append(D)
             d = np.interp(g[0].data[0], wave, flam)
-            s.append(biweight(g[0].data[1][300:800] * norm / d[300:800]) / illum)
+            s.append(biweight(g[0].data[1][300:800] * norm / d[300:800]))
             ss.append(through)
     plt.plot_date(dT, np.array(s), alpha=0.6, ms=10, marker='*')
     plt.plot_date(dT, np.array(ss), alpha=0.6, ms=10, marker='s')
