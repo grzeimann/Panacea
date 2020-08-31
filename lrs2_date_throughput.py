@@ -39,7 +39,7 @@ def get_illum(date, fn):
     t.close()
     return illum
     
-plt.figure(figsize=(10, 5))
+plt.figure(figsize=(20, 5))
 n = []
 fn = sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/STANDARDS/spectrum_201*orange*'))
 for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
@@ -72,7 +72,7 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
             s.append(biweight(g[0].data[1] / d) / illum)
     plt.plot_date(dT, np.array(s), alpha=0.6, ms=10, marker='*')
 plt.ylim([0, 1.2])
-plt.xlim([datetime.date(2018, 10, 1), datetime.date(2019, 10, 1)])
+plt.xlim([datetime.date(2018, 10, 1), datetime.date(2020, 9, 1)])
 plt.gcf().autofmt_xdate()
 
 # Plot formatters
@@ -86,7 +86,7 @@ ML = MultipleLocator(0.5)
 plt.ylabel('Transparency')
 plt.gca().xaxis.set_major_formatter(myFmt)
 plt.gca().xaxis.set_major_locator(months)
-plt.gca().xaxis.set_minor_locator(days)
+plt.gca().xaxis.set_minor_locator(weeks)
 plt.gca().yaxis.set_minor_locator(mL)
 plt.gca().yaxis.set_major_locator(ML)
 plt.gca().tick_params(axis='x', which='minor', direction='in', bottom=True)
