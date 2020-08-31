@@ -25,10 +25,7 @@ sns.set_style('ticks')
 
 
 def get_illum_through(date, fn):
-    illum = 0.0
-    active = False
-    through = 0.0
-    for gc in ['gc1', 'gc2']:
+    for gc in ['gc1']:
         t = tarfile.open('/work/03946/hetdex/maverick/%s/%s/%s.tar' % (date, gc, gc))
         onames = t.getnames()
         names = [op.basename(name) for name in onames]
@@ -39,22 +36,10 @@ def get_illum_through(date, fn):
         ind = np.where([v[ind+1] == op.basename(name) for name in onames])[0][0]
         try:
             f = fits.open(t.extractfile(onames[ind]))
-        except:
-            continue
-        try:
             illum = f[0].header['PUPILLUM']*1.03
         except:
             illum = 0.0
-        try:
-            through = f[0].header['TRANSPAR']
-            active = f[0].header['GUIDLOOP'] == 'ACTIVE'
-        except:
-            through = 0.0
-            active = False
-        t.close()
-        if active:
-            continue
-    return illum, through, active
+    return illum
     
 plt.figure(figsize=(20, 5))
 n = []
@@ -78,8 +63,21 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
         g = fits.open(f)
         n.append(g[0].header['OBJECT'][:-6])
         if ('%s' % name) in g[0].header['OBJECT']:
+            dt = f.split('_')[1]
             try:    
-                norm = g[0].header['MILLUM'] / 51.4e4
+                A = g[0].header['MILLUM'] / 51.4e4
+                if A == 1.:
+                    try:
+                        illum = get_illum_through(dt, g[0].header['DATE'])
+                        if illum <= 0.0:
+                            print('Could not get guider info for %s' % f)
+                            continue
+                    except:
+                        print('Could not get guider info for %s' % f)
+                        continue
+                    norm = 1. / illum
+                else:
+                    norm = 1.
             except:
                 print('Could not get header info from reduction for: %s' % f)
                 continue
@@ -89,10 +87,9 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
                 if (thr < 0.1) + (thr > 1.5):
                     thr_flag = False
                 print('Header throughput for %s: %0.2f, %0.2f' % (f, norm, thr))
-                norm = thr
+                norm *= thr
             except:
                 continue
-            dt = f.split('_')[1]
             D = datetime.date(int(dt[:4]), int(dt[4:6]), int(dt[6:8]))
 #            try:
 #                illum, through, active = get_illum_through(dt, g[0].header['DATE'])
