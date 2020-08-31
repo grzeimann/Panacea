@@ -17,6 +17,7 @@ import tarfile
 import matplotlib.dates as mdates
 from matplotlib.ticker import MultipleLocator
 import seaborn as sns
+import os.path as op
 
 # Plot style
 sns.set_context('talk')
@@ -24,9 +25,12 @@ sns.set_style('ticks')
 
 
 def get_illum_through(date, fn):
+    illum = 0.0
+    active = False
+    through = 0.0
     for gc in ['gc1', 'gc2']:
         t = tarfile.open('/work/03946/hetdex/maverick/%s/%s/%s.tar' % (date, gc, gc))
-        names = t.getnames()
+        names = [op.basename(name) for name in t.getnames()]
         fns = fn.replace('-', '').replace(':', '')[:-5] + ('_%s_sci.fits' % gc)
         N = names + [fns]
         v = np.sort(N)
