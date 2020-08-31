@@ -66,7 +66,7 @@ for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
             dt = f.split('_')[1]
             try:    
                 A = g[0].header['MILLUM'] / 51.4e4
-                if A == 1.:
+                if np.abs(A - 1.) < 0.01:
                     try:
                         illum = get_illum_through(dt, g[0].header['DATE'])
                         if illum <= 0.0:
