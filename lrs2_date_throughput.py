@@ -30,13 +30,14 @@ def get_illum_through(date, fn):
     through = 0.0
     for gc in ['gc1', 'gc2']:
         t = tarfile.open('/work/03946/hetdex/maverick/%s/%s/%s.tar' % (date, gc, gc))
-        names = [op.basename(name) for name in t.getnames()]
+        onames = t.getnames()
+        names = [op.basename(name) for name in onames]
         fns = fn.replace('-', '').replace(':', '')[:-5] + ('_%s_sci.fits' % gc)
         N = names + [fns]
         v = np.sort(N)
         ind = np.where(v == fns)[0][0]
         try:
-            f = fits.open(t.extractfile(v[ind+1]))
+            f = fits.open(t.extractfile(onames[ind]))
         except:
             continue
         try:
