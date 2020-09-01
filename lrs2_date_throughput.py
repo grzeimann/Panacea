@@ -126,7 +126,7 @@ for name, color in zip(names, colors):
 inds = np.argsort(alldT)
 S = np.array(alls)[inds]
 
-plt.plot_dT(alldT[inds], percentile_filter(S, 75), 'r-', lw=3)
+plt.plot_date(alldT[inds], percentile_filter(S, 75), 'r-', lw=3)
 plt.ylim([0, 1.4])
 plt.xlim([datetime.date(2018, 6, 1), datetime.date(2020, 9, 1)])
 plt.gcf().autofmt_xdate()
