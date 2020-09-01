@@ -52,7 +52,8 @@ names = ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
              'FEIGE_66', 'FEIGE_67', 'G191B2B', 'G193-74',
              'GD140', 'GD248', 'GD50', 'HD_19445', 'HD_84937', 'HILTNER_102',
              'HILTNER_600', 'HZ_21', 'HZ_4', 'PG0823+546', 'WOLF_1346',
-             'BD_+26_2606', 'FEIGE34', 'G193_74', 'HZ_44']
+             'BD_+26_2606', 'FEIGE34', 'G193_74', 'HZ_44', 'BD+28_4211',
+             'BD+25_3941', 'BD+40_4032', 'BD+33_2642']
 cmap = matplotlib.cm.get_cmap('magma')
 colors = cmap(np.linspace(0, 1, len(names)))
 for name, color in zip(names, colors):
@@ -116,8 +117,8 @@ for name, color in zip(names, colors):
             d = np.interp(g[0].data[0], wave, flam)
             s.append(biweight(g[0].data[1][300:800] * norm / d[300:800]))
             ss.append(thr)
-    plt.plot_date(dT, np.array(s), alpha=0.6, ms=10, marker='*', color=color)
-    plt.plot_date(dT, np.array(ss), alpha=0.6, ms=10, marker='s', color=color)
+    plt.plot_date(dT, np.array(s), alpha=0.8, ms=10, marker='*', color=color)
+    plt.plot_date(dT, np.array(ss), alpha=0.8, ms=3 marker='s', color=color)
 
 plt.ylim([0, 1.4])
 plt.xlim([datetime.date(2018, 6, 1), datetime.date(2020, 9, 1)])
