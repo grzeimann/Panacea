@@ -44,10 +44,16 @@ def get_illum_through(date, fn):
 plt.figure(figsize=(20, 5))
 n = []
 fn = sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/STANDARDS/spectrum_*orange*.fits'))
-for name in ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
+names = ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
              'FEIGE_66', 'FEIGE_67', 'G191B2B', 'G193-74',
              'GD140', 'GD248', 'GD50', 'HD_19445', 'HD_84937', 'HILTNER_102',
-             'HILTNER_600', 'HZ_21', 'HZ_4', 'PG0823+546', 'WOLF_1346']:
+             'HILTNER_600', 'HZ_21', 'HZ_4', 'PG0823+546', 'WOLF_1346']
+names = ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
+             'FEIGE_66', 'FEIGE_67', 'G191B2B', 'G193-74',
+             'GD140', 'GD248', 'GD50', 'HD_19445', 'HD_84937', 'HILTNER_102',
+             'HILTNER_600', 'HZ_21', 'HZ_4', 'PG0823+546', 'WOLF_1346',
+             'BD_+26_2606', 'FEIGE34', 'G193_74', 'HZ_44']
+for name in names:
     
     try:
         T = np.loadtxt('/work/03946/hetdex/maverick/virus_config/standards/m%s.dat.txt' % name.lower())
