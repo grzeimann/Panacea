@@ -118,7 +118,7 @@ for name, color in zip(names, colors):
             s.append(biweight(g[0].data[1][300:800] * norm / d[300:800]))
             ss.append(thr)
     plt.plot_date(dT, np.array(s), alpha=0.8, ms=10, marker='*', color=color)
-    plt.plot_date(dT, np.array(ss), alpha=0.8, ms=3 marker='s', color=color)
+    plt.plot_date(dT, np.array(ss), alpha=0.8, ms=3, marker='s', color=color)
 
 plt.ylim([0, 1.4])
 plt.xlim([datetime.date(2018, 6, 1), datetime.date(2020, 9, 1)])
