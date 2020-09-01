@@ -103,6 +103,8 @@ for name, color in zip(names, colors):
                 if (thr < 0.1) + (thr > 1.5):
                     thr_flag = False
                     thr = 0.0
+                if thr == 1.:
+                    continue
                 print('Header throughput for %s: %0.2f' % (f, thr))
                 norm *= thr
             except:
@@ -125,11 +127,8 @@ for name, color in zip(names, colors):
             d = np.interp(g[0].data[0], wave, flam)
             s.append(biweight(g[0].data[1][300:800] * norm / d[300:800]))
             alls.append(s[-1])
-            if thr != 1.:
-                allss.append(thr)
-            else:
-                allss.append(np.nan)
             ss.append(thr)
+            allss.append(thr)
     plt.plot_date(dT, np.array(s), alpha=0.8, ms=10, marker='*', color='firebrick')
     plt.plot_date(dT, np.array(ss), alpha=0.8, ms=3, marker='s', color='dimgray')
 inds = np.argsort(alldT)
