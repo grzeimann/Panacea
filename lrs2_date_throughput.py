@@ -19,6 +19,10 @@ from matplotlib.ticker import MultipleLocator
 import seaborn as sns
 import os.path as op
 from scipy.ndimage.filters import percentile_filter
+from matplotlib import rc
+
+rc('font',**{'family':'serif','serif':['Times']})
+rc('text', usetex=True)
 # Plot style
 sns.set_context('talk')
 sns.set_style('ticks')
@@ -133,6 +137,7 @@ SS = np.array(allss)[inds]
 plt.plot_date(np.array(alldT)[inds], percentile_filter(S, 75, size=50), 'r-', color='tomato', lw=3, label='LRS2 Standards')
 plt.plot_date(np.array(alldT)[inds], percentile_filter(SS, 75, size=50), 'k-', color='darkgray', lw=3, label='Guider')
 plt.ylim([0, 1.4])
+plt.legend()
 plt.xlim([datetime.date(2018, 6, 1), datetime.date(2020, 9, 1)])
 plt.gcf().autofmt_xdate()
 
