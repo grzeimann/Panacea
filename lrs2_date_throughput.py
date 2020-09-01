@@ -18,7 +18,7 @@ import matplotlib.dates as mdates
 from matplotlib.ticker import MultipleLocator
 import seaborn as sns
 import os.path as op
-
+from scipy.ndimage.filters import percentile_filter
 # Plot style
 sns.set_context('talk')
 sns.set_style('ticks')
@@ -56,6 +56,8 @@ names = ['BD+40_4032', 'BD_+17_4708', 'FEIGE_110', 'FEIGE_34',
              'BD+25_3941', 'BD+40_4032', 'BD+33_2642']
 cmap = matplotlib.cm.get_cmap('magma')
 colors = cmap(np.linspace(0, 1, len(names)))
+alldT = []
+alls = []
 for name, color in zip(names, colors):
     
     try:
@@ -114,12 +116,17 @@ for name, color in zip(names, colors):
             if not thr_flag:
                 continue
             dT.append(D)
+            alldT.append(D)
             d = np.interp(g[0].data[0], wave, flam)
             s.append(biweight(g[0].data[1][300:800] * norm / d[300:800]))
+            alls.append(s[-1])
             ss.append(thr)
     plt.plot_date(dT, np.array(s), alpha=0.8, ms=10, marker='*', color=color)
-    plt.plot_date(dT, np.array(ss), alpha=0.8, ms=3, marker='s', color=color)
+    #plt.plot_date(dT, np.array(ss), alpha=0.8, ms=3, marker='s', color=color)
+inds = np.argsort(alldT)
+S = np.array(alls)[inds]
 
+plt.plot_dT(alldT[inds], percentile_filter(S, 75), 'r-', lw=3)
 plt.ylim([0, 1.4])
 plt.xlim([datetime.date(2018, 6, 1), datetime.date(2020, 9, 1)])
 plt.gcf().autofmt_xdate()
