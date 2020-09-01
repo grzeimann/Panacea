@@ -653,8 +653,8 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
                 while np.isnan(Smooth[i]).sum():
                     Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
             res = get_residual_map(skysub_rect-Smooth, pca, good)
-            SciSpectra = SciSpectra - res
             skyval = quick_sky+res
+            SciSpectra = SciSpectra - skyval
         else:
             args.log.info('Using other sky for subtraction')
             sel = (SciSpectra == 0.).sum(axis=1) < 200
