@@ -99,6 +99,8 @@ for name, color in zip(names, colors):
                 if (thr < 0.1) + (thr > 1.5):
                     thr_flag = False
                     thr = 0.0
+                if thr == 1.:
+                    continue
                 print('Header throughput for %s: %0.2f' % (f, thr))
                 norm *= thr
             except:
@@ -128,8 +130,8 @@ for name, color in zip(names, colors):
 inds = np.argsort(alldT)
 S = np.array(alls)[inds]
 SS = np.array(allss)[inds]
-plt.plot_date(np.array(alldT)[inds], percentile_filter(S, 75, size=50), 'r-', color='tomato', lw=3)
-plt.plot_date(np.array(alldT)[inds], percentile_filter(SS, 75, size=50), 'k-', color='darkgray', lw=3)
+plt.plot_date(np.array(alldT)[inds], percentile_filter(S, 75, size=50), 'r-', color='tomato', lw=3, label='LRS2 Standards')
+plt.plot_date(np.array(alldT)[inds], percentile_filter(SS, 75, size=50), 'k-', color='darkgray', lw=3, label='Guider')
 plt.ylim([0, 1.4])
 plt.xlim([datetime.date(2018, 6, 1), datetime.date(2020, 9, 1)])
 plt.gcf().autofmt_xdate()
