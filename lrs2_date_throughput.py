@@ -22,7 +22,7 @@ from scipy.ndimage.filters import percentile_filter
 from matplotlib import rc
 
 rc('font',**{'family':'serif','serif':['Times']})
-rc('text', usetex=True)
+rc('text', usetex=False)
 # Plot style
 sns.set_context('talk')
 sns.set_style('ticks')
