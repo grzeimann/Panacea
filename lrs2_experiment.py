@@ -285,7 +285,7 @@ def extract_columns(model, chunk, mask=None):
     norm = num1 / num2
     return norm
 
-def get_skyline_mask(sky_rect):
+def get_skyline_mask(sky_rect, mlen=3):
     quick_sky = biweight(sky_rect, axis=0)
     mask, cont = identify_sky_pixels(quick_sky)
     std_sky = mad_std((quick_sky-cont)[~mask])
@@ -293,7 +293,7 @@ def get_skyline_mask(sky_rect):
     loc = np.array(np.round(loc), dtype=int)
     loc = loc[(loc>10) * (loc<(len(quick_sky)-10))]
     Marray = sky_rect * 0.
-    for i in np.arange(-3, 4):
+    for i in np.arange(-mlen, mlen+1):
         Marray[:, loc+i] = np.nan
     return Marray
 
@@ -622,7 +622,7 @@ for i in np.arange(skysub.shape[1]):
 d = np.sqrt((pos[:, 0] - fit_params[0][int(len(def_wave)/2)])**2 +
             (pos[:, 1] - fit_params[1][int(len(def_wave)/2)])**2)
 
-skyline_mask = get_skyline_mask(sky_rect)
+skyline_mask = get_skyline_mask(sky_rect, mlen=5)
 skysub_rect, totsky, dummy1 = get_skysub(spec_rect, sky, error_rect, d, np.isnan(skyline_mask.sum(axis=0)), channel)    
 
 spec_rect = extract_columns(weight, skysub_rect_orig)
