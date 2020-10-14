@@ -150,6 +150,7 @@ mL = MultipleLocator(0.1)
 ML = MultipleLocator(0.5)
 
 plt.ylabel('Transparency')
+plt.gca().grid('on')
 plt.gca().xaxis.set_major_formatter(myFmt)
 plt.gca().xaxis.set_major_locator(months)
 plt.gca().xaxis.set_minor_locator(weeks)
