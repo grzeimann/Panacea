@@ -295,7 +295,7 @@ bintable = fitsfile[1].data
 table = Table(bintable)
 
 # Bad amplifier information
-badamprec = fits.open('/data/05350/ecooper/hdr2.1/survey/amp_flag.fits')[1].data
+badamprec = fits.open('/scratch/03946/hetdex/hdr2.1/survey/amp_flag.fits')[1].data
 
 ID = bintable['source_id']
 
