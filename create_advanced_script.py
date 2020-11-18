@@ -116,7 +116,7 @@ for o in uobj:
             B = ','.join(B)
             R = ','.join(R)
             S = ','.join(S)
-            call = ('python Panacea/advanced_cube_creation.py %s "' + B + '" "' +
+            call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + B + '" "' +
                     R + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
                     "-d %s -c %s -dw 0.7") % (o+'_%s' % udate , args.directory, args.caldirectory)
             calls.append(call)
