@@ -224,8 +224,8 @@ def correct_amplifier_offsets(y, xp, yp, order=1, kernel=12.):
     k[y==0.] = np.nan
     def split_fit(var, ind=140):
         model = k * 0.
-        model[:ind] = convolve(k[:ind], Gaussian1DKernel(kernel), boundary='extend')
-        model[ind:] = convolve(k[ind:], Gaussian1DKernel(kernel), boundary='extend')
+        model[:ind] = convolve(k[:ind], Gaussian1DKernel(kernel), boundary='wrap')
+        model[ind:] = convolve(k[ind:], Gaussian1DKernel(kernel), boundary='wrap')
         return model
     for i in np.arange(5.):
         model = split_fit(k)
