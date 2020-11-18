@@ -93,6 +93,10 @@ parser.add_argument("-dss", "--dont_subtract_sky",
                     help='''Don't Subtract Sky''',
                     action="count", default=0)
 
+parser.add_argument("-ss", "--simple_sky",
+                    help='''Simple Sky''',
+                    action="count", default=0)
+
 parser.add_argument("-uda", "--use_default_adr",
                     help='''Use Default ADR (only works for side)''',
                     action="count", default=0)
@@ -654,6 +658,9 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
                     Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
             res = get_residual_map(skysub_rect-Smooth, pca, good)
             skyval = quick_sky+res
+            if args.simple_sky:
+                d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
+                skyval = biweight(SciSpectra[d>3.], axis=0)
             SciSpectra = SciSpectra - skyval
         else:
             args.log.info('Using other sky for subtraction')
