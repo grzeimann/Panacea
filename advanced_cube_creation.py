@@ -659,6 +659,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             res = get_residual_map(skysub_rect-Smooth, pca, good)
             skyval = quick_sky+res
             if args.simple_sky:
+                print(SciSpectra.shape, pos.shape)
                 d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
                 skyval = biweight(SciSpectra[d>3.], axis=0)[np.newaxis, :]
             SciSpectra = SciSpectra - skyval
