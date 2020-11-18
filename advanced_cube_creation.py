@@ -660,7 +660,9 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             skyval = quick_sky+res
             if args.simple_sky:
                 d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
+                print(d.shape)
                 skyval = biweight(SciSpectra[d>3.], axis=0)[np.newaxis, :]
+                print(skyval.shape)
             SciSpectra = SciSpectra - skyval
         else:
             args.log.info('Using other sky for subtraction')
