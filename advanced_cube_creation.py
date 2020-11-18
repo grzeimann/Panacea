@@ -869,7 +869,7 @@ def main():
         args.log.info('%s: %0.2f, %0.2f' % (_sciobs, np.mean(xoff), np.mean(yoff)))
         xc, yc = (0., 0.)
         A = Astrometry(S.ra.deg, S.dec.deg, SciFits_List[-1][0].header['PARANGLE'],
-                       xc, yc, x_scale=1., y_scale=1., kind='lrs2')
+                       xc, yc, x_scale=-1., y_scale=1.)
         raoff, decoff = get_ADR_RAdec(xoff+xc, yoff+yc, A)
         ra, dec = A.tp.wcs_pix2world(pos[:, 0], pos[:, 1], 1)
         delta_ra = np.cos(np.deg2rad(S.dec.deg)) * (ra - S.ra.deg) * 3600.
