@@ -113,12 +113,13 @@ for o in uobj:
             B = [blue[i] for i, d in enumerate(bdates) if d == udate]
             R = [red[i] for i, d in enumerate(rdates) if d == udate]
             S = [sky[i] for i, d in enumerate(sdates) if d == udate]
+            S = []
             B = ','.join(B)
             R = ','.join(R)
             S = ','.join(S)
             call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + B + '" "' +
                     R + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
-                    "-d %s -c %s -dw 0.7") % (o+'_%s' % udate , args.directory, args.caldirectory)
+                    "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s' % udate , args.directory, args.caldirectory)
             calls.append(call)
             now = now + datetime.timedelta(seconds=240)
             tim = now.strftime('%H:%M %B %d')
