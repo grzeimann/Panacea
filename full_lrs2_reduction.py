@@ -963,10 +963,10 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     return found_lines
 
 
-def get_wavelength_from_arc(image, trace, lines, side, amp, otherimage=None):
+def get_wavelength_from_arc(image, trace, lines, side, amp, date, otherimage=None):
     spectrum = get_spectra(image, trace)
     fib = np.argmax(np.median(spectrum, axis=1))
-    if side == 'uv':
+    if side == 'uv' and date > 20161101:
         thresh = 5.  # 5
         spectrum2 = spectrum*0.
         fib = trace.shape[0] / 2
@@ -2020,7 +2020,7 @@ for info in listinfo:
                  (ifuslot, amp))
         
         wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname,
-                                       amp, otherimage=def_arc)
+                                       amp, int(args.date), otherimage=def_arc)
         #fits.PrimaryHDU(wave).writeto('test_wave.fits', overwrite=True)
 
         #################################
