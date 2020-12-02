@@ -57,7 +57,7 @@ def get_standards(date):
         date = '%04d%02d%02d' % (datet.year, datet.month, datet.day)
     return standards
 
-channels = ['uv', 'orange']
+channels = ['uv', 'orange', 'red', 'farred']
 make_calls = []
 for filename in filenames:
     allfilenames = sorted(glob.glob(filename.replace('exp01', 'exp*')))
