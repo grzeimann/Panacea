@@ -250,8 +250,12 @@ def base_reduction(filename, tarname=None, get_header=False):
     if tarname is None:
         a = fits.open(filename)
     else:
-        t = tarfile.open(tarname, 'r')
-        a = fits.open(t.extractfile('/'.join(filename.split('/')[-4:])))
+        try:
+            t = tarfile.open(tarname, 'r')
+            a = fits.open(t.extractfile('/'.join(filename.split('/')[-4:])))
+        except:
+            log.warning('Could not open %s' % filename)
+            return np.zeros((1032, 2064)), np.zeros((1032, 2064))
     image = np.array(a[0].data, dtype=float)
     # overscan sub
     overscan_length = 32 * (image.shape[1] / 1064)
@@ -1958,8 +1962,12 @@ DIRNAME = get_script_path()
 
 for info in listinfo:
     specinit, specname, multi, lims, amps, slims, arc_names = info
+    if int(args.date) < 20161101:
+        nnn = specname #'%s_old' % specname
+    else:
+        nnn = specname
     arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
-                                   specname), format='ascii')
+                                   nnn), format='ascii')
     commonwave = np.linspace(lims[0], lims[1], 2064)
     specid, ifuslot, ifuid = multi.split('_')
     package = []
@@ -2015,7 +2023,7 @@ for info in listinfo:
         def_arc = get_masterarc(lampfiles, amp,
                                 arc_names, masterbias, specname, trace)
 
-        #fits.PrimaryHDU(masterarc).writeto('wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
+        fits.PrimaryHDU(masterarc).writeto('/work/03946/hetdex/maverick/run_lrs2/wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
         log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                  (ifuslot, amp))
         
