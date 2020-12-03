@@ -639,50 +639,52 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             make_cor_plot(cor, k, y, op.basename(_scifits.filename()))
             SciSpectra /= cor[:, np.newaxis]
             SciError /= cor[:, np.newaxis]
-        if skY is None:
-            quick_sky = biweight(SciSpectra, axis=0)
-            mask, cont = identify_sky_pixels(quick_sky)
-            std_sky = mad_std((quick_sky-cont)[~mask])
-            loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
-            loc = np.array(np.round(loc), dtype=int)
-            loc = loc[(loc>10) * (loc<len(quick_sky)-10)]
-            # Remove Continuum (gaussian filter)
-            skysub_rect = SciSpectra - quick_sky[np.newaxis, :]
-            Dummy = skysub_rect
-            for i in np.arange(-6, 7):
-                Dummy[:, loc+i] = np.nan
-            Smooth = Dummy * np.nan
-            for i in np.arange(Dummy.shape[0]):
-                Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
-                while np.isnan(Smooth[i]).sum():
-                    Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
-            res = get_residual_map(skysub_rect-Smooth, pca, good)
-            skyval = quick_sky+res
-            if args.simple_sky:
-                d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
-                skyval = np.ones((280, 1)) * biweight(SciSpectra[d>3.], axis=0)[np.newaxis, :]
-            SciSpectra = SciSpectra - skyval
+        if sky_subtract:
+            if skY is None:
+                quick_sky = biweight(SciSpectra, axis=0)
+                mask, cont = identify_sky_pixels(quick_sky)
+                std_sky = mad_std((quick_sky-cont)[~mask])
+                loc, values = find_peaks((quick_sky-cont), thresh=15*std_sky)
+                loc = np.array(np.round(loc), dtype=int)
+                loc = loc[(loc>10) * (loc<len(quick_sky)-10)]
+                # Remove Continuum (gaussian filter)
+                skysub_rect = SciSpectra - quick_sky[np.newaxis, :]
+                Dummy = skysub_rect
+                for i in np.arange(-6, 7):
+                    Dummy[:, loc+i] = np.nan
+                Smooth = Dummy * np.nan
+                for i in np.arange(Dummy.shape[0]):
+                    Smooth[i] = convolve(Dummy[i], Gaussian1DKernel(2.0), boundary='extend')
+                    while np.isnan(Smooth[i]).sum():
+                        Smooth[i] = interpolate_replace_nans(Smooth[i], Gaussian1DKernel(4.0))
+                res = get_residual_map(skysub_rect-Smooth, pca, good)
+                skyval = quick_sky+res
+                if args.simple_sky:
+                    d = np.sqrt(pos[:, 0]**2 + pos[:, 1]**2)
+                    skyval = np.ones((280, 1)) * biweight(SciSpectra[d>3.], axis=0)[np.newaxis, :]
+                SciSpectra = SciSpectra - skyval
+            else:
+                args.log.info('Using other sky for subtraction')
+                sel = (SciSpectra == 0.).sum(axis=1) < 200
+                if em is not None:
+                    wsel = np.abs(wave-em)<args.emission_width
+                    if wsel.sum() > 0:
+                        y = biweight(SciSpectra[:, wsel], axis=1)
+                y = biweight(SciSpectra[:, 200:-200], axis=1)
+                cor, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
+                mask = execute_sigma_clip(y / cor)
+                selm = mask.mask * sel
+                d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
+                            (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
+                for j in np.where(selm)[0]:
+                    selm = selm + (d[j] < 3.)
+                sel = sel * ~selm
+                args.log.info('Number of fibers for sky: %i' % sel.sum())
+                ratio = biweight(SciSpectra[sel] / skY[sel], axis=0)
+                skyval = skY * ratio
+                SciSpectra = SciSpectra - skyval
         else:
-            args.log.info('Using other sky for subtraction')
-            sel = (SciSpectra == 0.).sum(axis=1) < 200
-            if em is not None:
-                wsel = np.abs(wave-em)<args.emission_width
-                if wsel.sum() > 0:
-                    y = biweight(SciSpectra[:, wsel], axis=1)
-            y = biweight(SciSpectra[:, 200:-200], axis=1)
-            cor, k = correct_amplifier_offsets(y, pos[:, 0], pos[:, 1])
-            mask = execute_sigma_clip(y / cor)
-            selm = mask.mask * sel
-            d = np.sqrt((pos[:, 0, np.newaxis,] - pos[:, 0])**2 +
-                        (pos[:, 1, np.newaxis,] - pos[:, 1])**2)
-            for j in np.where(selm)[0]:
-                selm = selm + (d[j] < 3.)
-            sel = sel * ~selm
-            args.log.info('Number of fibers for sky: %i' % sel.sum())
-            ratio = biweight(SciSpectra[sel] / skY[sel], axis=0)
-            skyval = skY * ratio
-            SciSpectra = SciSpectra - skyval
-        
+            skyval = 0. * SciSpectra
         SciSpectra[~good] = 0.
         zcube, ecube, xgrid, ygrid, scisky = make_cube(P[0], P[1],
                                                SciSpectra, SciError,
@@ -924,13 +926,40 @@ def main():
     args.log.info('Wavelength Range: %0.1f - %0.1f A, %0.2f A' % (lw, hw, dw))
     ############################### Science ###################################
     cnt = 0
+    side_list = [side_dict[_sciobs.split('_')[-1][:-5]] for _sciobs in sciobs]
     F, info = get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, 
                        waves, cnt, cors, def_wave, ems, sky_subtract=True)
     xgrid = info[0][3]
     ygrid = info[0][4]
-    zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
-    ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
-    scube = np.nanmean(np.array([i[2] for i in info]), axis=0)
+    if B and R:
+        bcube = np.nanmean(np.array([i[0] for i, side in zip(info, side_list)
+                                     if side=='LRS2B']), axis=0)
+        rcube = np.nanmean(np.array([i[0] for i, side in zip(info, side_list)
+                                     if side=='LRS2R']), axis=0)
+        becube = np.nanmean(np.array([i[1] for i, side in zip(info, side_list)
+                                     if side=='LRS2B']), axis=0)
+        recube = np.nanmean(np.array([i[1] for i, side in zip(info, side_list)
+                                     if side=='LRS2R']), axis=0)
+        bscube = np.nanmean(np.array([i[2] for i, side in zip(info, side_list)
+                                     if side=='LRS2B']), axis=0)
+        rscube = np.nanmean(np.array([i[2] for i, side in zip(info, side_list)
+                                     if side=='LRS2R']), axis=0)
+        gwave = np.array(np.isfinite(bcube) * np.isfinite(rcube), dtype=float)
+        boverlap = np.nansum(bcube * gwave, axis=(1, 2))
+        roverlap = np.nansum(rcube * gwave, axis=(1, 2))
+        norm = biweight(boverlap / roverlap)
+        args.log.info('Normalziation of Blue Side to Red Side: %0.2f' % norm)
+        zcube = np.nanmean([bcube, rcube*norm], axis=0)
+        ecube = np.sqrt(np.nanmean([becube**2, recube**2*norm**2], axis=0))
+        scube = np.nanmean([bscube, rscube*norm], axis=0)
+    else:
+        zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
+        ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
+        scube = np.nanmean(np.array([i[2] for i in info]), axis=0)
+    F, info = get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, 
+                       waves, cnt, cors, def_wave, ems, sky_subtract=False,
+                       cal=True)
+    acube = np.nanmean(np.array([i[0] for i in info]), axis=0)
     Header = SciFits_List[0][0].header
     if B and R:
         name = 'LRS2B+R'
@@ -941,9 +970,12 @@ def main():
     outname = '%s_%s_cube.fits' % (args.galaxyname,  name)
     eoutname = '%s_%s_error_cube.fits' % (args.galaxyname,  name)
     soutname = '%s_%s_sky_cube.fits' % (args.galaxyname,  name)
+    aoutname = '%s_%s_lamp_cube.fits' % (args.galaxyname,  name)
     write_cube(def_wave, xgrid, ygrid, zcube, outname, Header)
     write_cube(def_wave, xgrid, ygrid, ecube, eoutname, Header)
     write_cube(def_wave, xgrid, ygrid, scube, soutname, Header)
+    write_cube(def_wave, xgrid, ygrid, acube, aoutname, Header)
+
 
 
 main()
