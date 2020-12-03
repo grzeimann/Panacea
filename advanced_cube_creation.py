@@ -97,6 +97,10 @@ parser.add_argument("-ss", "--simple_sky",
                     help='''Simple Sky''',
                     action="count", default=0)
 
+parser.add_argument("-mac", "--make_arc_cube",
+                    help='''Make Arc Cube''',
+                    action="count", default=0)
+
 parser.add_argument("-uda", "--use_default_adr",
                     help='''Use Default ADR (only works for side)''',
                     action="count", default=0)
@@ -609,7 +613,7 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
             SciSpectra = _scifits[0].data
             SciError = _scifits[3].data
         else:
-            SciSpectra = _scifits['arcspec'].data
+            SciSpectra = _calfits['arcspec'].data
             SciError = 0. * SciSpectra
             sel = SciSpectra > 0.
             SciError[sel]= np.sqrt(SciSpectra[sel]/np.sqrt(2) + 3**2*2.)
@@ -956,10 +960,6 @@ def main():
         zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
         ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
         scube = np.nanmean(np.array([i[2] for i in info]), axis=0)
-    F, info = get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, 
-                       waves, cnt, cors, def_wave, ems, sky_subtract=False,
-                       cal=True)
-    acube = np.nanmean(np.array([i[0] for i in info]), axis=0)
     Header = SciFits_List[0][0].header
     if B and R:
         name = 'LRS2B+R'
@@ -970,11 +970,17 @@ def main():
     outname = '%s_%s_cube.fits' % (args.galaxyname,  name)
     eoutname = '%s_%s_error_cube.fits' % (args.galaxyname,  name)
     soutname = '%s_%s_sky_cube.fits' % (args.galaxyname,  name)
-    aoutname = '%s_%s_lamp_cube.fits' % (args.galaxyname,  name)
+    if args.make_arc_cube:
+        F, info = get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, 
+                       waves, cnt, cors, def_wave, ems, sky_subtract=False,
+                       cal=True)
+        acube = np.nanmean(np.array([i[0] for i in info]), axis=0)
+        aoutname = '%s_%s_lamp_cube.fits' % (args.galaxyname,  name)
+        write_cube(def_wave, xgrid, ygrid, acube, aoutname, Header)
     write_cube(def_wave, xgrid, ygrid, zcube, outname, Header)
     write_cube(def_wave, xgrid, ygrid, ecube, eoutname, Header)
     write_cube(def_wave, xgrid, ygrid, scube, soutname, Header)
-    write_cube(def_wave, xgrid, ygrid, acube, aoutname, Header)
+    
 
 
 
