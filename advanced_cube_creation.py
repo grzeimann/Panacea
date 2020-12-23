@@ -930,16 +930,24 @@ def main():
     args.log.info('Wavelength Range: %0.1f - %0.1f A, %0.2f A' % (lw, hw, dw))
     ############################### Science ###################################
     cnt = 0
+    chan_list = [_sciobs.split('_')[-1][:-5] for _sciobs in sciobs]
     side_list = [side_dict[_sciobs.split('_')[-1][:-5]] for _sciobs in sciobs]
     F, info = get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, 
                        waves, cnt, cors, def_wave, ems, sky_subtract=True)
     xgrid = info[0][3]
     ygrid = info[0][4]
     if B and R:
+        l = []
+        for i, chan, side in zip(info, chan_list, side_list):
+            if chan == 'farred':
+                norm = 0.93
+            else:
+                norm = 1.0
+            if side == 'LRS2R':
+                l.append(i[0] * norm)
         bcube = np.nanmean(np.array([i[0] for i, side in zip(info, side_list)
                                      if side=='LRS2B']), axis=0)
-        rcube = np.nanmean(np.array([i[0] for i, side in zip(info, side_list)
-                                     if side=='LRS2R']), axis=0)
+        rcube = np.nanmean(np.array(l), axis=0)
         becube = np.nanmean(np.array([i[1] for i, side in zip(info, side_list)
                                      if side=='LRS2B']), axis=0)
         recube = np.nanmean(np.array([i[1] for i, side in zip(info, side_list)
@@ -957,7 +965,14 @@ def main():
         ecube = np.sqrt(np.nanmean([becube**2, recube**2*norm**2], axis=0))
         scube = np.nanmean([bscube, rscube*norm], axis=0)
     else:
-        zcube = np.nanmean(np.array([i[0] for i in info]), axis=0)
+        l = []
+        for i, chan in zip(info, chan_list):
+            if chan == 'farred':
+                norm = 0.93
+            else:
+                norm = 1.0
+            l.append(i[0] * norm)
+        zcube = np.nanmean(np.array(l), axis=0)
         ecube = np.sqrt(np.nanmean(np.array([i[1] for i in info])**2, axis=0))
         scube = np.nanmean(np.array([i[2] for i in info]), axis=0)
     Header = SciFits_List[0][0].header
