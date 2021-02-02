@@ -50,7 +50,7 @@ basenames2 = [op.basename(fn).split('farred')[0] for fn in filenames2]
 totalfilenames = filenames + filenames2
 totalbasenames = basenames + basenames2
 ub, ui = np.unique(totalbasenames, return_index=True)
-filenames = [totalfilenames(i) for i in ui]
+filenames = [totalfilenames[i] for i in ui]
 #da = bname.split('_')[1]
 obj, ra, dec, ifuslot = ([], [], [], [])
 keep_files = []
