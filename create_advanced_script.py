@@ -52,7 +52,7 @@ totalbasenames = basenames + basenames2
 ub, ui = np.unique(totalbasenames, return_index=True)
 basenames = [totalbasenames[i] for i in ui]
 filenames = [totalfilenames[i] for i in ui]
-print(basenames)
+print(len(basenames))
 #da = bname.split('_')[1]
 obj, ra, dec, ifuslot = ([], [], [], [])
 keep_files = []
