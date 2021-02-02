@@ -50,8 +50,9 @@ basenames2 = [op.basename(fn).split('_red')[0] for fn in filenames2]
 totalfilenames = filenames + filenames2
 totalbasenames = basenames + basenames2
 ub, ui = np.unique(totalbasenames, return_index=True)
+basenames = [totalbasenames[i] for i in ui]
 filenames = [totalfilenames[i] for i in ui]
-print(filenames)
+print(basenames)
 #da = bname.split('_')[1]
 obj, ra, dec, ifuslot = ([], [], [], [])
 keep_files = []
