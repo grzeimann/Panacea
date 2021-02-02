@@ -51,7 +51,6 @@ totalfilenames = filenames + filenames2
 totalbasenames = basenames + basenames2
 ub, ui = np.unique(totalbasenames, return_index=True)
 filenames = [totalfilenames[i] for i in ui]
-print(filenames)
 #da = bname.split('_')[1]
 obj, ra, dec, ifuslot = ([], [], [], [])
 keep_files = []
@@ -82,7 +81,7 @@ for filename in filenames:
     obj.append(st)
     keep_files.append(filename)
 uobj = np.unique(obj)
-print(uobj)
+print(keep_files)
 calls, atcalls = ([], [])
 now = datetime.datetime.now()
 for o in uobj:
