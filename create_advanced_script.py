@@ -97,8 +97,12 @@ for o in uobj:
     for ind in inds:
         filename = keep_files[ind]
         bname = op.basename(filename)
-        bsky = bname.replace('uv', 'red')
-        rname = bsky
+        if 'uv' in bname:
+            bsky = bname.replace('uv', 'red')
+            rname = bsky
+        else:
+            rname = bname
+            bname = rname.replace('farred', 'uv')
         rsky = bname
         if ifuslot[ind] == '056':
             blue.append(bname)
