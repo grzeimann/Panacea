@@ -81,7 +81,6 @@ for filename in filenames:
     obj.append(st)
     keep_files.append(filename)
 uobj = np.unique(obj)
-print(keep_files)
 calls, atcalls = ([], [])
 now = datetime.datetime.now()
 for o in uobj:
@@ -116,6 +115,7 @@ for o in uobj:
             sky.append(bsky)
         date = bname.split('_')[1]
         dates.append(date)
+    print(blue)
     rdates = [name.split('_')[1] for name in red]
     bdates = [name.split('_')[1] for name in blue]
     sdates = [name.split('_')[1] for name in sky]
