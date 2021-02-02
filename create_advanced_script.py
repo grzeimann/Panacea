@@ -97,8 +97,8 @@ for o in uobj:
         filename = keep_files[ind]
         bname = op.basename(filename)
         if ('uv' in bname) and ifuslot[ind] == '056':
-            rsky = bname.replace('uv', 'red')
             blue.append(bname)
+            rsky = bname.replace('uv', 'red')
             sky.append(rsky)
         if ('uv' in bname) and ifuslot[ind] == '066':
             rname = bname.replace('uv', 'red')
