@@ -85,6 +85,7 @@ calls, atcalls = ([], [])
 now = datetime.datetime.now()
 for o in uobj:
     inds = [i for i, ob in enumerate(obj) if o == ob]
+    print(inds)
     blue, red, sky = ([], [], [])
     raspl = ra[inds[0]].split(':')
     decspl = dec[inds[0]].split(':')
