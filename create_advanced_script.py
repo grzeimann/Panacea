@@ -101,7 +101,7 @@ for o in uobj:
             bsky = bname.replace('uv', 'red')
             rname = bsky
         else:
-            rname = bname
+            rname = bname.replace('farred', 'red')
             bname = rname.replace('farred', 'uv')
         rsky = bname
         if ifuslot[ind] == '056':
