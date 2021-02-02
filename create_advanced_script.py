@@ -62,6 +62,10 @@ for filename in filenames:
         n = f[0].header['OBJECT']
     except:
         continue
+    st = n.split(n[-6:])[0]
+    if args.object is not None:
+        if args.object.lower() not in st.lower():
+            continue
     try:
         r = f[0].header['QRA']
     except:
@@ -70,14 +74,10 @@ for filename in filenames:
         d = f[0].header['QDEC']
     except:
         d = '+00:00:00'
-    st = n.split(n[-6:])[0]
     try:
         ifuslot.append(n.split('_')[-2])
     except:
         continue
-    if args.object is not None:
-        if args.object.lower() not in st.lower():
-            continue
     ra.append(r)
     dec.append(d)
     obj.append(st)
