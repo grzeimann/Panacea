@@ -85,7 +85,6 @@ calls, atcalls = ([], [])
 now = datetime.datetime.now()
 for o in uobj:
     inds = [i for i, ob in enumerate(obj) if o == ob]
-    print(inds)
     blue, red, sky = ([], [], [])
     raspl = ra[inds[0]].split(':')
     decspl = dec[inds[0]].split(':')
@@ -95,8 +94,10 @@ for o in uobj:
         dech = ' ' + dech
     dates = []
     for ind in inds:
+        
         filename = keep_files[ind]
         bname = op.basename(filename)
+        print(bname, ifuslot[ind])
         date = bname.split('_')[1]
         if date == '20190207':
             print(bname, ifuslot[ind])
@@ -120,7 +121,6 @@ for o in uobj:
             sky.append(bsky)
         
         dates.append(date)
-    print(blue)
     rdates = [name.split('_')[1] for name in red]
     bdates = [name.split('_')[1] for name in blue]
     sdates = [name.split('_')[1] for name in sky]
