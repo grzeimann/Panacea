@@ -96,7 +96,11 @@ for o in uobj:
     for ind in inds:
         filename = keep_files[ind]
         bname = op.basename(filename)
+        date = bname.split('_')[1]
+        if date == '20190207':
+            print(bname, ifuslot[ind])
         if ('uv' in bname) and ifuslot[ind] == '056':
+            
             blue.append(bname)
             rsky = bname.replace('uv', 'red')
             sky.append(rsky)
@@ -113,7 +117,7 @@ for o in uobj:
             rname = bname
             red.append(rname)
             sky.append(bsky)
-        date = bname.split('_')[1]
+        
         dates.append(date)
     print(blue)
     rdates = [name.split('_')[1] for name in red]
