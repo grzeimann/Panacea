@@ -45,8 +45,8 @@ args.log = setup_logging('advance_cube_creation')
 
 filenames = sorted(glob.glob(op.join(args.directory, 'm*uv.fits')))
 basenames = [op.basename(fn).split('uv')[0] for fn in filenames]
-filenames2 = sorted(glob.glob(op.join(args.directory, 'm*farred.fits')))
-basenames2 = [op.basename(fn).split('farred')[0] for fn in filenames2]
+filenames2 = sorted(glob.glob(op.join(args.directory, 'm*_red.fits')))
+basenames2 = [op.basename(fn).split('_red')[0] for fn in filenames2]
 totalfilenames = filenames + filenames2
 totalbasenames = basenames + basenames2
 ub, ui = np.unique(totalbasenames, return_index=True)
@@ -97,19 +97,23 @@ for o in uobj:
     for ind in inds:
         filename = keep_files[ind]
         bname = op.basename(filename)
-        if 'uv' in bname:
-            bsky = bname.replace('uv', 'red')
-            rname = bsky
-        else:
-            rname = bname.replace('farred', 'red')
-            bname = rname.replace('red', 'uv')
-        rsky = bname
-        if ifuslot[ind] == '056':
+        if ('uv' in bname) and ifuslot[ind] == '056':
+            rsky = bname.replace('uv', 'red')
             blue.append(bname)
-            sky.append(bsky)
-        if ifuslot[ind] == '066':
-            red.append(rname)
             sky.append(rsky)
+        if ('uv' in bname) and ifuslot[ind] == '066':
+            rname = bname.replace('uv', 'red')
+            red.append(rname)
+            sky.append(bname)
+        if ('red' in bname) and ifuslot[ind] == '056':
+            rsky = bname
+            blue.append(bname.replace('red', 'uv'))
+            sky.append(rsky)
+        if ('red' in bname) and ifuslot[ind] == '066':
+            bsky = bname.replace('red', 'uv')
+            rname = bname
+            red.append(rname)
+            sky.append(bsky)
         date = bname.split('_')[1]
         dates.append(date)
     rdates = [name.split('_')[1] for name in red]
