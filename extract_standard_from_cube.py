@@ -304,8 +304,8 @@ def write_cube(wave, xgrid, ygrid, Dcube, outname, he):
         hdu.header[key] = he[key]
     hdu.writeto(outname, overwrite=True)
 
-wave, spec, error, back, apcor = run_reduction(args.filename, args.sxc,
-                                        args.syc)
+wave, spec, error, back, apcor = run_reduction(args.filename, args.xc,
+                                        args.yc)
 sel = np.abs(A[1].data['WAVELENGTH']-8200)<800
 p = np.polyfit(A[1].data['WAVELENGTH'][sel], 
                np.log10(A[1].data['FLUX'][sel]), 2)
