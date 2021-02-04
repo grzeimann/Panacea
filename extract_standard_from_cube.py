@@ -52,15 +52,15 @@ parser.add_argument("--yc",
 
 parser.add_argument("-mr", "--mask_radius",
                     help='''Mask Radius''',
-                    type=float, default=2.5)
+                    type=float, default=3)
 
 parser.add_argument("-er", "--extraction_radius",
                     help='''Extraction Radius''',
-                    type=float, default=2.5)
+                    type=float, default=3)
 
 parser.add_argument("-sr", "--smoothing_radius",
                     help='''Smothing Radius for background''',
-                    type=float, default=2.0)
+                    type=float, default=2.5)
 
 parser.add_argument("-wi", "--wave_inspect",
                     help='''Inspection Wavelength''',
@@ -169,7 +169,6 @@ def get_aperture_correction(wave, cube, xgrid, ygrid, mask_sel, radius,
         subimage = biweight(chunk, axis=0)
         mask = mask_sel * np.isfinite(subimage)
         fit = fitter(M1, xgrid[mask], ygrid[mask], subimage[mask])
-        print(mask.sum(), fit, fit.gamma)
         gamma.append(fit.gamma.value * 1.)
         model = fit(xgrid, ygrid)
         apcor.append(model[d < radius].sum() / model.sum())
