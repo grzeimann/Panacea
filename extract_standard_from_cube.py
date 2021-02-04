@@ -7,6 +7,8 @@ Created on Thu Dec  3 08:27:47 2020
 """
 
 import argparse as ap
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os.path as op
