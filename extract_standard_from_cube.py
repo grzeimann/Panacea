@@ -73,8 +73,6 @@ parser.add_argument("-iw", "--inspect_width",
 args = parser.parse_args(args=None)
 args.log = setup_logging('extract_standard_from_cube')
 
-rc('font',**{'family':'serif','serif':['Times']})
-rc('text', usetex=True)
 
 sns.set_context('talk')
 sns.set_style('ticks')
