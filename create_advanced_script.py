@@ -44,7 +44,7 @@ atcall = 'echo "source ~hetdex/.bashrc_greg; runlrs2wranglergeneral %s %s" | at 
 args.log = setup_logging('advance_cube_creation')
 
 filenames = sorted(glob.glob(op.join(args.directory, 'm*uv.fits')))
-basenames = [op.basename(fn).split('uv')[0] for fn in filenames]
+basenames = [op.basename(fn).split('_uv')[0] for fn in filenames]
 filenames2 = sorted(glob.glob(op.join(args.directory, 'm*_red.fits')))
 basenames2 = [op.basename(fn).split('_red')[0] for fn in filenames2]
 totalfilenames = filenames + filenames2
