@@ -37,6 +37,11 @@ parser.add_argument("--object",
 parser.add_argument("-sd", "--sep_date",
                     help='''Separate Dates''',
                     action="count", default=0)
+
+parser.add_argument("-ss", "--sep_sides",
+                    help='''Separate Sides''',
+                    action="count", default=0)
+
 args = parser.parse_args(args=None)
 
 atcall = 'echo "source ~hetdex/.bashrc_greg; runlrs2wranglergeneral %s %s" | at %s'
@@ -138,6 +143,16 @@ for o in uobj:
             B = ','.join(B)
             R = ','.join(R)
             S = ','.join(S)
+            if args.sep_sides and (len(B) * len(R)):
+                call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + B + '" "' +
+                    '' + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
+                    "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s' % udate , args.directory, args.caldirectory)
+                calls.append(call)
+                call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + '' + '" "' +
+                    R + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
+                    "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s' % udate , args.directory, args.caldirectory)
+                calls.append(call)
+                
             call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + B + '" "' +
                     R + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
                     "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s' % udate , args.directory, args.caldirectory)
