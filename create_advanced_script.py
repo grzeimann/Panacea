@@ -152,11 +152,11 @@ for o in uobj:
                     R + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
                     "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s' % udate , args.directory, args.caldirectory)
                 calls.append(call)
-                
-            call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + B + '" "' +
-                    R + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
-                    "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s' % udate , args.directory, args.caldirectory)
-            calls.append(call)
+            else:
+                call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + B + '" "' +
+                        R + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
+                        "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s' % udate , args.directory, args.caldirectory)
+                calls.append(call)
             now = now + datetime.timedelta(seconds=240)
             tim = now.strftime('%H:%M %B %d')
             atcalls.append(atcall % (udate, o, tim))
