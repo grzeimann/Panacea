@@ -85,6 +85,10 @@ parser.add_argument("-rw", "--red_wavelength",
                     help='''Red Wavelength for object''',
                     default=None, type=float)
 
+parser.add_argument("-no", "--normalization",
+                    help='''Absolute Normalization''',
+                    default=None, type=float)
+
 parser.add_argument("-ew", "--emission_width",
                     help='''Emission width''',
                     default=5., type=float)
@@ -992,6 +996,10 @@ def main():
         acube = np.nanmean(np.array([i[0] for i in info]), axis=0)
         aoutname = '%s_%s_lamp_cube.fits' % (args.galaxyname,  name)
         write_cube(def_wave, xgrid, ygrid, acube, aoutname, Header)
+    if args.normalization is not None:
+        zcube[:] *= args.normalization
+        ecube[:] *= args.normalization
+        scube[:] *= args.normalization
     write_cube(def_wave, xgrid, ygrid, zcube, outname, Header)
     write_cube(def_wave, xgrid, ygrid, ecube, eoutname, Header)
     write_cube(def_wave, xgrid, ygrid, scube, soutname, Header)
