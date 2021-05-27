@@ -17,8 +17,8 @@ from datetime import datetime, timedelta
 from distutils.dir_util import mkpath
 from input_utils import setup_logging
 
-basedir = '/work/03946/hetdex/maverick/HPF_Processed'
-reducdir = '/work/03946/hetdex/maverick/HPF'
+basedir = '/work2/03946/hetdex/maverick/HPF_Processed'
+reducdir = '/work2/03946/hetdex/maverick/HPF'
 
 log = setup_logging('hpf_data')
 
