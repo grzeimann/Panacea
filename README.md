@@ -16,7 +16,7 @@
 
 
 ## Overview
-This package is the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope. Every morning the pipeline reduces data taken 
+This package is the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope. Every day the pipeline reduces data taken 
 the previous night.  Below we discuss the algorithms and products of Panacea, how to access your data reductions, and how to run the 
 pipeline yourself with varying options. All of the data reduction products live on the Texas Advanced Computing Center (TACC).  We start 
 with the instructions to log on to TACC, and where you reductions are placed.
@@ -36,7 +36,7 @@ ssh -Y USERNAME@stampede2.tacc.utexas.edu
 ```
 
 ## How to get your data
-The reduction pipeline run each morning puts your data products in the following path:
+The reduction pipeline run each day puts your data products in the following path:
 ```
 /work/03946/hetdex/maverick/LRS2/PROGRAM-ID
 ```
