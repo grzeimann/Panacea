@@ -171,7 +171,7 @@ instrument = 'lrs2'
 dither_pattern = np.zeros((50, 2))
 
 
-baseraw = '/work2/03946/hetdex/maverick'
+baseraw = '/work/03946/hetdex/maverick'
 
 
 sci_tar = sci_path = op.join(baseraw, sci_date,  '%s', '%s000*.tar')
