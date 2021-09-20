@@ -60,8 +60,13 @@ for filename in filenames:
         WC[j:j+N] = wc
         j += N
     
-    xc = np.interp(5500., WC, XC[k])
-    yc = np.interp(5500., WC, YC[k])
+    XC[k, WC<4650.] += 0.18
+    YC[k, WC<4650.] -= 0.35
+    sel = np.isfinite(XC[k]) * np.isfinite(YC[k])
+    p0 = np.polyfit(WC[sel], XC[k][sel], 3)
+    p1 = np.polyfit(WC[sel], YC[k][sel], 3)
+    xc = np.polyval(p0, 5500)
+    yc = np.polyval(p1, 5500)
     XC[k] = XC[k] - xc
     YC[k] = YC[k] - yc
     log.info('Centroid: %0.2f %0.2f' % (xc, yc))
