@@ -31,8 +31,8 @@ for filename in filenames:
         x = f[5].data[:, 0]
         y = f[5].data[:, 1]
         skysub = f[2].data 
-        chunks = [np.nanmedian(xo, axis=0) for xo in np.array_split(skysub, N,
-                                                                    axis=0)]
+        chunks = [np.nanmedian(xo, axis=1) for xo in np.array_split(skysub, N,
+                                                                    axis=1)]
         wc = [np.nanmedian(xo) for xo in np.array_split(wave, N)]
         xc = np.zeros((N,))
         yc = np.zeros((N,))
