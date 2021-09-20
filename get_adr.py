@@ -13,7 +13,7 @@ import os.path as op
 from input_utils import setup_logging
 
 log = setup_logging('adr')
-basedir = '/work/03730/gregz/maverick/LRS2/STANDARDS'
+basedir = '/work/03946/hetdex/maverick/LRS2/STANDARDS'
 
 filenames = glob.glob(op.join(basedir, 'multi_2021*uv.fits'))
 
