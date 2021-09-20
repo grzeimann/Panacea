@@ -60,8 +60,8 @@ for filename in filenames:
         WC[j:j+N] = wc
         j += N
     
-    XC[k, WC<4650.] += 0.18
-    YC[k, WC<4650.] -= 0.35
+    XC[k, WC<4650.] += 0.20
+    YC[k, WC<4650.] -= 0.25
     sel = np.isfinite(XC[k]) * np.isfinite(YC[k])
     p0 = np.polyfit(WC[sel], XC[k][sel], 3)
     p1 = np.polyfit(WC[sel], YC[k][sel], 3)
