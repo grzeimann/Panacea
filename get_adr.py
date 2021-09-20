@@ -48,7 +48,7 @@ for filename in filenames:
             d = np.sqrt((x-x[ind])**2 + (y-y[ind])**2)
             xc[i] = x[ind]
             yc[i] = y[ind]
-            G.amplitude.value = np.nanargmax(chunk)
+            G.amplitude.value = np.nanmax(chunk)
             G.x_mean.value = xc[i]
             G.y_mean.value = yc[i]
             sel = (d < 3.0) * np.isfinite(chunk)
