@@ -7,6 +7,8 @@ Created on Mon Sep 20 10:46:25 2021
 """
 
 from astropy.io import fits
+from astropy.modeling.models import Gaussian2D
+from astropy.modeling.fitting import LevMarLSQFitter
 import numpy as np
 import glob
 import os.path as op
@@ -22,6 +24,10 @@ M = len(filenames)
 k=0
 XC, YC, WC = (np.zeros((M, 2*N)), np.zeros((M, 2*N)), np.zeros((2*N,)))
 
+fitter = LevMarLSQFitter()
+
+G = Gaussian2D()
+
 for filename in filenames:
     log.info('Working on %s' % filename)
     j = 0
@@ -30,7 +36,7 @@ for filename in filenames:
         wave = f[6].data[0]
         x = f[5].data[:, 0]
         y = f[5].data[:, 1]
-        skysub = f[0].data 
+        skysub = f[2].data 
         chunks = [np.nanmedian(xo, axis=1) for xo in np.array_split(skysub, N,
                                                                     axis=1)]
         wc = [np.nanmedian(xo) for xo in np.array_split(wave, N)]
@@ -40,9 +46,15 @@ for filename in filenames:
         for i, chunk in enumerate(chunks):
             ind = np.nanargmax(chunk)
             d = np.sqrt((x-x[ind])**2 + (y-y[ind])**2)
-            sel = (d < 1.5) * np.isfinite(chunk)
+            sel = (d < 2.5) * np.isfinite(chunk)
             xc[i] = np.sum(x[sel]*chunk[sel]) / np.sum(chunk[sel])
             yc[i] = np.sum(y[sel]*chunk[sel]) / np.sum(chunk[sel])
+            G.amplitude.value = np.nanargmax(chunk)
+            G.x_mean.value = xc[i]
+            G.y_mean.value = yc[i]
+            fit = fitter(G, x[sel], y[sel], chunk[sel])
+            xc[i] = fit.x_mean.value * 1.
+            yc[i] = fit.y_mean.value * 1.
         XC[k, j:j+N] = xc
         YC[k, j:j+N] = yc
         WC[j:j+N] = wc
