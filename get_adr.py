@@ -46,12 +46,13 @@ for filename in filenames:
         for i, chunk in enumerate(chunks):
             ind = np.nanargmax(chunk)
             d = np.sqrt((x-x[ind])**2 + (y-y[ind])**2)
-            sel = (d < 3.5) * np.isfinite(chunk)
+            sel = (d < 2.0) * np.isfinite(chunk)
             xc[i] = np.sum(x[sel]*chunk[sel]) / np.sum(chunk[sel])
             yc[i] = np.sum(y[sel]*chunk[sel]) / np.sum(chunk[sel])
             G.amplitude.value = np.nanargmax(chunk)
             G.x_mean.value = xc[i]
             G.y_mean.value = yc[i]
+            sel = (d < 3.0) * np.isfinite(chunk)
             fit = fitter(G, x[sel], y[sel], chunk[sel])
             xc[i] = fit.x_mean.value * 1.
             yc[i] = fit.y_mean.value * 1.
