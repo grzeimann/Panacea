@@ -26,7 +26,7 @@ for filename in filenames:
     log.info('Working on %s' % filename)
     j = 0
     for name in ['uv', 'orange']:
-        f = fits.open(filename)
+        f = fits.open(filename.replace('uv', name))
         wave = f[6].data[0]
         x = f[5].data[:, 0]
         y = f[5].data[:, 1]
