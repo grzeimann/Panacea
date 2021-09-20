@@ -46,9 +46,8 @@ for filename in filenames:
         for i, chunk in enumerate(chunks):
             ind = np.nanargmax(chunk)
             d = np.sqrt((x-x[ind])**2 + (y-y[ind])**2)
-            sel = (d < 2.0) * np.isfinite(chunk)
-            xc[i] = np.sum(x[sel]*chunk[sel]) / np.sum(chunk[sel])
-            yc[i] = np.sum(y[sel]*chunk[sel]) / np.sum(chunk[sel])
+            xc[i] = x[ind]
+            yc[i] = y[ind]
             G.amplitude.value = np.nanargmax(chunk)
             G.x_mean.value = xc[i]
             G.y_mean.value = yc[i]
