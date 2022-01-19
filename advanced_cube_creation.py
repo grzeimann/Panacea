@@ -792,6 +792,9 @@ def main():
         channel = _skyobs.split('_')[-1][:-5]
         chan.append(channel)
         SkyFits_List.append(fits.open(op.join(args.directory, _skyobs)))
+        if channel == 'orange':
+            SkyFits_List[-1][0].data[:140] = SkyFits_List[-1][0].data[:140] / 1.025
+            SkyFits_List[-1][0].data[:140] = SkyFits_List[-1][0].data[:140] / 0.975
         args.log.info('Sky observation: %s loaded' % (_skyobs))
         SkySpectra = SkyFits_List[-1][0].data
         P = SkyFits_List[-1][5].data
@@ -847,6 +850,9 @@ def main():
         sky = sky_dict[channel]
         cor = cor_dict[channel]
         SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
+        if channel == 'orange':
+            SciFits_List[-1][0].data[:140] = SciFits_List[-1][0].data[:140] / 1.025
+            SciFits_List[-1][0].data[:140] = SciFits_List[-1][0].data[:140] / 0.975
         args.log.info('Science observation: %s loaded' % (_sciobs))
         date = _sciobs.split('_')[1]
         calname = 'cal_%s_%s.fits' % (date, channel)
