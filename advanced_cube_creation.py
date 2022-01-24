@@ -616,10 +616,6 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
         if not cal:
             SciSpectra = _scifits[0].data
             SciError = _scifits[3].data
-            if chn == 'orange':
-                print('adjusting')
-                SciSpectra[:140] = SciSpectra[:140] / 1.025
-                SciSpectra[140:] = SciSpectra[140:] / 0.975
         else:
             SciSpectra = _calfits['arcspec'].data
             SciError = 0. * SciSpectra
