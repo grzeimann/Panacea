@@ -603,19 +603,22 @@ def get_residual_map(data, pca, good):
     return res
 
 def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
-             cors, def_wave, ems, sky_subtract=True, cal=False,
+             cors, def_wave, ems, chns, sky_subtract=True, cal=False,
              scale_sky=False):
     F = []
     info = []
     if cors is None:
         cors = [None] * len(skies)
-    for _scifits, _calfits, P, skY, cor, wave, em in zip(SciFits_List,
+    for _scifits, _calfits, P, skY, cor, wave, em, chn in zip(SciFits_List,
                                                      CalFits_List, Pos, skies,
-                                                     cors, waves, ems):
+                                                     cors, waves, ems, chns):
         args.log.info('Working on reduction for %s' % _scifits.filename())
         if not cal:
             SciSpectra = _scifits[0].data
             SciError = _scifits[3].data
+            if chn == 'orange':
+                SciSpectra[:140] = SciSpectra[:140] / 1.025
+                SciSpectra[140:] = SciSpectra[140:] / 0.975
         else:
             SciSpectra = _calfits['arcspec'].data
             SciError = 0. * SciSpectra
@@ -844,15 +847,13 @@ def main():
     cors = []
     waves = []
     ems = []
+    chns = []
     for j, _sciobs in enumerate(sciobs):
         channel = _sciobs.split('_')[-1][:-5]
         side = side_dict[channel]
         sky = sky_dict[channel]
         cor = cor_dict[channel]
         SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
-        if channel == 'orange':
-            SciFits_List[-1][0].data[:140] = SciFits_List[-1][0].data[:140] / 1.225
-            SciFits_List[-1][0].data[:140] = SciFits_List[-1][0].data[:140] / 0.775
         args.log.info('Science observation: %s loaded' % (_sciobs))
         date = _sciobs.split('_')[1]
         calname = 'cal_%s_%s.fits' % (date, channel)
@@ -897,6 +898,7 @@ def main():
         skies.append(sky)
         cors.append(cor)
         ems.append(em_dict[channel])
+        chns.append(channel)
     ran_array = np.array(ran_list)
     rmax = np.max(ran_array, axis=0)
     rmin = np.min(ran_array, axis=0)
@@ -943,7 +945,7 @@ def main():
     chan_list = [_sciobs.split('_')[-1][:-5] for _sciobs in sciobs]
     side_list = [side_dict[_sciobs.split('_')[-1][:-5]] for _sciobs in sciobs]
     F, info = get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, 
-                       waves, cnt, cors, def_wave, ems, sky_subtract=True)
+                       waves, cnt, cors, def_wave, ems, chns, sky_subtract=True)
     xgrid = info[0][3]
     ygrid = info[0][4]
     if B and R:
