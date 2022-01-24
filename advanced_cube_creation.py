@@ -851,8 +851,8 @@ def main():
         cor = cor_dict[channel]
         SciFits_List.append(fits.open(op.join(args.directory, _sciobs)))
         if channel == 'orange':
-            SciFits_List[-1][0].data[:140] = SciFits_List[-1][0].data[:140] / 1.025
-            SciFits_List[-1][0].data[:140] = SciFits_List[-1][0].data[:140] / 0.975
+            SciFits_List[-1][0].data[:140] = SciFits_List[-1][0].data[:140] / 1.225
+            SciFits_List[-1][0].data[:140] = SciFits_List[-1][0].data[:140] / 0.775
         args.log.info('Science observation: %s loaded' % (_sciobs))
         date = _sciobs.split('_')[1]
         calname = 'cal_%s_%s.fits' % (date, channel)
