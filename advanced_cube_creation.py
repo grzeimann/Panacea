@@ -630,8 +630,9 @@ def get_cube(SciFits_List, CalFits_List, Pos, scale, ran, skies, waves, cnt,
         pca = get_arc_pca(_calfits['arcspec'].data, pos, good,
                           components=75)
         if chn == 'orange':
-            SciSpectra[:140] = SciSpectra[:140] / 1.025
-            SciSpectra[140:] = SciSpectra[140:] / 0.975
+            print(chn)
+            SciSpectra[:140] = SciSpectra[:140] / 1.5
+            SciSpectra[140:] = SciSpectra[140:] / 0.5
         if cor is None:
             sel = (SciSpectra == 0.).sum(axis=1) < 200
             y = biweight(SciSpectra[:, 200:-200], axis=1)
