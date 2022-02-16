@@ -42,6 +42,10 @@ parser.add_argument("-ss", "--sep_sides",
                     help='''Separate Sides''',
                     action="count", default=0)
 
+parser.add_argument("-se", "--sep_exps",
+                    help='''Separate Exposures''',
+                    action="count", default=0)
+
 args = parser.parse_args(args=None)
 
 atcall = 'echo "source ~hetdex/.bashrc_greg; runlrs2wranglergeneral %s %s" | at %s'
@@ -109,7 +113,6 @@ for o in uobj:
         if date == '20190207':
             print(bname, ifuslot[ind])
         if ('uv' in bname) and ifuslot[ind] == '056':
-            
             blue.append(bname)
             rsky = bname.replace('uv', 'red')
             sky.append(rsky)
@@ -140,9 +143,21 @@ for o in uobj:
             R = [red[i] for i, d in enumerate(rdates) if d == udate]
             S = [sky[i] for i, d in enumerate(sdates) if d == udate]
             S = []
+            S = ','.join(S)
+            if args.sep_exps:
+                for b in B:
+                    call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + b + '" "' +
+                        '' + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
+                        "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s' % udate , args.directory, args.caldirectory)
+                    calls.append(call)
+                for r in R:
+                    call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + '' + '" "' +
+                        r + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
+                        "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s' % udate , args.directory, args.caldirectory)
+                    calls.append(call)
+                continue
             B = ','.join(B)
             R = ','.join(R)
-            S = ','.join(S)
             if args.sep_sides and (len(B) * len(R)):
                 call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + B + '" "' +
                     '' + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
