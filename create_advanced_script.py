@@ -146,14 +146,16 @@ for o in uobj:
             S = ','.join(S)
             if args.sep_exps:
                 for b in B:
+                    exp = b.split('_')[3]
                     call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + b + '" "' +
                         '' + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
-                        "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s' % udate , args.directory, args.caldirectory)
+                        "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s_%s' % (udate, exp) , args.directory, args.caldirectory)
                     calls.append(call)
                 for r in R:
+                    exp = r.split('_')[3]
                     call = ('python /work/03730/gregz/maverick/Panacea/advanced_cube_creation.py %s "' + '' + '" "' +
                         r + '" "' + S + '" "' + rah + '" "' + dech + '" ' + 
-                        "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s' % udate , args.directory, args.caldirectory)
+                        "-d %s -c %s -dw 0.7 -uda -ss") % (o+'_%s_%s' % (udate, exp) , args.directory, args.caldirectory)
                     calls.append(call)
                 continue
             B = ','.join(B)
