@@ -12,7 +12,7 @@ import glob
 import os.path as op
 
 
-filenames = np.array(sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/UT21-3-011/multi*uv.fits')))
+filenames = np.array(sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/UT22-1-002/multi*uv.fits')))
 dates = [op.basename(f).split('_')[1] for f in filenames]
 dates = np.array(dates)
 
@@ -57,4 +57,4 @@ for filename in filenames:
     if np.abs(norm - 1.) < 0.5:
         skies.append(sky)
 skies = np.array(skies)
-fits.PrimaryHDU(skies).writeto('skyfile2.fits', overwrite=True)
+fits.PrimaryHDU(skies).writeto('skyfile3.fits', overwrite=True)
