@@ -17,7 +17,7 @@ dates = [op.basename(f).split('_')[1] for f in filenames]
 dates = np.array(dates)
 
 wave = np.arange(3650, 10500, 0.7)
-skies = np.zeros((len(np.unique(dates)), len(wave)))
+skies = []
 for date in np.unique(dates):
     inds = np.where(date == dates)[0]
     mnames = filenames[inds]
