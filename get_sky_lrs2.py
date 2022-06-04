@@ -49,10 +49,10 @@ for filename in filenames:
     skyor = np.interp(wave, waveorange, skyorange, 
                       left=np.nan, right=np.nan)
     wsel = (wave < 6880) * (wave>6520)
-    norm = np.nanmedian(skyor[wsel] / skyre[wsel])
+    norm = np.nanmedian(skyre[wsel] / skyor[wsel])
     print('Norm for %s %s: %0.2f' % (filename, name, norm))
-    skyre *= norm
-    skyfr *= norm
+    skyuv *= norm
+    skyor *= norm
     sky = np.nanmean([skyuv, skyor, skyre, skyfr], axis=0)
     if np.abs(norm - 1.) < 0.5:
         skies.append(sky)
