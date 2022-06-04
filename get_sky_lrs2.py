@@ -12,7 +12,7 @@ import glob
 import os.path as op
 
 
-filenames = sorted(glob.glob('multi*uv.fits'))
+filenames = np.array(sorted(glob.glob('multi*uv.fits')))
 dates = [op.basename(f).split('_')[1] for f in filenames]
 dates = np.array(dates)
 
