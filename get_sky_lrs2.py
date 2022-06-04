@@ -54,6 +54,7 @@ for filename in filenames:
     skyre *= norm
     skyfr *= norm
     sky = np.nanmean([skyuv, skyor, skyre, skyfr], axis=0)
-    skies.append(sky)
+    if np.abs(norm - 1.) < 0.5:
+        skies.append(sky)
 skies = np.array(skies)
 fits.PrimaryHDU(skies).writeto('skyfile.fits', overwrite=True)
