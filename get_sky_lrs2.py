@@ -53,12 +53,12 @@ for date in np.unique(dates):
                               left=np.nan, right=np.nan)
             skyor = np.interp(wave, waveorange, skyorange, 
                               left=np.nan, right=np.nan)
-        wsel = (wave>6530) * (wave < 6880)
-        norm = np.nanmedian(skyre[wsel] / skyor[wsel])
-        print('Norm for %s %s: %0.2f' % (filename, name, norm))
-        skyuv *= norm
-        skyor *= norm
-        sky = np.nanmean([skyuv, skyor, skyre, skyfr], axis=0)
-        skies.append(sky)
+    wsel = (wave>6530) * (wave < 6880)
+    norm = np.nanmedian(skyre[wsel] / skyor[wsel])
+    print('Norm for %s %s: %0.2f' % (filename, name, norm))
+    skyuv *= norm
+    skyor *= norm
+    sky = np.nanmean([skyuv, skyor, skyre, skyfr], axis=0)
+    skies.append(sky)
 skies = np.array(skies)
 fits.PrimaryHDU(skies).writeto('skyfile.fits', overwrite=True)
