@@ -12,7 +12,7 @@ import glob
 import os.path as op
 
 
-filenames = np.array(sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/UT21-3-002/multi*uv.fits')))
+filenames = np.array(sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/UT21-3-008/multi*uv.fits')))
 dates = [op.basename(f).split('_')[1] for f in filenames]
 dates = np.array(dates)
 
@@ -28,30 +28,32 @@ for filename in filenames:
     if (throughp < 0.1) + (throughp == 1.):
         continue
     slot = name.split('_')[-2]
-    if slot == '056':
-        f = fits.open(filename.replace('uv', 'red'))
-        g = fits.open(filename.replace('uv', 'farred'))
-        skyred = f[1].data[125]
-        skyfarred = g[1].data[125]
-        wavered = f[6].data[0]
-        wavefarred = g[6].data[0]
-        skyre = np.interp(wave, wavered, skyred, 
-                          left=np.nan, right=np.nan)
-        skyfr = np.interp(wave, wavefarred, skyfarred, 
-                          left=np.nan, right=np.nan)
-        sky = np.nanmean([skyre, skyfr], axis=0)
-    if slot == '066':
-        f = fits.open(filename.replace('uv', 'uv'))
-        g = fits.open(filename.replace('uv', 'orange'))
-        skyuv = f[1].data[125]
-        skyorange = g[1].data[125]
-        waveuv = f[6].data[0]
-        waveorange = g[6].data[0]
-        skyuv = np.interp(wave, waveuv, skyuv, 
-                          left=np.nan, right=np.nan)
-        skyor = np.interp(wave, waveorange, skyorange, 
-                          left=np.nan, right=np.nan)
-        sky = np.nanmean([skyuv, skyor], axis=0)
+    f = fits.open(filename.replace('uv', 'red'))
+    g = fits.open(filename.replace('uv', 'farred'))
+    skyred = f[1].data[125]
+    skyfarred = g[1].data[125]
+    wavered = f[6].data[0]
+    wavefarred = g[6].data[0]
+    skyre = np.interp(wave, wavered, skyred, 
+                      left=np.nan, right=np.nan)
+    skyfr = np.interp(wave, wavefarred, skyfarred, 
+                      left=np.nan, right=np.nan)
+    f = fits.open(filename.replace('uv', 'uv'))
+    g = fits.open(filename.replace('uv', 'orange'))
+    skyuv = f[1].data[125]
+    skyorange = g[1].data[125]
+    waveuv = f[6].data[0]
+    waveorange = g[6].data[0]
+    skyuv = np.interp(wave, waveuv, skyuv, 
+                      left=np.nan, right=np.nan)
+    skyor = np.interp(wave, waveorange, skyorange, 
+                      left=np.nan, right=np.nan)
+    wsel = (wave < 6880) * (wave>6520)
+    norm = np.nanmedian(skyor[wsel] / skyre[wsel])
+    print('Norm for %s %s: %0.2f' % (filename, name, norm))
+    skyre *= norm
+    skyfr *= norm
+    sky = np.nanmean([skyuv, skyor, skyre, skyfr], axis=0)
     skies.append(sky)
 skies = np.array(skies)
 fits.PrimaryHDU(skies).writeto('skyfile.fits', overwrite=True)
