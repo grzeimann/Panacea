@@ -10,6 +10,60 @@ import numpy as np
 from astropy.io import fits
 import glob
 import os.path as op
+from astropy.coordinates import get_moon, get_sun
+from astropy.time import Time
+from astropy.coordinates import EarthLocation
+
+def moon_phase_angle(time, location=None, ephemeris=None):
+    """
+    Calculate lunar orbital phase in radians.
+
+    Parameters
+    ----------
+    time : `~astropy.time.Time`
+        Time of observation
+
+    ephemeris : str, optional
+        Ephemeris to use.  If not given, use the one set with
+        `~astropy.coordinates.solar_system_ephemeris` (which is
+        set to 'builtin' by default).
+
+    Returns
+    -------
+    i : `~astropy.units.Quantity`
+        Phase angle of the moon [radians]
+    """
+
+    sun = get_sun(time, location=location)
+    moon = get_moon(time, location=location, ephemeris=ephemeris)
+    elongation = sun.separation(moon)
+    return np.arctan2(sun.distance*np.sin(elongation),
+                      moon.distance - sun.distance*np.cos(elongation)), moon
+
+
+
+def moon_illumination(time, location=None, ephemeris=None):
+    """
+    Calculate fraction of the moon illuminated.
+
+    Parameters
+    ----------
+    time : `~astropy.time.Time`
+        Time of observation
+
+    ephemeris : str, optional
+        Ephemeris to use.  If not given, use the one set with
+        `~astropy.coordinates.solar_system_ephemeris` (which is
+        set to 'builtin' by default).
+
+    Returns
+    -------
+    k : float
+        Fraction of moon illuminated
+    """
+    i, moon = moon_phase_angle(time, location=location, ephemeris=ephemeris)
+    k = (1 + np.cos(i))/2.0
+    return k.value, moon
 
 
 filenames = np.array(sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/UT22-1-002/multi*uv.fits')))
@@ -18,11 +72,15 @@ dates = np.array(dates)
 
 wave = np.arange(3650, 10500, 0.7)
 skies = []
+loc = EarthLocation.of_site('McDonald Observatory')
 for filename in filenames:
     f = fits.open(filename)
     name = f[0].header['OBJECT']
     millum = f[0].header['MILLUM']
     throughp = f[0].header['THROUGHP']
+    t = Time(f[0].header['DATE-OBS'])
+    illum, moon = moon_illumination(t, loc)
+    print(illum, moon)
     if millum == 51e4:
         continue
     if (throughp < 0.1) + (throughp == 1.):
