@@ -34,7 +34,7 @@ def moon_phase_angle(time, location=None, ephemeris=None):
         Phase angle of the moon [radians]
     """
 
-    sun = get_sun(time, location=location)
+    sun = get_sun(time)
     moon = get_moon(time, location=location, ephemeris=ephemeris)
     elongation = sun.separation(moon)
     return np.arctan2(sun.distance*np.sin(elongation),
