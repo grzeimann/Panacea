@@ -84,7 +84,7 @@ for filename in filenames:
     throughp = f[0].header['THROUGHP']
     ras.append(f[0].header['QRA'])
     decs.append(f[0].header['QDEC'])
-    dateobs.append(f[0].header['DATE-OBS'])
+    dateobs.append(f[0].header['DATE'])
     if millum == 51e4:
         continue
     if (throughp < 0.1) + (throughp == 1.):
