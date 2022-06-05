@@ -115,4 +115,4 @@ for filename in filenames:
     if np.abs(norm - 1.) < 0.5:
         skies.append(sky)
 skies = np.array(skies)
-fits.HDUList([fits.PrimaryHDU(skies), fits.BinTableHDU(Table(dateobs, names=['Date']))]).writeto('skyfile3.fits', overwrite=True)
+fits.HDUList([fits.PrimaryHDU(skies), fits.BinTableHDU(Table([dateobs], names=['Date']))]).writeto('skyfile3.fits', overwrite=True)
