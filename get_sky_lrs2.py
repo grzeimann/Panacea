@@ -74,12 +74,16 @@ dates = np.array(dates)
 wave = np.arange(3650, 10500, 0.7)
 skies = []
 dateobs = []
+ras = []
+decs = []
 loc = EarthLocation.of_site('McDonald Observatory')
 for filename in filenames:
     f = fits.open(filename)
     name = f[0].header['OBJECT']
     millum = f[0].header['MILLUM']
     throughp = f[0].header['THROUGHP']
+    ras.append(f[0].header['QRA'])
+    decs.append(f[0].header['QDEC'])
     dateobs.append(f[0].header['DATE-OBS'])
     if millum == 51e4:
         continue
@@ -115,4 +119,4 @@ for filename in filenames:
     if np.abs(norm - 1.) < 0.5:
         skies.append(sky)
 skies = np.array(skies)
-fits.HDUList([fits.PrimaryHDU(skies), fits.BinTableHDU(Table([dateobs], names=['Date']))]).writeto('skyfile3.fits', overwrite=True)
+fits.HDUList([fits.PrimaryHDU(skies), fits.BinTableHDU(Table([dateobs, ras, decs], names=['Date', 'RA', 'Dec']))]).writeto('skyfile3.fits', overwrite=True)
