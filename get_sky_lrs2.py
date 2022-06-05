@@ -12,6 +12,7 @@ import glob
 import os.path as op
 from astropy.coordinates import get_moon, get_sun
 from astropy.time import Time
+from astropy.table import Table
 from astropy.coordinates import EarthLocation
 
 def moon_phase_angle(time, location=None, ephemeris=None):
@@ -72,15 +73,14 @@ dates = np.array(dates)
 
 wave = np.arange(3650, 10500, 0.7)
 skies = []
+dateobs = []
 loc = EarthLocation.of_site('McDonald Observatory')
 for filename in filenames:
     f = fits.open(filename)
     name = f[0].header['OBJECT']
     millum = f[0].header['MILLUM']
     throughp = f[0].header['THROUGHP']
-    t = Time(f[0].header['DATE-OBS'])
-    illum, moon = moon_illumination(t, loc)
-    print(illum, moon)
+    dateobs.append(f[0].header['DATE-OBS'])
     if millum == 51e4:
         continue
     if (throughp < 0.1) + (throughp == 1.):
@@ -115,4 +115,4 @@ for filename in filenames:
     if np.abs(norm - 1.) < 0.5:
         skies.append(sky)
 skies = np.array(skies)
-fits.PrimaryHDU(skies).writeto('skyfile3.fits', overwrite=True)
+fits.HDUList([fits.PrimaryHDU(skies), fits.BinTableHDU(Table(dateobs, name=['Date']))]).writeto('skyfile3.fits', overwrite=True)
