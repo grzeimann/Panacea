@@ -64,7 +64,7 @@ def moon_illumination(time, location=None, ephemeris=None):
     """
     i, moon = moon_phase_angle(time, location=location, ephemeris=ephemeris)
     k = (1 + np.cos(i))/2.0
-    return k.value, moon
+    return k.value, moon, i
 
 
 filenames = np.array(sorted(glob.glob('/work/03946/hetdex/maverick/LRS2/UT22-1-002/multi*uv.fits')))
@@ -82,9 +82,7 @@ for filename in filenames:
     name = f[0].header['OBJECT']
     millum = f[0].header['MILLUM']
     throughp = f[0].header['THROUGHP']
-    ras.append(f[0].header['QRA'])
-    decs.append(f[0].header['QDEC'])
-    dateobs.append(f[0].header['DATE'])
+    
     if millum == 51e4:
         continue
     if (throughp < 0.1) + (throughp == 1.):
@@ -118,5 +116,8 @@ for filename in filenames:
     sky = np.nanmean([skyuv, skyor, skyre, skyfr], axis=0)
     if np.abs(norm - 1.) < 0.5:
         skies.append(sky)
+        ras.append(f[0].header['QRA'])
+        decs.append(f[0].header['QDEC'])
+        dateobs.append(f[0].header['DATE'])
 skies = np.array(skies)
 fits.HDUList([fits.PrimaryHDU(skies), fits.BinTableHDU(Table([dateobs, ras, decs], names=['Date', 'RA', 'Dec']))]).writeto('skyfile3.fits', overwrite=True)
