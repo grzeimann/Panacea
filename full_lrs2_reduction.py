@@ -115,7 +115,7 @@ parser.add_argument("-re", "--reduce_eng",
                     help='''Reduce Engineer Data''',
                     action="count", default=0)
 
-parser.add_argument("-re", "--reduce_flt",
+parser.add_argument("-rf", "--reduce_flt",
                     help='''Reduce Flat Data''',
                     action="count", default=0)
 
