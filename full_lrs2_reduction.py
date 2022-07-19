@@ -178,7 +178,7 @@ dither_pattern = np.zeros((50, 2))
 baseraw = '/work/03946/hetdex/maverick'
 
 
-sci_tar = sci_path = op.join(baseraw, sci_date,  '%s', '%s000*.tar')
+sci_tar  = op.join(baseraw, sci_date,  '%s', '%s000*.tar')
 sci_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp%s',
                    '%s', '2*_%sLL*sci.fits')
 cmp_path = op.join(baseraw, sci_date,  '%s', '%s%s', 'exp*',
@@ -2084,6 +2084,7 @@ for info in listinfo:
     basefiles = []
     for tarname in glob.glob(get_tarname_from_filename(pathS)):
         basefiles.append(get_filenames_from_tarfolder(tarname, pathS))
+    print(basefiles)
     flat_list = [item for sublist in basefiles for item in sublist]
     basefiles = sorted(flat_list)
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
