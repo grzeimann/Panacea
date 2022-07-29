@@ -1707,7 +1707,8 @@ def get_response(objname, commonwave, spec, specname):
 def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                   ifuslot, specname, standard=False, response=None):
     log.info('Extracting %s from %s' % (obj[0], bf))
-    scifiles = op.join(op.dirname(bf.replace('exp01', 'exp*')), '*%sLL*.fits' % ifuslot)
+    #scifiles = op.join(op.dirname(bf.replace('exp01', 'exp*')), '*%sLL*.fits' % ifuslot)
+    scifiles = op.join(op.dirname(bf), '*%sLL*.fits' % ifuslot)
     images, rect, spec, cos, fl, Fi, E, header = extract_sci(scifiles, amps, calinfo[2],
                                               calinfo[1], calinfo[0], calinfo[3],
                                               calinfo[4], calinfo[5])
@@ -2084,7 +2085,6 @@ for info in listinfo:
     basefiles = []
     for tarname in glob.glob(get_tarname_from_filename(pathS)):
         basefiles.append(get_filenames_from_tarfolder(tarname, pathS))
-    print(basefiles)
     flat_list = [item for sublist in basefiles for item in sublist]
     basefiles = sorted(flat_list)
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
@@ -2121,6 +2121,7 @@ for info in listinfo:
                             'cal_%s_%s.fits' % (args.date, specname)),
                             overwrite=True)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
+        log.info('Working on %s' %bf)
         if args.object is None:
             big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
