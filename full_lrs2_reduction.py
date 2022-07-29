@@ -2088,7 +2088,8 @@ for info in listinfo:
     for tarname in glob.glob(get_tarname_from_filename(pathS)):
         basefiles.append(get_filenames_from_tarfolder(tarname, pathS))
     flat_list = [item for sublist in basefiles for item in sublist]
-    basefiles = sorted(flat_list)
+    basefiles = [f for f in sorted(flat_list) if "exp01" in f]
+
     all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
                    for fn in basefiles]
     objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
