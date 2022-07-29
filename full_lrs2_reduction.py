@@ -607,6 +607,8 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
                                           sci_path.replace('LL', amps[0]))
     files2 = get_filenames_from_tarfolder(get_tarname_from_filename(sci_path),
                                           sci_path.replace('LL', amps[1]))
+    for filen in files1:
+        log.info('SECOND --- filename: %s' % filen)
     tarnames = [get_tarname_from_filename(file) for file in files1]
     xloc, yloc = (pos[:, 0], pos[:, 1])
     array_list, hdr_list = ([], [])
