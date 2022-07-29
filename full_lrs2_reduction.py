@@ -2121,7 +2121,7 @@ for info in listinfo:
                             'cal_%s_%s.fits' % (args.date, specname)),
                             overwrite=True)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-        log.info('Working on %s' %bf)
+        log.info('Checkpoint --- Working on %s' %bf)
         if args.object is None:
             big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
