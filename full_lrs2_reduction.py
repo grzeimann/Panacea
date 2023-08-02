@@ -362,7 +362,7 @@ def get_bigF(array_trace, image):
     Y, X = np.indices(array_trace.shape)
     YY, XX = np.indices(image.shape)
     n, m = array_trace.shape
-    F0 = array_trace[:, m/2]
+    F0 = array_trace[:, int(m/2)]
     for j in np.arange(image.shape[1]):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
