@@ -263,7 +263,7 @@ def base_reduction(filename, tarname=None, get_header=False):
             return np.zeros((1032, 2064)), np.zeros((1032, 2064))
     image = np.array(a[0].data, dtype=float)
     # overscan sub
-    overscan_length = 32 * (image.shape[1] / 1064)
+    overscan_length = int(32 * (image.shape[1] / 1064))
     O = biweight_location(image[:, -int(overscan_length-2):])
     image[:] = image - O
     # trim image
