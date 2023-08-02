@@ -698,7 +698,7 @@ def get_masterbias(files, amp):
         tarname = tarnames[j]
         a, error = base_reduction(filename, tarname=tarname)
         biassum[j] = a
-    return biweight(biassum, axis=0)
+    return biweight_location(biassum, axis=0)
 
 
 def get_masterarc(files, amp, arc_names, masterbias, specname, trace):
