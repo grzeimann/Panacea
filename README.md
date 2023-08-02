@@ -213,6 +213,16 @@ The quality of the bias subtraction is demonstrated in two ways: subtracting con
   <img src="images/trace_fibmodel.png" width="850"/>
 </p>
 
+### Citation
+
+A paper describing Panacea in detail is currently in draft.  Until the submission of the paper, authors can use the following short blurb for their work if they desire.  Contact Greg Zeimann (gregz@astro.as.utexas.edu) if you require more details.
+
+```
+The raw LRS2 data are initially processed with \texttt{Panacea}\footnote{\url{https://github.com/grzeimann/Panacea}}, which carries out bias
+subtraction, dark subtraction, fiber tracing, fiber wavelength evaluation, fiber extraction, fiber-to-fiber normalization, source detection, source
+extraction, and flux calibration for each channel. The absolute flux calibration comes from default response curves and measures of the mirror illumination
+as well as the exposure throughput from guider images.
+```
 
 
 ## Frequently Asked Questions
