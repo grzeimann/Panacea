@@ -1944,7 +1944,7 @@ def get_cal_path(pathname, date, ndays=31):
     while len(filenames) == 0:
         datel = date_ - timedelta(days=int(ndays/2))
         for i in np.arange(ndays):
-            ndate = datel + timedelta(days=i)
+            ndate = datel + timedelta(days=int(i))
             daten = '%04d%02d%02d' % (ndate.year, ndate.month, ndate.day)
             npath = pathname.replace(date, daten)
             tarpath = get_tarname_from_filename(npath)
