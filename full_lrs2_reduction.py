@@ -1349,9 +1349,10 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
     loc, sdimage, sderror = convolve_spatially(dx, dy, skysub, commonwave,
                                                specn, error, ispec*1.,
                                                sig_wave=1.5)
-    BN = sdimage.shape[1] / 2
+    BN = int(sdimage.shape[1] / 2)
     kSN = 0.
     for k in np.arange(BN):
+        k = int(k)
         dimage = np.sum(sdimage[:, (BN-k):(BN+k+1)], axis=1)
         derror = np.sqrt(np.sum(sderror[:, (BN-k):(BN+k+1)]**2, axis=1))
         sn = dimage * 0.
