@@ -22,15 +22,13 @@ from fiber_utils import bspline_x0
 
 from astropy.io import fits
 from astropy.table import Table
-from utils import biweight_location
-from math_utils import biweight
 from scipy.signal import savgol_filter
 from distutils.dir_util import mkpath
 from scipy.ndimage.filters import percentile_filter
 from scipy.interpolate import interp1d, interp2d, griddata
 from input_utils import setup_logging
 from astrometry import Astrometry
-from astropy.stats import biweight_midvariance
+from astropy.stats import biweight_midvariance, biweight_location
 from astropy.modeling.models import Moffat2D, Polynomial2D, Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
 from sklearn.decomposition import PCA
