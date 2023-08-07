@@ -1207,7 +1207,7 @@ def sky_subtraction(rect, error, xloc, yloc):
         sol = np.linalg.lstsq(Aw, Bw)[0]
         sg = np.sign(sol)
         V = [np.abs(sol), 0.5 * np.median(E)]
-        mult = V[np.argmin(V)] * sg
+        mult = np.min(V) * sg
         res[:, j] = mult
     return sky + res
 
