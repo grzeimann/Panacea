@@ -195,7 +195,8 @@ Before we dive into the details of the reduction code it is useful to visualize 
 raw data and on sky fiber layout for both instruments. 
 
 ### LRS2 Layout
-The LRS2 instrument has two spectrographs each with two arms (LRS2-B: UV and Orange, LRS2-R: Red and FarRed).  
+LRS2 provides integral-field-unit (IFU) spectroscopy using 280 0.6"-diameter lenslets that cover a 12"x6" field of view (FOV) on the sky. LRS2 is composed of two arms: blue (LRS2-B) and red (LRS2-R). The LRS2-B arm employs a dichroic beamsplitter to send light simultaneously into two spectrograph units: the "UV" channel (covering 3640--4645A at resolving power 1910), and the "Orange" channel (covering 4635--6950A at resolving power 1140).  The LRS2-R is also split into two spectrograph units: the "red" channel (covering 6450--8450A at resolving power 1760), and the "Farred" channel (covering 8250--10500A at resolving power 1920).
+
 <p align="center">
   <img src="images/lrs2_mapping_visual.png" width="850"/>
 </p>
