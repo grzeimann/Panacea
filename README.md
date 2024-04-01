@@ -32,7 +32,7 @@ https://portal.tacc.utexas.edu/
 
 After creating an accounting using the link above, please send Greg Zeimann <gregz@astro.as.utexas.edu> your TACC username and he will add you to the HET group.  When that step is complete, you can ssh into TACC using:
 ```
-ssh -Y USERNAME@stampede2.tacc.utexas.edu
+ssh -Y USERNAME@ls6.tacc.utexas.edu
 ```
 
 ## How to get your data
@@ -42,13 +42,13 @@ The reduction pipeline run each day puts your data products in the following pat
 ```
 where PROGRAM-ID, is your program number, for example HET19-1-999.  To get all of the current reductions for your program, simply:
 ```
-scp -r username@stampede2.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID .
+scp -r username@ls6.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID .
 ```
 You merely have to use your "username" and your "PROGRAM-ID" and you can copy over your products.  Now, the data reduction products are
 extensive, that is to say they for every Mb of raw data there is 24 Mb of reduced data.  Without going into the data products yet,
 you may just a single product or a single night.  Below is an example, which grabs all spectra within your program for a given data:
 ```
-scp username@stampede2.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID/spec*20190105*.fits .
+scp username@ls6.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID/spec*20190105*.fits .
 ```
 
 ## Data Products
