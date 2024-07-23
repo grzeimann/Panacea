@@ -1995,6 +1995,7 @@ for info in listinfo:
     flt_path = (twi_path.replace('twi', 'flt') %
                     (instrument, instrument, '00000*', instrument, ifuslot))
     fltfiles = get_cal_path(flt_path, args.date, ndays=15)
+    print(twifiles, fltfiles)
     if args.use_flat:
         twifiles = fltfiles
     for amp in amps:
