@@ -32,7 +32,7 @@ https://portal.tacc.utexas.edu/
 
 After creating an accounting using the link above, please send Greg Zeimann <gregz@astro.as.utexas.edu> your TACC username and he will add you to the HET group.  When that step is complete, you can ssh into TACC using:
 ```
-ssh -Y USERNAME@stampede2.tacc.utexas.edu
+ssh -Y USERNAME@ls6.tacc.utexas.edu
 ```
 
 ## How to get your data
@@ -42,13 +42,13 @@ The reduction pipeline run each day puts your data products in the following pat
 ```
 where PROGRAM-ID, is your program number, for example HET19-1-999.  To get all of the current reductions for your program, simply:
 ```
-scp -r username@stampede2.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID .
+scp -r username@ls6.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID .
 ```
 You merely have to use your "username" and your "PROGRAM-ID" and you can copy over your products.  Now, the data reduction products are
 extensive, that is to say they for every Mb of raw data there is 24 Mb of reduced data.  Without going into the data products yet,
 you may just a single product or a single night.  Below is an example, which grabs all spectra within your program for a given data:
 ```
-scp username@stampede2.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID/spec*20190105*.fits .
+scp username@ls6.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID/spec*20190105*.fits .
 ```
 
 ## Data Products
@@ -195,7 +195,8 @@ Before we dive into the details of the reduction code it is useful to visualize 
 raw data and on sky fiber layout for both instruments. 
 
 ### LRS2 Layout
-The LRS2 instrument has two spectrographs each with two arms (LRS2-B: UV and Orange, LRS2-R: Red and FarRed).  
+LRS2 provides integral-field-unit (IFU) spectroscopy using 280 0.6"-diameter lenslets that cover a 12"x6" field of view (FOV) on the sky. LRS2 is composed of two arms: blue (LRS2-B) and red (LRS2-R). The LRS2-B arm employs a dichroic beamsplitter to send light simultaneously into two spectrograph units: the "UV" channel (covering 3640--4645A at resolving power 1910), and the "Orange" channel (covering 4635--6950A at resolving power 1140).  The LRS2-R is also split into two spectrograph units: the "red" channel (covering 6450--8450A at resolving power 1760), and the "Farred" channel (covering 8250--10500A at resolving power 1920).
+
 <p align="center">
   <img src="images/lrs2_mapping_visual.png" width="850"/>
 </p>
