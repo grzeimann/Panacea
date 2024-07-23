@@ -1939,11 +1939,19 @@ def get_filenames_from_tarfolder(tarfolder, path):
 
 def get_cal_path(pathname, date, ndays=31):
     date_ = datetime(int(date[:4]), int(date[4:6]), int(date[6:]))
+    # Controller change date
+    date_controller_swap = datetime(2024, 7, 22)
+    if date_ > date_controller_swap:
+        flag_new = True
+    else:
+        flag_new = False
     filenames = []
     while len(filenames) == 0:
         datel = date_ - timedelta(days=int(ndays/2))
         for i in np.arange(ndays):
             ndate = datel + timedelta(days=int(i))
+            if flag_new and (ndate <= date_controller_swap):
+                continue
             daten = '%04d%02d%02d' % (ndate.year, ndate.month, ndate.day)
             npath = pathname.replace(date, daten)
             tarpath = get_tarname_from_filename(npath)
