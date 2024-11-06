@@ -1508,13 +1508,13 @@ def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error,
 
 def get_mirror_illumination(fn=None, default=51.4e4):
     ''' Use hetillum from illum_lib to calculate mirror illumination (cm^2) '''
-    log.info('Getting mirror illumination')
+    #log.info('Getting mirror illumination')
     try:
         F = fits.open(fn)
         names = ['RHO_STRT', 'THE_STRT', 'PHI_STRT', 'X_STRT', 'Y_STRT']
         r, t, p, x, y = [F[0].header[name] for name in names]
-        log.info('Rho, Theta, Phi, X, Y: %0.4f, %0.4f, %0.4f, %0.4f, %0.4f' %
-                 (r, t, p, x, y))
+        # log.info('Rho, Theta, Phi, X, Y: %0.4f, %0.4f, %0.4f, %0.4f, %0.4f' %
+        #          (r, t, p, x, y))
         mirror_illum = float(os.popen('/work/03730/gregz/maverick/illum_lib/hetillum -p'
                              ' -x "[%0.4f,%0.4f,%0.4f]" "[%0.4f,%0.4f]" 256' %
                                       (x, y, p, 0.042, 0.014)).read().split('\n')[0])
@@ -1522,7 +1522,7 @@ def get_mirror_illumination(fn=None, default=51.4e4):
     except:
         log.info('Using default mirror illumination value')
         area = default
-    log.info('Mirror illumination: %0.2f m^2' % (area/1e4))
+    # log.info('Mirror illumination: %0.2f m^2' % (area/1e4))
     return area
 
 
