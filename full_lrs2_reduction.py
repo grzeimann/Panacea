@@ -1554,6 +1554,16 @@ def panstarrs_query(ra_deg, dec_deg, rad_deg, mindet=1,
     os.remove(name)
     return data.to_table(use_names_over_ids=True)
 
+def truncate_list(lst):
+    if len(lst) <= 5:
+        return lst  # If the list already has 5 or fewer elements, return it as is.
+
+    # Calculate indices for the three evenly spaced elements in the middle.
+    step = (len(lst) - 1) / 4
+    indices = [0, round(step), round(2 * step), round(3 * step), len(lst) - 1]
+
+    # Select elements at the calculated indices
+    return [lst[i] for i in indices]
 
 def get_mirror_illumination_guider(fn, exptime, default=51.4e4,
                                    path='/work/03946/hetdex/maverick'):
@@ -1583,6 +1593,7 @@ def get_mirror_illumination_guider(fn, exptime, default=51.4e4,
             p = (d - d0).seconds
             if (p > -10.) * (p < exptime+10.):
                 final_list.append(t)
+        final_list = truncate_list(final_list)
         for fn in final_list:
             fobj = T.extractfile(T.getmember(fn))
             M.append(get_mirror_illumination(fobj))
