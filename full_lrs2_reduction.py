@@ -25,7 +25,7 @@ from astropy.table import Table
 from scipy.signal import savgol_filter
 from distutils.dir_util import mkpath
 from scipy.ndimage.filters import percentile_filter
-from scipy.interpolate import interp1d, interp2d, griddata
+from scipy.interpolate import interp1d, RegularGridInterpolator, griddata
 from input_utils import setup_logging
 from astrometry import Astrometry
 from astropy.stats import biweight_midvariance, biweight_location
@@ -625,8 +625,8 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         sci_array = np.squeeze(np.array(array_list))
     Xx = np.arange(flat.shape[1])
     Yx = np.arange(flat.shape[0])
-    I = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False,
-                 fill_value=0.0)
+    I = RegularGridInterpolator((Xx, Yx), flat, method='cubic', 
+                                bounds_error=False, fill_value=0.0)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         shifts = get_trace_shift(sci_array, flat, array_trace, Yx)
@@ -2142,7 +2142,7 @@ for info in listinfo:
                             'cal_%s_%s.fits' % (args.date, specname)),
                             overwrite=True)
     for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-        log.info('Checkpoint --- Working on %s' %bf)
+        log.info('Checkpoint --- Working on %s, %s' % (bf, specname))
         if args.object is None:
             big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
