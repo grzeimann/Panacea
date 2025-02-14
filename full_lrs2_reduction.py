@@ -630,7 +630,8 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         shifts = get_trace_shift(sci_array, flat, array_trace, Yx)
-    flat = I(Xx, Yx + shifts)
+    new_points = np.array([[x, y] for x, y in zip(Xx.flatten(), (Yx + shifts).flatten())])
+    flat = I(new_points)
     log.info('Found shift for %s of %0.3f' % (files1[0], np.median(shifts)))
     array_list = []
     spec_list, error_list = ([], [])
