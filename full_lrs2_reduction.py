@@ -1634,6 +1634,7 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
             p = (d - d0).seconds
             if (p > -10.) * (p < exptime+10.):
                 final_list.append(t)
+        final_list = truncate_list(final_list)
         for fnt in final_list:
             fobj = T.extractfile(T.getmember(fnt))
             f = fits.open(fobj)
