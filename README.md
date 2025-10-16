@@ -211,14 +211,14 @@ Each CCD frame is first corrected for electronic bias by fitting and subtracting
   <img src="images/bias_subtract.png" width="850"/>
 </p>
 
-<p align="center">
-  <img src="images/trace_fibmodel.png" width="850"/>
-</p>
-
 ---
 
 ### 2. Fiber Tracing and Extraction
 Using the master flat, Panacea identifies and traces each fiber’s centroid along the dispersion axis.  The fiber positions are modeled as smooth polynomials describing their curvature across the CCD.  1D spectra are then extracted using an **optimal extraction algorithm**, which weights by the spatial fiber profile and local variance.  Cosmic rays are flagged and rejected using a similar algorithm to that of Malte Tewes and Pieter van Dokkum.
+
+<p align="center">
+  <img src="images/trace_fibmodel.png" width="850"/>
+</p>
 
 ---
 
@@ -327,7 +327,3 @@ A: Air
 ## Authors
 
 * Greg Zeimann, UT Austin
-
-## NOTE
-* COPYRIGHTS from astropy, free software foundation were used
-* cosmics.py is a copy from Malte Tewes and Pieter van Dokkum's code available online: http://obswww.unige.ch/~tewes/cosmics_dot_py/
