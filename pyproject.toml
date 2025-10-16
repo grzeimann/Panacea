@@ -5,11 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "panacea"
 version = "0.9.0"
-description = "Panacea: LRS2 data-reduction pipeline for the HET"
+description = "Panacea: LRS2 data-reduction pipeline for the Hobby-Eberly Telescope"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "BSD-3-Clause" }
-authors = [{ name = "Greg Zeimann" }]
+authors = [
+  { name = "Greg Zeimann", email = "gzeimann@example.com" }
+]
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: BSD License",
@@ -31,17 +33,18 @@ Homepage = "https://github.com/grzeimann/Panacea"
 Repository = "https://github.com/grzeimann/Panacea"
 Issues = "https://github.com/grzeimann/Panacea/issues"
 
+# --- Packaging configuration ---
+[tool.setuptools]
+# Disable package discovery; treat repo as single-module layout
+packages = []
+# Tell setuptools to ship this single Python module:
+py-modules = ["full_lrs2_reduction"]
+
+# --- Optional script entry point (if main() exists) ---
 [project.scripts]
 panacea-lrs2 = "full_lrs2_reduction:main"
 
-[tool.setuptools]
-# Include any non-Python data files you ship (e.g., default response curves)
-include-package-data = true
-
-[tool.setuptools.package-data]
-# Adjust globs to match your repo (add/remove as needed)
-panacea = ["lrs2_configs/*"]
-
+# --- Optional extras for development & docs ---
 [project.optional-dependencies]
 dev = [
   "pytest>=7",
@@ -55,4 +58,3 @@ docs = [
   "myst-parser>=2",
   "furo>=2024.0.0",
 ]
-

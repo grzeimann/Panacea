@@ -2154,3 +2154,9 @@ for info in listinfo:
             if check_if_standard(obj[0]) and (ifuslot in obj[0]):
                 big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                           ifuslot, specname, response=response)
+
+def main():
+    pass
+
+if __name__ == "__main__":
+    main()
