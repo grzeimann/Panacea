@@ -194,18 +194,13 @@ Installation options:
 - pip (recommended for local use)
 - conda (via environment.yml) plus a special pip step for pyhetdex
 
-Important: Install pyhetdex (not on PyPI) from the private index first:
-
-```
-pip install --user --extra-index-url https://gate.mpe.mpg.de/pypi/simple/ pyhetdex
-```
-
 Option A: Using conda env + pip
 ```
 conda env create -f environment.yml
 conda activate panacea
 # Install pyhetdex from the private index
 pip install --extra-index-url https://gate.mpe.mpg.de/pypi/simple/ pyhetdex
+pip install . --no-deps
 ```
 
 Quickstart example
