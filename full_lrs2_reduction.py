@@ -15,24 +15,21 @@ import tarfile
 import argparse as ap
 import requests
 import uuid
-
+from pathlib import Path
 from datetime import datetime, timedelta
-from astropy.io.votable import parse_single_table
-from fiber_utils import bspline_x0
 
+from astropy.io.votable import parse_single_table
 from astropy.io import fits
 from astropy.table import Table
 from scipy.signal import savgol_filter
-from distutils.dir_util import mkpath
 from scipy.ndimage.filters import percentile_filter
 from scipy.interpolate import interp1d, interp2d, griddata
 from input_utils import setup_logging
 from astrometry import Astrometry
 from astropy.stats import biweight_midvariance, biweight_location
-from astropy.modeling.models import Moffat2D, Polynomial2D, Gaussian2D
+from astropy.modeling.models import Polynomial2D, Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
-from sklearn.decomposition import PCA
-from astropy.convolution import Gaussian1DKernel, Gaussian2DKernel, convolve
+from astropy.convolution import Gaussian1DKernel, convolve
 
 
 standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
@@ -202,37 +199,31 @@ def get_script_path():
 def get_ifucenfile(side, amp,
                    virusconfig='/work/03946/hetdex/maverick/virus_config',
                    skiprows=4):
-    """
-    Retrieves the IFU center file data for the specified side and amplifier configuration.
+    """Gets the IFU center positions file data based on side and amplifier.
 
-    This function loads the relevant IFU center file based on the specified side
-    and extracts a specific portion of its data depending on the given amplifier.
-    The IFU center file provides information necessary for spatial mapping.
+    This function loads and processes fiber position data from a mapping file specific
+    to the given side and amplifier combination. The data is loaded from text files
+    located in the virus configuration directory.
 
-    Parameters:
-    side: str
-        The specific side of the spectrograph. Valid options are 'uv', 'orange',
-        'red', or 'farred', which correspond to different wavelength ranges.
-    amp: str
-        The amplifier configuration. Valid options are 'LL', 'LU', 'RL',
-        or 'RU', which correspond to specific sections of the data.
-    virusconfig: str, optional
-        Path to the VIRUS configuration directory containing the IFU center files.
-        Defaults to '/work/03946/hetdex/maverick/virus_config'.
-    skiprows: int, optional
-        Number of rows to skip when loading the IFU center file for parsing.
-        Defaults to 4.
+    Args:
+        side (str): Spectrograph side identifier ('uv', 'orange', 'red', or 'farred').
+        amp (str): Amplifier identifier ('LL', 'LU', 'RL', or 'RU').
+        virusconfig (str, optional): Path to the VIRUS configuration directory. 
+            Defaults to '/work/03946/hetdex/maverick/virus_config'.
+        skiprows (int, optional): Number of header rows to skip in the mapping file.
+            Defaults to 4.
 
     Returns:
-    numpy.ndarray
-        A 2D array containing the selected portion of the IFU center file data
-        for the specified side and amplifier configuration. The array has shape
-        (140, 2), representing the x and y coordinates.
+        numpy.ndarray: A 2D array containing the fiber positions (x,y coordinates).
+            The array shape and content depend on the amplifier selection:
+            - For 'LL': Returns positions 140: reversed
+            - For 'LU': Returns positions :140 reversed
+            - For 'RL': Returns positions :140 reversed
+            - For 'RU': Returns positions 140: reversed
 
     Raises:
-    KeyError
-        If the specified side does not match any of the available keys in the
-        file_dict.
+        ValueError: If the side parameter is not one of the valid options.
+        IOError: If the mapping file cannot be found or read.
     """
 
     file_dict = {"uv": "LRS2_B_UV_mapping.txt",
@@ -338,32 +329,26 @@ def base_reduction(filename, tarname=None, get_header=False):
     processed image and its associated error array. Optionally, it can
     return the FITS header as well.
 
-    Parameters:
-    filename : str
-        Path to the FITS file to be processed. If the file is inside a TAR
-        archive, this should be the relative path within the archive.
-    tarname : str, optional
-        Path to the TAR archive containing the FITS file. If not specified,
-        the function assumes the FITS file is not archived.
-    get_header : bool
-        If True, the function returns the FITS header along with the image
-        and error data.
+    Args:
+        filename (str): Path to the FITS file to be processed. If the file is 
+            inside a TAR archive, this should be the relative path within the archive.
+        tarname (str, optional): Path to the TAR archive containing the FITS file. 
+            If not specified, the function assumes the FITS file is not archived.
+        get_header (bool): If True, the function returns the FITS header along 
+            with the image and error data.
 
     Returns:
-    tuple
-        If `get_header` is False, returns a tuple of (image, error) where:
-        - image is a 2D numpy array representing the reduced image.
-        - error is a 2D numpy array representing the associated noise level
-          for each pixel.
-        If `get_header` is True, returns a tuple of (image, error, header)
-        where:
-        - header is the FITS header.
+        tuple: If `get_header` is False, returns a tuple of (image, error) where:
+            - image is a 2D numpy array representing the reduced image.
+            - error is a 2D numpy array representing the associated noise level
+              for each pixel.
+            If `get_header` is True, returns a tuple of (image, error, header) where:
+            - header is the FITS header.
 
     Raises:
-    Exception
-        If the FITS file or TAR archive cannot be opened, the function logs
-        a warning and returns zeroed arrays of shape (1032, 2064) for both
-        the image and error.
+        Exception: If the FITS file or TAR archive cannot be opened, the function logs
+            a warning and returns zeroed arrays of shape (1032, 2064) for both
+            the image and error.
     """
     if tarname is None:
         a = fits.open(filename)
@@ -668,9 +653,7 @@ def get_twiflat_field(files, amps, array_wave, array_trace, bigW,
         ftf[fiber] = savgol_filter(spectrum[fiber] / model, 151, 1)
     nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41,
                              per=50)
-    B, c = bspline_x0(nw1, nknots=int(spectrum.shape[1]))
-    sol = np.linalg.lstsq(c, ns1)[0]
-    ns1 = np.dot(c, sol)
+
     I = interp1d(nw1, ns1, kind='quadratic', fill_value='extrapolate')
     modelimage = I(bigW)
     flat = array_flt / modelimage
@@ -806,7 +789,38 @@ def find_cosmics(Y, E, trace, thresh=8., ran=0):
 
 def weighted_extraction(image, error, flat, trace, cthresh=8.):
     """
+    Performs weighted spectral extraction from image data, accounting for flat
+    fields, error maps, and trace information.
 
+    This function performs a weighted spectral extraction by analyzing input
+    image data with its corresponding error, flat-field frames, and trace
+    information. It identifies cosmic rays using a detection algorithm,
+    calculates the spectrum and error spectrum for each fiber, and outputs
+    various results, including the processed spectrum, error spectrum, cosmic
+    ray mask, normalized flux, and fiber-assigned image.
+
+    Args:
+        image: ndarray
+            2D array of the observed image data.
+        error: ndarray
+            2D array of the error values corresponding to the observed image.
+        flat: ndarray
+            2D array of the flat-field data used for normalization.
+        trace: ndarray
+            2D array representing the trace positions for fibers across the
+            image.
+        cthresh: float, optional
+            Threshold for cosmic ray detection, default is 8.0.
+
+    Returns:
+        tuple:
+            - spectrum (ndarray): Extracted spectrum for each fiber.
+            - error_spec (ndarray): Extracted error spectrum for each fiber.
+            - C (ndarray): Boolean mask identifying cosmic rays in the image.
+            - Y (ndarray): Normalized flux of the image after flat-field
+              correction.
+            - Fimage (ndarray): Image with fibers assigned to identify
+              individual contributions.
     """
     E = safe_division(error, flat)
     E[E < 1e-8] = 1e9
@@ -868,6 +882,27 @@ def weighted_extraction(image, error, flat, trace, cthresh=8.):
 
 
 def get_trace_shift(sci_array, flat, array_trace, Yx):
+    """
+    Computes the trace shifts between a science image array and a flat field
+    reference by comparing their trace patterns. This function is commonly used
+    in spectroscopy or similar applications where traces need alignment.
+
+    Parameters:
+    sci_array : np.ndarray
+        A 2D numpy array representing the science data.
+    flat : np.ndarray
+        A 2D numpy array containing the flat field data.
+    array_trace : np.ndarray
+        A 2D numpy array containing the input trace positions.
+    Yx : np.ndarray
+        A 1D or 2D numpy array specifying coordinates along which the trace
+        shifts should be interpolated.
+
+    Returns:
+    np.ndarray
+        A 1D numpy array containing the computed shifts for aligning the traces
+        of the science array with the flat field reference.
+    """
     YM, XM = np.indices(flat.shape)
     inds = np.zeros((3, array_trace.shape[0], array_trace.shape[1]))
     XN = np.round(array_trace)
@@ -902,7 +937,25 @@ def get_trace_shift(sci_array, flat, array_trace, Yx):
     return shifts
 
 
-def modify_spectrum(spectrum, error, w, xloc, yloc):
+def modify_spectrum(spectrum, error, w):
+    """
+    Modify the spectrum and error arrays based on input parameters.
+
+    This function processes spectrum and error arrays by normalizing the spectrum
+    data by the differential of the wavelength array, handling missing data with
+    quadratic interpolation, and adjusting any invalid error values.
+
+    Args:
+        spectrum (numpy.ndarray): The 2D array representing the spectral data.
+        error (numpy.ndarray): The 2D array representing the associated error values
+            for the spectral data.
+        w (numpy.ndarray): The 2D array of wavelengths corresponding to the
+            spectrum data.
+
+    Returns:
+        Tuple[numpy.ndarray, numpy.ndarray]: A tuple containing the modified
+            spectrum and error arrays.
+    """
     dw = np.median(np.diff(w, axis=1), axis=0)
     dw = np.hstack([dw[0], dw])
     for i in np.arange(spectrum.shape[0]):
@@ -921,6 +974,37 @@ def modify_spectrum(spectrum, error, w, xloc, yloc):
 
 def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
                 masterbias, pos):
+    """
+    Extracts scientific data from specified input sources, processes it through
+    several reduction and transformation operations, and produces extracted spectral
+    and related data arrays.
+
+    Parameters:
+    sci_path (str): Path to the scientific file from which data is to be extracted.
+    amps (list of str): List containing amp identifiers for which the data needs
+        extraction.
+    flat (numpy.ndarray): Flat-field correction array.
+    array_trace (numpy.ndarray): Array describing the trace positions.
+    array_wave (numpy.ndarray): Array containing wavelength calibration data.
+    bigW: Common wavelength grid used for rectifying spectra.
+    masterbias (numpy.ndarray): Master bias frame used for calibration.
+    pos (numpy.ndarray): Array describing the positions of objects in the field.
+
+    Returns:
+    tuple: A tuple containing the following elements:
+        - numpy.ndarray: Array stack of processed science image frames.
+        - numpy.ndarray: List of rectified spectra arrays.
+        - numpy.ndarray: Array of original spectra.
+        - numpy.ndarray: List of photometric flux calibration corrections.
+        - numpy.ndarray: List of flux list data.
+        - numpy.ndarray: List of flux image data.
+        - numpy.ndarray: List of error data for the extracted spectra.
+        - list: List of headers extracted from processed files.
+
+    Raises:
+    None explicitly raised within the method. Ensure to handle exceptions from
+    dependent functions.
+    """
     files1 = get_filenames_from_tarfolder(get_tarname_from_filename(sci_path),
                                           sci_path.replace('LL', amps[0]))
     files2 = get_filenames_from_tarfolder(get_tarname_from_filename(sci_path),
@@ -978,8 +1062,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
         log.info('Number of 0.0 pixels in spectra: %i' %
                  (spectrum == 0.0).sum())
         speclist, errorlist = ([], [])
-        spectrum, error = modify_spectrum(spectrum, error, array_wave, xloc,
-                                          yloc)
+        spectrum, error = modify_spectrum(spectrum, error, array_wave)
         log.info('Number of 0.0 pixels in spectra: %i' %
                  (spectrum == 0.0).sum())
         for fiber in np.arange(array_wave.shape[0]):
@@ -1010,6 +1093,21 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
 
 
 def get_masterbias(files, amp):
+    """
+    Computes the master bias frame from a list of input files, applying a transformation
+    based on the given amplifier identifier. Each input file is processed, summed into
+    an array, and finally, a master bias frame is computed using the biweight location
+    method.
+
+    Parameters:
+        files (list[str]): A list of file paths representing the input bias frames. LL in
+        the file names will be replaced with the given amplifier identifier.
+        amp (str): Amplifier identifier to replace 'LL' in the file names.
+
+    Returns:
+        numpy.ndarray: The computed master bias frame, which is a 2D array created by
+        combining and statistically reducing the individual processed bias frames.
+    """
     files = [file.replace('LL', amp) for file in files]
     tarnames = [get_tarname_from_filename(file) for file in files]
 
@@ -1022,6 +1120,28 @@ def get_masterbias(files, amp):
 
 
 def get_masterarc(files, amp, arc_names, masterbias, specname, trace):
+    """
+    Compute the master arc image from a list of files, accounting for biases, specified arc names,
+    and using provided trace data. The function performs operations including opening tar files,
+    reducing base data, and summing the arcs for specified object names to calculate the master arc.
+
+    Arguments:
+        files (list[str]): List of file paths.
+        amp (str): Amplifier identifier.
+        arc_names (list[str]): Names of objects to identify as arcs.
+        masterbias (numpy.ndarray): The master bias frame.
+        specname (str): Spectrum name (currently unused in the function).
+        trace (any): Trace data used for processing.
+
+    Returns:
+        numpy.ndarray: The computed master arc image.
+
+    Raises:
+        tarfile.TarError: If there is an issue opening or processing tar files.
+        FileNotFoundError: If specified files or tarfiles cannot be found or accessed.
+        KeyError: If expected header keywords are missing in the FITS file.
+        ValueError: If arrays' dimensions do not match during processing.
+    """
     files = [file.replace('LL', amp) for file in files]
     tarnames = [get_tarname_from_filename(file) for file in files]
     arcsum = np.zeros((1032, 2064))
@@ -1040,6 +1160,27 @@ def get_masterarc(files, amp, arc_names, masterbias, specname, trace):
 
 
 def get_mastertwi(files, amp, masterbias):
+    """
+    Processes a set of files to create a master twilight flat image.
+
+    This function identifies and processes twilight flat images from the given
+    file paths. It applies bias subtraction, normalizes the twilight exposures,
+    and creates a master twilight flat by combining the normalized images. The
+    function performs these steps only for exposures that meet specific criteria.
+
+    Parameters:
+    files: list of str
+        List of file paths representing twilight flat images.
+    amp: str
+        Amplifier designation to replace in file names.
+    masterbias: np.ndarray
+        Master bias frame to subtract from each exposure.
+
+    Returns:
+    np.ndarray
+        A 2D array representing the master twilight flat image, generated by
+        combining the processed and normalized twilight exposures.
+    """
     files = [file.replace('LL', amp) for file in files]
     tarnames = [get_tarname_from_filename(file) for file in files]
     listtwi = []
@@ -1056,6 +1197,40 @@ def get_mastertwi(files, amp, masterbias):
 def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate,
                         virusconfig='/work/03946/hetdex/'
                         'maverick/virus_config'):
+    """
+    Get the reference trace file for a given set of parameters by finding
+    the closest available date to the observation date from the
+    defined configuration files. This function searches for fiber
+    location files matching the given specifications and returns
+    the reference data from the closest date's file.
+
+    Arguments:
+        specid: str
+            Identifier for the spectrograph.
+        ifuslot: str
+            Identifier for the IFU slot.
+        ifuid: str
+            Identifier for the IFU.
+        amp: str
+            Identifier for the amplifier.
+        obsdate: str
+            Observation date in 'YYYYMMDD' format.
+        virusconfig: str, optional
+            Configuration file directory path for the virus instrument, with
+            a default value of '/work/03946/hetdex/maverick/virus_config'.
+
+    Raises:
+        ValueError: If the observation date format is invalid or if the
+                    required files to compute the trace reference can't
+                    be found.
+        FileNotFoundError: If no matching fiber location files can be
+                           found for the provided parameters.
+
+    Returns:
+        numpy.ndarray
+            Array containing the reference trace data from the file best
+            matching the observation date.
+    """
     files = glob.glob(op.join(virusconfig, 'Fiber_Locations', '*',
                               'fiber_loc_%s_%s_%s_%s.txt' %
                               (specid, ifuslot, ifuid, amp)))
@@ -1072,6 +1247,26 @@ def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate,
 
 
 def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
+    """
+    Calculate traces for a given set of data using reference trace information.
+
+    This function computes the trace of spectral data using input twilight image and other metadata.
+    It processes the data in chunks, calculates median values, and determines the trace points
+    using reference information. Polynomial fitting is applied to smoothen the trace data.
+
+    Parameters:
+        twilight (ndarray): Input 2D image array representing the spectral twilight data.
+        specid (str): Identifier for the spectrograph.
+        ifuslot (str): Identifier for the Instrument/IFU slot.
+        ifuid (str): Identifier for the Instrument/IFU ID.
+        amp (str): Amplifier designation.
+        obsdate (str): Observation date in string format.
+
+    Returns:
+        tuple[ndarray, ndarray]: A tuple containing:
+            - trace (ndarray): Calculated trace values for the input data.
+            - ref (ndarray): Reference data array used for the trace calculation.
+    """
     ref = get_trace_reference(specid, ifuslot, ifuid, amp, obsdate)
     N1 = (ref[:, 1] == 0.).sum()
     good = np.where(ref[:, 1] == 0.)[0]
@@ -1118,6 +1313,33 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate):
 
 
 def find_peaks(y, thresh=8.):
+    """
+    Find peaks in a provided numerical array with a threshold-based filtering.
+
+    This function identifies peaks in the input array by detecting changes in the
+    slope and filtering them based on a specified threshold. It returns the
+    locations of the peaks, their normalized intensities, and their raw intensities.
+
+    Parameters
+    ----------
+    y : array-like
+        The input numerical array in which peaks are to be located.
+    thresh : float, optional
+        The threshold value used for filtering peaks based on the standard
+        deviation. The default is 8.
+
+    Returns
+    -------
+    tuple
+        A tuple containing three elements:
+        - peak_loc: array-like
+            The locations of the detected peaks in the input array.
+        - normalized_peaks: array-like
+            The normalized intensities of the detected peaks.
+        - peaks: array-like
+            The raw intensities of the detected peaks.
+
+    """
     def get_peaks(flat, XN):
         YM = np.arange(flat.shape[0])
         inds = np.zeros((3, len(XN)))
@@ -1139,6 +1361,28 @@ def find_peaks(y, thresh=8.):
 
 
 def robust_polyfit(x, y, order=3, niter=3):
+    """
+    Fits a polynomial to the input data robustly by iteratively refining the selection of valid points
+    using the Median Absolute Deviation (MAD) method.
+
+    This function fits a polynomial of specified order to the data points (x, y) where y values are
+    positive. It iteratively excludes outlier data points beyond a specific threshold based on MAD,
+    refits the polynomial, and updates the modeled y values.
+
+    Parameters:
+    x: numpy.ndarray
+        An array of x-coordinates of the data points.
+    y: numpy.ndarray
+        An array of y-coordinates of the data points.
+    order: int, optional
+        The order of the polynomial to fit. Default is 3.
+    niter: int, optional
+        The number of iterations to refine the selection of valid points. Default is 3.
+
+    Returns:
+    numpy.ndarray
+        An array of fitted y values corresponding to the input x values.
+    """
     sel = y > 0.
     ymod = np.polyval(np.polyfit(x[sel], y[sel], order), x)
     for i in np.arange(niter):
@@ -2068,7 +2312,8 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
                 basename = 'LRS2/STANDARDS'
             else:
                 basename = 'LRS2/ORPHANS'
-        mkpath(basename)
+        Path(basename).mkdir(parents=True, exist_ok=True)
+
         
         pos = np.zeros((len(calinfo[5]), 6))
         pos[:, 0:2] = calinfo[5]
@@ -2458,7 +2703,8 @@ for info in listinfo:
     for fi, n in zip(f, names):
         fi.header['EXTNAME'] = n
     basename = 'LRS2/CALS'
-    mkpath(basename)
+    Path(basename).mkdir(parents=True, exist_ok=True)
+
     fits.HDUList(f).writeto(op.join(basename,
                             'cal_%s_%s.fits' % (args.date, specname)),
                             overwrite=True)
