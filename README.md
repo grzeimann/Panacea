@@ -359,3 +359,15 @@ A: Air
 * Greg Zeimann, UT Austin
 
 
+
+
+
+## New CLI entry (experimental)
+
+After installing in editable mode, you can use the new console script:
+
+```
+panacea-lrs2 --help
+```
+
+This entry delegates to the legacy full_lrs2_reduction parser for now. Legacy invocation using python full_lrs2_reduction.py remains supported.
