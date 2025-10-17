@@ -202,6 +202,38 @@ def get_script_path():
 def get_ifucenfile(side, amp,
                    virusconfig='/work/03946/hetdex/maverick/virus_config',
                    skiprows=4):
+    """
+    Retrieves the IFU center file data for the specified side and amplifier configuration.
+
+    This function loads the relevant IFU center file based on the specified side
+    and extracts a specific portion of its data depending on the given amplifier.
+    The IFU center file provides information necessary for spatial mapping.
+
+    Parameters:
+    side: str
+        The specific side of the spectrograph. Valid options are 'uv', 'orange',
+        'red', or 'farred', which correspond to different wavelength ranges.
+    amp: str
+        The amplifier configuration. Valid options are 'LL', 'LU', 'RL',
+        or 'RU', which correspond to specific sections of the data.
+    virusconfig: str, optional
+        Path to the VIRUS configuration directory containing the IFU center files.
+        Defaults to '/work/03946/hetdex/maverick/virus_config'.
+    skiprows: int, optional
+        Number of rows to skip when loading the IFU center file for parsing.
+        Defaults to 4.
+
+    Returns:
+    numpy.ndarray
+        A 2D array containing the selected portion of the IFU center file data
+        for the specified side and amplifier configuration. The array has shape
+        (140, 2), representing the x and y coordinates.
+
+    Raises:
+    KeyError
+        If the specified side does not match any of the available keys in the
+        file_dict.
+    """
 
     file_dict = {"uv": "LRS2_B_UV_mapping.txt",
                  "orange": "LRS2_B_OR_mapping.txt",
@@ -222,10 +254,30 @@ def get_ifucenfile(side, amp,
 
 
 def orient_image(image, amp, ampname):
-    '''
-    Orient the images from blue to red (left to right)
-    Fibers are oriented to match configuration files
-    '''
+    """
+    Adjusts the orientation of a given image array based on specified parameters.
+
+    This function modifies the input image array in-place to reorient it according
+    to the provided amplification mode or name. The orientation is determined by
+    the `amp` or `ampname` parameters, which specify the flip or inversion
+    operations to be applied. If both `amp` and `ampname` are provided, their
+    actions are combined.
+
+    Parameters:
+    image : ndarray
+        The input image array that will be modified in-place to change its
+        orientation.
+    amp : str
+        Determines the amplification mode that dictates the image orientation, such
+        as "LU" or "RL".
+    ampname : str, optional
+        Additional amplification name that specifies further orientation
+        adjustments such as "LR" or "UL". If None, this parameter is ignored.
+
+    Returns:
+    ndarray
+        The input image array after applying the specified orientation adjustments.
+    """
     if amp == "LU":
         image[:] = image[::-1, ::-1]
     if amp == "RL":
@@ -237,6 +289,33 @@ def orient_image(image, amp, ampname):
 
 
 def make_avg_spec(wave, spec, binsize=35, per=50):
+    """
+    Generates averaged spectrum data by binning and calculating percentiles.
+
+    This function sorts the input wavelength and spectrum arrays, divides them into
+    smaller chunks of specified size, and computes the mean wavelength and a specific
+    percentile of the spectrum data for each chunk. The returned wavelength and
+    spectrum data are unique and in ascending order of the wavelength.
+
+    Parameters:
+    wave : numpy.ndarray
+        A 1D or n-dimensional array representing wavelength values.
+    spec : numpy.ndarray
+        A 1D or n-dimensional array representing spectrum values, corresponding to
+        the wavelength array.
+    binsize : int, optional
+        The size of each bin to divide the data into. Defaults to 35.
+    per : int, optional
+        The percentile of the spectrum data to compute for each chunk.
+        Defaults to 50 (median).
+
+    Returns:
+    tuple
+        A tuple containing:
+        - nwave (numpy.ndarray): A 1D array of unique, averaged wavelength values.
+        - nspec (numpy.ndarray): A 1D array of spectrum values corresponding to
+          the averaged wavelengths.
+    """
     ind = np.argsort(wave.ravel())
     T = 1
     for p in wave.shape:
@@ -252,6 +331,40 @@ def make_avg_spec(wave, spec, binsize=35, per=50):
 
 
 def base_reduction(filename, tarname=None, get_header=False):
+    """
+    Performs basic reduction of astronomical image data, including overscan
+    subtraction, gain correction, and noise estimation. The function reads
+    FITS files, either directly or from a TAR archive, and returns the
+    processed image and its associated error array. Optionally, it can
+    return the FITS header as well.
+
+    Parameters:
+    filename : str
+        Path to the FITS file to be processed. If the file is inside a TAR
+        archive, this should be the relative path within the archive.
+    tarname : str, optional
+        Path to the TAR archive containing the FITS file. If not specified,
+        the function assumes the FITS file is not archived.
+    get_header : bool
+        If True, the function returns the FITS header along with the image
+        and error data.
+
+    Returns:
+    tuple
+        If `get_header` is False, returns a tuple of (image, error) where:
+        - image is a 2D numpy array representing the reduced image.
+        - error is a 2D numpy array representing the associated noise level
+          for each pixel.
+        If `get_header` is True, returns a tuple of (image, error, header)
+        where:
+        - header is the FITS header.
+
+    Raises:
+    Exception
+        If the FITS file or TAR archive cannot be opened, the function logs
+        a warning and returns zeroed arrays of shape (1032, 2064) for both
+        the image and error.
+    """
     if tarname is None:
         a = fits.open(filename)
     else:
@@ -289,10 +402,62 @@ def base_reduction(filename, tarname=None, get_header=False):
 
 
 def power_law(x, c1, c2=.5, c3=.15, c4=1., sig=2.5):
-        return c1 / (c2 + c3 * np.power(abs(x / sig), c4))
+    """
+    Computes the value of a power-law function given the input and specified parameters.
+
+    This function calculates a mathematical power-law expression
+    to transform the input `x` based on coefficients `c1`, `c2`,
+    `c3`, `c4`, and `sig`. It is commonly used in contexts
+    where such transformations are required.
+
+    Parameters:
+    x: float or array-like
+        The input variable(s) for the power-law function.
+    c1: float
+        The coefficient for scaling the result.
+    c2: float, optional
+        A constant added to the denominator. Default is 0.5.
+    c3: float, optional
+        A coefficient multiplying the transformed input.
+        Default is 0.15.
+    c4: float, optional
+        The exponent applied to the transformed input.
+        Default is 1.0.
+    sig: float, optional
+        The normalization factor dividing the input before power
+        transformation. Default is 2.5.
+
+    Returns:
+    float or array-like
+        The computed value(s) of the power-law function based
+        on the input `x` and the provided parameters.
+    """
+    return c1 / (c2 + c3 * np.power(abs(x / sig), c4))
 
 
 def get_powerlaw(image, trace, spec):
+    """
+    Calculate power-law model for fiber normalization in spectroscopy.
+
+    This function performs power-law modeling for fiber normalization in
+    spectroscopy using given image data, trace information, and spectrum. It
+    identifies fibers requiring modeling, calculates power-law contributions,
+    and interpolates results to generate a normalization factor for the image.
+
+    Parameters:
+    image : ndarray
+        2D array representing the image to process.
+    trace : ndarray
+        2D trace array with fiber positions in the image.
+    spec : ndarray
+        2D array representing the spectrum associated with fibers.
+
+    Returns:
+    tuple(ndarray, ndarray)
+        A tuple containing two elements:
+        - 2D array with the calculated normalization model applied to the image.
+        - 1D array representing normalization factors for each column.
+    """
     YM, XM = np.indices(image.shape)
     inds = []
     for j in np.arange(trace.shape[0]):
@@ -341,6 +506,28 @@ def get_powerlaw(image, trace, spec):
 
 
 def get_bigW(amp, array_wave, array_trace, image):
+    """
+    Compute a 2D array `bigW` based on polynomial fitting across specific regions defined by
+    input arrays. The function splits the input 2D arrays into smaller segments, calculates
+    polynomial coefficients for each column of data, evaluates them, and updates specific
+    regions of the resulting array `bigW`.
+
+    Parameters:
+    amp : Any
+        Currently unused parameter.
+    array_wave : ndarray
+        A 2D array containing data to fit the polynomial to.
+    array_trace : ndarray
+        A 2D array defining the indices (input locations) for fitting the polynomial
+        coefficients.
+    image : ndarray
+        A 2D array whose shape is used to determine the shape of the resulting `bigW`.
+
+    Returns:
+    ndarray
+        A 2D array (`bigW`) of the same shape as the input `image`, containing the computed
+        values based on the polynomial fitting.
+    """
     bigW = np.zeros(image.shape)
     Y, X = np.indices(array_wave.shape)
     YY, XX = np.indices(image.shape)
@@ -358,6 +545,24 @@ def get_bigW(amp, array_wave, array_trace, image):
 
 
 def get_bigF(array_trace, image):
+    """
+    Calculates a modified version of the input image by fitting polynomial curves to the input data.
+
+    This function modifies an image by fitting polynomial curves of degree 7 to traces in the
+    given 2D array and using these polynomials to transform the values in the image. The input
+    trace array is used to determine the polynomial coefficients that will be applied across
+    the image, producing a new transformed image.
+
+    Parameters:
+    array_trace: ndarray
+        2D array representing traces used for polynomial fitting.
+    image: ndarray
+        2D ndarray representing the input image to be modified.
+
+    Returns:
+    ndarray
+        Transformed image after applying polynomial modifications based on `array_trace`.
+    """
     bigF = np.zeros(image.shape)
     Y, X = np.indices(array_trace.shape)
     YY, XX = np.indices(image.shape)
@@ -371,11 +576,49 @@ def get_bigF(array_trace, image):
     return bigF
 
 def get_tarname_from_filename(filename):
+    """
+    Generates a tar file name from a given file path.
+
+    This function takes the input 'filename', traverses three directory levels up
+    from the file's location, and appends '.tar' to generate the name of a tar
+    archive. It is primarily useful in scenarios where tar archives are stored at
+    a fixed hierarchical level relative to file paths.
+
+    Args:
+        filename (str): The file path to derive the tar file name from.
+
+    Returns:
+        str: The tar file name generated from the given file path.
+    """
     tarname = op.dirname(op.dirname(op.dirname(filename))) + '.tar'
     return tarname
 
 def get_twiflat_field(files, amps, array_wave, array_trace, bigW,
-                      common_wave, masterbias, specname):
+                      masterbias, specname):
+    """
+    Processes input data to generate a normalized flat-field image for spectroscopy applications.
+
+    Parameters:
+    files : list of str
+        List of file paths for input images with placeholders for amplifiers.
+    amps : list of str
+        List of amplifier labels, typically two entries corresponding to different channels.
+    array_wave : numpy.ndarray
+        Array representing the wavelength grid, typically shaped (fibers, pixels).
+    array_trace : numpy.ndarray
+        Array defining the trace positions of fibers across the detector.
+    bigW : numpy.ndarray
+        High-resolution wavelength grid for the model image.
+    masterbias : numpy.ndarray
+        Bias frame to be subtracted from each input image.
+    specname : str
+        Name identifier for the specific spectrum being processed.
+
+    Returns:
+    numpy.ndarray
+        Normalized flat-field image with corrections applied. The output represents
+        the flat spectrum normalized along fibers and adjusted based on a fitted model.
+    """
     files1 = [file.replace('LL', amps[0]) for file in files]
     files2 = [file.replace('LL', amps[1]) for file in files]
     tarnames = [get_tarname_from_filename(file) for file in files]
@@ -395,7 +638,7 @@ def get_twiflat_field(files, amps, array_wave, array_trace, bigW,
     else:
         array_flt = np.squeeze(np.array(array_list))
         array_flt[:] /= np.median(array_flt)
-    
+
     log.info('Working on flat')
     x = np.arange(array_wave.shape[1])
     spectrum = array_trace * 0.
@@ -406,7 +649,7 @@ def get_twiflat_field(files, amps, array_wave, array_trace, bigW,
             spectrum[fiber] = array_flt[indl, x] / 2. + array_flt[indh, x] / 2.
         except:
             spectrum[fiber] = 0.
-    
+
     log.info('Getting powerlaw for side %s' % specname)
     plaw, norm = get_powerlaw(array_flt, array_trace, spectrum)
     array_flt[:] -= plaw
@@ -439,6 +682,28 @@ def get_twiflat_field(files, amps, array_wave, array_trace, bigW,
 
 
 def get_spectra(array_flt, array_trace):
+    """
+    Calculate the spectrum for each fiber by integrating the flux values in the
+    given `array_flt` along the traces described in `array_trace`.
+
+    This function computes the average of flux values at the lower and upper
+    integer indices of the trace for each fiber.
+
+    Parameters:
+    array_flt : numpy.ndarray
+        2D array of flux values where each entry represents the flux at a
+        specific position.
+    array_trace : numpy.ndarray
+        2D array describing the positions of the traces for each fiber.
+
+    Returns:
+    numpy.ndarray
+        2D array containing the extracted spectrum for each fiber.
+
+    Raises:
+    IndexError
+        If calculated indices for accessing `array_flt` are out of bounds.
+    """
     spectrum = array_trace * 0.
     x = np.arange(array_flt.shape[1])
     for fiber in np.arange(array_trace.shape[0]):
@@ -452,6 +717,34 @@ def get_spectra(array_flt, array_trace):
 
 
 def safe_division(num, denom, eps=1e-8, fillval=0.0):
+    """
+    Performs division of two arrays with consideration for small values, infinities,
+    and customizable fill values for invalid divisions.
+
+    This function computes a safe element-wise division of an array `num` by another
+    array `denom`. To handle specific cases such as near-zero denominators
+    and infinities, a small threshold value `eps` and a fill value `fillval`
+    are introduced, ensuring numerical stability.
+
+    Parameters:
+    num : array_like
+        The numerator array.
+    denom : array_like
+        The denominator array. It must have the same shape as `num` or match the
+        corresponding dimensions if multidimensional broadcasting is intended.
+    eps : float, optional
+        A small positive threshold to filter out values of `denom` that are
+        too close to zero. Default is 1e-8.
+    fillval : float, optional
+        The value to assign to entries where division is not feasible
+        (e.g., due to near-zero denominators or invalid values in `denom`).
+        Default is 0.0.
+
+    Returns:
+    array_like
+        Array containing the result of the safe element-wise division. NaN and
+        infinite results are replaced by `fillval` as defined.
+    """
     good = np.isfinite(denom) * (np.abs(denom) > eps)
     div = num * 0.
     if num.ndim == denom.ndim:
@@ -464,6 +757,30 @@ def safe_division(num, denom, eps=1e-8, fillval=0.0):
 
 
 def find_cosmics(Y, E, trace, thresh=8., ran=0):
+    """
+    Detects cosmic-ray hits in the input image data by analyzing deviations in flux along the traces.
+
+    This function processes imaging data associated with fibers and identifies pixels that might have
+    been affected by cosmic rays. The function relies on statistical analysis of neighboring pixel values,
+    assessing high deviations based on a threshold value to mark the affected pixels.
+
+    Parameters:
+    Y : ndarray
+        2D array representing the flux values of the image data.
+    E : ndarray
+        2D array representing the error or noise estimates corresponding to `Y`.
+    trace : ndarray
+        2D array of trace data mapping the expected fiber positions on the image.
+    thresh : float, optional
+        Threshold factor for deviation, where higher values are less sensitive to cosmic-ray hits.
+        Default is 8.0.
+    ran : int, optional
+        Dummy variable with no utilized functionality. Default is 0.
+
+    Returns:
+    ndarray
+        Boolean 2D array of the same shape as `Y`, where True indicates pixels suspected as cosmic-ray hits.
+    """
     x = np.arange(trace.shape[1])
     C = Y * 0.
     for fiber in np.arange(trace.shape[0]):
@@ -488,6 +805,9 @@ def find_cosmics(Y, E, trace, thresh=8., ran=0):
 
 
 def weighted_extraction(image, error, flat, trace, cthresh=8.):
+    """
+
+    """
     E = safe_division(error, flat)
     E[E < 1e-8] = 1e9
     Y = safe_division(image, flat)
@@ -692,7 +1012,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW,
 def get_masterbias(files, amp):
     files = [file.replace('LL', amp) for file in files]
     tarnames = [get_tarname_from_filename(file) for file in files]
-    
+
     biassum = np.zeros((len(files), 1032, 2064))
     for j, filename in enumerate(files):
         tarname = tarnames[j]
@@ -863,7 +1183,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
         loc.append(px[sel])
         ph.append(ps[sel])
         pr.append(py[sel])
-    
+
     if side == 'orange':
         names = ['Hg', 'Cd']
         v = []
@@ -884,7 +1204,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
             ma = np.argmax(arc_lines['col3'][selhg])
             mxv = lines['col3'][selhg][ma]
             nrt = v[1][0] / v[0][0]
-            lines['col3'][selhg] *= nrt / mxv 
+            lines['col3'][selhg] *= nrt / mxv
         else:
             selhg = (lines['col4'] == 'Cd') + (lines['col4'] == 'Ar')
             ma = np.argmax(arc_lines['col3'][selhg])
@@ -945,7 +1265,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     inds = np.delete(inds, delv)
     for ind in inds:
         print(lines['col1'][ind], lines['col2'][ind], found_lines[fib][ind],
-              lines['col3'][ind], s[ind], pp[ind], pph[ind])    
+              lines['col3'][ind], s[ind], pp[ind], pph[ind])
     for i, line in enumerate(lines):
         if found_lines[fib, i] == 0.:
             continue
@@ -1364,14 +1684,14 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error,
         SN = np.nanmax(sn)
         if kSN > SN:
             break
-        else: 
+        else:
             kSN = SN * 1.
     kind = 'Emission'
-      
+
     if args.model_dar:
         D = get_standard_star_params(skysub, commonwave, calinfo[5][:, 0],
                                          calinfo[5][:, 1])
-        
+
         xc, yc, xstd, ystd, xoff, yoff = D
         log.info('%s, %s: Source found at s/n: %0.2f' % (obj, specn, SN))
         return xc, yc, xstd, ystd, xoff, yoff
@@ -1449,7 +1769,7 @@ def get_bigarray(xloc, yloc):
         uy = np.unique(np.hstack(BigY))
         ny = -dy + np.min(np.hstack(BigY))
         x = np.hstack(BigX)[np.where(uy[1] == np.hstack(BigY))[0]]
-        y = ny * np.ones(x.shape) 
+        y = ny * np.ones(x.shape)
         BigY.append(y)
         BigX.append(x)
         uy = np.unique(np.hstack(BigY))
@@ -2081,7 +2401,7 @@ for info in listinfo:
     calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
     log.info('Getting flat for ifuslot, %s, side, %s' % (ifuslot, specname))
     twiflat = get_twiflat_field(twifiles, amps, calinfo[0], calinfo[1],
-                                calinfo[2], commonwave, calinfo[3], specname)
+                                calinfo[2], calinfo[3], specname)
     calinfo.insert(2, twiflat)
     flatspec = get_spectra(calinfo[2], calinfo[1])
     for mfile in [masterarc, masterflt, masterFlat]:
