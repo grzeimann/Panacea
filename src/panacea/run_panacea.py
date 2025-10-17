@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Panacea CLI wrapper.
+"""Panacea CLI wrapper (package version).
 
-This script delegates to the package entry point. It allows direct execution
-from a source checkout without installation: `python scripts/run_panacea.py -h`.
+This module is a port of scripts/run_panacea.py so it can be imported and
+executed from the installed package as panacea.run_panacea.
 """
 import numpy as np
 import os.path as op
@@ -13,15 +13,15 @@ from pathlib import Path
 from astropy.io import fits
 from astropy.table import Table
 from scipy.interpolate import interp1d
-from input_utils import setup_logging
 
-# Import migrated functions from the Panacea package
-from panacea.io import (
+# Use package-relative imports
+from .input_utils import setup_logging
+from .io import (
     get_cal_path,
     get_tarname_from_filename,
     get_filenames_from_tarfolder,
 )
-from panacea.ccd import (
+from .ccd import (
     get_masterbias,
     get_mastertwi,
     get_bigW,
@@ -29,11 +29,11 @@ from panacea.ccd import (
     get_twiflat_field,
     get_masterarc,
 )
-from panacea.trace import get_trace
-from panacea.wavelength import get_wavelength_from_arc
-from panacea.routine import get_ifucenfile, big_reduction
-from panacea.fiber import get_spectra, weighted_extraction
-from panacea.utils import get_script_path, get_objects, check_if_standard
+from .trace import get_trace
+from .wavelength import get_wavelength_from_arc
+from .routine import get_ifucenfile, big_reduction
+from .fiber import get_spectra, weighted_extraction
+from .utils import get_script_path, get_objects, check_if_standard
 
 
 standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
@@ -318,63 +318,55 @@ def main():
         for tarname in glob.glob(get_tarname_from_filename(pathS)):
             basefiles.append(get_filenames_from_tarfolder(tarname, pathS))
         flat_list = [item for sublist in basefiles for item in sublist]
-        basefiles = [f for f in sorted(flat_list) if "exp01" in f]
+        for bf in flat_list:
+            try:
+                hdr = fits.open(bf)[0].header
+            except Exception:
+                continue
+            llid = hdr['OBSID']
+            llid = '%07d' % int(llid)
+            he = hdr
+            obj = [he['OBJECT'], he['EXPTIME']]
 
-        all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
-                       for fn in basefiles]
-        objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
-        if response is None:
-            log.info('Getting average response')
-            basename = 'LRS2/CALS'
-            R = fits.open(op.join(DIRNAME,
-                                  'lrs2_config/response_%s.fits' % specname))
-            response = R[0].data[1] * 1.
+            # Skip non-targets unless object is None (reduce all)
+            if (args.object is not None) and (args.object != he['OBJECT']):
+                continue
 
-        f = []
-        names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias',
-                 'xypos', 'dead', 'arcspec', 'fltspec', 'Flatspec', 'bigF']
-        for i, cal in enumerate(calinfo):
-            if i == 0:
-                func = fits.PrimaryHDU
+            sci_obs = llid
+
+            if args.standard_star_obsid is not None:
+                if (args.standard_star_date == args.date) and \
+                        (args.standard_star_obsid == sci_obs):
+                    standard = True
+                else:
+                    standard = False
             else:
-                func = fits.ImageHDU
-            f.append(func(cal))
-        f.append(fits.ImageHDU(masterarc))
-        names.append('masterarc')
-        f.append(fits.ImageHDU(masterFlat))
-        names.append('masterFlat')
-        if response is not None:
-            f.append(fits.ImageHDU(np.array([commonwave, response], dtype=float)))
-            names.append('response')
-        for fi, n in zip(f, names):
-            fi.header['EXTNAME'] = n
-        basename = 'LRS2/CALS'
-        Path(basename).mkdir(parents=True, exist_ok=True)
-
-        fits.HDUList(f).writeto(op.join(basename,
-                                        'cal_%s_%s.fits' % (args.date, specname)),
-                                overwrite=True)
-        for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
-            log.info('Checkpoint --- Working on %s, %s' % (bf, specname))
-            if args.object is None:
-                big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                              ifuslot, specname, response=response,
-                              central_wave=args.central_wave, wavelength_bin=args.wavelength_bin,
-                              source_x=args.source_x, source_y=args.source_y,
-                              correct_ftf_flag=bool(args.correct_ftf))
+                if check_if_standard(he['OBJECT']):
+                    if (he['OBJECT'].replace(' ', '').upper() in standard_names):
+                        standard = True
+                    else:
+                        standard = False
+                else:
+                    standard = False
+            if standard:
+                slims = [4300., 4500.]
             else:
-                if args.object.lower() in obj[0].lower():
-                    big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                                  ifuslot, specname, response=response,
-                                  central_wave=args.central_wave, wavelength_bin=args.wavelength_bin,
-                                  source_x=args.source_x, source_y=args.source_y,
-                                  correct_ftf_flag=bool(args.correct_ftf))
-                if check_if_standard(obj[0]) and (ifuslot in obj[0]):
-                    big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                                  ifuslot, specname, response=response,
-                                  central_wave=args.central_wave, wavelength_bin=args.wavelength_bin,
-                                  source_x=args.source_x, source_y=args.source_y,
-                                  correct_ftf_flag=bool(args.correct_ftf))
+                slims = [0., 100000.]
 
-if __name__ == "__main__":
+            objname = he['OBJECT']
+            log.info('Beginning reduction for this obsid: %s' % sci_obs)
+
+            response = big_reduction(obj, bf, instrument, sci_obs, calinfo, amps,
+                                     commonwave, ifuslot, specname, standard,
+                                     response=response, central_wave=args.central_wave,
+                                     wavelength_bin=args.wavelength_bin,
+                                     source_x=args.source_x, source_y=args.source_y,
+                                     correct_ftf_flag=args.correct_ftf,
+                                     fplane_file=fplane_file)
+
+            if standard and (response is not None):
+                standard = False
+
+
+if __name__ == '__main__':
     main()
