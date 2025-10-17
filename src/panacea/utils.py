@@ -6,16 +6,43 @@ from __future__ import annotations
 
 import os.path as op
 import tarfile
+import sys
+from datetime import datetime, timedelta
 
 import numpy as np
 from astropy.io import fits
 from astropy.table import Table
 from astropy.convolution import Gaussian1DKernel, convolve
+from astropy.modeling.models import Gaussian2D
+from astropy.modeling.fitting import LevMarLSQFitter
 from scipy.ndimage import percentile_filter
 
 from .wavelength import find_peaks
 from .io import get_tarname_from_filename
 from .routine import get_mirror_illumination_guider, get_throughput
+
+# Standard star canonical names used to identify calibration frames
+STANDARD_NAMES = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
+                  'HILTNER_600', 'G193-74', 'PG0823+546', 'HD_84937',
+                  'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
+                  'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
+                  'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
+                  'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4',
+                  'BD+40_4032', 'HILTNER_102',
+                  'BD_+26_2606', 'GD_248', 'FEIGE_56', 'FEIGE_92',
+                  'HZ_15', 'FEIGE_98', 'BD+08_2015', 'BD+25_3941',
+                  'FEIGE_15', 'FEIGE_25', 'SA_95-42', 'BD+28_4211',
+                  'HR6203']
+
+def check_if_standard(objname: str) -> bool:
+    """Return True if objname matches a known spectrophotometric standard.
+
+    Case-insensitive substring match against STANDARD_NAMES.
+    """
+    for standard in STANDARD_NAMES:
+        if standard.lower() in objname.lower():
+            return True
+    return False
 
 
 def power_law(x, c1, c2=0.5, c3=0.15, c4=1.0, sig=2.5):
@@ -237,10 +264,9 @@ def build_weight_matrix(x, y, sig=1.5):
     Returns:
         2D weight matrix normalized by columns.
     """
-    import numpy as _np
-    d = _np.sqrt((x - x[:, _np.newaxis])**2 + (y - y[:, _np.newaxis])**2)
-    G = _np.exp(-0.5 * (d / sig)**2)
-    G = G / G.sum(axis=0)[:, _np.newaxis]
+    d = np.sqrt((x - x[:, np.newaxis])**2 + (y - y[:, np.newaxis])**2)
+    G = np.exp(-0.5 * (d / sig)**2)
+    G = G / G.sum(axis=0)[:, np.newaxis]
     return G.swapaxes(0, 1)
 
 
@@ -298,7 +324,32 @@ def get_all_cosmics(x, y, ispec, error):
 def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75, sig_wave=1.5):
     """Spatially and spectrally convolve spectra, masking skylines and cosmics.
 
-    Returns a window around the position of maximum S/N.
+    Applies a 1D Gaussian convolution along wavelength and a spatial
+    Gaussian-weighted sum across neighboring fibers after masking strong
+    skylines and likely cosmic rays. Identifies the wavelength index with
+    the highest median S/N and returns a small window around it along with
+    the corresponding per-fiber convolved signal and error slices.
+
+    Args:
+        x (np.ndarray): 1D x positions of fibers (length Nfibers).
+        y (np.ndarray): 1D y positions of fibers (length Nfibers).
+        spec (np.ndarray): 2D rectified spectra array with shape (Nfibers, Nwave).
+        wave (np.ndarray): 1D wavelength array of length Nwave.
+        name (str): Spectral channel name used for skyline masking (e.g., 'uv').
+        error (np.ndarray): 2D error array aligned with ``spec``.
+        ispec (np.ndarray): 2D intermediate spectrum used to detect cosmics
+            (same shape as ``spec``).
+        sig_spatial (float, optional): Sigma of the spatial Gaussian used to
+            build the fiber-to-fiber weights. Defaults to 0.75.
+        sig_wave (float, optional): Sigma of the 1D Gaussian kernel applied along
+            wavelength. Defaults to 1.5.
+
+    Returns:
+        tuple[int, np.ndarray, np.ndarray]:
+            - loc: Integer wavelength index of the S/N peak.
+            - sdimage: 2D array (Nfibers, 51) of convolved signal centered on
+              ``loc``.
+            - sderror: 2D array (Nfibers, 51) of corresponding errors.
     """
     W = build_weight_matrix(x, y, sig=sig_spatial)
     D = np.sqrt((x - x[:, np.newaxis])**2 + (y - y[:, np.newaxis])**2)
@@ -338,9 +389,33 @@ def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75, s
 
 
 def make_frame(xloc, yloc, data, error, wave, dw, Dx, Dy, wstart=5700., wend=5800., scale=0.4, seeing_fac=1.3):
-    """Aggregate a median image over a wavelength window using Gaussian seeing.
+    """Create a collapsed spatial image over a wavelength window.
 
-    Returns (zgrid, zimage, xgrid, ygrid)
+    Builds per-wavelength model images by distributing fiber fluxes onto a
+    regular spatial grid with a circular Gaussian PSF and then takes the
+    median across a wavelength interval [wstart, wend].
+
+    Args:
+        xloc (np.ndarray): 1D x positions of fibers.
+        yloc (np.ndarray): 1D y positions of fibers.
+        data (np.ndarray): 2D rectified flux array (Nfibers, Nwave).
+        error (np.ndarray): 2D error array aligned with ``data``.
+        wave (np.ndarray): 1D wavelength grid of length Nwave.
+        dw (np.ndarray): 1D delta-wavelength per column (unused legacy arg).
+        Dx (np.ndarray): 1D array of DAR x offsets per wavelength index.
+        Dy (np.ndarray): 1D array of DAR y offsets per wavelength index.
+        wstart (float, optional): Start wavelength for collapsing. Defaults to 5700.
+        wend (float, optional): End wavelength for collapsing. Defaults to 5800.
+        scale (float, optional): Spatial grid step size in IFU units. Defaults to 0.4.
+        seeing_fac (float, optional): FWHM multiplier controlling the Gaussian PSF
+            sigma as seeing_fac/2.35. Defaults to 1.3.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+            - zgrid: 3D cube with per-wavelength model images (Nwave, Ny, Nx).
+            - zimage: 2D collapsed median image over [wstart, wend].
+            - xgrid: 2D x coordinate grid.
+            - ygrid: 2D y coordinate grid.
     """
     a, b = data.shape
     x = np.arange(xloc.min()-scale, xloc.max()+1*scale, scale)
@@ -360,9 +435,22 @@ def make_frame(xloc, yloc, data, error, wave, dw, Dx, Dy, wstart=5700., wend=580
 
 
 def get_objects(basefiles, attrs, full=False):
-    """Extract selected FITS header attributes for a set of basefiles.
+    """Extract selected FITS header attributes for a list of base files.
 
-    If full=True, also appends mirror illumination and throughput (guider based).
+    Opens each FITS file within its tar archive, reads requested header
+    attributes, and optionally appends guider-derived mirror illumination and
+    throughput estimates.
+
+    Args:
+        basefiles (list[str]): List of FITS file paths inside tar archives.
+        attrs (list[str]): FITS header keys to extract from the primary HDU.
+        full (bool, optional): If True, append mirror illumination area and
+            throughput per file. Defaults to False.
+
+    Returns:
+        list[list]: Nested list where each inner list contains the requested
+            attributes (and optionally area, throughput) for the corresponding
+            file in ``basefiles``.
     """
     s = []
     for fn in basefiles:
@@ -385,7 +473,17 @@ def get_objects(basefiles, attrs, full=False):
 
 
 def truncate_list(lst):
-    """Return 5-element representative subset of a list (first, 3 mids, last)."""
+    """Select a representative 5-element subset from a list.
+
+    Returns the first, three approximately equally spaced middle elements,
+    and the last element. If the list length is <= 5, returns the list as-is.
+
+    Args:
+        lst (list): Input list of any type.
+
+    Returns:
+        list: Representative subset with up to 5 elements.
+    """
     if len(lst) <= 5:
         return lst
     step = (len(lst) - 1) / 4
@@ -394,7 +492,188 @@ def truncate_list(lst):
 
 
 def get_previous_night(daten):
-    """Return YYYYMMDD string for the date one day before ``daten``."""
-    from datetime import datetime as _dt, timedelta as _td
-    daten_ = _dt(int(daten[:4]), int(daten[4:6]), int(daten[6:])) - _td(days=1)
+    """Compute the previous night's date string.
+
+    Args:
+        daten (str): Current date in YYYYMMDD format.
+
+    Returns:
+        str: Previous date in YYYYMMDD format.
+    """
+    daten_ = datetime(int(daten[:4]), int(daten[4:6]), int(daten[6:])) - timedelta(days=1)
     return f"{daten_.year:04d}{daten_.month:02d}{daten_.day:02d}"
+
+
+
+def get_script_path() -> str:
+    """Return the absolute directory of the running script.
+
+    Uses sys.argv[0] resolved to an absolute path. This mirrors the legacy
+    helper and is useful when scripts need to locate resources relative to
+    their own file.
+
+    Returns:
+        str: Absolute path to the directory containing the current script.
+    """
+    return op.dirname(op.realpath(sys.argv[0]))
+
+
+
+def count_matches(lines: Table, loc: list, fib: int, cnt: int = 5):
+    """Score edge-anchored linear mappings to count peak/line matches.
+
+    Emulates the legacy heuristic that tries simple linear mappings between the
+    detected peak locations in a seed fiber and the reference line list by
+    anchoring the first/last few detected peaks to the first/last reference
+    lines. For each combination, counts how many lines can be matched within a
+    small tolerance and returns the indices yielding the maximum count.
+
+    Args:
+        lines (astropy.table.Table): Reference line list with column 'col2'
+            giving expected pixel/column positions.
+        loc (list[np.ndarray]): Detected peak locations per fiber; only
+            ``loc[fib]`` is used.
+        fib (int): Fiber index to evaluate.
+        cnt (int, optional): Number of candidate edges to try from each end.
+            Defaults to 5.
+
+    Returns:
+        tuple[int, int]: Indices (k, j) maximizing the match count, where k is
+        the offset from the start and j from the end in ``loc[fib]`` used to
+        anchor the mapping.
+    """
+    x = lines['col2']
+    M = np.zeros((cnt, cnt))
+    peaks = np.array(loc[fib])
+    if peaks.size == 0 or len(x) == 0:
+        return (0, 0)
+    for k in np.arange(cnt):
+        for j in np.arange(cnt):
+            i1 = 0 + int(k)
+            i2 = -1 - int(j)
+            if i1 >= len(peaks) or abs(i2) > len(peaks):
+                continue
+            diff0 = [peaks[i1] - x[0], peaks[i2] - x[-1]]
+            m = (diff0[1] - diff0[0]) / (x[-1] - x[0]) if (x[-1] - x[0]) != 0 else 0.0
+            y = m * (x - x[0]) + diff0[0] + x
+            count = 0
+            for col in y:
+                d = np.abs(col - peaks)
+                if d.min() < 3.0:
+                    count += 1
+            M[k, j] = count
+    return tuple(np.unravel_index(np.argmax(M), M.shape))
+
+
+
+def get_standard_star_params(data: np.ndarray, commonwave: np.ndarray, xloc: np.ndarray, yloc: np.ndarray):
+    """Estimate centroid, size, and DAR trends from a standard-star cube.
+
+    Splits the wavelength range into 11 chunks, computes median fiber flux per
+    chunk, fits a 2D Gaussian to the brightest region to estimate centroid and
+    size per chunk, and then fits a quadratic trend of centroid vs. wavelength
+    to derive differential atmospheric refraction (DAR) offsets across the full
+    wavelength grid.
+
+    Args:
+        data: 2D array (Nfibers, Nwave) of rectified spectra for a standard star.
+        commonwave: 1D wavelength grid corresponding to columns of ``data``.
+        xloc: 1D array of fiber x positions.
+        yloc: 1D array of fiber y positions.
+
+    Returns:
+        tuple: (x_center, y_center, xstd, ystd, xoff, yoff), where
+        - x_center, y_center: float centroids at the central wavelength,
+        - xstd, ystd: 1D arrays of Gaussian sigma along x and y (constant-valued),
+        - xoff, yoff: 1D arrays of DAR offsets relative to the center column.
+    """
+    G = Gaussian2D()
+    fitter = LevMarLSQFitter()
+    wchunk = np.array([np.mean(chunk) for chunk in np.array_split(commonwave, 11)])
+    dchunk = [np.median(chunk, axis=1) for chunk in np.array_split(data, 11, axis=1)]
+    xc = 0.0 * wchunk
+    yc = 0.0 * wchunk
+    xs = 0.0 * wchunk
+    ys = 0.0 * wchunk
+    for i in np.arange(11):
+        y = dchunk[i]
+        ind = int(np.argmax(y))
+        dist = np.sqrt((xloc - xloc[ind]) ** 2 + (yloc - yloc[ind]) ** 2)
+        inds = dist < 3.0
+        x_centroid = float(np.sum(y[inds] * xloc[inds]) / np.sum(y[inds]))
+        y_centroid = float(np.sum(y[inds] * yloc[inds]) / np.sum(y[inds]))
+        G.amplitude.value = float(y[ind])
+        G.x_mean.value = x_centroid
+        G.y_mean.value = y_centroid
+        fit = fitter(G, xloc[inds], yloc[inds], y[inds])
+        xc[i] = fit.x_mean.value
+        yc[i] = fit.y_mean.value
+        xs[i] = fit.x_stddev.value
+        ys[i] = fit.y_stddev.value
+    sel = xs > 0.0
+    xoff = np.polyval(np.polyfit(wchunk[sel], xc[sel], 2), commonwave)
+    yoff = np.polyval(np.polyfit(wchunk[sel], yc[sel], 2), commonwave)
+    xstd = np.median(xs[sel]) * np.ones(commonwave.shape)
+    ystd = np.median(ys[sel]) * np.ones(commonwave.shape)
+    N = len(commonwave)
+    mid = N // 2
+    return xoff[mid], yoff[mid], xstd, ystd, xoff - xoff[mid], yoff - yoff[mid]
+
+
+
+def get_bigarray(xloc: np.ndarray, yloc: np.ndarray):
+    """Build a tiled grid of IFU fiber positions expanded in all directions.
+
+    Starting from the observed fiber positions (xloc, yloc), extend the grid by
+    repeating the edge rows and columns outward by roughly the native fiber
+    spacing to create a larger lattice. Used for PSF normalization over a
+    larger aperture when extracting a compact source.
+
+    Args:
+        xloc (np.ndarray): 1D x positions of fibers.
+        yloc (np.ndarray): 1D y positions of fibers.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Arrays (BigX, BigY) of the expanded grid
+        coordinates.
+    """
+    BigX = [xloc]
+    BigY = [yloc]
+    uy = np.unique(yloc)
+    if len(uy) > 1:
+        dy = float(np.mean(np.diff(uy)))
+    else:
+        dy = 0.0
+    for _ in np.arange(1, 10):
+        ny = dy + np.max(np.hstack(BigY))
+        x = np.hstack(BigX)[np.where(uy[-2] == np.hstack(BigY))[0]] if len(uy) > 1 else np.hstack(BigX)
+        y = ny * np.ones(x.shape)
+        BigY.append(y)
+        BigX.append(x)
+        uy = np.unique(np.hstack(BigY))
+        ny = -dy + np.min(np.hstack(BigY))
+        x = np.hstack(BigX)[np.where(uy[1] == np.hstack(BigY))[0]] if len(uy) > 1 else np.hstack(BigX)
+        y = ny * np.ones(x.shape)
+        BigY.append(y)
+        BigX.append(x)
+        uy = np.unique(np.hstack(BigY))
+    BigX = np.hstack(BigX)
+    BigY = np.hstack(BigY)
+    uy = np.unique(BigY)
+    NX, NY = ([BigX], [BigY])
+    for i in uy:
+        sel = np.where(i == BigY)[0]
+        if len(sel) < 2:
+            continue
+        dx = float(np.abs(np.mean(np.diff(BigX[sel]))))
+        xn = np.min(BigX[sel]) - np.arange(1, 10) * dx
+        xn2 = np.max(BigX[sel]) + np.arange(1, 10) * dx
+        yn = i * np.ones(xn.shape)
+        yn2 = i * np.ones(xn2.shape)
+        NX.append(xn)
+        NX.append(xn2)
+        NY.append(yn)
+        NY.append(yn2)
+    BigX = np.hstack(NX)
+    BigY = np.hstack(NY)
+    return BigX, BigY
