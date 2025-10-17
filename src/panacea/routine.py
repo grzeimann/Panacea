@@ -15,18 +15,21 @@ import logging
 import numpy as np
 from typing import List, Tuple, Optional
 from astropy.io import fits
+from astropy.table import Table
 from astropy.convolution import Gaussian1DKernel, convolve
 from scipy.interpolate import interp1d, interp2d
 from scipy.signal import savgol_filter
 from astropy.modeling.models import Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
 
-from .io import get_tarname_from_filename, get_filenames_from_tarfolder
+from .io import get_tarname_from_filename, get_filenames_from_tarfolder, write_cube, create_image_header
 from .ccd import base_reduction, get_powerlaw
-from .fiber import get_spectra, weighted_extraction, modify_spectrum
+from .fiber import get_spectra, weighted_extraction, modify_spectrum, correct_ftf
 from .trace import get_trace_shift
-from .utils import check_if_standard, truncate_list
+from .utils import check_if_standard, truncate_list, create_header_objection, get_all_cosmics, make_frame, get_objects
 from .utils import build_weight_matrix, mask_skylines_cosmics
+from .sky import sky_subtraction
+from .astrometry import Astrometry
 
 
 def get_ifucenfile(side: str, amp: str, virusconfig: str = "/work/03946/hetdex/maverick/virus_config", skiprows: int = 4) -> np.ndarray:
@@ -490,3 +493,310 @@ def get_response(objname: str, commonwave: np.ndarray, spec: np.ndarray, specnam
     flam = np.interp(commonwave, standard_wave, standard_flam)
     cont = fit_response_cont(commonwave, spec / flam, fil_len=11)
     return 1.0 / cont
+
+
+def extract_source(data: np.ndarray, xc: float, yc: float, xoff: np.ndarray, yoff: np.ndarray,
+                   wave: np.ndarray, xloc: np.ndarray, yloc: np.ndarray, error: np.ndarray,
+                   xstd: np.ndarray, ystd: np.ndarray):
+    """Extract a compact source spectrum using a 2D Gaussian PSF model.
+
+    Mirrors the legacy method: for each wavelength column, evaluate a circular
+    Gaussian PSF centered at the wavelength-dependent centroid (xc+xoff[i],
+    yc+yoff[i]) with per-axis sigmas xstd[i], ystd[i], compute optimal weights
+    normalized by integrating the PSF over an expanded fiber grid, and form the
+    weighted flux and error with a local aperture mask around the centroid.
+
+    Args:
+        data: 2D rectified flux array (Nfibers, Nwave).
+        xc: Source centroid x at the reference wavelength.
+        yc: Source centroid y at the reference wavelength.
+        xoff: 1D DAR x offsets per wavelength index.
+        yoff: 1D DAR y offsets per wavelength index.
+        wave: 1D wavelength grid.
+        xloc: 1D fiber x positions.
+        yloc: 1D fiber y positions.
+        error: 2D error array aligned with ``data``.
+        xstd: 1D Gaussian sigma along x per wavelength.
+        ystd: 1D Gaussian sigma along y per wavelength.
+
+    Returns:
+        Tuple of (spec, serror, weights, mask):
+        - spec: 1D extracted spectrum.
+        - serror: 1D 1-sigma uncertainties.
+        - weights: 2D weight image per fiber and wavelength.
+        - mask: 2D boolean-like mask indicating contributing fibers per column.
+    """
+    from .utils import get_bigarray  # local import to avoid circulars during module load
+
+    PSF = Gaussian2D()
+    spec = wave * 0.0
+    serror = wave * 0.0
+    weights = data * 0.0
+    mask = data * 0.0
+    bigX, bigY = get_bigarray(xloc, yloc)
+    for i in np.arange(len(wave)):
+        x = xc + xoff[i]
+        y = yc + yoff[i]
+        PSF.x_mean.value = float(x)
+        PSF.y_mean.value = float(y)
+        PSF.x_stddev = float(xstd[i])
+        PSF.y_stddev = float(ystd[i])
+        seeing = np.sqrt(ystd[i] * xstd[i])
+        W = PSF(xloc, yloc)
+        S = PSF(bigX, bigY).sum()
+        if S != 0.0:
+            W = W / S
+        dist = np.sqrt((xloc - x) ** 2 + (yloc - y) ** 2)
+        M = (error[:, i] != 0.0) * (dist < seeing * 2.5)
+        weights[:, i] = W
+        mask[:, i] = M
+        denom = (M * W ** 2).sum()
+        if denom > 0.0:
+            spec[i] = (data[:, i] * W * M).sum() / denom
+            serror[i] = np.sqrt((error[:, i] ** 2 * W * M).sum() / denom)
+        else:
+            spec[i] = 0.0
+            serror[i] = 0.0
+    return spec, serror, weights, mask
+
+
+def big_reduction(
+    obj,
+    bf: str,
+    instrument: str,
+    sci_obs: str,
+    calinfo: list,
+    amps: List[str],
+    commonwave: np.ndarray,
+    ifuslot: str,
+    specname: str,
+    standard: bool = False,
+    response: Optional[np.ndarray] = None,
+    central_wave: Optional[float] = None,
+    wavelength_bin: float = 50.0,
+    source_x: Optional[float] = None,
+    source_y: Optional[float] = None,
+    correct_ftf_flag: bool = False,
+    fplane_file: str = '/work/03730/gregz/maverick/fplane.txt',
+):
+    """Run the per-exposure reduction and product generation for one IFU setup.
+
+    This ports the legacy ``big_reduction`` procedure. For each exposure matching
+    the base file ``bf`` and IFU slot, it:
+    - extracts rectified spectra via ``extract_sci``;
+    - applies guider-based normalization (exptime, mirror illumination, throughput);
+    - performs sky subtraction;
+    - estimates Differential Atmospheric Refraction (DAR) from channel-specific
+      reference tables and constructs collapsed images/cubes via ``make_frame``;
+    - searches for and optionally extracts a compact source spectrum via
+      ``find_source`` and ``extract_source``;
+    - writes out multi-extension FITS products and a 1D spectrum file.
+
+    Args:
+        obj: Sequence with object name, typically from headers (e.g., [OBJECT, EXPTIME]).
+        bf: Path to one LL-arm FITS inside its tar; used to locate sibling files.
+        instrument: Instrument name string (e.g., 'lrs2').
+        sci_obs: Seven-digit observation ID string.
+        calinfo: List of calibration arrays: [wave, trace, flat, bigW, masterbias,
+            xypos, dead, arcspec, fltspec, Flatspec, bigF, ...].
+        amps: Two amplifier labels (e.g., ['LL','LU'] or ['RL','RU']).
+        commonwave: 1D wavelength grid for rectified spectra.
+        ifuslot: IFU slot identifier string.
+        specname: Channel name ('uv','orange','red','farred').
+        standard: If True, return a response derived from the extracted spectrum.
+        response: Optional multiplicative response to apply to all spectra.
+        central_wave: Optional central wavelength for collapse; defaults to mean(commonwave).
+        wavelength_bin: Half-width of the collapse window in Angstroms. Defaults to 50.
+        source_x: Optional fixed source x centroid; if provided with source_y, skip search.
+        source_y: Optional fixed source y centroid.
+        correct_ftf_flag: If True, apply fiber-to-fiber correction via ``correct_ftf``.
+        fplane_file: Path to the VIRUS focal plane file for astrometry mapping.
+
+    Returns:
+        Optional[np.ndarray]: If ``standard`` is True and a robust spectrum was
+        extracted, returns a derived response vector; otherwise None.
+    """
+    log = logging.getLogger(__name__)
+
+    # Collect sibling science files for both amps
+    scifiles = op.join(op.dirname(bf), f'*{ifuslot}LL*.fits')
+    images, rect, spec, cos, fl, Fi, E, header = extract_sci(
+        scifiles, amps, calinfo[2], calinfo[1], calinfo[0], calinfo[3], calinfo[4], calinfo[5], commonwave
+    )
+
+    # Collapse window setup
+    wave_0 = float(np.mean(commonwave)) if central_wave is None else float(central_wave)
+    wb = float(wavelength_bin)
+
+    # DAR reference table path (map specname to BL/BR/RL/RR)
+    tag_map = {'uv': 'BL', 'orange': 'BR', 'red': 'RL', 'farred': 'RR'}
+    tag = tag_map.get(specname, 'BL')
+    base_dir = op.dirname(op.dirname(op.dirname(__file__)))
+    darfile = op.join(base_dir, 'lrs2_config', f'dar_{tag}.dat')
+    T = Table.read(darfile, format='ascii.fixed_width_two_line')
+    xoff = np.interp(commonwave, T['wave'], T['x_0']) - np.interp(wave_0, T['wave'], T['x_0'])
+    yoff = np.interp(commonwave, T['wave'], T['y_0']) - np.interp(wave_0, T['wave'], T['y_0'])
+
+    cnt = 1
+    for im, r, s, c, fli, Fii, e, he in zip(images, rect, spec, cos, fl, Fi, E, header):
+        # Output base directory
+        try:
+            basename = 'LRS2/' + he['QPROG']
+        except Exception:
+            if check_if_standard(obj[0]) and (ifuslot in obj[0]):
+                basename = 'LRS2/STANDARDS'
+            else:
+                basename = 'LRS2/ORPHANS'
+        os.makedirs(basename, exist_ok=True)
+
+        # Build positions and try astrometric mapping (best-effort)
+        pos = np.zeros((len(calinfo[5]), 6))
+        pos[:, 0:2] = calinfo[5]
+        try:
+            PA = float(he['PARANGLE'])
+            RA = float(he['TRAJRA'])
+            DEC = float(he['TRAJDEC'])
+            log.info('Observation at %0.4f %0.4f, PA: %0.3f', RA, DEC, PA)
+            A = Astrometry(RA, DEC, PA, 0.0, 0.0, fplane_file=fplane_file)
+            ra, dec = A.get_ifupos_ra_dec(ifuslot, calinfo[5][:, 0], calinfo[5][:, 1])
+            fpx = A.fplane.by_ifuslot(ifuslot).y + calinfo[5][:, 0]
+            fpy = A.fplane.by_ifuslot(ifuslot).x + calinfo[5][:, 1]
+            pos[:, 2] = fpx
+            pos[:, 3] = fpy
+            pos[:, 4] = ra
+            pos[:, 5] = dec
+        except Exception:
+            log.warning('Astrometry Issue')
+
+        # Per-exposure guider normalization info
+        fn = op.join(op.dirname(bf.replace('exp01', f'exp{cnt:02d}')), f'*{ifuslot}LL*.fits')
+        fn = get_filenames_from_tarfolder(get_tarname_from_filename(fn), fn)
+        mini = get_objects(fn, ['OBJECT', 'EXPTIME'], full=True)
+
+        # Zero-out dead fibers
+        r[calinfo[6][:, 1] == 1.0] = 0.0
+        e[calinfo[6][:, 1] == 1.0] = 0.0
+
+        # Normalize by exposure time, mirror illumination area, and throughput
+        r /= mini[0][1]; r /= mini[0][2]; r /= mini[0][3]
+        e /= mini[0][1]; e /= mini[0][2]; e /= mini[0][3]
+
+        # Optional fiber-to-fiber correction
+        if correct_ftf_flag:
+            r, e = correct_ftf(r, e)
+
+        # Mask cosmics and subtract sky
+        bad = get_all_cosmics(pos[:, 0], pos[:, 1], r * 1.0, e * 1.0)
+        e[bad] = 0.0
+        sky = sky_subtraction(r, e, pos[:, 0], pos[:, 1])
+        sky[calinfo[6][:, 1] == 1.0] = 0.0
+        skysub = r - sky
+
+        # Apply response if provided
+        if response is not None:
+            r *= response; e *= response; sky *= response; skysub *= response
+
+        # Save cubes and collapsed image around wave_0±wb
+        X = np.array([T['wave'], T['x_0'], T['y_0']])
+        for S, name in zip([r, sky, skysub], ['obs', 'sky', 'skysub']):
+            outname = f"{central_wave if central_wave is not None else ''}"
+            outname = f"{datetime.now():%Y%m%d}_{sci_obs}_exp{cnt:02d}_{specname}_{name}_cube.fits"
+            outname = op.join(basename, outname)
+            zcube, zimage, xgrid, ygrid = make_frame(
+                calinfo[5][:, 0], calinfo[5][:, 1], S, e, commonwave, T['wave'], xoff, yoff,
+                wstart=wave_0 - wb, wend=wave_0 + wb
+            )
+            write_cube(commonwave, xgrid, ygrid, zcube, outname, he)
+
+        # Source finding and extraction
+        loc = None
+        if source_x is None or source_y is None:
+            loc1 = find_source(pos[:, 0], pos[:, 1], skysub, commonwave, obj[0], specname, e, xoff, yoff, wave_0, r)
+            if loc1 is not None:
+                xstd = loc1[2]; ystd = loc1[3]
+                xoff = loc1[4]; yoff = loc1[5]
+                seeing = 2.35 * np.mean(np.sqrt(xstd * ystd))
+                loc = [float(loc1[0]), float(loc1[1]), float(seeing)]
+                log.info('Source seeing initially found to be: %0.2f', loc[2])
+        else:
+            loc = [float(source_x), float(source_y), 1.5]
+            xstd = np.ones(commonwave.shape) * 0.75
+            ystd = np.ones(commonwave.shape) * 0.75
+
+        if loc is not None:
+            skyspec, errorskyspec, wts, msk = extract_source(sky, loc[0], loc[1], xoff, yoff, commonwave, calinfo[5][:, 0], calinfo[5][:, 1], e, xstd, ystd)
+            skysubspec, errorskysubspec, _, _ = extract_source(skysub, loc[0], loc[1], xoff, yoff, commonwave, calinfo[5][:, 0], calinfo[5][:, 1], e, xstd, ystd)
+        else:
+            skyspec = commonwave * 0.0
+            skysubspec = commonwave * 0.0
+            errorskyspec = commonwave * 0.0
+            errorskysubspec = commonwave * 0.0
+
+        # Pack extracted spectrum (and response if any)
+        if response is not None:
+            f5 = np.vstack([commonwave, skysubspec, skyspec, errorskysubspec, errorskyspec, response])
+        else:
+            f5 = np.vstack([commonwave, skysubspec, skyspec, errorskysubspec, errorskyspec, np.ones(commonwave.shape)])
+
+        # Build HDUs
+        f1 = create_header_objection(commonwave, r, func=fits.PrimaryHDU)
+        f2 = create_header_objection(commonwave, sky)
+        f3 = create_header_objection(commonwave, skysub)
+        # Reuse last zimage/xgrid/ygrid from above scope
+        f4 = create_image_header(commonwave, xgrid, ygrid, zimage)
+        f6 = create_header_objection(commonwave, e)
+        # Copy selected header cards
+        for key in he.keys():
+            if key in f1.header or 'SEC' in key or key in ('BSCALE', 'BZERO'):
+                continue
+            try:
+                f1.header[key] = he[key]
+            except Exception:
+                pass
+        if loc is not None:
+            f1.header['SOURCEX'] = loc[0]
+            f1.header['SOURCEY'] = loc[1]
+            f1.header['SEEING'] = loc[2]
+        f1.header['MILLUM'] = mini[0][2]
+        f1.header['THROUGHP'] = mini[0][3]
+
+        names = ['observed_spectra', 'sky_spectra', 'skysub_spectra', 'error_spectra', 'collapsed_image',
+                 'fiber_positions', 'extracted_spectrum', 'adr', 'bigw', 'image', 'flattened_image', 'trace', 'cosmics', 'unrectified_spectra']
+        flist = [f1, f2, f3, f6, f4, fits.ImageHDU(pos), fits.ImageHDU(f5), fits.ImageHDU(np.array([T['wave'], T['x_0'], T['y_0']])),
+                 fits.ImageHDU(calinfo[3]), fits.ImageHDU(im), fits.ImageHDU(fli), fits.ImageHDU(Fii), fits.ImageHDU(c), fits.ImageHDU(s)]
+        for fl, name in zip(flist, names):
+            fl.header['EXTNAME'] = name
+
+        outname = op.join(basename, f"multi_{datetime.now():%Y%m%d}_{sci_obs}_exp{cnt:02d}_{specname}.fits")
+        fits.HDUList(flist).writeto(outname, overwrite=True)
+
+        outname = op.join(basename, f"spectrum_{datetime.now():%Y%m%d}_{sci_obs}_exp{cnt:02d}_{specname}.fits")
+        prim = fits.PrimaryHDU(f5)
+        for key in he.keys():
+            if key in prim.header or 'SEC' in key or key in ('BSCALE', 'BZERO'):
+                continue
+            try:
+                prim.header[key] = he[key]
+            except Exception:
+                pass
+        rownames = ['wavelength', 'F_lambda', 'Sky_lambda', 'e_F_lambda', 'e_Sky_lambda', 'response']
+        prim.header['DWAVE'] = commonwave[1] - commonwave[0]
+        prim.header['WAVE0'] = commonwave[0]
+        prim.header['WAVESOL'] = 'WAVE0 + DWAVE * linspace(0, NAXIS1)'
+        prim.header['WAVEUNIT'] = 'A'
+        if loc is not None:
+            prim.header['SOURCEX'] = loc[0]
+            prim.header['SOURCEY'] = loc[1]
+            prim.header['SEEING'] = loc[2]
+            prim.header['MILLUM'] = mini[0][2]
+            prim.header['THROUGHP'] = mini[0][3]
+        prim.header['FLUXUNIT'] = 'ergs/s/cm2/A' if response is not None else 'e-/s/cm2/A'
+        for i, nm in enumerate(rownames):
+            prim.header[f'ROW{i+1}'] = nm
+        prim.writeto(outname, overwrite=True)
+
+        if standard and ((skysubspec != 0.0).sum() > 500):
+            return get_response(obj[0], commonwave, skysubspec, specname)
+        cnt += 1
+
+    return None
