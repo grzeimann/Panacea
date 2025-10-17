@@ -36,17 +36,18 @@ Repository = "https://github.com/grzeimann/Panacea"
 Issues = "https://github.com/grzeimann/Panacea/issues"
 
 # --- Packaging configuration ---
-[tool.setuptools]
-# Disable package discovery; treat repo as single-module layout
-packages = []
-# Tell setuptools to ship this single Python module:
-py-modules = ["full_lrs2_reduction"]
-
-# --- Optional script entry point (if main() exists) ---
 [project.scripts]
-panacea-lrs2 = "full_lrs2_reduction:main"
+panacea-lrs2 = "panacea.cli:main"
 
-# --- Optional extras for development & docs ---
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = {find = {}}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["panacea*"]
+
 [project.optional-dependencies]
 dev = [
   "pytest>=7",
