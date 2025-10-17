@@ -82,7 +82,7 @@ Cosmics: identified cosmics in the central four pixels of the trace
 Unrectified Spectra: Unrectified, uncalibrated spectra for each fiber
 ```
 
-## Running the reductions yourself
+## Running the reductions yourself on TACC
 This section covers how to run your own reductions with modifications to achieve specific science objectives.
 
 ### Setting up your Python environment
@@ -187,6 +187,41 @@ sbatch rgeneral_lrs2.slurm
 
 The reductions will be in "LRS2/ORPHANS" for reductions before 2018/07/01 and in "LRS2/PROGRAM-ID" for reductions after this date.
 The standard stars will be in "LRS2/STANDARDS" and the calibrations used are in "LRS2/CALS".  
+
+## Install & Quickstart (local)
+
+Installation options:
+- pip (recommended for local use)
+- conda (via environment.yml) plus a special pip step for pyhetdex
+
+Important: Install pyhetdex (not on PyPI) from the private index first:
+
+```
+pip install --user --extra-index-url https://gate.mpe.mpg.de/pypi/simple/ pyhetdex
+```
+
+Option A: Using conda env + pip
+```
+conda env create -f environment.yml
+conda activate panacea
+# Install pyhetdex from the private index
+pip install --extra-index-url https://gate.mpe.mpg.de/pypi/simple/ pyhetdex
+```
+
+Quickstart example
+```
+# Show CLI help and verify installation
+python full_lrs2_reduction.py -h
+
+# Example (adjust args to your data)
+# Reduce data for a specific date and channels, using twilight flats
+python full_lrs2_reduction.py -d 20181108 -s uv,orange,red,farred -uf
+```
+
+Troubleshooting
+- If pyhetdex installation fails, ensure you included the --extra-index-url parameter and have network access to gate.mpe.mpg.de.
+- Some steps require significant memory/storage; consider running on TACC as described above.
+
 
 ## Code Description
 
@@ -327,3 +362,5 @@ A: Air
 ## Authors
 
 * Greg Zeimann, UT Austin
+
+
