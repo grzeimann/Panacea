@@ -17,9 +17,7 @@ from astropy.modeling.models import Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
 from scipy.ndimage import percentile_filter
 
-from .wavelength import find_peaks
 from .io import get_tarname_from_filename
-from .routine import get_mirror_illumination_guider, get_throughput
 
 # Standard star canonical names used to identify calibration frames
 STANDARD_NAMES = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
@@ -114,6 +112,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     loc = []
     ph, pr = ([], [])
     lines = Table(nlines)
+    from .wavelength import find_peaks
     for i, spec in enumerate(spectrum):
         px, ps, py = find_peaks(spec, thresh=thresh)
         sel = np.abs(px - 1032.0) > 0.0
@@ -461,6 +460,7 @@ def get_objects(basefiles, attrs, full=False):
         for att in attrs:
             s[-1].append(F[0].header[att])
         if full:
+            from .routine import get_mirror_illumination_guider, get_throughput
             area = get_mirror_illumination_guider(fn, s[-1][1])
             try:
                 throughput = get_throughput(fn, s[-1][1])

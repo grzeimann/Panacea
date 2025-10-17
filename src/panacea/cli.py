@@ -19,4 +19,5 @@ def main():
     from . import run_panacea as runner
 
     # This will print help and raise SystemExit on "-h" as expected by tests.
-    runner.main(sys.argv[1:])
+    # Delegate without passing argv; runner.main() internally reads sys.argv.
+    runner.main()
