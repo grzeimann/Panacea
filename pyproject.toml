@@ -41,7 +41,6 @@ panacea-lrs2 = "panacea.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = {find = {}}
 include-package-data = true
 
 [tool.setuptools.packages.find]
