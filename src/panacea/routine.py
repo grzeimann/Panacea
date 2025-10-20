@@ -22,6 +22,14 @@ from scipy.signal import savgol_filter
 from astropy.modeling.models import Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
 
+# Suppress benign Astropy warning about suggesting linear fitter for linear models
+# We intentionally keep convergence warnings visible.
+warnings.filterwarnings(
+    "ignore",
+    message="Model is linear in parameters; consider using linear fitting methods.",
+    module="astropy.modeling.fitting",
+)
+
 from .io import get_tarname_from_filename, get_filenames_from_tarfolder, write_cube, create_image_header
 from .ccd import base_reduction, get_powerlaw
 from .fiber import get_spectra, weighted_extraction, modify_spectrum, correct_ftf

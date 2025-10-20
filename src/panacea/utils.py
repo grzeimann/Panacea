@@ -379,8 +379,8 @@ def get_all_cosmics(x, y, ispec, error):
     T = ispec * 1.0
     for i in np.arange(ispec.shape[1]):
         T[:, i] = np.dot(ispec[:, i], D)
-    YY = ispec / T
-    YY[np.isnan(YY)] = 0.0
+    # Guard against division by zero/invalid to avoid RuntimeWarning and spurious inf/NaN
+    YY = np.divide(ispec, T, out=np.zeros_like(ispec), where=np.isfinite(T) & (np.abs(T) > 0))
     return YY > 0.2
 
 
@@ -427,8 +427,8 @@ def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75, s
     T = ispec * 1.0
     for i in np.arange(ispec.shape[1]):
         T[:, i] = np.dot(ispec[:, i], D)
-    YY = ispec / T
-    YY[np.isnan(YY)] = 0.0
+    # Guard against division by zero/invalid to avoid RuntimeWarning and spurious inf/NaN
+    YY = np.divide(ispec, T, out=np.zeros_like(ispec), where=np.isfinite(T) & (np.abs(T) > 0))
     Z[YY > 0.2] = np.nan
     E[YY > 0.2] = np.nan
     G = Gaussian1DKernel(sig_wave)

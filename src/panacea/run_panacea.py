@@ -17,7 +17,6 @@ import sys
 import argparse as ap
 from pathlib import Path
 from astropy.io import fits
-from astropy.table import Table
 from scipy.interpolate import interp1d
 from importlib import resources
 
@@ -134,11 +133,13 @@ def main():
 
     args = parser.parse_args(args=None)
 
-    if args.standard_star_obsid is not None:
+    # Optional: verify standard star identifiers when response-building is requested
+    if args.standard_star_obsid is not None: 
         args.standard_star_obsid = '%07d' % int(args.standard_star_obsid)
         if args.standard_star_date is None:
             log.error('Please include --standard_star_date DATE with call.')
 
+    # Sanity check: source_x/source_y require central_wave, and vice versa
     for i in ['source_x', 'source_y']:
         for j in ['source_x', 'source_y', 'central_wave']:
             if i == j:
@@ -150,6 +151,7 @@ def main():
 
     args.sides = [x.replace(' ', '') for x in args.sides.split(',')]
 
+    # Channel metadata: [tag, name, multi-id, wavelength limits, amps, collapse window, arc sequence]
     blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4645.], ['LL', 'LU'],
                  [4350., 4375.], ['hg_b', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']],
                 ['BR', 'orange', '503_056_7001',
@@ -161,6 +163,7 @@ def main():
                 [8275., 10500.], ['RU', 'RL'], [9280., 9530.],
                 ['hg_r', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']]]
 
+    # Select channel descriptors based on requested --sides
     listinfo = []
     for side in args.sides:
         if side.lower() == 'uv':
@@ -172,17 +175,25 @@ def main():
         if side.lower() == 'farred':
             listinfo.append(redinfo[1])
 
-    fplane_file = '/Users/grz85/work/Panacea/lrs2_config/fplane.txt'
+    # Locate packaged config directory and files
+    lrs2config_dir = resources.files('panacea') / 'lrs2_config'
+
+    # Defaults for this environment (paths may be site-specific)
+    # Use packaged fplane.txt via importlib.resources and convert to filesystem path
+    fplane_file = str(get_config_file('fplane.txt'))
     twi_date = args.date
     sci_date = args.date
 
-    # FOR LRS2
+    # Instrument tag used in path templates
     instrument = 'lrs2'
 
+    # Placeholder: dither offsets (not currently used in quicklook path)
     dither_pattern = np.zeros((50, 2))
 
+    # Base raw data directory and path patterns for science/calibration discovery
     baseraw = '/Users/grz85/data/LRS2'
 
+    # Tarball glob and internal FITS path templates (filled per IFU slot/exp)
     sci_tar = op.join(baseraw, sci_date, '%s', '%s000*.tar')
     sci_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp%s',
                        '%s', '2*_%sLL*sci.fits')
@@ -193,6 +204,7 @@ def main():
     bias_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp*',
                         '%s', '2*_%sLL_zro.fits')
 
+    # Optional switches: repoint science pattern to engineering/flat/dark
     if args.reduce_eng:
         sci_path = sci_path.replace('sci', 'eng')
 
@@ -201,17 +213,13 @@ def main():
 
     if args.reduce_drk:
         sci_path = sci_path.replace('sci', 'drk')
-    # LRS2-R
+    # Accumulators (legacy placeholders for extended products/logging)
     fiberpos, fiberspec = ([], [])
     log.info('Beginning the long haul.')
-    allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
-                                                               [], [])
+    allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [], [], [])
 
 
-
-    # Locate packaged config directory and files
-    lrs2config_dir = resources.files('panacea') / 'lrs2_config'
-
+    # Per-channel processing loop (each entry corresponds to one spectrograph arm)
     for info in listinfo:
         specinit, specname, multi, lims, amps, slims, arc_names = info
         if int(args.date) < 20161101:
@@ -234,6 +242,7 @@ def main():
         if args.use_flat:
             twifiles = fltfiles
         for amp in amps:
+            # Lookup per-amp fiber center positions for spatial mapping
             amppos = get_ifucenfile(specname, amp, lrs2config=str(lrs2config_dir))
             ##############
             # MASTERBIAS #
@@ -295,12 +304,14 @@ def main():
             marc.append(masterarc)
             mtwi.append(masterflt)
             mflt.append(masterFlat)
-        # Normalize the two amps and correct the flat
+        # Combine per-amp calibrations into single arrays ordered by fiber index
         calinfo = [np.vstack([package[0][i], package[1][i]])
                    for i in np.arange(len(package[0]))]
         masterarc, masterflt, masterFlat = [np.vstack(x) for x in [marc, mtwi, mflt]]
+        # Offset trace rows for the upper amp by the number of lower-amp fibers
         calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
         log.info('Getting flat for ifuslot, %s, side, %s' % (ifuslot, specname))
+        # Build twilight flat field (fiber profile) used for extractions
         twiflat = get_twiflat_field(twifiles, amps, calinfo[0], calinfo[1],
                                     calinfo[2], calinfo[3], specname)
         calinfo.insert(2, twiflat)
@@ -367,18 +378,19 @@ def main():
             op.join(basename, 'cal_%s_%s.fits' % (args.date, specname)),
             overwrite=True
         )
+        # Iterate per observation base file; filter by --object or include standards
         for sci_obs, obj, bf in zip(all_sci_obs, objects, base_files):
             log.info('Checkpoint --- Working on %s, %s' % (bf, specname))
             if args.object is None:
                 big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                              ifuslot, specname, response=response)
+                              ifuslot, specname, response=response, fplane_file=fplane_file)
             else:
                 if args.object.lower() in obj[0].lower():
                     big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                                  ifuslot, specname, response=response)
+                                  ifuslot, specname, response=response, fplane_file=fplane_file)
                 if check_if_standard(obj[0]) and (ifuslot in obj[0]):
                     big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                                  ifuslot, specname, response=response)
+                                  ifuslot, specname, response=response, fplane_file=fplane_file)
 
 
 if __name__ == '__main__':
