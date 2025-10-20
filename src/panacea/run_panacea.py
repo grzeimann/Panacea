@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
-"""Panacea CLI wrapper (package version).
+"""Panacea main script.
 
-This module is a port of scripts/run_panacea.py so it can be imported and
-executed from the installed package as panacea.run_panacea.
+What this script does (overview):
+- Parses command-line options for date(s), channel(s), and simple switches.
+- Gathers calibration frames (bias, twilight/flat, arc) for each IFU channel.
+- Derives per-fiber trace, wavelength solution, and flat-field calibrations.
+- Loads packaged configuration resources (line lists, DAR tables, responses).
+- Locates science exposures and runs a streamlined reduction via
+  ``routine.big_reduction`` that performs extraction, sky subtraction,
+  optional source finding/extraction, and writes products.
 """
 import numpy as np
 import os.path as op
@@ -15,7 +21,6 @@ from astropy.table import Table
 from scipy.interpolate import interp1d
 from importlib import resources
 
-# Use package-relative imports
 from .input_utils import setup_logging
 from .io import (
     get_cal_path,
@@ -34,7 +39,7 @@ from .trace import get_trace
 from .wavelength import get_wavelength_from_arc
 from .routine import get_ifucenfile, big_reduction
 from .fiber import get_spectra, weighted_extraction
-from .utils import get_script_path, get_objects, check_if_standard, get_config_file
+from .utils import get_objects, check_if_standard, get_config_file, read_arc_lines
 
 
 standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
@@ -52,33 +57,6 @@ standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
 log = setup_logging('panacea_quicklook')
 
 
-def _read_arc_lines(file_obj):
-    """Read arc line list files robustly from whitespace-separated data.
-
-    The packaged line-list files under panacea/lrs2_config/lines_*.dat are
-    whitespace/tab-separated with comment lines starting with '#'. This parser
-    reads the first four columns per data line and returns an Astropy Table
-    with the expected column names ['col1','col2','col3','col4'].
-    """
-    rows = []
-    for raw in file_obj:
-        line = raw.strip()
-        if not line or line.startswith('#'):
-            continue
-        parts = line.split()
-        # Require at least 4 columns: wavelength, approx_x, rel_intensity, name
-        if len(parts) < 4:
-            continue
-        try:
-            lam = float(parts[0])
-            approx_x = float(parts[1])
-            rel = float(parts[2])
-            name = parts[3]
-            rows.append((lam, approx_x, rel, name))
-        except Exception:
-            # Skip malformed lines gracefully
-            continue
-    return Table(rows=rows, names=['col1', 'col2', 'col3', 'col4'])
 
 
 def main():
@@ -242,7 +220,7 @@ def main():
             nnn = specname
         # Load arc line list via package resources
         with get_config_file(f'lines_{nnn}.dat').open('r') as f:
-            arc_lines = _read_arc_lines(f)
+            arc_lines = read_arc_lines(f)
         commonwave = np.linspace(lims[0], lims[1], 2064)
         specid, ifuslot, ifuid = multi.split('_')
         package = []
@@ -297,13 +275,11 @@ def main():
             def_arc = get_masterarc(lampfiles, amp,
                                     arc_names, masterbias, specname, trace)
 
-            # fits.PrimaryHDU(masterarc).writeto('/work/03946/hetdex/maverick/run_lrs2/wtf_%s_%s.fits' % (ifuslot, amp), overwrite=True)
             log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
                      (ifuslot, amp))
 
             wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname,
                                            amp, int(args.date), otherimage=def_arc)
-            # fits.PrimaryHDU(wave).writeto('test_wave.fits', overwrite=True)
 
             #################################
             # TWILIGHT FLAT [FIBER PROFILE] #
@@ -330,34 +306,40 @@ def main():
         calinfo.insert(2, twiflat)
         flatspec = get_spectra(calinfo[2], calinfo[1])
         for mfile in [masterarc, masterflt, masterFlat]:
+            # Extract per-fiber arc spectra for each calibration image and
+            # interpolate them onto the common wavelength grid used downstream.
             masterarcerror = np.sqrt(3. ** 2 + np.where(mfile > 0., mfile, 0.))
-            arcspec, ae, Cc, Yyy, Fff = weighted_extraction(mfile, masterarcerror,
-                                                            calinfo[2], calinfo[1],
-                                                            cthresh=500)
-            sP = np.zeros((calinfo[0].shape[0], len(commonwave)))
+            arcspec, ae, Cc, Yyy, Fff = weighted_extraction(
+                mfile, masterarcerror, calinfo[2], calinfo[1], cthresh=500
+            )
+            arc_interp_to_common = np.zeros((calinfo[0].shape[0], len(commonwave)))
             for fiber in np.arange(calinfo[0].shape[0]):
-                I = interp1d(calinfo[0][fiber], arcspec[fiber],
-                             kind='linear', fill_value='extrapolate')
-                sP[fiber] = I(commonwave)
-            calinfo.append(sP)
+                interp = interp1d(calinfo[0][fiber], arcspec[fiber],
+                                  kind='linear', fill_value='extrapolate')
+                arc_interp_to_common[fiber] = interp(commonwave)
+            calinfo.append(arc_interp_to_common)
         bigF = get_bigF(calinfo[1], calinfo[2])
         calinfo.append(bigF)
 
         #####################
         # SCIENCE REDUCTION #
         #####################
+        # Locate the first exposure (exp01) per science observation for this IFU slot.
+        # We then iterate observations and run the per-exposure reduction.
         response = None
-        pathS = sci_path % (instrument, instrument, '0000*',
-                            '01', instrument, ifuslot)
-        basefiles = []
-        for tarname in glob.glob(get_tarname_from_filename(pathS)):
-            basefiles.append(get_filenames_from_tarfolder(tarname, pathS))
-        flat_list = [item for sublist in basefiles for item in sublist]
-        basefiles = [f for f in sorted(flat_list) if "exp01" in f]
+        sci_glob = sci_path % (instrument, instrument, '0000*', '01', instrument, ifuslot)
+        base_files_nested = []
+        for tarname in glob.glob(get_tarname_from_filename(sci_glob)):
+            base_files_nested.append(get_filenames_from_tarfolder(tarname, sci_glob))
+        flat_list = [item for sublist in base_files_nested for item in sublist]
+        base_files = [f for f in sorted(flat_list) if "exp01" in f]
 
+        # Derive 7-digit obsid from folder structure and read object headers
         all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
-                       for fn in basefiles]
-        objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
+                       for fn in base_files]
+        objects = get_objects(base_files, ['OBJECT', 'EXPTIME'])
+
+        # Load a packaged average response if none provided
         if response is None:
             log.info('Getting average response')
             basename = 'LRS2/CALS'
@@ -365,30 +347,27 @@ def main():
                 R = fits.open(fh)
                 response = R[0].data[1] * 1.
 
-        f = []
-        names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias',
-                 'xypos', 'dead', 'arcspec', 'fltspec', 'Flatspec', 'bigF']
+        # Assemble a CALS bundle capturing key calibration products for this channel
+        hdus = []
+        hdu_names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias',
+                     'xypos', 'dead', 'arcspec', 'fltspec', 'Flatspec', 'bigF']
         for i, cal in enumerate(calinfo):
-            if i == 0:
-                func = fits.PrimaryHDU
-            else:
-                func = fits.ImageHDU
-            f.append(func(cal))
-        f.append(fits.ImageHDU(masterarc))
-        names.append('masterarc')
-        f.append(fits.ImageHDU(masterFlat))
-        names.append('masterFlat')
+            hdu_class = fits.PrimaryHDU if i == 0 else fits.ImageHDU
+            hdus.append(hdu_class(cal))
+        hdus.append(fits.ImageHDU(masterarc)); hdu_names.append('masterarc')
+        hdus.append(fits.ImageHDU(masterFlat)); hdu_names.append('masterFlat')
         if response is not None:
-            f.append(fits.ImageHDU(np.array([commonwave, response], dtype=float)))
-            names.append('response')
-        for fi, n in zip(f, names):
-            fi.header['EXTNAME'] = n
+            hdus.append(fits.ImageHDU(np.array([commonwave, response], dtype=float)))
+            hdu_names.append('response')
+        for hdu, name in zip(hdus, hdu_names):
+            hdu.header['EXTNAME'] = name
         basename = 'LRS2/CALS'
         Path(basename).mkdir(parents=True, exist_ok=True)
-        fits.HDUList(f).writeto(op.join(basename,
-                                        'cal_%s_%s.fits' % (args.date, specname)),
-                                overwrite=True)
-        for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
+        fits.HDUList(hdus).writeto(
+            op.join(basename, 'cal_%s_%s.fits' % (args.date, specname)),
+            overwrite=True
+        )
+        for sci_obs, obj, bf in zip(all_sci_obs, objects, base_files):
             log.info('Checkpoint --- Working on %s, %s' % (bf, specname))
             if args.object is None:
                 big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,

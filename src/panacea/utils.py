@@ -274,8 +274,50 @@ def get_config_file(filename: str):
     """Return a Traversable to a config file inside panacea/lrs2_config.
 
     Uses importlib.resources to locate packaged data regardless of install mode.
+
+    Args:
+        filename: Name of the file to locate.
+
+    Returns:
+        pathlib.Traversable: Traversable to the file.
     """
     return resources.files('panacea') / 'lrs2_config' / filename
+
+
+def read_arc_lines(file_obj):
+    """Read arc line list files robustly from whitespace-separated data.
+
+    The packaged line-list files under panacea/lrs2_config/lines_*.dat are
+    whitespace/tab-separated with comment lines starting with '#'. This parser
+    reads the first four columns per data line and returns an Astropy Table
+    with the expected column names ['col1','col2','col3','col4'].
+
+    Args:
+        file_obj: Text file-like object opened for reading.
+
+    Returns:
+        astropy.table.Table: Table with columns ['col1','col2','col3','col4']
+            corresponding to wavelength, approx_x, relative intensity, and name.
+    """
+    rows = []
+    for raw in file_obj:
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+        parts = line.split()
+        # Require at least 4 columns: wavelength, approx_x, rel_intensity, name
+        if len(parts) < 4:
+            continue
+        try:
+            lam = float(parts[0])
+            approx_x = float(parts[1])
+            rel = float(parts[2])
+            name = parts[3]
+            rows.append((lam, approx_x, rel, name))
+        except Exception:
+            # Skip malformed lines gracefully
+            continue
+    return Table(rows=rows, names=['col1', 'col2', 'col3', 'col4'])
 
 
 def mask_skylines_cosmics(wave, rect_spec, name, error):
