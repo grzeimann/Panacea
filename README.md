@@ -16,14 +16,60 @@
 
 
 ## Overview
-This package is the reduction pipeline for LRS2 observations at the Hobby Eberly Telescope. Every day the pipeline reduces data taken 
-the previous night.  Below we discuss the algorithms and products of Panacea, how to access your data reductions, and how to run the 
-pipeline yourself with varying options. All of the data reduction products live on the Texas Advanced Computing Center (TACC).  We start 
-with the instructions to log on to TACC, and where you reductions are placed.
+Panacea is the LRS2 data-reduction pipeline for the Hobby–Eberly Telescope. It is primarily operated as a daily, automated pipeline on the Texas Advanced Computing Center (TACC), but it can also be installed and run locally for development or small analyses.
 
-## Working on TACC 
-The reductions are designed to be run on TACC where a copy of the raw data lives.  We will describe how to get started on TACC,  where the automatic reduction products live, how to run the code yourself, and the products that are produced.
+This README explains:
+- How Panacea runs on TACC (recommended for full-scale reductions)
+- How to install and run Panacea locally (for development and small jobs)
+- What data products are produced
+- High-level details of the algorithms implemented
 
+## Install & Quickstart
+
+Panacea can be used in two modes:
+- TACC pipeline: preferred for performance, storage, and access to the HET raw-data layout
+- Local machine: for development, testing, and small reductions if you mirror the expected data layout
+
+Dependencies
+- Python 3.9+
+- NumPy, SciPy, Astropy, Matplotlib, PyYAML, tqdm, requests, scikit-learn (installed automatically from PyPI)
+- pyhetdex (optional, needed for astrometric mapping via the fplane). Install from a private index:
+  pip install --extra-index-url https://gate.mpe.mpg.de/pypi/simple/ pyhetdex
+
+Option A: Local install using conda + pip
+```
+conda env create -f environment.yml
+conda activate panacea
+# Install pyhetdex from the private index if you want astrometric mapping
+pip install --extra-index-url https://gate.mpe.mpg.de/pypi/simple/ pyhetdex
+pip install . --no-deps
+```
+
+Quickstart (local)
+```
+# Show CLI help and verify installation
+panacea-lrs2 -h
+
+# Examples (adjust args to your data)
+# Reduce Far Red for a specific date
+panacea-lrs2 -d 20251016 -s farred
+# Reduce UV for a specific date
+panacea-lrs2 -d 20181108 -s uv
+```
+
+Notes for local runs
+- The quicklook runner expects HET raw data in a TACC-like directory structure (tarballs with standard internal paths). By default, run_panacea.py looks under a base directory like /Users/<you>/data/LRS2. Either:
+  - Mirror the TACC raw data layout under that base path (creating directories and placing tarballs accordingly), or
+  - Install Panacea in editable mode and change the baseraw path in src/panacea/run_panacea.py to point to your local raw-data mirror.
+- Packaged configuration files (line lists, DAR tables, fplane.txt, responses) are bundled with the package and found automatically via importlib.resources.
+
+Troubleshooting
+- If pyhetdex installation fails, ensure you included the --extra-index-url parameter and have network access to gate.mpe.mpg.de.
+- Some steps require significant memory/storage; consider running on TACC as described below.
+
+
+## Working on TACC (for HET Users only)
+The reductions are designed to run on the Texas Advanced Computing Center (TACC), where a full copy of the raw data is stored. An automated pipeline executes each morning at 10 a.m. Central Time and has been operating continuously since January 1, 2019. In the following sections, we describe how to get started on TACC, where to find the automatic reduction products, how to run the code manually, and what data products the pipeline generates.
 ### Signing up for an account
 https://portal.tacc.utexas.edu/
 <p align="center">
@@ -92,51 +138,29 @@ export PATH=/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bin:$
 ```
 
 ### Running Panacea in the command line
-To run in the command line, TACC wants users to create an interactive development environment which basically gets you a single CPU to 
-yourself.  Just type the following:
+On TACC, create an interactive development session (one CPU) to explore and run the CLI:
 ```
 idev
 ```
 
-Then you can check out the Panacea reduction options:
+Now check the Panacea CLI options (the console script is installed as part of the package):
 ```
-python /work/03730/gregz/maverick/Panacea/full_lrs2_reduction.py -h
-
-usage: full_lrs2_reduction.py [-h] [-d DATE] [-s SIDES] [-o OBJECT] [-uf]
-                              [-cf] [-cw CENTRAL_WAVE] [-wb WAVELENGTH_BIN]
-                              [-sx SOURCE_X] [-sy SOURCE_Y]
-                              [-ssd STANDARD_STAR_DATE]
-                              [-sso STANDARD_STAR_OBSID]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -d DATE, --date DATE  Date for reduction
-  -s SIDES, --sides SIDES
-                        "uv,orange,red,farred"
-  -o OBJECT, --object OBJECT
-                        Object name, no input reduces all objects
-  -uf, --use_flat       Use FLT instead of Twi
-  -cf, --correct_ftf    Correct fiber to fiber
-  -cw CENTRAL_WAVE, --central_wave CENTRAL_WAVE
-                        Central Wavelength for collapsed Frame
-  -wb WAVELENGTH_BIN, --wavelength_bin WAVELENGTH_BIN
-                        Wavelength Bin to collapse over (+/- bin size)
-  -sx SOURCE_X, --source_x SOURCE_X
-                        Source's x position at the central_wave
-  -sy SOURCE_Y, --source_y SOURCE_Y
-                        Source's y position at the central_wave
-  -ssd STANDARD_STAR_DATE, --standard_star_date STANDARD_STAR_DATE
-                        Standard Star Date for response function, example:
-                        20181101
-  -sso STANDARD_STAR_OBSID, --standard_star_obsid STANDARD_STAR_OBSID
-                        Standard Star ObsID for response function, example:
-                        0000012
+panacea-lrs2 -h
 ```
+
+Key options you may use include:
+- -d/--date YYYYMMDD (required) — date of observations
+- -s/--sides uv,orange,red,farred — which channels to reduce (comma-separated)
+- -o/--object NAME — filter to targets whose OBJECT header contains NAME
+- --use_flat — prefer internal flats over twilight
+- --correct_ftf — apply fiber-to-fiber correction
+- --central_wave, --wavelength_bin, --source_x, --source_y — control source-finding/extraction window
+- --standard_star_date, --standard_star_obsid — derive a response from a specific standard
 
 If you want to reduce a given object on a given night you can use the following options:
 
 ```
-python /work/03730/gregz/maverick/Panacea/full_lrs2_reduction.py -d DATE -o TARGET_NAME -s "uv"
+panacea-lrs2 -d DATE -o TARGET_NAME -s uv
 ```
 
 You can reduce any side you want, above I choose the "uv" channel, and the TARGET_NAME only has to be in the full name of the target
@@ -187,35 +211,6 @@ sbatch rgeneral_lrs2.slurm
 
 The reductions will be in "LRS2/ORPHANS" for reductions before 2018/07/01 and in "LRS2/PROGRAM-ID" for reductions after this date.
 The standard stars will be in "LRS2/STANDARDS" and the calibrations used are in "LRS2/CALS".  
-
-## Install & Quickstart (local)
-
-Installation options:
-- pip (recommended for local use)
-- conda (via environment.yml) plus a special pip step for pyhetdex
-
-Option A: Using conda env + pip
-```
-conda env create -f environment.yml
-conda activate panacea
-# Install pyhetdex from the private index
-pip install --extra-index-url https://gate.mpe.mpg.de/pypi/simple/ pyhetdex
-pip install . --no-deps
-```
-
-Quickstart example
-```
-# Show CLI help and verify installation
-python full_lrs2_reduction.py -h
-
-# Example (adjust args to your data)
-# Reduce data for a specific date and channels, using twilight flats
-python full_lrs2_reduction.py -d 20181108 -s uv,orange,red,farred -uf
-```
-
-Troubleshooting
-- If pyhetdex installation fails, ensure you included the --extra-index-url parameter and have network access to gate.mpe.mpg.de.
-- Some steps require significant memory/storage; consider running on TACC as described above.
 
 
 ## Code Description
@@ -358,16 +353,3 @@ A: Air
 
 * Greg Zeimann, UT Austin
 
-
-
-
-
-## New CLI entry (experimental)
-
-After installing in editable mode, you can use the new console script:
-
-```
-panacea-lrs2 --help
-```
-
-This entry delegates to the legacy full_lrs2_reduction parser for now. Legacy invocation using python full_lrs2_reduction.py remains supported.
