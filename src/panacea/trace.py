@@ -61,7 +61,7 @@ def get_trace_shift(sci_array: np.ndarray, flat: np.ndarray, array_trace: np.nda
 
 
 
-def get_trace_reference(specid: str, ifuslot: str, ifuid: str, amp: str, obsdate: str, virusconfig: str = '/work/03946/hetdex/maverick/virus_config'):
+def get_trace_reference(specid: str, ifuslot: str, ifuid: str, amp: str, obsdate: str, lrs2config: str = 'lrs2_config'):
     """Locate and load the closest-in-time reference trace file.
 
     Args:
@@ -75,7 +75,7 @@ def get_trace_reference(specid: str, ifuslot: str, ifuid: str, amp: str, obsdate
     Returns:
         ndarray with reference trace rows: columns [col, flag] per fiber.
     """
-    files = glob.glob(op.join(virusconfig, 'Fiber_Locations', '*', f'fiber_loc_{specid}_{ifuslot}_{ifuid}_{amp}.txt'))
+    files = glob.glob(op.join(lrs2config, 'Fiber_Locations', '*', f'fiber_loc_{specid}_{ifuslot}_{ifuid}_{amp}.txt'))
     dates = [op.basename(op.dirname(fn)) for fn in files]
     obsdate_dt = datetime(int(obsdate[:4]), int(obsdate[4:6]), int(obsdate[6:]))
     timediff = np.zeros((len(dates),))
@@ -86,7 +86,8 @@ def get_trace_reference(specid: str, ifuslot: str, ifuid: str, amp: str, obsdate
     return ref_file
 
 
-def get_trace(twilight: np.ndarray, specid: str, ifuslot: str, ifuid: str, amp: str, obsdate: str):
+def get_trace(twilight: np.ndarray, specid: str, ifuslot: str, ifuid: str, amp: str, obsdate: str,
+              lrs2config: str = 'lrs2_config'):
     """Compute per-fiber trace positions across detector columns.
 
     Args:
@@ -96,6 +97,7 @@ def get_trace(twilight: np.ndarray, specid: str, ifuslot: str, ifuid: str, amp: 
         ifuid: IFU identifier.
         amp: Amplifier identifier.
         obsdate: Observation date as YYYYMMDD.
+        lrs2config: Base path to virus configuration.
 
     Returns:
         Tuple of (trace, ref) where trace is (fibers x columns) and ref is the
@@ -103,7 +105,7 @@ def get_trace(twilight: np.ndarray, specid: str, ifuslot: str, ifuid: str, amp: 
     """
     import numpy as np
 
-    ref = get_trace_reference(specid, ifuslot, ifuid, amp, obsdate)
+    ref = get_trace_reference(specid, ifuslot, ifuid, amp, obsdate, lrs2config=lrs2config)
     N1 = int((ref[:, 1] == 0.0).sum())
     good = np.where(ref[:, 1] == 0.0)[0]
 

@@ -60,3 +60,5 @@ docs = [
   "myst-parser>=2",
   "furo>=2024.0.0",
 ]
+[tool.setuptools.package-data]
+panacea = ["lrs2_config/*.dat", "lrs2_config/*.fits", "lrs2_config/*.txt", "lrs2_config/Fiber_Locations/*/*.txt"]

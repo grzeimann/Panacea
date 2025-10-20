@@ -17,7 +17,7 @@ from typing import List, Tuple, Optional
 from astropy.io import fits
 from astropy.table import Table
 from astropy.convolution import Gaussian1DKernel, convolve
-from scipy.interpolate import interp1d, interp2d
+from scipy.interpolate import interp1d, RegularGridInterpolator
 from scipy.signal import savgol_filter
 from astropy.modeling.models import Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
@@ -32,13 +32,13 @@ from .sky import sky_subtraction
 from .astrometry import Astrometry
 
 
-def get_ifucenfile(side: str, amp: str, virusconfig: str = "/work/03946/hetdex/maverick/virus_config", skiprows: int = 4) -> np.ndarray:
+def get_ifucenfile(side: str, amp: str, lrs2config: str = "lrs2_config", skiprows: int = 4) -> np.ndarray:
     """Load IFU center positions for a given side and amplifier.
 
     Args:
         side: One of {"uv", "orange", "red", "farred"}.
         amp: Amplifier identifier ("LL", "LU", "RL", "RU").
-        virusconfig: Base path to the VIRUS configuration directory.
+        lrs2config: Base path to the VIRUS configuration directory.
         skiprows: Number of header rows to skip in the mapping text file.
 
     Returns:
@@ -51,7 +51,7 @@ def get_ifucenfile(side: str, amp: str, virusconfig: str = "/work/03946/hetdex/m
         "farred": "LRS2_R_FR_mapping.txt",
     }
 
-    ifucen = np.loadtxt(op.join(virusconfig, "IFUcen_files", file_dict[side]), usecols=[0, 1, 2], skiprows=skiprows)
+    ifucen = np.loadtxt(op.join(lrs2config, file_dict[side]), usecols=[0, 1, 2], skiprows=skiprows)
 
     if amp == "LL":
         return ifucen[140:, 1:3][::-1, :]
@@ -238,6 +238,7 @@ def extract_sci(sci_path: str, amps: List[str], flat: np.ndarray, array_trace: n
         - error_list (np.ndarray): Rectified 1-sigma errors aligned with ``spec_list``.
         - hdr_list (list[astropy.io.fits.Header]): FITS headers from the reduced files.
     """
+
     log = logging.getLogger(__name__)
     files1 = get_filenames_from_tarfolder(get_tarname_from_filename(sci_path), sci_path.replace('LL', amps[0]))
     files2 = get_filenames_from_tarfolder(get_tarname_from_filename(sci_path), sci_path.replace('LL', amps[1]))
@@ -253,13 +254,27 @@ def extract_sci(sci_path: str, amps: List[str], flat: np.ndarray, array_trace: n
         array_list.append(array_flt)
         hdr_list.append(header)
     sci_array = np.sum(array_list, axis=0) if len(array_list) > 1 else np.squeeze(np.array(array_list))
+
+    # Replace interp2d with RegularGridInterpolator
     Xx = np.arange(flat.shape[1])
     Yx = np.arange(flat.shape[0])
-    I2d = interp2d(Xx, Yx, flat, kind='cubic', bounds_error=False, fill_value=0.0)
+
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         shifts = get_trace_shift(sci_array, flat, array_trace, Yx)
-    flat = I2d(Xx, Yx + shifts)
+
+    # Create the interpolator
+    interpolator = RegularGridInterpolator((Yx, Xx), flat, method='cubic', bounds_error=False, fill_value=0.0)
+
+    # Create shifted coordinate arrays for interpolation
+    Yx_shifted = Yx[:, np.newaxis] + shifts[np.newaxis, :]
+    Xx_grid = Xx[np.newaxis, :]
+
+    # Create coordinate arrays for interpolation
+    coords = np.stack([Yx_shifted.ravel(), np.broadcast_to(Xx_grid, Yx_shifted.shape).ravel()], axis=-1)
+    flat_interpolated = interpolator(coords).reshape(flat.shape)
+    flat = flat_interpolated
+
     log.info('Found trace shift median: %0.3f', float(np.median(shifts)))
     spec_list, error_list, orig_list = ([], [], [])
     clist, flist, Flist = ([], [], [])
@@ -302,7 +317,8 @@ def extract_sci(sci_path: str, amps: List[str], flat: np.ndarray, array_trace: n
         flist.append(fl)
         Flist.append(Fimage)
     images = np.array(array_list)
-    return images, np.array(spec_list), np.array(orig_list), np.array(clist, dtype=float), np.array(flist), np.array(Flist), np.array(error_list), hdr_list
+    return images, np.array(spec_list), np.array(orig_list), np.array(clist, dtype=float), np.array(flist), np.array(
+        Flist), np.array(error_list), hdr_list
 
 
 def find_source(dx: np.ndarray, dy: np.ndarray, skysub: np.ndarray, commonwave: np.ndarray,
@@ -631,9 +647,33 @@ def big_reduction(
     # DAR reference table path (map specname to BL/BR/RL/RR)
     tag_map = {'uv': 'BL', 'orange': 'BR', 'red': 'RL', 'farred': 'RR'}
     tag = tag_map.get(specname, 'BL')
-    base_dir = op.dirname(op.dirname(op.dirname(__file__)))
-    darfile = op.join(base_dir, 'lrs2_config', f'dar_{tag}.dat')
-    T = Table.read(darfile, format='ascii.fixed_width_two_line')
+    from .utils import get_config_file
+    with get_config_file(f'dar_{tag}.dat').open('r') as f:
+        rows = []
+        header_seen = False
+        for raw in f:
+            line = raw.strip()
+            if not line:
+                continue
+            # Skip header and separator lines
+            if not header_seen:
+                if line.lower().startswith('wave'):
+                    header_seen = True
+                    continue
+                # Lines of dashes or spaces
+                if set(line) <= set('- '):
+                    continue
+            # Skip any residual separator lines
+            if set(line) <= set('- '):
+                continue
+            parts = line.split()
+            if len(parts) < 3:
+                continue
+            try:
+                rows.append((float(parts[0]), float(parts[1]), float(parts[2])))
+            except Exception:
+                continue
+        T = Table(rows=rows, names=['wave', 'x_0', 'y_0'])
     xoff = np.interp(commonwave, T['wave'], T['x_0']) - np.interp(wave_0, T['wave'], T['x_0'])
     yoff = np.interp(commonwave, T['wave'], T['y_0']) - np.interp(wave_0, T['wave'], T['y_0'])
 

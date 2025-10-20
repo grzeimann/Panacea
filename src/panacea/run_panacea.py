@@ -13,6 +13,7 @@ from pathlib import Path
 from astropy.io import fits
 from astropy.table import Table
 from scipy.interpolate import interp1d
+from importlib import resources
 
 # Use package-relative imports
 from .input_utils import setup_logging
@@ -33,7 +34,7 @@ from .trace import get_trace
 from .wavelength import get_wavelength_from_arc
 from .routine import get_ifucenfile, big_reduction
 from .fiber import get_spectra, weighted_extraction
-from .utils import get_script_path, get_objects, check_if_standard
+from .utils import get_script_path, get_objects, check_if_standard, get_config_file
 
 
 standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
@@ -49,6 +50,35 @@ standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
                   'HR6203']
 
 log = setup_logging('panacea_quicklook')
+
+
+def _read_arc_lines(file_obj):
+    """Read arc line list files robustly from whitespace-separated data.
+
+    The packaged line-list files under panacea/lrs2_config/lines_*.dat are
+    whitespace/tab-separated with comment lines starting with '#'. This parser
+    reads the first four columns per data line and returns an Astropy Table
+    with the expected column names ['col1','col2','col3','col4'].
+    """
+    rows = []
+    for raw in file_obj:
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+        parts = line.split()
+        # Require at least 4 columns: wavelength, approx_x, rel_intensity, name
+        if len(parts) < 4:
+            continue
+        try:
+            lam = float(parts[0])
+            approx_x = float(parts[1])
+            rel = float(parts[2])
+            name = parts[3]
+            rows.append((lam, approx_x, rel, name))
+        except Exception:
+            # Skip malformed lines gracefully
+            continue
+    return Table(rows=rows, names=['col1', 'col2', 'col3', 'col4'])
 
 
 def main():
@@ -164,7 +194,7 @@ def main():
         if side.lower() == 'farred':
             listinfo.append(redinfo[1])
 
-    fplane_file = '/work/03730/gregz/maverick/fplane.txt'
+    fplane_file = '/Users/grz85/work/Panacea/lrs2_config/fplane.txt'
     twi_date = args.date
     sci_date = args.date
 
@@ -173,7 +203,7 @@ def main():
 
     dither_pattern = np.zeros((50, 2))
 
-    baseraw = '/work/03946/hetdex/maverick'
+    baseraw = '/Users/grz85/data/LRS2'
 
     sci_tar = op.join(baseraw, sci_date, '%s', '%s000*.tar')
     sci_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp%s',
@@ -199,7 +229,10 @@ def main():
     allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [],
                                                                [], [])
 
-    DIRNAME = get_script_path()
+
+
+    # Locate packaged config directory and files
+    lrs2config_dir = resources.files('panacea') / 'lrs2_config'
 
     for info in listinfo:
         specinit, specname, multi, lims, amps, slims, arc_names = info
@@ -207,8 +240,9 @@ def main():
             nnn = specname  # '%s_old' % specname
         else:
             nnn = specname
-        arc_lines = Table.read(op.join(DIRNAME, 'lrs2_config/lines_%s.dat' %
-                                       nnn), format='ascii')
+        # Load arc line list via package resources
+        with get_config_file(f'lines_{nnn}.dat').open('r') as f:
+            arc_lines = _read_arc_lines(f)
         commonwave = np.linspace(lims[0], lims[1], 2064)
         specid, ifuslot, ifuid = multi.split('_')
         package = []
@@ -222,7 +256,7 @@ def main():
         if args.use_flat:
             twifiles = fltfiles
         for amp in amps:
-            amppos = get_ifucenfile(specname, amp)
+            amppos = get_ifucenfile(specname, amp, lrs2config=str(lrs2config_dir))
             ##############
             # MASTERBIAS #
             ##############
@@ -244,7 +278,7 @@ def main():
 
             masterflt = get_mastertwi(twifiles, amp, masterbias)
             trace, dead = get_trace(masterflt, specid, ifuslot, ifuid, amp,
-                                    args.date)
+                                    args.date, lrs2config=str(lrs2config_dir))
 
             ##########################
             # MASTERARC [WAVELENGTH] #
@@ -308,6 +342,7 @@ def main():
             calinfo.append(sP)
         bigF = get_bigF(calinfo[1], calinfo[2])
         calinfo.append(bigF)
+
         #####################
         # SCIENCE REDUCTION #
         #####################
@@ -318,54 +353,53 @@ def main():
         for tarname in glob.glob(get_tarname_from_filename(pathS)):
             basefiles.append(get_filenames_from_tarfolder(tarname, pathS))
         flat_list = [item for sublist in basefiles for item in sublist]
-        for bf in flat_list:
-            try:
-                hdr = fits.open(bf)[0].header
-            except Exception:
-                continue
-            llid = hdr['OBSID']
-            llid = '%07d' % int(llid)
-            he = hdr
-            obj = [he['OBJECT'], he['EXPTIME']]
+        basefiles = [f for f in sorted(flat_list) if "exp01" in f]
 
-            # Skip non-targets unless object is None (reduce all)
-            if (args.object is not None) and (args.object != he['OBJECT']):
-                continue
+        all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
+                       for fn in basefiles]
+        objects = get_objects(basefiles, ['OBJECT', 'EXPTIME'])
+        if response is None:
+            log.info('Getting average response')
+            basename = 'LRS2/CALS'
+            with get_config_file(f'response_{specname}.fits').open('rb') as fh:
+                R = fits.open(fh)
+                response = R[0].data[1] * 1.
 
-            sci_obs = llid
-
-            if args.standard_star_obsid is not None:
-                if (args.standard_star_date == args.date) and \
-                        (args.standard_star_obsid == sci_obs):
-                    standard = True
-                else:
-                    standard = False
+        f = []
+        names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias',
+                 'xypos', 'dead', 'arcspec', 'fltspec', 'Flatspec', 'bigF']
+        for i, cal in enumerate(calinfo):
+            if i == 0:
+                func = fits.PrimaryHDU
             else:
-                if check_if_standard(he['OBJECT']):
-                    if (he['OBJECT'].replace(' ', '').upper() in standard_names):
-                        standard = True
-                    else:
-                        standard = False
-                else:
-                    standard = False
-            if standard:
-                slims = [4300., 4500.]
+                func = fits.ImageHDU
+            f.append(func(cal))
+        f.append(fits.ImageHDU(masterarc))
+        names.append('masterarc')
+        f.append(fits.ImageHDU(masterFlat))
+        names.append('masterFlat')
+        if response is not None:
+            f.append(fits.ImageHDU(np.array([commonwave, response], dtype=float)))
+            names.append('response')
+        for fi, n in zip(f, names):
+            fi.header['EXTNAME'] = n
+        basename = 'LRS2/CALS'
+        Path(basename).mkdir(parents=True, exist_ok=True)
+        fits.HDUList(f).writeto(op.join(basename,
+                                        'cal_%s_%s.fits' % (args.date, specname)),
+                                overwrite=True)
+        for sci_obs, obj, bf in zip(all_sci_obs, objects, basefiles):
+            log.info('Checkpoint --- Working on %s, %s' % (bf, specname))
+            if args.object is None:
+                big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
+                              ifuslot, specname, response=response)
             else:
-                slims = [0., 100000.]
-
-            objname = he['OBJECT']
-            log.info('Beginning reduction for this obsid: %s' % sci_obs)
-
-            response = big_reduction(obj, bf, instrument, sci_obs, calinfo, amps,
-                                     commonwave, ifuslot, specname, standard,
-                                     response=response, central_wave=args.central_wave,
-                                     wavelength_bin=args.wavelength_bin,
-                                     source_x=args.source_x, source_y=args.source_y,
-                                     correct_ftf_flag=args.correct_ftf,
-                                     fplane_file=fplane_file)
-
-            if standard and (response is not None):
-                standard = False
+                if args.object.lower() in obj[0].lower():
+                    big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
+                                  ifuslot, specname, response=response)
+                if check_if_standard(obj[0]) and (ifuslot in obj[0]):
+                    big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
+                                  ifuslot, specname, response=response)
 
 
 if __name__ == '__main__':

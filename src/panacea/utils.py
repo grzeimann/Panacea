@@ -8,6 +8,7 @@ import os.path as op
 import tarfile
 import sys
 from datetime import datetime, timedelta
+from importlib import resources
 
 import numpy as np
 from astropy.io import fits
@@ -269,6 +270,14 @@ def build_weight_matrix(x, y, sig=1.5):
     return G.swapaxes(0, 1)
 
 
+def get_config_file(filename: str):
+    """Return a Traversable to a config file inside panacea/lrs2_config.
+
+    Uses importlib.resources to locate packaged data regardless of install mode.
+    """
+    return resources.files('panacea') / 'lrs2_config' / filename
+
+
 def mask_skylines_cosmics(wave, rect_spec, name, error):
     """Mask skyline regions and known bad/error pixels.
 
@@ -281,12 +290,25 @@ def mask_skylines_cosmics(wave, rect_spec, name, error):
     Returns:
         Boolean mask where True indicates masked pixels.
     """
-    DIRNAME = op.dirname(op.dirname(op.dirname(__file__)))
     mask1 = rect_spec * 0.0
-    if op.exists(op.join(DIRNAME, 'lrs2_config', f'{name}_skylines.dat')):
-        T = Table.read(op.join(DIRNAME, 'lrs2_config', f'{name}_skylines.dat'), format='ascii.fixed_width_two_line')
-        for w in T['wavelength']:
-            mask1[:, np.abs(wave - w) < 6.0] = -1.0
+    cfg = get_config_file(f'{name}_skylines.dat')
+    try:
+        if hasattr(cfg, 'is_file') and cfg.is_file():
+            wavelengths = []
+            with cfg.open('r') as f:
+                for raw in f:
+                    line = raw.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    parts = line.split()
+                    try:
+                        wavelengths.append(float(parts[0]))
+                    except Exception:
+                        continue
+            for w in wavelengths:
+                mask1[:, np.abs(wave - w) < 6.0] = -1.0
+    except FileNotFoundError:
+        pass
     mask2 = rect_spec * 0.0
     mask2[error == 0.0] = -1.0
     mask2[1:, :] += mask2[:-1, :]
