@@ -353,3 +353,60 @@ A: Air
 
 * Greg Zeimann, UT Austin
 
+
+
+
+## Running tests
+
+You can run the test suite locally with pytest. The project includes a minimal set of tests that verify:
+- The CLI console script panacea-lrs2 responds to -h
+- Packaged resources (lrs2_config) are discoverable and readable
+- A base raw data directory exists (either from the repo’s LRS2/ folder or via PANACEA_BASERAW)
+
+Quickstart
+
+1) Create/activate an environment and install Panacea with dev extras
+
+```
+# Using conda (optional but recommended)
+conda env create -f environment.yml
+conda activate panacea
+
+# Install optional dependency for astrometry (if needed)
+pip install --extra-index-url https://gate.mpe.mpg.de/pypi/simple/ pyhetdex
+
+# Install panacea in editable mode with test tools
+pip install -e .[dev]
+```
+
+2) Ensure tests can locate raw data
+
+- By default, tests look for a base raw-data directory in one of two places:
+  - Environment variable PANACEA_BASERAW pointing to your local LRS2 raw-data mirror, or
+  - The repo-local LRS2/ folder included with the source tree.
+
+If you have a mirror elsewhere, set:
+
+```
+export PANACEA_BASERAW=/path/to/your/LRS2
+```
+
+3) Run the tests
+
+```
+# Run all tests quietly
+pytest -q
+
+# Verbose output
+pytest -vv
+
+# Run a single test module
+pytest tests/test_cli.py -q
+
+# Collect coverage (optional)
+pytest --cov=panacea --cov-report=term-missing
+```
+
+Notes
+- The tests add the repository’s src directory to sys.path automatically via tests/conftest.py, so you don’t need to install the package just to import panacea when running pytest from a source checkout.
+- If you see failures related to missing raw-data nights, set PANACEA_BASERAW to a directory containing LRS2 tarballs, or ensure the repo’s LRS2/ directory is present.
