@@ -19,7 +19,7 @@ bibliography: paper.bib
 
 # Summary
 
-**Panacea** is the production data-reduction pipeline for the *Low Resolution Spectrograph 2 (LRS2)* on the **Hobby–Eberly Telescope (HET)**. LRS2 is a fiber-fed integral-field spectrograph mounted on the 10-m HET, designed to capture spatially resolved optical spectra across a broad wavelength range. 
+**Panacea** is the production data-reduction pipeline for the *Low Resolution Spectrograph 2 (LRS2)* on the **Hobby–Eberly Telescope (HET)**. LRS2\citep{Chonis2016} is a fiber-fed integral-field spectrograph mounted on the 10-m HET, designed to capture spatially resolved optical spectra across a broad wavelength range. 
 
 The instrument’s four spectrograph channels (UV, Orange, Red, and Far Red) together span 3640–10500 Å at resolving powers of 1100–1900. This broad wavelength coverage and integral-field capability make LRS2 well-suited for diverse astrophysical investigations, including studies of Lyman-alpha emitters (LAEs), planetary nebulae, stellar populations, and transient phenomena such as supernovae and optical counterparts to gravitational-wave events. LRS2 also supports follow-up work for large-scale surveys such as HETDEX \citep{Gebhardt2021} and enables research on high-redshift galaxies, active galactic nuclei (AGN), brown dwarfs, and local emission-line galaxies.
 
