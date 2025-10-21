@@ -14,6 +14,10 @@
 
 [FAQ](https://github.com/grzeimann/Panacea/blob/master/README.md#frequently-asked-questions)
 
+[JOSS readiness checklist](https://github.com/grzeimann/Panacea/blob/master/JOSS_CHECKLIST.md)
+
+[Contributing and community guidelines](#contributing-and-community-guidelines)
+
 
 ## Overview
 Panacea is the LRS2 data-reduction pipeline for the Hobby–Eberly Telescope. It is primarily operated as a daily, automated pipeline on the Texas Advanced Computing Center (TACC), but it can also be installed and run locally for development or small analyses.
@@ -58,9 +62,7 @@ panacea-lrs2 -d 20181108 -s uv
 ```
 
 Notes for local runs
-- The quicklook runner expects HET raw data in a TACC-like directory structure (tarballs with standard internal paths). By default, run_panacea.py looks under a base directory like /Users/<you>/data/LRS2. Either:
-  - Mirror the TACC raw data layout under that base path (creating directories and placing tarballs accordingly), or
-  - Install Panacea in editable mode and change the baseraw path in src/panacea/run_panacea.py to point to your local raw-data mirror.
+- The quicklook runner expects HET raw data in a TACC-like directory structure (tarballs with standard internal paths). Use the --baseraw option to point Panacea to your local mirror of the LRS2 raw data. For example: --baseraw /data/LRS2. 
 - Packaged configuration files (line lists, DAR tables, fplane.txt, responses) are bundled with the package and found automatically via importlib.resources.
 
 Troubleshooting
@@ -348,6 +350,19 @@ as well as the exposure throughput from guider images.
 Q: Are the wavelength units in vacuum or air?
 
 A: Air
+
+Q: Do I need pyhetdex installed?
+
+A: Not strictly. If pyhetdex is not installed, Panacea will still run and produce core products. Astrometric features that rely on the fplane (e.g., mapping IFU positions to RA/Dec and focal-plane coordinates) will be disabled gracefully; you will see a warning at runtime. If you do install pyhetdex, Panacea will automatically use the packaged fplane.txt to enable these features.
+
+## Contributing and community guidelines
+
+We welcome contributions of bug reports, feature requests, and pull requests.
+
+- CONTRIBUTING.md: Describes how to set up a development environment, coding style, and how to propose changes via issues and pull requests.
+- CODE_OF_CONDUCT.md: Outlines our expectations for a welcoming, inclusive community. By participating, you agree to abide by this code.
+
+Please read both documents before opening an issue or submitting a PR.
 
 ## Authors
 
