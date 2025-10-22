@@ -131,6 +131,10 @@ def main():
                         help='''Reduce Dark Data''',
                         action="count", default=0)
 
+    parser.add_argument("--baseraw",
+                        help='''Base directory containing LRS2 raw data (tarballs). Overrides the built-in default.''',
+                        type=str, default='/Users/grz85/data/LRS2')
+
     args = parser.parse_args(args=None)
 
     # Optional: verify standard star identifiers when response-building is requested
@@ -191,7 +195,7 @@ def main():
     dither_pattern = np.zeros((50, 2))
 
     # Base raw data directory and path patterns for science/calibration discovery
-    baseraw = '/Users/grz85/data/LRS2'
+    baseraw = args.baseraw
 
     # Tarball glob and internal FITS path templates (filled per IFU slot/exp)
     sci_tar = op.join(baseraw, sci_date, '%s', '%s000*.tar')
@@ -383,14 +387,14 @@ def main():
             log.info('Checkpoint --- Working on %s, %s' % (bf, specname))
             if args.object is None:
                 big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                              ifuslot, specname, response=response, fplane_file=fplane_file)
+                              ifuslot, specname, response=response, fplane_file=fplane_file, date_str=args.date)
             else:
                 if args.object.lower() in obj[0].lower():
                     big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                                  ifuslot, specname, response=response, fplane_file=fplane_file)
+                                  ifuslot, specname, response=response, fplane_file=fplane_file, date_str=args.date)
                 if check_if_standard(obj[0]) and (ifuslot in obj[0]):
                     big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                                  ifuslot, specname, response=response, fplane_file=fplane_file)
+                                  ifuslot, specname, response=response, fplane_file=fplane_file, date_str=args.date)
 
 
 if __name__ == '__main__':

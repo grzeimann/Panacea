@@ -602,6 +602,7 @@ def big_reduction(
     source_y: Optional[float] = None,
     correct_ftf_flag: bool = False,
     fplane_file: str = '/work/03730/gregz/maverick/fplane.txt',
+    date_str: Optional[str] = None,
 ):
     """Run the per-exposure reduction and product generation for one IFU setup.
 
@@ -815,10 +816,11 @@ def big_reduction(
         for fl, name in zip(flist, names):
             fl.header['EXTNAME'] = name
 
-        outname = op.join(basename, f"multi_{datetime.now():%Y%m%d}_{sci_obs}_exp{cnt:02d}_{specname}.fits")
+        date_token = date_str if date_str is not None else f"{datetime.now():%Y%m%d}"
+        outname = op.join(basename, f"multi_{date_token}_{sci_obs}_exp{cnt:02d}_{specname}.fits")
         fits.HDUList(flist).writeto(outname, overwrite=True)
 
-        outname = op.join(basename, f"spectrum_{datetime.now():%Y%m%d}_{sci_obs}_exp{cnt:02d}_{specname}.fits")
+        outname = op.join(basename, f"spectrum_{date_token}_{sci_obs}_exp{cnt:02d}_{specname}.fits")
         prim = fits.PrimaryHDU(f5)
         for key in he.keys():
             if key in prim.header or 'SEC' in key or key in ('BSCALE', 'BZERO'):
