@@ -14,8 +14,6 @@
 
 [FAQ](https://github.com/grzeimann/Panacea/blob/master/README.md#frequently-asked-questions)
 
-[JOSS readiness checklist](https://github.com/grzeimann/Panacea/blob/master/JOSS_CHECKLIST.md)
-
 [Contributing and community guidelines](#contributing-and-community-guidelines)
 
 
