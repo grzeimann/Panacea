@@ -339,7 +339,7 @@ def find_source(dx: np.ndarray, dy: np.ndarray, skysub: np.ndarray, commonwave: 
     likely cosmic rays to form a convolved signal and error image. It then
     searches for the wavelength bin yielding the highest median S/N across
     fibers, collapses a narrow window around this location, and estimates the
-    source centroid and seeing by fitting a 2D Gaussian to nearby fibers. A
+    source centroid and fwhm_est by fitting a 2D Gaussian to nearby fibers. A
     simple S/N threshold is used to accept or reject a detection.
 
     Args:
@@ -365,70 +365,70 @@ def find_source(dx: np.ndarray, dy: np.ndarray, skysub: np.ndarray, commonwave: 
         - yoff (np.ndarray): Recentered DAR y offsets with zero at detection column.
     """
 
-
     log = logging.getLogger(__name__)
-    D = np.sqrt((dx - dx[:, np.newaxis]) ** 2 + (dy - dy[:, np.newaxis]) ** 2)
-    # Convolve spatially and along wavelength similar to legacy
-    # Build weights for near-neighbor fibers
-    W = build_weight_matrix(dx, dy, sig=0.75)
-    # Mask skylines and cosmics
-    mask = mask_skylines_cosmics(commonwave, skysub, specn, error)
-    Z = skysub * 1.0
-    E = error ** 2
-    Z[mask] = np.nan
-    E[mask] = np.nan
+    fiber_dist = np.sqrt((dx - dx[:, np.newaxis]) ** 2 + (dy - dy[:, np.newaxis]) ** 2)
+    # Near-neighbor weighting (kept for parity with legacy; not used below)
+    neighbor_weights = build_weight_matrix(dx, dy, sig=0.75)
+    # Mask strong skylines and likely cosmics in working copies
+    sky_cosmic_mask = mask_skylines_cosmics(commonwave, skysub, specn, error)
+    flux_masked = skysub * 1.0
+    var_map = error ** 2
+    flux_masked[sky_cosmic_mask] = np.nan
+    var_map[sky_cosmic_mask] = np.nan
     ispec = ispec * 1.0
-    T = ispec * 1.0
+    neighbor_sum = ispec * 1.0
     for i in np.arange(ispec.shape[1]):
-        T[:, i] = np.dot(ispec[:, i], (D < 1.5).astype(float))
-    YY = ispec / T
-    YY[np.isnan(YY)] = 0.0
-    Z[YY > 0.2] = np.nan
-    E[YY > 0.2] = np.nan
-    G = Gaussian1DKernel(1.5)
+        neighbor_sum[:, i] = np.dot(ispec[:, i], (fiber_dist < 1.5).astype(float))
+    cosmic_frac = ispec / neighbor_sum
+    cosmic_frac[np.isnan(cosmic_frac)] = 0.0
+    flux_masked[cosmic_frac > 0.2] = np.nan
+    var_map[cosmic_frac > 0.2] = np.nan
+    kernel_1d = Gaussian1DKernel(1.5)
     for i in np.arange(skysub.shape[0]):
-        Z[i, :] = convolve(Z[i, :], G, nan_treatment='fill', fill_value=0.0)
-        E[i, :] = convolve(E[i, :], G, nan_treatment='fill', fill_value=0.0)
-    sderror = np.sqrt(E)
-    Y = Z * 0.0
-    sel = E > 0.0
-    Y[sel] = Z[sel] / np.sqrt(E[sel])
-    Y[~np.isfinite(Y)] = 0.0
-    ind = np.unravel_index(np.nanargmax(Y[:, 50:-50], axis=None), Y[:, 50:-50].shape)
+        flux_masked[i, :] = convolve(flux_masked[i, :], kernel_1d, nan_treatment='fill', fill_value=0.0)
+        var_map[i, :] = convolve(var_map[i, :], kernel_1d, nan_treatment='fill', fill_value=0.0)
+    sigma_map = np.sqrt(var_map)
+    snr_image = flux_masked * 0.0
+    sel = var_map > 0.0
+    snr_image[sel] = flux_masked[sel] / np.sqrt(var_map[sel])
+    snr_image[~np.isfinite(snr_image)] = 0.0
+    # Find wavelength column with max median S/N away from edges (50 px margin)
+    ind = np.unravel_index(np.nanargmax(snr_image[:, 50:-50], axis=None), snr_image[:, 50:-50].shape)
     loc = ind[1] + 50
-    BN = 25
-    dimage = np.sum(Z[:, (loc-BN):(loc+BN+1)], axis=1)
-    derror = np.sqrt(np.sum(sderror[:, (loc-BN):(loc+BN+1)] ** 2, axis=1))
-    sn = dimage * 0.0
-    for i in np.arange(len(dimage)):
-        sel = D[i, :] < 1.5
-        S = np.sum(dimage[sel])
-        N = np.sqrt(np.sum(derror[sel] ** 2))
-        sn[i] = S / N if N > 0 else 0.0
-    SN = float(np.nanmax(sn)) if np.isfinite(sn).any() else 0.0
-    if SN <= 5.0:
-        log.info('%s, %s: No source found, s/n too low: %0.2f', obj, specn, SN)
+    # Collapse a 2*half_width_bins+1 window around the peak wavelength
+    half_width_bins = 25
+    collapsed_flux = np.sum(flux_masked[:, (loc - half_width_bins):(loc + half_width_bins + 1)], axis=1)
+    collapsed_error = np.sqrt(np.sum(sigma_map[:, (loc - half_width_bins):(loc + half_width_bins + 1)] ** 2, axis=1))
+    fiber_snr = collapsed_flux * 0.0
+    for i in np.arange(len(collapsed_flux)):
+        sel = fiber_dist[i, :] < 1.5
+        S = np.sum(collapsed_flux[sel])
+        N = np.sqrt(np.sum(collapsed_error[sel] ** 2))
+        fiber_snr[i] = S / N if N > 0 else 0.0
+    max_snr = float(np.nanmax(fiber_snr)) if np.isfinite(fiber_snr).any() else 0.0
+    if max_snr <= 5.0:
+        log.info('%s, %s: No source found, s/n too low: %0.2f', obj, specn, max_snr)
         return None
-    ind = int(np.argmax(dimage))
-    dist = np.sqrt((dx - dx[ind]) ** 2 + (dy - dy[ind]) ** 2)
-    inds = dist < 1.5
-    x_centroid = float(np.sum(dimage[inds] * dx[inds]) / np.sum(dimage[inds]))
-    y_centroid = float(np.sum(dimage[inds] * dy[inds]) / np.sum(dimage[inds]))
-    G2 = Gaussian2D()
+    ind = int(np.argmax(collapsed_flux))
+    radial_sep = np.sqrt((dx - dx[ind]) ** 2 + (dy - dy[ind]) ** 2)
+    neighbor_fibers = radial_sep < 1.5
+    x_centroid = float(np.sum(collapsed_flux[neighbor_fibers] * dx[neighbor_fibers]) / np.sum(collapsed_flux[neighbor_fibers]))
+    y_centroid = float(np.sum(collapsed_flux[neighbor_fibers] * dy[neighbor_fibers]) / np.sum(collapsed_flux[neighbor_fibers]))
+    gauss2d_model = Gaussian2D()
     fitter = LevMarLSQFitter()
-    G2.amplitude.value = float(dimage[ind])
-    G2.x_mean.value = x_centroid
-    G2.y_mean.value = y_centroid
-    fit = fitter(G2, dx[inds], dy[inds], dimage[inds])
-    seeing = 2.35 * np.sqrt(fit.x_stddev * fit.y_stddev)
-    if seeing < 0.75:
-        log.info('%s, %s: source s/n %0.2f rejected for too small FWHM, col: %i', obj, specn, SN, loc)
+    gauss2d_model.amplitude.value = float(collapsed_flux[ind])
+    gauss2d_model.x_mean.value = x_centroid
+    gauss2d_model.y_mean.value = y_centroid
+    fit = fitter(gauss2d_model, dx[neighbor_fibers], dy[neighbor_fibers], collapsed_flux[neighbor_fibers])
+    fwhm_est = 2.35 * np.sqrt(fit.x_stddev * fit.y_stddev)
+    if fwhm_est < 0.75:
+        log.info('%s, %s: source s/n %0.2f rejected for too small FWHM, col: %i', obj, specn, max_snr, loc)
         return None
-    log.info('%s, %s: source found at s/n: %0.2f, fwhm: %s', obj, specn, SN, seeing)
-    X = np.ones(commonwave.shape)
+    log.info('%s, %s: source found at s/n: %0.2f, fwhm: %s', obj, specn, max_snr, fwhm_est)
+    ones_wave = np.ones(commonwave.shape)
     xoff = xoff - xoff[loc]
     yoff = yoff - yoff[loc]
-    return x_centroid, y_centroid, fit.x_stddev.value * X, fit.y_stddev.value * X, xoff, yoff
+    return x_centroid, y_centroid, fit.x_stddev.value * ones_wave, fit.y_stddev.value * ones_wave, xoff, yoff
 
 
 
