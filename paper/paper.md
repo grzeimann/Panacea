@@ -11,47 +11,60 @@ authors:
     orcid: 0000-0003-2307-0629
     affiliation: 1
 affiliations:
-  - name: Hobby-Eberly Telescope, University of Texas, Austin
+  - name: Hobby–Eberly Telescope, University of Texas, Austin
     index: 1
-date: 2025-10-20
+date: 2025-10-23
 bibliography: paper.bib
 ---
 
 # Summary
 
-**Panacea** is the production data-reduction pipeline for the *Low Resolution Spectrograph 2 (LRS2)* on the **Hobby–Eberly Telescope (HET)**. LRS2\citep{Chonis2016} is a fiber-fed integral-field spectrograph mounted on the 10-m HET, designed to capture spatially resolved optical spectra across a broad wavelength range. 
+Panacea is the production data-reduction pipeline for the Low Resolution Spectrograph 2 [LRS2; @Chonis:2016]  on the Hobby–Eberly Telescope (HET). LRS2 is a fiber-fed integral-field spectrograph mounted on the 10-m HET, designed to capture spatially resolved optical spectra across a broad wavelength range. 
 
-The instrument’s four spectrograph channels (UV, Orange, Red, and Far Red) together span 3640–10500 Å at resolving powers of 1100–1900. This broad wavelength coverage and integral-field capability make LRS2 well-suited for diverse astrophysical investigations, including studies of Lyman-alpha emitters (LAEs), planetary nebulae, stellar populations, and transient phenomena such as supernovae and optical counterparts to gravitational-wave events. LRS2 also supports follow-up work for large-scale surveys such as HETDEX \citep{Gebhardt2021} and enables research on high-redshift galaxies, active galactic nuclei (AGN), brown dwarfs, and local emission-line galaxies.
+The instrument’s four spectrograph channels (UV, Orange, Red, and Far Red) span 3640–10500 Å at resolving powers of 1100–1900. This configuration supports a range of astrophysical applications, including studies of Lyman-alpha emitters, planetary nebulae, stellar populations, and transient events such as supernovae and optical counterparts to gravitational-wave sources. LRS2 also provides follow-up spectroscopy for large-scale surveys such as HETDEX [@Gebhardt:2021] and enables studies of high-redshift galaxies, active galactic nuclei, brown dwarfs, and emission-line systems in the nearby Universe.
 
-Panacea automates the complete end-to-end reduction of raw LRS2 CCD frames into science-ready spectra and data cubes. It executes daily on the Texas Advanced Computing Center (TACC) systems and supports reproducible user-driven reductions, providing the community with uniform and verified data products.
+Panacea automates the reduction of raw LRS2 CCD frames into science-ready spectra and data cubes. It executes daily on the Texas Advanced Computing Center (TACC) systems providing uniform, verified data products for scientific analysis.
 
 # Statement of Need
 
-Modern multi-arm integral-field spectrographs such as LRS2 generate thousands of spectra per night across four independent channels, each requiring distinct calibration and extraction strategies. Manual reduction of such data is impractical for routine operations. **Panacea** provides a reliable, standardized, and fully automated framework that performs all calibration, extraction, and combination steps to produce consistent, reproducible results.
+Modern multi-arm integral-field spectrographs generate thousands of spectra per night across multiple detectors, each requiring dedicated calibration and extraction. Manual reduction of such data is time-intensive and inconsistent for routine operations. Panacea provides a standardized, automated framework that performs calibration, extraction, and combination steps in a consistent, reproducible workflow.
 
-The primary users of Panacea are **LRS2 observers and other Hobby–Eberly Telescope researchers**, but astronomers working with other IFU spectrographs may also individual algorithms useful for adapting to similar instruments. Since its introduction on **1 January 2019**, Panacea has continuously processed all production LRS2 data on TACC and has supported more than **57 refereed publications** citing Panacea products from the Hobby–Eberly Telescope as of **October 2025**, underscoring its maturity and broad scientific impact.
+The primary users of Panacea are LRS2 observers and other Hobby–Eberly Telescope researchers, but astronomers working with other IFU spectrographs may adapt its modular algorithms for similar systems. Since its deployment in 2019, Panacea has processed all production LRS2 data at HET and contributed to more than 50 refereed publications as of October 2025, demonstrating its reliability and broad use within the community.
 
 # State of the Field
 
-Several community pipelines address spectroscopic data reduction, including **PypeIt** \citep{Prochaska2020}, a flexible long-slit and echelle reduction framework, and **PyWiFeS**, designed for the WiFeS integral-field spectrograph. **Remedy** \citep{Zeimann2024} provides a related system for the VIRUS spectrographs on HET. Panacea differs from these packages by integrating both CCD-level calibration and fiber-based spectral reconstruction in a single framework, specifically tailored for the **dual-arm, multi-amplifier IFU design of LRS2**. Its automation and provenance tracking are optimized for nightly survey operations as well as principal-investigator data reduction.
+Modern IFU pipelines span observatory-maintained systems and general-purpose frameworks.
+
+- **MUSE (ESO) pipeline.** The European Southern Observatory’s official MUSE pipeline [@Weilbacher:2020] provides an end-to-end reduction system for the 24-IFU image-slicer instrument. 
+
+- **KCWI pipelines.** The Keck Cosmic Web Imager is supported by the KCWI Data Reduction Pipeline [@Morrissey:2018], implemented in Python and distributed via the Keck Observatory Archive, handles slicer geometry and calibration but generally defer source detection to post-cube analysis software.
+
+- **MaNGA (SDSS-IV) DRP.** The MaNGA pipeline [@Law:2016] processed thousands of fiber bundles per night, performing wavelength calibration, sky subtraction, flux calibration, and rectified cube assembly. Its architecture established a model for large-survey IFU reductions.
+
+- **SDSS-V Local Volume Mapper (LVM).** The LVM DRP and DAP [@Sanchez:2024; @Sanchez:2025] extend the MaNGA framework to parsec-scale mapping of the Milky Way and nearby galaxies, combining calibration, data fusion, and distributed analysis optimized for wide-field mosaics.
+
+- **PypeIt.** PypeIt [@Prochaska:2020] is a flexible, general-purpose spectroscopic pipeline supporting long-slit, multi-slit, and echelle data. Its modular design and calibration models have broad applicability, though it is not optimized for fiber-fed IFUs or multi-amplifier architectures such as LRS2.
+
+- **Remedy.** Remedy [@Zeimann:2024] is the production reduction system for the VIRUS spectrographs on HET. It is optimized for massively multiplexed fiber spectroscopy and survey-scale operation for the HET VIRUS Parallel Survey [HETVIPS; @Zeimann:2024], emphasizing throughput, automated calibration, and efficient sky modeling. Panacea and Remedy share common software patterns for amplifier handling and data provenance but differ in scope: Panacea focuses on dual-arm IFU observations and flexible, observer-driven data products.
+
+**Panacea’s distinction.**
+1. **Integrated CCD–to–spectrum reduction for LRS2.** Panacea combines CCD-level calibration (bias removal, gain and trace solutions, wavelength calibration, and throughput normalization) with fiber-based extraction in a unified framework.
+2. **Built-in automatic target detection on IFU frames.** Unlike most pipelines that rely on post-cube detection, Panacea includes PSF- and fiber–aware automatic detection directly on the IFU frame, identifying and extracting sources using matched filtering and optimal fiber weighting.
+3. **Automated daily reductions with reproducibility.** Panacea executes automatically each morning on TACC systems, producing consistent, provenance-tracked spectra and cubes that are ready for principal investigator use.
 
 # Methods and Implementation
 
-Panacea is written in **Python 3** and orchestrates each stage of the LRS2 reduction sequence, from overscan and bias subtraction to flux calibration, within a single, reproducible workflow. It models and removes amplifier-dependent electronic offsets, traces and extracts fiber profiles using an optimal extraction algorithm, and derives wavelength solutions from arc-lamp exposures with sub-pixel precision. Flat-fielding and fiber-to-fiber normalization correct for spatial and throughput variations, while an empirical two-dimensional sky model minimizes residuals from bright sky lines. The resulting spectra are relatively flux-calibrated using standard response curves and put on absolute scale using guider-based transparency estimates as well as mirror illumination models of the fixed altitude HET. 
+Panacea is written in Python 3 and orchestrates each stage of the LRS2 reduction sequence for each channel independently, from overscan and bias subtraction to flux calibration, within a single reproducible workflow. It models and removes amplifier-dependent offsets, traces and extracts fiber profiles with an optimal extraction algorithm, and derives wavelength solutions from arc-lamp exposures with sub-pixel precision. Flat-fielding and fiber-to-fiber normalization correct for throughput variations, while a two-dimensional sky model minimizes residuals from bright sky lines. The resulting spectra are relatively flux-calibrated using standard response curves and placed on an absolute scale using guider-based transparency estimates and mirror illumination models of the fixed-altitude HET. 
 
-Panacea produces multi-extension FITS files that include extracted spectra, sky models, error frames, and ancillary diagnostic information. It automatically detects targets in the IFU frame across the channel wavelengths and extracts a spectrum using an optimal weighting algorithm if the source has a signal to noise greater than 5.  Finally, we also provide data cubes for each channel.  These data products enable both scientific analysis and verification of calibration quality.
+Panacea produces multi-extension FITS files that include extracted spectra, sky models, error frames, and diagnostic extensions. For automatic target detection in the IFU, the pipeline masks bright skylines and cosmic rays, smooths spectra with a Gaussian kernel, and constructs a per-fiber signal-to-noise image to locate the most significant wavelength slice away from edges. It collapses a narrow spectral window, fits a two-dimensional Gaussian to nearby fibers to estimate centroid and apparent size, recenters for differential atmospheric refraction, and performs an optimal extraction when the detection exceeds S/N > 5. Data cubes are also generated for each spectrograph channel, supporting both science analysis and calibration verification.
 
 # Validation
 
-The accuracy of Panacea reductions is assessed through repeat observations of spectrophotometric standard stars and cross-channel consistency tests. Validation confirms stable wavelength and flux calibration performance across all four spectrograph arms, demonstrating that Panacea delivers reliable, science-quality data for both nightly and archival use.
-
-# Author Contributions
-
-- **Conceptualization, Software, Validation, Writing – Original Draft:** Greg Zeimann
+Performance validation is conducted through repeat observations of spectrophotometric standard stars and cross-channel consistency tests. Results confirm stable wavelength and flux calibration across all four spectrograph arms, demonstrating that Panacea delivers reproducible, science-quality data for nightly and archival use.
 
 # Acknowledgements
 
-The author thanks the **Hobby–Eberly Telescope** operations staff, the **HETDEX collaboration**, and administrators at the **Texas Advanced Computing Center (TACC)** for their essential support of the automated reduction framework. Additional gratitude is extended to HET instrument scientists and LRS2 observers for providing continuous feedback that shaped Panacea’s development.
+The author thanks the Hobby–Eberly Telescope operations staff and administrators at the Texas Advanced Computing Center (TACC) for their support of the automated reduction system. Additional thanks go to HET instrument scientists and LRS2 observers for their feedback that guided Panacea’s development.
 
 # References
 See `paper.bib`.
