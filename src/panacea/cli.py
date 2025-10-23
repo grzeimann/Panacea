@@ -1,8 +1,7 @@
-"""Package CLI entry point for Panacea.
+"""Package entry point for Panacea.
 
-Decoupled from the legacy full_lrs2_reduction script. This delegates to the
-package's modular CLI (panacea.run_panacea) so that help and argument parsing
-work without the monolithic module.
+Decoupled from the legacy full_lrs2_reduction script so that help and argument parsing
+work without the previous monolithic module.
 """
 from __future__ import annotations
 
@@ -10,11 +9,8 @@ import sys
 
 
 def main():
-    """Entry point used by the console script.
-
-    Delegates to the modular CLI implemented in ``panacea.run_panacea`` so that
-    ``-h`` and argument parsing do not depend on the legacy script slated for
-    removal.
+    """
+    Entry point used by the console script.
     """
     from . import run_panacea as runner
 
