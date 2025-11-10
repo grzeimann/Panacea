@@ -1,8 +1,5 @@
 """Fiber-level extraction utilities.
-
-Functions migrated per function_map.md.
 """
-from __future__ import annotations
 
 import logging
 import numpy as np
@@ -14,7 +11,7 @@ from .utils import safe_division
 log = logging.getLogger(__name__)
 
 
-def get_spectra(array_flt: np.ndarray, array_trace: np.ndarray) -> np.ndarray:
+def get_spectra(array_flt, array_trace):
     """Extract per-fiber spectra by sampling along trace centers.
 
     For each fiber, average the values at the floor/ceil of the trace position
@@ -39,7 +36,7 @@ def get_spectra(array_flt: np.ndarray, array_trace: np.ndarray) -> np.ndarray:
     return spectrum
 
 
-def find_cosmics(Y: np.ndarray, E: np.ndarray, trace: np.ndarray, thresh: float = 8.0, ran: int = 0) -> np.ndarray:
+def find_cosmics(Y, E, trace, thresh=8.0, ran=0):
     """Detect cosmic ray hits near fiber traces using deviation thresholding.
 
     Args:
@@ -75,7 +72,7 @@ def find_cosmics(Y: np.ndarray, E: np.ndarray, trace: np.ndarray, thresh: float 
     return C
 
 
-def weighted_extraction(image: np.ndarray, error: np.ndarray, flat: np.ndarray, trace: np.ndarray, cthresh: float = 8.0):
+def weighted_extraction(image, error, flat, trace, cthresh=8.0):
     """Weighted spectral extraction with cosmic-ray rejection.
 
     Args:
@@ -149,7 +146,7 @@ def weighted_extraction(image: np.ndarray, error: np.ndarray, flat: np.ndarray, 
     return spectrum, error_spec, C, Y, Fimage
 
 
-def modify_spectrum(spectrum: np.ndarray, error: np.ndarray, w: np.ndarray):
+def modify_spectrum(spectrum, error, w):
     """Normalize and fill spectra using wavelength differentials.
 
     For each fiber, divides spectrum by median dv = diff(w) and fills zeros
@@ -179,7 +176,7 @@ def modify_spectrum(spectrum: np.ndarray, error: np.ndarray, w: np.ndarray):
     return spectrum, error
 
 
-def correct_ftf(rect: np.ndarray, error: np.ndarray):
+def correct_ftf(rect, error):
     """Fiber-to-fiber correction for rectified spectra.
 
     Computes a smooth sky model per column and divides both rect and error by
