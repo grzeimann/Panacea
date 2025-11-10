@@ -81,10 +81,6 @@ def main():
                         help='''Correct fiber to fiber''',
                         action="count", default=0)
 
-    parser.add_argument("-md", "--model_dar",
-                        help='''model DAR''',
-                        action="count", default=0)
-
     parser.add_argument("-cw", "--central_wave",
                         help='''Central Wavelength for collapsed Frame''',
                         type=float, default=None)
@@ -92,32 +88,6 @@ def main():
     parser.add_argument("-wb", "--wavelength_bin",
                         help='''Wavelength Bin to collapse over (+/- bin size)''',
                         type=float, default=10.)
-
-    parser.add_argument("-sx", "--source_x",
-                        help='''Source's x position at the central_wave''',
-                        type=float, default=None)
-
-    parser.add_argument("-sy", "--source_y",
-                        help='''Source's y position at the central_wave''',
-                        type=float, default=None)
-
-    parser.add_argument("-ssd", "--standard_star_date",
-                        help='''Standard Star Date for response function,
-                        example: 20181101''',
-                        type=str, default=None)
-
-    parser.add_argument("-sso", "--standard_star_obsid",
-                        help='''Standard Star ObsID for response function,
-                        example: 0000012''',
-                        type=str, default=None)
-
-    parser.add_argument("-ad", "--arc_date",
-                        help='''Arc Date for reduction''',
-                        type=str, default=None)
-
-    parser.add_argument("-td", "--twi_date",
-                        help='''Twilight Date for reduction''',
-                        type=str, default=None)
 
     parser.add_argument("-re", "--reduce_eng",
                         help='''Reduce Engineer Data''',
@@ -136,12 +106,6 @@ def main():
                         type=str, default='/Users/grz85/data/LRS2')
 
     args = parser.parse_args(args=None)
-
-    # Optional: verify standard star identifiers when response-building is requested
-    if args.standard_star_obsid is not None: 
-        args.standard_star_obsid = '%07d' % int(args.standard_star_obsid)
-        if args.standard_star_date is None:
-            log.error('Please include --standard_star_date DATE with call.')
 
     # Sanity check: source_x/source_y require central_wave, and vice versa
     for i in ['source_x', 'source_y']:
@@ -387,14 +351,21 @@ def main():
             log.info('Checkpoint --- Working on %s, %s' % (bf, specname))
             if args.object is None:
                 big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                              ifuslot, specname, response=response, fplane_file=fplane_file, date_str=args.date)
+                              ifuslot, specname, response=response, central_wave=args.central_wave,
+                              wavelength_bin=args.wavelength_bin, correct_ftf_flag=args.correct_ftf,
+                              fplane_file=fplane_file, date_str=args.date)
             else:
                 if args.object.lower() in obj[0].lower():
                     big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                                  ifuslot, specname, response=response, fplane_file=fplane_file, date_str=args.date)
+                                  ifuslot, specname, response=response, central_wave=args.central_wave,
+                                  wavelength_bin=args.wavelength_bin, correct_ftf_flag=args.correct_ftf,
+                                  fplane_file=fplane_file, date_str=args.date)
                 if check_if_standard(obj[0]) and (ifuslot in obj[0]):
                     big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                                  ifuslot, specname, response=response, fplane_file=fplane_file, date_str=args.date)
+                                  ifuslot, specname, response=response,
+                                  central_wave=args.central_wave, wavelength_bin=args.wavelength_bin,
+                                  correct_ftf_flag=args.correct_ftf,
+                                  fplane_file=fplane_file, date_str=args.date)
 
 
 if __name__ == '__main__':
