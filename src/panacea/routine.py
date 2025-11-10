@@ -1,8 +1,6 @@
 """General routines orchestrating reduction steps.
 
-Functions migrated per function_map.md.
 """
-from __future__ import annotations
 
 import os
 import os.path as op
@@ -13,7 +11,6 @@ import warnings
 import logging
 
 import numpy as np
-from typing import List, Tuple, Optional
 from astropy.io import fits
 from astropy.table import Table
 from astropy.convolution import Gaussian1DKernel, convolve
@@ -40,7 +37,7 @@ from .sky import sky_subtraction
 from .astrometry import Astrometry
 
 
-def get_ifucenfile(side: str, amp: str, lrs2config: str = "lrs2_config", skiprows: int = 4) -> np.ndarray:
+def get_ifucenfile(side, amp, lrs2config="lrs2_config", skiprows=4):
     """Load IFU center positions for a given side and amplifier.
 
     Args:
@@ -207,9 +204,7 @@ def get_throughput(fn, exptime, path='/work/03946/hetdex/maverick'):
     return t
 
 
-def extract_sci(sci_path: str, amps: List[str], flat: np.ndarray, array_trace: np.ndarray,
-                array_wave: np.ndarray, bigW: np.ndarray, masterbias: np.ndarray,
-                pos: np.ndarray, commonwave: np.ndarray):
+def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW, masterbias, pos, commonwave):
     """Extract, sky-normalize, and rectify science spectra for a two-amp exposure.
 
     This function mirrors the legacy extract_sci workflow while explicitly
@@ -329,9 +324,7 @@ def extract_sci(sci_path: str, amps: List[str], flat: np.ndarray, array_trace: n
         Flist), np.array(error_list), hdr_list
 
 
-def find_source(dx: np.ndarray, dy: np.ndarray, skysub: np.ndarray, commonwave: np.ndarray,
-                obj: str, specn: str, error: np.ndarray, xoff: np.ndarray, yoff: np.ndarray,
-                wave_0: float, ispec: np.ndarray):
+def find_source(dx, dy, skysub, commonwave, obj, specn, error, xoff, yoff, wave_0, ispec):
     """Locate a compact source using spatial and spectral convolution with S/N selection.
 
     This routine applies a Gaussian convolution along wavelength and a
@@ -432,7 +425,7 @@ def find_source(dx: np.ndarray, dy: np.ndarray, skysub: np.ndarray, commonwave: 
 
 
 
-def fit_response_cont(wv: np.ndarray, sky: np.ndarray, skip: int = 5, fil_len: int = 95, func=np.array):
+def fit_response_cont(wv, sky, skip=5, fil_len=95, func=np.array):
     """Estimate a smooth continuum for response calibration.
 
     Applies a Savitzky–Golay filter to the input sky spectrum with iterative
@@ -482,7 +475,7 @@ def fit_response_cont(wv: np.ndarray, sky: np.ndarray, skip: int = 5, fil_len: i
     return sky_sm
 
 
-def get_response(objname: str, commonwave: np.ndarray, spec: np.ndarray, specname: str):
+def get_response(objname, commonwave, spec, specname):
     """Compute a scalar response vector from a spectrophotometric standard.
 
     If the target name matches a known standard star, this function loads the
@@ -519,9 +512,7 @@ def get_response(objname: str, commonwave: np.ndarray, spec: np.ndarray, specnam
     return 1.0 / cont
 
 
-def extract_source(data: np.ndarray, xc: float, yc: float, xoff: np.ndarray, yoff: np.ndarray,
-                   wave: np.ndarray, xloc: np.ndarray, yloc: np.ndarray, error: np.ndarray,
-                   xstd: np.ndarray, ystd: np.ndarray):
+def extract_source(data, xc, yc, xoff, yoff, wave, xloc, yloc, error, xstd, ystd):
     """Extract a compact source spectrum using a 2D Gaussian PSF model.
 
     Mirrors the legacy method: for each wavelength column, evaluate a circular
@@ -584,30 +575,15 @@ def extract_source(data: np.ndarray, xc: float, yc: float, xoff: np.ndarray, yof
     return spec, serror, weights, mask
 
 
-def big_reduction(
-    obj,
-    bf: str,
-    instrument: str,
-    sci_obs: str,
-    calinfo: list,
-    amps: List[str],
-    commonwave: np.ndarray,
-    ifuslot: str,
-    specname: str,
-    standard: bool = False,
-    response: Optional[np.ndarray] = None,
-    central_wave: Optional[float] = None,
-    wavelength_bin: float = 50.0,
-    source_x: Optional[float] = None,
-    source_y: Optional[float] = None,
-    correct_ftf_flag: bool = False,
-    fplane_file: str = '/work/03730/gregz/maverick/fplane.txt',
-    date_str: Optional[str] = None,
-):
+def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave, ifuslot, specname,
+                  standard=False, response=None, central_wave=None, wavelength_bin=50.0, source_x=None,
+                  source_y=None, correct_ftf_flag=False, fplane_file='/work/03730/gregz/maverick/fplane.txt',
+                  date_str=None):
     """Run the per-exposure reduction and product generation for one IFU setup.
 
     This ports the legacy ``big_reduction`` procedure. For each exposure matching
     the base file ``bf`` and IFU slot, it:
+
     - extracts rectified spectra via ``extract_sci``;
     - applies guider-based normalization (exptime, mirror illumination, throughput);
     - performs sky subtraction;
