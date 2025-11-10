@@ -3,11 +3,9 @@
 Functions copied from full_lrs2_reduction.py as per function_map.md.
 Docstrings are updated to Google style where applicable.
 """
-from __future__ import annotations
 
 import warnings
 import tarfile
-from typing import List, Tuple, Optional
 
 import numpy as np
 from astropy.io import fits
@@ -20,7 +18,7 @@ from .io import get_tarname_from_filename
 from .sky import make_avg_spec
 
 
-def orient_image(image: np.ndarray, amp: str, ampname: Optional[str]):
+def orient_image(image, amp, ampname):
     """Adjust the orientation of an image array based on amplifier info.
 
     The transformation is performed in-place and also returned for convenience.
@@ -43,7 +41,7 @@ def orient_image(image: np.ndarray, amp: str, ampname: Optional[str]):
     return image
 
 
-def base_reduction(filename: str, tarname: Optional[str] = None, get_header: bool = False):
+def base_reduction(filename, tarname=None, get_header=False):
     """Basic CCD reduction: overscan subtraction, trim, gain, noise.
 
     Reads a FITS file from disk or from within a TAR archive, applies overscan
@@ -95,7 +93,7 @@ def base_reduction(filename: str, tarname: Optional[str] = None, get_header: boo
     return aimg, E
 
 
-def get_powerlaw(image: np.ndarray, trace: np.ndarray, spec: np.ndarray):
+def get_powerlaw(image, trace, spec):
     """Calculate power-law normalization model near fiber traces.
 
     Args:
@@ -147,7 +145,7 @@ def get_powerlaw(image: np.ndarray, trace: np.ndarray, spec: np.ndarray):
     return C * savgol_filter(norm, 141, 1)[np.newaxis, :], norm
 
 
-def get_bigW(amp, array_wave: np.ndarray, array_trace: np.ndarray, image: np.ndarray) -> np.ndarray:
+def get_bigW(amp, array_wave, array_trace, image):
     """Compute the wavelength grid per pixel over the full CCD.
 
     Args:
@@ -177,7 +175,7 @@ def get_bigW(amp, array_wave: np.ndarray, array_trace: np.ndarray, image: np.nda
     return bigW
 
 
-def get_bigF(array_trace: np.ndarray, image: np.ndarray) -> np.ndarray:
+def get_bigF(array_trace, image):
     """Compute a smoothed spatial profile model across the CCD.
 
     Args:
@@ -200,7 +198,7 @@ def get_bigF(array_trace: np.ndarray, image: np.ndarray) -> np.ndarray:
     return bigF
 
 
-def get_masterbias(files: List[str], amp: str) -> np.ndarray:
+def get_masterbias(files, amp):
     """Compute a master bias from a list of raw frames.
 
     Args:
@@ -221,14 +219,7 @@ def get_masterbias(files: List[str], amp: str) -> np.ndarray:
     return biweight_location(biassum, axis=0)
 
 
-def get_masterarc(
-    files: List[str],
-    amp: str,
-    arc_names: List[str],
-    masterbias: np.ndarray,
-    specname: str,
-    trace: np.ndarray,
-) -> np.ndarray:
+def get_masterarc(files, amp, arc_names, masterbias, specname, trace):
     """Build a master arc image by combining suitable arc exposures.
 
     Args:
@@ -258,7 +249,7 @@ def get_masterarc(
     return arcsum / cnt
 
 
-def get_mastertwi(files: List[str], amp: str, masterbias: np.ndarray) -> np.ndarray:
+def get_mastertwi(files, amp, masterbias):
     """Compute a master twilight flat image.
 
     Args:
@@ -282,15 +273,7 @@ def get_mastertwi(files: List[str], amp: str, masterbias: np.ndarray) -> np.ndar
     return np.median(twi_array / norm, axis=0)
 
 
-def get_twiflat_field(
-    files: List[str],
-    amps: List[str],
-    array_wave: np.ndarray,
-    array_trace: np.ndarray,
-    bigW: np.ndarray,
-    masterbias: np.ndarray,
-    specname: str,
-) -> np.ndarray:
+def get_twiflat_field(files, amps, array_wave, array_trace, bigW, masterbias, specname):
     """Create a normalized flat-field image from twilight/internal flats.
 
     This computes fiber spectra from flats, removes a smoothly varying power-law
