@@ -17,7 +17,7 @@ from astropy.io import fits
 import uuid
 
 
-def get_tarname_from_filename(filename: str) -> str:
+def get_tarname_from_filename(filename):
     """Return the associated tar archive path for a raw FITS path.
 
     The heuristic matches the legacy layout where raw files are stored in a
@@ -36,7 +36,7 @@ def get_tarname_from_filename(filename: str) -> str:
 
 
 
-def get_filenames_from_tarfolder(tarfolder: str, path: str):
+def get_filenames_from_tarfolder(tarfolder, path):
     """List member paths in the tar that match the given pattern.
 
     Args:
@@ -57,7 +57,7 @@ def get_filenames_from_tarfolder(tarfolder: str, path: str):
     return matches
 
 
-def get_cal_path(pathname: str, date: str, ndays: int = 31):
+def get_cal_path(pathname, date, ndays = 31):
     """Find calibration files around a date window, respecting controller swap.
 
     Args:
