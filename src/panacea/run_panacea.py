@@ -40,23 +40,7 @@ from .routine import get_ifucenfile, big_reduction
 from .fiber import get_spectra, weighted_extraction
 from .utils import get_objects, check_if_standard, get_config_file, read_arc_lines
 
-
-standard_names = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
-                  'HILTNER_600', 'G193-74', 'PG0823+546', 'HD_84937',
-                  'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
-                  'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
-                  'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
-                  'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4',
-                  'BD+40_4032', 'HILTNER_102',
-                  'BD_+26_2606', 'GD_248', 'FEIGE_56', 'FEIGE_92',
-                  'HZ_15', 'FEIGE_98', 'BD+08_2015', 'BD+25_3941',
-                  'FEIGE_15', 'FEIGE_25', 'SA_95-42', 'BD+28_4211',
-                  'HR6203']
-
 log = setup_logging('panacea_quicklook')
-
-
-
 
 def main():
     parser = ap.ArgumentParser(add_help=True)
@@ -106,16 +90,6 @@ def main():
                         type=str, default='/Users/grz85/data/LRS2')
 
     args = parser.parse_args(args=None)
-
-    # Sanity check: source_x/source_y require central_wave, and vice versa
-    for i in ['source_x', 'source_y']:
-        for j in ['source_x', 'source_y', 'central_wave']:
-            if i == j:
-                continue
-            if getattr(args, i) is not None:
-                if getattr(args, j) is None:
-                    log.error('%s was set but not %s.' % (i, j))
-                    sys.exit(1)
 
     args.sides = [x.replace(' ', '') for x in args.sides.split(',')]
 
