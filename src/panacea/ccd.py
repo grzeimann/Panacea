@@ -6,6 +6,7 @@ Docstrings are updated to Google style where applicable.
 
 import warnings
 import tarfile
+import logging
 
 import numpy as np
 from astropy.io import fits
@@ -16,6 +17,8 @@ from scipy.signal import savgol_filter
 from .utils import power_law
 from .io import get_tarname_from_filename
 from .sky import make_avg_spec
+
+log = logging.getLogger(__name__)
 
 
 def orient_image(image, amp, ampname):
@@ -39,6 +42,41 @@ def orient_image(image, amp, ampname):
         if ampname == "LR" or ampname == "UL":
             image[:] = image[:, ::-1]
     return image
+
+
+def find_cosmics(Y, E, trace, thresh=8.0, **kwargs):
+    """Detect cosmic ray hits near fiber traces using deviation thresholding.
+
+    Args:
+        Y: 2D image values.
+        E: 2D error/variance estimates aligned with ``Y``.
+        trace: Trace positions (fibers x columns).
+        thresh: Sigma-like threshold; larger values are less sensitive.
+
+    Returns:
+        Boolean mask with True indicating suspected cosmic ray pixels.
+    """
+    x = np.arange(trace.shape[1])
+    C = Y * 0.0
+    for fiber in np.arange(trace.shape[0]):
+        indl = np.floor(trace[fiber]).astype(int)
+        T = np.zeros((4, trace.shape[1], 4))
+        flag = True
+        for ss, k in enumerate(np.arange(-1, 3)):
+            try:
+                T[0, :, ss] = Y[indl + k, x]
+                T[1, :, ss] = E[indl + k, x]
+                T[2, :, ss] = indl + k
+                T[3, :, ss] = x
+            except Exception:
+                flag = False
+        if flag:
+            m = np.median(T[0], axis=1)
+            P = np.abs(T[0] - m[:, np.newaxis]) / T[1]
+            C[T[2][P > thresh].astype(int), T[3][P > thresh].astype(int)] = 1.0
+    C = np.array(C, dtype=bool)
+    log.info("Number of fiber pixels hit by cosmics: %i", C.sum())
+    return C
 
 
 def base_reduction(filename, tarname=None, get_header=False):

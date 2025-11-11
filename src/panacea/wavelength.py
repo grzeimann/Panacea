@@ -8,9 +8,7 @@ import numpy as np
 from astropy.stats import biweight_midvariance
 import logging
 from astropy.convolution import Gaussian1DKernel, convolve
-from .fiber import get_spectra
-from .utils import find_lines
-from .io import robust_polyfit
+from .utils import find_lines, robust_polyfit
 
 def find_peaks(y, thresh = 8.0):
     """Locate significant peaks in a 1D array using slope changes and S/N.
@@ -78,6 +76,8 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, date, otherimage=Non
 
     log = logging.getLogger(__name__)
 
+    # Local import to avoid circular import: wavelength -> fiber -> ccd -> sky -> wavelength
+    from .fiber import get_spectra
     spectrum = get_spectra(image, trace)
     fib = int(np.argmax(np.median(spectrum, axis=1)))
     if side == 'uv' and int(date) > 20161101:

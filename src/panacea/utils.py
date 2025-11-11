@@ -629,7 +629,6 @@ def count_matches(lines, loc, fib, cnt = 5):
     return tuple(np.unravel_index(np.argmax(M), M.shape))
 
 
-
 def get_standard_star_params(data, commonwave, xloc, yloc):
     """Estimate centroid, size, and DAR trends from a standard-star cube.
 
@@ -741,3 +740,27 @@ def get_bigarray(xloc, yloc):
     BigX = np.hstack(NX)
     BigY = np.hstack(NY)
     return BigX, BigY
+
+
+
+def robust_polyfit(x, y, order=3, niter=3):
+    """MAD-clipped polynomial fit evaluated on x.
+
+    Args:
+        x: 1D array of x-coordinates.
+        y: 1D array of y-values.
+        order: Polynomial order.
+        niter: Number of sigma-clipping iterations.
+
+    Returns:
+        Fitted y model evaluated at x.
+    """
+    sel = y > 0.0
+    ymod = np.polyval(np.polyfit(x[sel], y[sel], order), x)
+    for _ in np.arange(niter):
+        a = np.abs(y - ymod)
+        mad = np.median(a)
+        sel = a < 3.0 * mad
+        if sel.sum() > (order + 2):
+            ymod = np.polyval(np.polyfit(x[sel], y[sel], order), x)
+    return ymod

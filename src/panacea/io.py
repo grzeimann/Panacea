@@ -91,31 +91,6 @@ def get_cal_path(pathname, date, ndays = 31):
     return filenames
 
 
-
-def robust_polyfit(x, y, order=3, niter=3):
-    """MAD-clipped polynomial fit evaluated on x.
-
-    Args:
-        x: 1D array of x-coordinates.
-        y: 1D array of y-values.
-        order: Polynomial order.
-        niter: Number of sigma-clipping iterations.
-
-    Returns:
-        Fitted y model evaluated at x.
-    """
-
-    sel = y > 0.0
-    ymod = np.polyval(np.polyfit(x[sel], y[sel], order), x)
-    for _ in np.arange(niter):
-        a = np.abs(y - ymod)
-        mad = np.median(a)
-        sel = a < 3.0 * mad
-        if sel.sum() > (order + 2):
-            ymod = np.polyval(np.polyfit(x[sel], y[sel], order), x)
-    return ymod
-
-
 def create_image_header(wave, xgrid, ygrid, zgrid, func=None):
     """Create an ImageHDU-like object with pixel WCS for a 2D image.
 

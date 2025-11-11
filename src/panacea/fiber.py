@@ -14,6 +14,11 @@ log = logging.getLogger(__name__)
 def get_spectra(array_flt, array_trace):
     """Extract per-fiber spectra by sampling along trace centers.
 
+    This method follows the concept of "flat-relative optimal extraction"
+    (Zechmeister et al. 2014, A&A, 561, A59), in which the science frame is
+    divided by a normalized flat before extraction to mitigate pixel-response
+    variations and achieve optimal weighting.
+
     For each fiber, average the values at the floor/ceil of the trace position
     at each column to approximate the flux centered on the trace.
 
@@ -34,42 +39,6 @@ def get_spectra(array_flt, array_trace):
         except Exception:
             log.warning("Index for getting spectrum out of bounds.")
     return spectrum
-
-
-def find_cosmics(Y, E, trace, thresh=8.0, ran=0):
-    """Detect cosmic ray hits near fiber traces using deviation thresholding.
-
-    Args:
-        Y: 2D image values.
-        E: 2D error/variance estimates aligned with ``Y``.
-        trace: Trace positions (fibers x columns).
-        thresh: Sigma-like threshold; larger values are less sensitive.
-        ran: Unused (kept for API compatibility).
-
-    Returns:
-        Boolean mask with True indicating suspected cosmic ray pixels.
-    """
-    x = np.arange(trace.shape[1])
-    C = Y * 0.0
-    for fiber in np.arange(trace.shape[0]):
-        indl = np.floor(trace[fiber]).astype(int)
-        T = np.zeros((4, trace.shape[1], 4))
-        flag = True
-        for ss, k in enumerate(np.arange(-1, 3)):
-            try:
-                T[0, :, ss] = Y[indl + k, x]
-                T[1, :, ss] = E[indl + k, x]
-                T[2, :, ss] = indl + k
-                T[3, :, ss] = x
-            except Exception:
-                flag = False
-        if flag:
-            m = np.median(T[0], axis=1)
-            P = np.abs(T[0] - m[:, np.newaxis]) / T[1]
-            C[T[2][P > thresh].astype(int), T[3][P > thresh].astype(int)] = 1.0
-    C = np.array(C, dtype=bool)
-    log.info("Number of fiber pixels hit by cosmics: %i", C.sum())
-    return C
 
 
 def weighted_extraction(image, error, flat, trace, cthresh=8.0):
@@ -95,6 +64,8 @@ def weighted_extraction(image, error, flat, trace, cthresh=8.0):
     Y = safe_division(image, flat)
     nY = Y * 1.0
     C = np.array(Y * 0.0, dtype=bool)
+    # Local import to avoid circular import at module load time
+    from .ccd import find_cosmics
     for _ in np.arange(1):
         cosmics = find_cosmics(nY, E, trace, thresh=cthresh, ran=1)
         C = C + cosmics
