@@ -32,23 +32,23 @@ def setup_parser():
     parser = ap.ArgumentParser(add_help=True)
 
     parser.add_argument("-sd", "--start_date",
-                        help='''Start Date, e.g., 20170321, YYYYMMDD''',
+                        help='''Start date YYYYMMDD''',
                         type=str, default=None)
 
     parser.add_argument("-ed", "--end_date",
-                        help='''Start Date, e.g., 20170326, YYYYMMDD''',
+                        help='''End date YYYYMMDD''',
                         type=str, default=None)
 
     parser.add_argument("-dl", "--date_length",
-                        help='''Days after/before start/end date, e.g., 10''',
+                        help='''Number of days to include''',
                         type=int, default=None)
 
     parser.add_argument("-r", "--rootdir",
-                        help='''Root Directory for Date''',
+                        help='''Root directory for date tree''',
                         type=str, default='/work/03946/hetdex/maverick')
 
     parser.add_argument("-in", "--instrument",
-                        help='''Instrument, e.g., virus''',
+                        help='''Instrument name (e.g., virus)''',
                         type=str, default='virus')
 
     return parser
@@ -70,31 +70,31 @@ def setup_basic_parser():
     parser = ap.ArgumentParser(add_help=True)
 
     parser.add_argument("-d", "--date",
-                        help='''Date, e.g., 20170321, YYYYMMDD''',
+                        help='''Observation date YYYYMMDD''',
                         type=str, default=None)
 
     parser.add_argument("-o", "--observation",
-                        help='''Observation number, "00000007" or "7"''',
+                        help='''Observation number (e.g., 7 or 0000007)''',
                         type=str, default=None)
 
     parser.add_argument("-e", "--exposure_number",
-                        help='''Exposure number, 10''',
+                        help='''Exposure number (e.g., 10)''',
                         type=int, default=None)
 
     parser.add_argument("-r", "--rootdir",
-                        help='''Root Directory for Reductions''',
+                        help='''Root directory for reductions''',
                         type=str, default='/work/03946/hetdex/maverick')
 
     parser.add_argument("-in", "--instrument",
-                        help='''Instrument, e.g., lrs2''',
+                        help='''Instrument name (e.g., lrs2)''',
                         type=str, default='lrs2')
 
     parser.add_argument("-i", "--ifuslot",
-                        help='''Ifuslot, e.g., 066''',
+                        help='''IFU slot (e.g., 066)''',
                         type=str, default='066')
 
     parser.add_argument("-s", "--side",
-                        help='''Instrument Side, e.g., L''',
+                        help='''Instrument side (e.g., L)''',
                         type=str, default='L')
 
     return parser

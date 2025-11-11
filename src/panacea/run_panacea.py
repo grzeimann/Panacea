@@ -46,43 +46,43 @@ def main():
     parser = ap.ArgumentParser(add_help=True)
 
     parser.add_argument("-d", "--date",
-                        help='''Date for reduction''',
+                        help='''Observation date YYYYMMDD''',
                         type=str, default='20181108')
 
     parser.add_argument("-s", "--sides",
-                        help='''"uv,orange,red,farred"''',
+                        help='''Comma-separated channels or just a single channel''',
                         type=str, default="uv,orange,red,farred")
 
     parser.add_argument("-o", "--object",
-                        help='''Object name, no input reduces all objects''',
+                        help='''Substring to match OBJECT header (omit to reduce all)''',
                         type=str, default=None)
 
     parser.add_argument("-uf", "--use_flat",
-                        help='''Use FLT instead of Twi''',
+                        help='''Use internal flat (FLT) instead of twilight flats''',
                         action="count", default=0)
 
     parser.add_argument("-cf", "--correct_ftf",
-                        help='''Correct fiber to fiber''',
+                        help='''Enable additional fiber-to-fiber correction using sky emission''',
                         action="count", default=0)
 
     parser.add_argument("-cw", "--central_wave",
-                        help='''Central Wavelength for collapsed Frame''',
+                        help='''Center wavelength (Å) for collapsed image''',
                         type=float, default=None)
 
     parser.add_argument("-wb", "--wavelength_bin",
-                        help='''Wavelength Bin to collapse over (+/- bin size)''',
+                        help='''Half-width (Å) of collapse window around center''',
                         type=float, default=10.)
 
     parser.add_argument("-re", "--reduce_eng",
-                        help='''Reduce Engineer Data''',
+                        help='''Use engineering (ENG) exposures instead of SCI''',
                         action="count", default=0)
 
     parser.add_argument("-rf", "--reduce_flt",
-                        help='''Reduce Flat Data''',
+                        help='''Use flat (FLT) frames as science''',
                         action="count", default=0)
 
     parser.add_argument("-rd", "--reduce_drk",
-                        help='''Reduce Dark Data''',
+                        help='''Use dark (DRK) frames as science''',
                         action="count", default=0)
 
     parser.add_argument("--baseraw",
