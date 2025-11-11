@@ -14,7 +14,21 @@ from datetime import datetime as dt
 
 
 def setup_parser():
-    ''' BRIEF DESCRIPTION '''
+    """Build a CLI parser for selecting a date range and instrument paths.
+
+    This parser is intended for utilities that iterate over multiple dates.
+    It supports specifying an explicit start and end date, or a start/end
+    date plus a day-count span to construct a range. Paths and instrument
+    name can also be provided.
+
+    Returns:
+        argparse.ArgumentParser: Configured parser with the following options:
+        - --start_date YYYYMMDD
+        - --end_date YYYYMMDD
+        - --date_length N (days)
+        - --rootdir PATH
+        - --instrument NAME
+    """
     parser = ap.ArgumentParser(add_help=True)
 
     parser.add_argument("-sd", "--start_date",
@@ -41,7 +55,18 @@ def setup_parser():
 
 
 def setup_basic_parser():
-    ''' BRIEF DESCRIPTION '''
+    """Build a simple CLI parser for a single date/observation selection.
+
+    This parser is intended for commands that operate on one observation or
+    exposure at a time. It allows specifying the observation date, the
+    observation number and exposure number, along with root directory, the
+    instrument, IFU slot, and channel side.
+
+    Returns:
+        argparse.ArgumentParser: Configured parser with options including
+        --date, --observation, --exposure_number, --rootdir, --instrument,
+        --ifuslot, and --side.
+    """
     parser = ap.ArgumentParser(add_help=True)
 
     parser.add_argument("-d", "--date",
@@ -76,11 +101,20 @@ def setup_basic_parser():
 
 
 def setup_logging(logname='input_utils'):
-    '''Set up a logger for shuffle with a name ``input_utils``.
+    """Create and configure a module logger writing to stdout.
 
-    Use a StreamHandler to write to stdout and set the level to DEBUG if
-    verbose is set from the command line
-    '''
+    The logger is created only once per process (subsequent calls reuse the
+    existing handler). Messages are formatted with level and timestamp. The
+    stream handler level is set to INFO and the logger level to DEBUG so that
+    downstream code can adjust verbosity by changing the logger level.
+
+    Args:
+        logname: Name of the logger to create or retrieve. Defaults to
+            'input_utils'.
+
+    Returns:
+        logging.Logger: Configured logger instance.
+    """
     log = logging.getLogger('input_utils')
     if not len(log.handlers):
         fmt = '[%(levelname)s - %(asctime)s] %(message)s'
@@ -99,6 +133,25 @@ def setup_logging(logname='input_utils'):
 
 
 def set_daterange(args):
+    """Derive a list of dates from provided start/end and/or length options.
+
+    Expects an argparse-like namespace containing some combination of
+    start_date, end_date, and date_length. If date_length is None, both
+    start_date and end_date must be provided and an inclusive range is built
+    from start (inclusive) to end (exclusive). If date_length is provided, the
+    function builds a forward range from start_date for N days or a backward
+    range from end_date for N days. The computed list is stored on the args
+    object as ``args.daterange``.
+
+    Args:
+        args: Namespace with attributes start_date (str YYYYMMDD), end_date
+            (str YYYYMMDD), date_length (int or None), and log (logger with
+            .error/.warning methods).
+
+    Returns:
+        The same args namespace with an added ``daterange`` attribute, a list of
+        datetime.date objects representing the selected dates.
+    """
     dateatt = ['start_date', 'end_date']
     if args.date_length is None:
         if args.start_date is None:
