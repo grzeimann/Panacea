@@ -270,7 +270,7 @@ def build_weight_matrix(x, y, sig=1.5):
     return G.swapaxes(0, 1)
 
 
-def get_config_file(filename: str):
+def get_config_file(filename):
     """Return a Traversable to a config file inside panacea/lrs2_config.
 
     Uses importlib.resources to locate packaged data regardless of install mode.
@@ -569,7 +569,7 @@ def get_previous_night(daten):
 
 
 
-def get_script_path() -> str:
+def get_script_path():
     """Return the absolute directory of the running script.
 
     Uses sys.argv[0] resolved to an absolute path. This mirrors the legacy
@@ -583,7 +583,7 @@ def get_script_path() -> str:
 
 
 
-def count_matches(lines: Table, loc: list, fib: int, cnt: int = 5):
+def count_matches(lines, loc, fib, cnt = 5):
     """Score edge-anchored linear mappings to count peak/line matches.
 
     Emulates the legacy heuristic that tries simple linear mappings between the
@@ -630,7 +630,7 @@ def count_matches(lines: Table, loc: list, fib: int, cnt: int = 5):
 
 
 
-def get_standard_star_params(data: np.ndarray, commonwave: np.ndarray, xloc: np.ndarray, yloc: np.ndarray):
+def get_standard_star_params(data, commonwave, xloc, yloc):
     """Estimate centroid, size, and DAR trends from a standard-star cube.
 
     Splits the wavelength range into 11 chunks, computes median fiber flux per
@@ -685,7 +685,7 @@ def get_standard_star_params(data: np.ndarray, commonwave: np.ndarray, xloc: np.
 
 
 
-def get_bigarray(xloc: np.ndarray, yloc: np.ndarray):
+def get_bigarray(xloc, yloc):
     """Build a tiled grid of IFU fiber positions expanded in all directions.
 
     Starting from the observed fiber positions (xloc, yloc), extend the grid by
