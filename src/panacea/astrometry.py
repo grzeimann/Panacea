@@ -342,7 +342,7 @@ class FPlane(object):
                 missing += 1
             self.add_ifu(params)
 
-    def add_ifu(self, fpars):
+    def add_ifu(self, ifu_params):
         """
         Adds an IFU (Integral Field Unit) object to the appropriate mappings.
 
@@ -351,7 +351,7 @@ class FPlane(object):
         for efficient access based on its identifier, slot, or spectrograph ID.
 
         Args:
-            fpars (tuple): A tuple containing the parameters required to create
+            ifu_params (tuple): A tuple containing the parameters required to create
                 an IFU object. The tuple must include:
                 ifuslot: The identifier of the IFU slot.
                 x: The x-coordinate of the IFU.
@@ -362,7 +362,7 @@ class FPlane(object):
                 ifurot: The rotation value of the IFU.
                 platescl: The plate scale of the IFU.
         """
-        ifuslot, x, y, specid, speclot, ifuid, ifurot, platescl = fpars
+        ifuslot, x, y, specid, speclot, ifuid, ifurot, platescl = ifu_params
         _ifu = self._IFU(ifuslot, x, y, specid, speclot,
                          ifuid, ifurot, platescl)
         self._ifus_by_slot[_ifu.ifuslot] = _ifu
