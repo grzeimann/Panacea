@@ -2,7 +2,6 @@
 
 Migrated functions per function_map.md.
 """
-from __future__ import annotations
 
 import numpy as np
 from astropy.convolution import Gaussian1DKernel, convolve
@@ -11,7 +10,7 @@ from astropy.modeling.models import Polynomial2D
 from .wavelength import find_peaks
 
 
-def make_avg_spec(wave: np.ndarray, spec: np.ndarray, binsize: int = 35, per: int = 50):
+def make_avg_spec(wave, spec, binsize=35, per=50):
     """Generate averaged spectrum by binning and taking percentiles.
 
     Args:
@@ -36,7 +35,7 @@ def make_avg_spec(wave: np.ndarray, spec: np.ndarray, binsize: int = 35, per: in
     return nwave, nspec[nind]
 
 
-def sky_subtraction(rect: np.ndarray, error: np.ndarray, xloc: np.ndarray, yloc: np.ndarray) -> np.ndarray:
+def sky_subtraction(rect, error, xloc, yloc):
     """Build a 2D sky model and per-column residual, returning sky+res.
 
     Algorithm mirrors legacy implementation: selects sky-dominated fibers,
