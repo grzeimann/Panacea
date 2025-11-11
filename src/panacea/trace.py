@@ -2,7 +2,6 @@
 
 Migrated functions per function_map.md.
 """
-from __future__ import annotations
 
 import glob
 import os.path as op
@@ -11,7 +10,7 @@ from datetime import datetime
 import numpy as np
 
 
-def get_trace_shift(sci_array: np.ndarray, flat: np.ndarray, array_trace: np.ndarray, Yx: np.ndarray) -> np.ndarray:
+def get_trace_shift(sci_array, flat, array_trace, Yx):
     """Compute per-row shifts aligning science traces to flat-field traces.
 
     Uses a quadratic interpolation around the central pixel to estimate peak
@@ -61,7 +60,7 @@ def get_trace_shift(sci_array: np.ndarray, flat: np.ndarray, array_trace: np.nda
 
 
 
-def get_trace_reference(specid: str, ifuslot: str, ifuid: str, amp: str, obsdate: str, lrs2config: str = 'lrs2_config'):
+def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate, lrs2config='lrs2_config'):
     """Locate and load the closest-in-time reference trace file.
 
     Args:
@@ -86,8 +85,8 @@ def get_trace_reference(specid: str, ifuslot: str, ifuid: str, amp: str, obsdate
     return ref_file
 
 
-def get_trace(twilight: np.ndarray, specid: str, ifuslot: str, ifuid: str, amp: str, obsdate: str,
-              lrs2config: str = 'lrs2_config'):
+def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate,
+              lrs2config='lrs2_config'):
     """Compute per-fiber trace positions across detector columns.
 
     Args:
