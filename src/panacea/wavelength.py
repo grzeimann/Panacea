@@ -12,7 +12,7 @@ from .fiber import get_spectra
 from .utils import find_lines
 from .io import robust_polyfit
 
-def find_peaks(y: np.ndarray, thresh: float = 8.0):
+def find_peaks(y, thresh = 8.0):
     """Locate significant peaks in a 1D array using slope changes and S/N.
 
     Mirrors legacy implementation: detects zero-crossings in the derivative,
@@ -29,7 +29,7 @@ def find_peaks(y: np.ndarray, thresh: float = 8.0):
         - normalized_peaks: Peak heights divided by robust sigma.
         - peaks: Raw peak heights at rounded peak_loc indices.
     """
-    def _get_peaks(flat: np.ndarray, XN: np.ndarray):
+    def _get_peaks(flat, XN):
         YM = np.arange(flat.shape[0])
         inds = np.zeros((3, len(XN)))
         inds[0] = XN - 1.0
