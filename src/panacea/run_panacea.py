@@ -89,6 +89,9 @@ def main():
                         help='''Base directory containing LRS2 raw data (tarballs). Overrides the built-in default.''',
                         type=str, default='/Users/grz85/data/LRS2')
 
+    # Hidden flag for CI/local smoke testing without raw data
+    parser.add_argument("--smoke-test", dest="smoke_test", action="store_true", help=ap.SUPPRESS)
+
     args = parser.parse_args(args=None)
 
     args.sides = [x.replace(' ', '') for x in args.sides.split(',')]
@@ -134,6 +137,22 @@ def main():
 
     # Base raw data directory and path patterns for science/calibration discovery
     baseraw = args.baseraw
+
+    # Early exit smoke test: verify packaged resources without touching raw data
+    if args.smoke_test:
+        try:
+            # Must be able to resolve fplane and per-side line lists and responses
+            _ = get_config_file('fplane.txt')
+            for side in args.sides:
+                s = side.lower()
+                # Historical aliasing does not change filenames for our packaged resources
+                _ = get_config_file(f'lines_{s}.dat')
+                _ = get_config_file(f'response_{s}.fits')
+            print('Panacea smoke test: packaged resources are available; CLI wiring OK.')
+            sys.exit(0)
+        except Exception as e:
+            print(f'Panacea smoke test failed: {e}', file=sys.stderr)
+            sys.exit(2)
 
     # Tarball glob and internal FITS path templates (filled per IFU slot/exp)
     sci_tar = op.join(baseraw, sci_date, '%s', '%s000*.tar')
