@@ -169,10 +169,10 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     pph = np.zeros_like(y)
     s[ls[0]] = 1.0
     pp[ls[0]] = 0.0
-    for l in ls[1:]:
-        guess = y[l]
+    for line_idx in ls[1:]:
+        guess = y[line_idx]
         v = np.abs(guess - loc[fib])
-        ER = lines['col3'][l] / lines['col3'][ls[0]]
+        ER = lines['col3'][line_idx] / lines['col3'][ls[0]]
         MR = pr[fib] / max(pr[fib][ind] if 'ind' in locals() else 1.0, 1e-6)
         EE = MR * np.sqrt(1.0 / np.array(ph[fib]) ** 2 + 1.0 / (ph[fib][ind] if 'ind' in locals() else 1.0))
         EE = np.maximum(EE, 0.1 * MR)
@@ -180,15 +180,15 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
         dist = v / 2.0 + np.abs(ER - MR) / EE / 2.0
         if np.min(dist) < 10.0:
             ind1 = np.argmin(dist)
-            found_lines[fib, l] = loc[fib][ind1]
+            found_lines[fib, line_idx] = loc[fib][ind1]
             ll = np.where(found_lines[fib] > 0.0)[0][0]
             lh = np.where(found_lines[fib] > 0.0)[0][-1]
             diff0 = [found_lines[fib, ll] - lines['col2'][ll], found_lines[fib, lh] - lines['col2'][lh]]
             m = ((diff0[1] - diff0[0]) / (lines['col2'][lh] - lines['col2'][ll]))
             y = np.array(m * (lines['col2'] - lines['col2'][ll]) + diff0[0] + lines['col2'])
-            s[l] = MR[ind1]
-            pp[l] = dist[ind1]
-            pph[l] = ph[fib][ind1]
+            s[line_idx] = MR[ind1]
+            pp[line_idx] = dist[ind1]
+            pph[line_idx] = ph[fib][ind1]
     inds = np.where(found_lines[fib] > 0.0)[0]
     delv = []
     for ind2 in inds:

@@ -19,14 +19,6 @@ from scipy.signal import savgol_filter
 from astropy.modeling.models import Gaussian2D
 from astropy.modeling.fitting import LevMarLSQFitter
 
-# Suppress benign Astropy warning about suggesting linear fitter for linear models
-# We intentionally keep convergence warnings visible.
-warnings.filterwarnings(
-    "ignore",
-    message="Model is linear in parameters; consider using linear fitting methods.",
-    module="astropy.modeling.fitting",
-)
-
 from .io import get_tarname_from_filename, get_filenames_from_tarfolder, write_cube, create_image_header
 from .ccd import base_reduction, get_powerlaw
 from .fiber import get_spectra, weighted_extraction, modify_spectrum, correct_ftf
@@ -35,6 +27,14 @@ from .utils import check_if_standard, truncate_list, create_header_objection, ge
 from .utils import build_weight_matrix, mask_skylines_cosmics
 from .sky import sky_subtraction
 from .astrometry import Astrometry
+
+# Suppress benign Astropy warning about suggesting linear fitter for linear models
+# We intentionally keep convergence warnings visible.
+warnings.filterwarnings(
+    "ignore",
+    message="Model is linear in parameters; consider using linear fitting methods.",
+    module="astropy.modeling.fitting",
+)
 
 
 def get_ifucenfile(side, amp, lrs2config="lrs2_config", skiprows=4):
@@ -299,7 +299,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW, masterbias,
         # rectify to commonwave
         speclist, errorlist = ([], [])
         for fiber in np.arange(array_wave.shape[0]):
-            I = interp1d(array_wave[fiber], spectrum[fiber], kind='linear', fill_value='extrapolate')
+            interp_fn = interp1d(array_wave[fiber], spectrum[fiber], kind='linear', fill_value='extrapolate')
             # propagate error via coefficients of linear interp on commonwave grid
             coV = np.zeros((len(commonwave), spectrum.shape[1]))
             for i in np.arange(len(commonwave)):
@@ -311,7 +311,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW, masterbias,
             if sel.sum() > 0.0:
                 nsel = coV[:, sel].sum(axis=1) > 0.0
                 error_interp[nsel] = 0.0
-            speclist.append(I(commonwave))
+            speclist.append(interp_fn(commonwave))
             errorlist.append(error_interp)
         spec_list.append(np.array(speclist))
         error_list.append(np.array(errorlist))

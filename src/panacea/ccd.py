@@ -111,8 +111,8 @@ def base_reduction(filename, tarname=None, get_header=False):
     image = np.array(a[0].data, dtype=float)
     # overscan subtraction
     overscan_length = int(32 * (image.shape[1] / 1064))
-    O = biweight_location(image[:, -int(overscan_length - 2) :])
-    image[:] = image - O
+    overscan_level = biweight_location(image[:, -int(overscan_length - 2) :])
+    image[:] = image - overscan_level
     # trim image
     image = image[:, :-overscan_length]
     gain = a[0].header.get("GAIN", 0.85)
@@ -366,15 +366,15 @@ def get_twiflat_field(files, amps, array_wave, array_trace, bigW, masterbias, sp
     avg = biweight_location(smooth, axis=(0,))
     norm = biweight_location(smooth / avg, axis=(1,))
     nw, ns = make_avg_spec(array_wave, spectrum / norm[:, np.newaxis], binsize=41, per=50)
-    I = interp1d(nw, ns, kind="linear", fill_value="extrapolate")
+    interp_fn = interp1d(nw, ns, kind="linear", fill_value="extrapolate")
     ftf = spectrum * 0.0
     for fiber in np.arange(array_wave.shape[0]):
-        model = I(array_wave[fiber])
+        model = interp_fn(array_wave[fiber])
         ftf[fiber] = savgol_filter(spectrum[fiber] / model, 151, 1)
     nw1, ns1 = make_avg_spec(array_wave, spectrum / ftf, binsize=41, per=50)
 
-    I2 = interp1d(nw1, ns1, kind="quadratic", fill_value="extrapolate")
-    modelimage = I2(bigW)
+    interp_fn2 = interp1d(nw1, ns1, kind="quadratic", fill_value="extrapolate")
+    modelimage = interp_fn2(bigW)
     flat = array_flt / modelimage
     flat[~np.isfinite(flat)] = 0.0
     flat[flat < 0.0] = 0.0

@@ -136,8 +136,8 @@ def modify_spectrum(spectrum, error, w):
     dw = np.hstack([dw[0], dw])
     for i in np.arange(spectrum.shape[0]):
         sel = spectrum[i] == 0.0
-        I = interp1d(w[i][~sel], spectrum[i][~sel], kind="quadratic", fill_value="extrapolate")
-        spectrum[i] = I(w[i]) / dw
+        interp_fn = interp1d(w[i][~sel], spectrum[i][~sel], kind="quadratic", fill_value="extrapolate")
+        spectrum[i] = interp_fn(w[i]) / dw
         error[i] /= dw
     bad = error == 0.0
     for i in np.arange(1, 3):
@@ -179,13 +179,13 @@ def correct_ftf(rect, error):
             flag = True
         else:
             y1 = savgol_filter(y[~o], 31, 1)
-        I = interp1d(x[~o], y1, kind="quadratic", fill_value="extrapolate")
-        y1 = I(x)
+        interp_fn = interp1d(x[~o], y1, kind="quadratic", fill_value="extrapolate")
+        y1 = interp_fn(x)
         for _ in np.arange(3):
             o += outlier(y, y1, ~o)
             y1 = savgol_filter(y[~o], 51, 1)
-            I = interp1d(x[~o], y1, kind="quadratic", fill_value="extrapolate")
-            y1 = I(x)
+            interp_fn = interp1d(x[~o], y1, kind="quadratic", fill_value="extrapolate")
+            y1 = interp_fn(x)
         return y1, o, flag
 
     x = np.arange(rect.shape[0])
