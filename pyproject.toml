@@ -68,14 +68,3 @@ panacea = ["lrs2_config/*.dat", "lrs2_config/*.fits", "lrs2_config/*.txt", "lrs2
 line-length = 120
 # Target the lowest supported Python for safe syntax checks
 target-version = "py39"
-
-[tool.ruff.lint]
-# Ignore select rules globally for legacy code to keep changes minimal
-# - E741: ambiguous variable name (e.g., I, O) is common in legacy math code
-ignore = ["E741"]
-
-[tool.ruff.lint.per-file-ignores]
-# routine.py has a deliberate warnings filter before some imports; allow E402 here
-"src/panacea/routine.py" = ["E402"]
-# docs/conf.py probes for optional dependency; allow unused import
-"docs/conf.py" = ["F401"]
