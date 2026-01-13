@@ -28,4 +28,4 @@ retry-wait-time = 2
 timeout = 20
 
 # Be verbose in CI logs
-verbose = true
+verbosity = "verbose"
