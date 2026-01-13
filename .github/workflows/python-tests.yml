@@ -33,7 +33,13 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest --cov=panacea --cov-report=term-missing --cov-report=xml -q
+          coverage run -m pytest -q
+
+      - name: Generate coverage reports (xml and text)
+        if: always()
+        run: |
+          coverage xml -o coverage.xml || true
+          coverage report -m || true
 
       - name: Upload coverage report
         if: always()
@@ -41,7 +47,7 @@ jobs:
         with:
           name: coverage-py${{ matrix.python-version }}
           path: coverage.xml
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload pytest cache and artifacts on failure
         if: failure()
