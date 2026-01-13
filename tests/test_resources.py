@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from importlib import resources
 import io
 
 from panacea.utils import get_config_file, read_arc_lines

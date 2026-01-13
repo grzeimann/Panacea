@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import argparse as ap
-import types
-import pytest
 
 from panacea import input_utils as iu
 
