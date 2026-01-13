@@ -16,6 +16,6 @@ jobs:
       - name: Run lychee link checker
         uses: lycheeverse/lychee-action@v2.0.2
         with:
-          args: --config lychee.toml
+          args: --config lychee.toml README.md "docs/**/*.md"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
