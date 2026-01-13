@@ -33,7 +33,7 @@ preferred-citation:
 ```
 
 Notes
-- The canonical file still lives at the repository root: [CITATION.cff](https://github.com/grzeimann/Panacea/blob/main/CITATION.cff). Keep the two in sync.
+- The canonical file still lives at the repository root: [CITATION.cff](https://github.com/grzeimann/Panacea/blob/HEAD/CITATION.cff). Keep the two in sync.
 - After a tagged release with a DOI (e.g., Zenodo), add the DOI to both places.
 
 See also: [Changelog](../release_info/changelog.md), [Contributing](../community/contributing.md)

@@ -18,7 +18,7 @@ This folder contains the Panacea documentation split from the long README into t
 - algorithms/
   - overview.md — high-level algorithms and references
 - citation/
-  - citation.md — how to cite Panacea (see CITATION.cff at the repository root: https://github.com/grzeimann/Panacea/blob/main/CITATION.cff)
+  - citation.md — how to cite Panacea (see CITATION.cff at the repository root: https://github.com/grzeimann/Panacea/blob/HEAD/CITATION.cff)
 - community/
   - contributing.md — contribution guide
   - code_of_conduct.md — community standards
