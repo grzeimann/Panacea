@@ -1,0 +1,35 @@
+site_name: Panacea Documentation
+repo_url: https://github.com/grzeimann/Panacea
+docs_dir: docs
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+  - TACC:
+      - Overview: tacc/overview.md
+      - Running on TACC: tacc/running.md
+  - User Guide:
+      - CLI Usage: user-guide/cli.md
+      - Configuration: user-guide/configuration.md
+      - Examples: user-guide/examples.md
+  - Data Products: data-products/overview.md
+  - Algorithms: algorithms/overview.md
+  - API:
+      - Overview: api/index.md
+      - Utilities: api/utils.md
+      - Routine: api/routine.md
+      - Astrometry: api/astrometry.md
+      - I/O: api/io.md
+  - FAQ: faq.md
+  - Community:
+      - Contributing: community/contributing.md
+      - Code of Conduct: community/code_of_conduct.md
+  - JOSS Readiness: joss/readiness.md
+  - Release Info:
+      - Changelog: release_info/changelog.md
+  - Citation: citation/citation.md
+
+theme:
+  name: mkdocs

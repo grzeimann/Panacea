@@ -1,0 +1,31 @@
+# Lychee link checker configuration for this repository
+# Check links in README and all docs pages. Exclude private or environment-specific hosts.
+
+# Files/globs to include
+include = [
+  "README.md",
+  "docs/**/*.md"
+]
+
+# URL patterns or hosts to ignore (private indices, SSH, internal machines)
+exclude = [
+  "https://gate.mpe.mpg.de/*",
+  "https://portal.tacc.utexas.edu/*",
+  "ssh://*",
+  "ls6.tacc.utexas.edu",
+  "/work/03946/hetdex/maverick/*"
+]
+
+# Treat 200-range and 403 (auth required) as acceptable for link health
+accept = [
+  "200..299",
+  "403"
+]
+
+# Retries/timeouts to reduce flakiness
+max-retries = 2
+retry-wait-time = 2
+timeout = 20
+
+# Be verbose in CI logs
+verbose = true
