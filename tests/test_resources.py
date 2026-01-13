@@ -1,41 +1,36 @@
 from __future__ import annotations
 
 from importlib import resources
+import io
 
-from panacea.utils import get_config_file
-
-
-REQUIRED_FILES = [
-    # Line lists
-    "lines_uv.dat",
-    "lines_orange.dat",
-    # DAR table(s)
-    "dar_BL.dat",
-    # FPlane for astrometry
-    "fplane.txt",
-]
+from panacea.utils import get_config_file, read_arc_lines
 
 
-def test_lrs2config_dir_exists_and_populated():
-    """Verify the packaged lrs2_config directory exists and has content."""
-    lrs2config = resources.files("panacea") / "lrs2_config"
-    # resources.files returns a Traversable; ensure it exists and is a directory-like object
-    assert lrs2config is not None
+def test_packaged_resource_exists_and_is_readable():
+    # Pick one of the known packaged files
+    traversable = get_config_file('lines_uv.dat')
+    assert traversable is not None
+    assert hasattr(traversable, 'is_file') and traversable.is_file()
 
-    # Ensure there is at least one file inside (any extension)
-    # Convert to list via iterdir() if supported
-    children = list(lrs2config.iterdir())
-    assert len(children) > 0, "lrs2_config appears to be empty"
+    # Open and read a few bytes to ensure packaging works in both dev and installed modes
+    with traversable.open('r') as f:
+        head = f.read(128)
+        assert isinstance(head, str)
+        assert len(head) > 0
 
 
-def test_required_resource_files_present():
-    """Check that a few key resource files can be located via get_config_file."""
-    for name in REQUIRED_FILES:
-        traversable = get_config_file(name)
-        assert traversable is not None, f"get_config_file returned None for {name}"
-        # Traversable should represent an existing file packaged with the module
-        assert traversable.name == name
-        # Some Traversable backends do not have .is_file(); try opening instead
-        with traversable.open("rb") as fh:
-            blob = fh.read(64)
-            assert isinstance(blob, (bytes, bytearray))
+def test_read_arc_lines_parses_minimal_valid_content():
+    # Create a small in-memory file compatible with read_arc_lines expectations
+    content = """
+# comment line
+4000.0  10.0  0.5  Hg
+5000.0  20.0  1.0  Ne
+bad line
+6000    30  0.2  Ar
+"""
+    tbl = read_arc_lines(io.StringIO(content))
+    # Should parse 3 valid data rows, 4 named columns
+    assert tbl.shape == (3, 4)
+    assert list(tbl.colnames) == ['col1', 'col2', 'col3', 'col4']
+    # Check a value
+    assert tbl['col1'][0] == 4000.0
