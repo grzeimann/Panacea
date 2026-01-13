@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Deterministic tiny synthetic LRS2-like frames for tests.
 
@@ -17,6 +15,8 @@ The goal is to exercise I/O and light-weight parts of the pipeline without
 shipping large binaries. These are not physically accurate, but they are
 shape/metadata compatible for smoke tests.
 """
+
+from __future__ import annotations
 
 from pathlib import Path
 from typing import Dict, Tuple

@@ -246,7 +246,7 @@ def extract_sci(sci_path, amps, flat, array_trace, array_wave, bigW, masterbias,
     files1 = get_filenames_from_tarfolder(get_tarname_from_filename(sci_path), sci_path.replace('LL', amps[0]))
     files2 = get_filenames_from_tarfolder(get_tarname_from_filename(sci_path), sci_path.replace('LL', amps[1]))
     tarnames = [get_tarname_from_filename(file) for file in files1]
-    xloc, yloc = (pos[:, 0], pos[:, 1])
+    # Fiber positions are available in `pos` if needed: x=pos[:,0], y=pos[:,1]
     array_list, hdr_list = ([], [])
     for filename1, filename2, tarname in zip(files1, files2, tarnames):
         log.info('Prepping sci %s', filename1)
@@ -361,7 +361,7 @@ def find_source(dx, dy, skysub, commonwave, obj, specn, error, xoff, yoff, wave_
     log = logging.getLogger(__name__)
     fiber_dist = np.sqrt((dx - dx[:, np.newaxis]) ** 2 + (dy - dy[:, np.newaxis]) ** 2)
     # Near-neighbor weighting (kept for parity with legacy; not used below)
-    neighbor_weights = build_weight_matrix(dx, dy, sig=0.75)
+    _neighbor_weights = build_weight_matrix(dx, dy, sig=0.75)
     # Mask strong skylines and likely cosmics in working copies
     sky_cosmic_mask = mask_skylines_cosmics(commonwave, skysub, specn, error)
     flux_masked = skysub * 1.0
@@ -703,8 +703,12 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave, ifusl
         e[calinfo[6][:, 1] == 1.0] = 0.0
 
         # Normalize by exposure time, mirror illumination area, and throughput
-        r /= mini[0][1]; r /= mini[0][2]; r /= mini[0][3]
-        e /= mini[0][1]; e /= mini[0][2]; e /= mini[0][3]
+        r /= mini[0][1]
+        r /= mini[0][2]
+        r /= mini[0][3]
+        e /= mini[0][1]
+        e /= mini[0][2]
+        e /= mini[0][3]
 
         # Optional fiber-to-fiber correction
         if correct_ftf_flag:
@@ -719,10 +723,13 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave, ifusl
 
         # Apply response if provided
         if response is not None:
-            r *= response; e *= response; sky *= response; skysub *= response
+            r *= response
+            e *= response
+            sky *= response
+            skysub *= response
 
         # Save cubes and collapsed image around wave_0±wb
-        X = np.array([T['wave'], T['x_0'], T['y_0']])
+        # Packed grid arrays are provided below when writing cubes; no need to keep X here
         for S, name in zip([r, sky, skysub], ['obs', 'sky', 'skysub']):
             outname = f"{central_wave if central_wave is not None else ''}"
             outname = f"{datetime.now():%Y%m%d}_{sci_obs}_exp{cnt:02d}_{specname}_{name}_cube.fits"
@@ -738,8 +745,10 @@ def big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave, ifusl
         if source_x is None or source_y is None:
             loc1 = find_source(pos[:, 0], pos[:, 1], skysub, commonwave, obj[0], specname, e, xoff, yoff, wave_0, r)
             if loc1 is not None:
-                xstd = loc1[2]; ystd = loc1[3]
-                xoff = loc1[4]; yoff = loc1[5]
+                xstd = loc1[2]
+                ystd = loc1[3]
+                xoff = loc1[4]
+                yoff = loc1[5]
                 seeing = 2.35 * np.mean(np.sqrt(xstd * ystd))
                 loc = [float(loc1[0]), float(loc1[1]), float(seeing)]
                 log.info('Source seeing initially found to be: %0.2f', loc[2])

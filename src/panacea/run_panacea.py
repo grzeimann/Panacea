@@ -126,14 +126,14 @@ def main():
     # Defaults for this environment (paths may be site-specific)
     # Use packaged fplane.txt via importlib.resources and convert to filesystem path
     fplane_file = str(get_config_file('fplane.txt'))
-    twi_date = args.date
+    _twi_date = args.date
     sci_date = args.date
 
     # Instrument tag used in path templates
     instrument = 'lrs2'
 
     # Placeholder: dither offsets (not currently used in quicklook path)
-    dither_pattern = np.zeros((50, 2))
+    _dither_pattern = np.zeros((50, 2))
 
     # Base raw data directory and path patterns for science/calibration discovery
     baseraw = args.baseraw
@@ -155,7 +155,7 @@ def main():
             sys.exit(2)
 
     # Tarball glob and internal FITS path templates (filled per IFU slot/exp)
-    sci_tar = op.join(baseraw, sci_date, '%s', '%s000*.tar')
+    _sci_tar = op.join(baseraw, sci_date, '%s', '%s000*.tar')
     sci_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp%s',
                        '%s', '2*_%sLL*sci.fits')
     cmp_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp*',
@@ -175,9 +175,9 @@ def main():
     if args.reduce_drk:
         sci_path = sci_path.replace('sci', 'drk')
     # Accumulators (legacy placeholders for extended products/logging)
-    fiberpos, fiberspec = ([], [])
+    _fiberpos, _fiberspec = ([], [])
     log.info('Beginning the long haul.')
-    allflatspec, allspec, allra, alldec, allx, ally, allsub = ([], [], [], [], [], [], [])
+    _allflatspec, _allspec, _allra, _alldec, _allx, _ally, _allsub = ([], [], [], [], [], [], [])
 
 
     # Per-channel processing loop (each entry corresponds to one spectrograph arm)
@@ -276,7 +276,7 @@ def main():
         twiflat = get_twiflat_field(twifiles, amps, calinfo[0], calinfo[1],
                                     calinfo[2], calinfo[3], specname)
         calinfo.insert(2, twiflat)
-        flatspec = get_spectra(calinfo[2], calinfo[1])
+        _flatspec = get_spectra(calinfo[2], calinfo[1])
         for mfile in [masterarc, masterflt, masterFlat]:
             # Extract per-fiber arc spectra for each calibration image and
             # interpolate them onto the common wavelength grid used downstream.
@@ -326,8 +326,10 @@ def main():
         for i, cal in enumerate(calinfo):
             hdu_class = fits.PrimaryHDU if i == 0 else fits.ImageHDU
             hdus.append(hdu_class(cal))
-        hdus.append(fits.ImageHDU(masterarc)); hdu_names.append('masterarc')
-        hdus.append(fits.ImageHDU(masterFlat)); hdu_names.append('masterFlat')
+        hdus.append(fits.ImageHDU(masterarc))
+        hdu_names.append('masterarc')
+        hdus.append(fits.ImageHDU(masterFlat))
+        hdu_names.append('masterFlat')
         if response is not None:
             hdus.append(fits.ImageHDU(np.array([commonwave, response], dtype=float)))
             hdu_names.append('response')

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from io import StringIO
-from importlib import resources
 
 import numpy as np
 from astropy.table import Table

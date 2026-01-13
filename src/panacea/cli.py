@@ -5,8 +5,6 @@ work without the previous monolithic module.
 """
 from __future__ import annotations
 
-import sys
-
 
 def main():
     """
