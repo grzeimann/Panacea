@@ -1,23 +1,28 @@
 # Panacea v1.0 (Automatic LRS2 Pipeline)
-## Table of Contents
-[Overview](https://github.com/grzeimann/Panacea/blob/master/README.md#Overview)
 
-[TACC](https://github.com/grzeimann/Panacea/blob/master/README.md#Working-on-TACC)
+Panacea is the LRS2 data-reduction pipeline for the Hobby–Eberly Telescope (HET). It powers the daily automated reductions on TACC and can also be installed locally for development and small analyses.
 
-[Data Access](https://github.com/grzeimann/Panacea/blob/master/README.md#How-to-get-your-data)
+- Local install + quickstart: docs/getting-started/installation.md and docs/getting-started/quickstart.md
+- TACC users: docs/tacc/overview.md and docs/tacc/running.md
+- Everything else: docs/index.md
 
-[Data Products](https://github.com/grzeimann/Panacea/blob/master/README.md#Data-Products)
+Useful links
+- Data products overview: docs/data-products/overview.md
+- Algorithms (high level): docs/algorithms/overview.md
+- FAQ: docs/faq.md
+- Contributing and community: docs/community/contributing.md
 
-[Running Panacea](https://github.com/grzeimann/Panacea/blob/master/README.md#Running-the-reductions-yourself)
+Citation and License
+- Citation: CITATION.cff (also see docs/citation/citation.md)
+- License: LICENSE
 
-[Panacea: the code](https://github.com/grzeimann/Panacea/blob/master/README.md#Code-Description)
+---
 
-[FAQ](https://github.com/grzeimann/Panacea/blob/master/README.md#frequently-asked-questions)
-
-[Contributing and community guidelines](#contributing-and-community-guidelines)
+Below is the original long-form README, kept temporarily during the docs migration for reference.
 
 
 ## Overview
+Redirect: For a structured overview and entry points, see docs/index.md
 Panacea is the LRS2 data-reduction pipeline for the Hobby–Eberly Telescope. It is primarily operated as a daily, automated pipeline on the Texas Advanced Computing Center (TACC), but it can also be installed and run locally for development or small analyses.
 
 This README explains:
@@ -27,6 +32,7 @@ This README explains:
 - High-level details of the algorithms implemented
 
 ## Install & Quickstart
+Redirect: For full installation and quickstart, see docs/getting-started/installation.md and docs/getting-started/quickstart.md
 
 Panacea can be used in two modes:
 - TACC pipeline: preferred for performance, storage, and access to the HET raw-data layout
@@ -35,20 +41,16 @@ Panacea can be used in two modes:
 Dependencies
 - Python 3.9+
 - NumPy, SciPy, Astropy, Matplotlib, PyYAML, tqdm, requests, scikit-learn (installed automatically from PyPI)
-- pyhetdex (optional, needed for astrometric mapping via the fplane). Install from a private index:
-  pip install --extra-index-url https://gate.mpe.mpg.de/pypi/simple/ pyhetdex
 
 Option A: Local install using conda + pip
-```
+```bash
 conda env create -f environment.yml
 conda activate panacea
-# Install pyhetdex from the private index if you want astrometric mapping
-pip install --extra-index-url https://gate.mpe.mpg.de/pypi/simple/ pyhetdex
 pip install . --no-deps
 ```
 
 Quickstart (local)
-```
+```bash
 # Show CLI help and verify installation
 panacea-lrs2 -h
 
@@ -64,43 +66,45 @@ Notes for local runs
 - Packaged configuration files (line lists, DAR tables, fplane.txt, responses) are bundled with the package and found automatically via importlib.resources.
 
 Troubleshooting
-- If pyhetdex installation fails, ensure you included the --extra-index-url parameter and have network access to gate.mpe.mpg.de.
 - Some steps require significant memory/storage; consider running on TACC as described below.
 
 
 ## Working on TACC (for HET Users only)
+Redirect: For TACC-specific guidance, see docs/tacc/overview.md
 The reductions are designed to run on the Texas Advanced Computing Center (TACC), where a full copy of the raw data is stored. An automated pipeline executes each morning at 10 a.m. Central Time and has been operating continuously since January 1, 2019. In the following sections, we describe how to get started on TACC, where to find the automatic reduction products, how to run the code manually, and what data products the pipeline generates.
 ### Signing up for an account
 https://portal.tacc.utexas.edu/
 <p align="center">
-  <img src="images/tacc_create_account.png" width="650"/>
+  <img src="docs/images/tacc_create_account.png" width="650"/>
 </p>
 
 After creating an accounting using the link above, please send Greg Zeimann <gregz@astro.as.utexas.edu> your TACC username and he will add you to the HET group.  When that step is complete, you can ssh into TACC using:
-```
+```bash
 ssh -Y USERNAME@ls6.tacc.utexas.edu
 ```
 
 ## How to get your data
+Redirect: For paths and examples, see docs/tacc/overview.md#where-to-find-data-products
 The reduction pipeline run each day puts your data products in the following path:
-```
+```text
 /work/03946/hetdex/maverick/LRS2/PROGRAM-ID
 ```
 where PROGRAM-ID, is your program number, for example HET19-1-999.  To get all of the current reductions for your program, simply:
-```
+```bash
 scp -r username@ls6.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID .
 ```
 You merely have to use your "username" and your "PROGRAM-ID" and you can copy over your products.  Now, the data reduction products are
 extensive, that is to say they for every Mb of raw data there is 24 Mb of reduced data.  Without going into the data products yet,
 you may just a single product or a single night.  Below is an example, which grabs all spectra within your program for a given data:
-```
+```bash
 scp username@ls6.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID/spec*20190105*.fits .
 ```
 
 ## Data Products
+Redirect: For data product definitions and layout, see docs/data-products/overview.md
 There are three main data products: spectrum*.fits, multi*.fits, and *cube*.fits.  The first product, spectrum*.fits, 
 is produced for all exposures and all channels.  Within the fits image, lie rows corresponding to different attributes. 
-```
+```text
 row1: wavelength (air)
 row2: extracted object spectrum (f_lambda: ergs/s/cm^2/A)
 row3: extracted sky spectrum from same aperture and weighting as object (s_lambda: ergs/s/cm^2/A)
@@ -129,22 +133,28 @@ Unrectified Spectra: Unrectified, uncalibrated spectra for each fiber
 ```
 
 ## Running the reductions yourself on TACC
+Redirect: For batch and interactive run instructions, see docs/tacc/running.md
 This section covers how to run your own reductions with modifications to achieve specific science objectives.
 
 ### Setting up your Python environment
-To begin on TACC, point to the common python environment. In your home "~/.bashrc" file, add the following line at the bottom:
-```
-export PATH=/home/00115/gebhardt/anaconda2/bin:/work/03946/hetdex/maverick/bin:$PATH
-```
+For up-to-date installation instructions, please follow the docs. This keeps one canonical source of truth and avoids drift between README and docs.
+
+- Local install (summary): see docs/getting-started/installation.md. Typical commands from the repository root:
+  ```bash
+  conda env create -f environment.yml
+  conda activate panacea
+  pip install . --no-deps
+  ```
+- TACC usage: see docs/tacc/overview.md and docs/tacc/running.md for account setup and how to run interactively or in batch. Do not use the legacy Anaconda2 PATH instructions.
 
 ### Running Panacea in the command line
 On TACC, create an interactive development session (one CPU) to explore and run the CLI:
-```
+```bash
 idev
 ```
 
 Now check the Panacea CLI options (the console script is installed as part of the package):
-```
+```bash
 panacea-lrs2 -h
 ```
 
@@ -159,7 +169,7 @@ Key options you may use include:
 
 If you want to reduce a given object on a given night you can use the following options:
 
-```
+```bash
 panacea-lrs2 -d DATE -o TARGET_NAME -s uv
 ```
 
@@ -168,7 +178,7 @@ You can reduce any side you want, above I choose the "uv" channel, and the TARGE
 
 ### Running Panacea in batch
 To run a reduction of a given target on a given date for all four channels simply:
-```
+```bash
 cdw
 cp /work/03946/hetdex/maverick/run_lrs2/runlrs2general .
 runlrs2general DATE TARGET_NAME
@@ -214,6 +224,7 @@ The standard stars will be in "LRS2/STANDARDS" and the calibrations used are in 
 
 
 ## Code Description
+Redirect: For a high-level algorithm overview, see docs/algorithms/overview.md
 
 Panacea is a comprehensive, modular reduction pipeline for the **LRS2** integral-field spectrograph on the **Hobby–Eberly Telescope (HET)**.  
 It automates the complete CCD-to-calibrated-spectra workflow for all four channels (UV, Orange, Red, and Far Red) and is designed for parallel execution on TACC systems.  The pipeline implements CCD preprocessing, fiber tracing, extraction, wavelength calibration, and flux calibration tuned to the dual-arm, multi-amplifier, fiber-fed design of LRS2.
@@ -224,7 +235,7 @@ It automates the complete CCD-to-calibrated-spectra workflow for all four channe
 LRS2 provides integral-field-unit (IFU) spectroscopy using 280 0.6"-diameter lenslets that cover a 12"x6" field of view (FOV) on the sky. LRS2 is composed of two arms: blue (LRS2-B) and red (LRS2-R). The LRS2-B arm employs a dichroic beamsplitter to send light simultaneously into two spectrograph units: the "UV" channel (covering 3640--4645A at resolving power 1910), and the "Orange" channel (covering 4635--6950A at resolving power 1140).  The LRS2-R is also split into two spectrograph units: the "red" channel (covering 6450--8450A at resolving power 1760), and the "Farred" channel (covering 8250--10500A at resolving power 1920).
 
 <p align="center">
-  <img src="images/lrs2_mapping_visual.png" width="850"/>
+  <img src="docs/images/lrs2_mapping_visual.png" width="850"/>
 </p>
 
 ---
@@ -233,7 +244,7 @@ LRS2 provides integral-field-unit (IFU) spectroscopy using 280 0.6"-diameter len
 Each CCD frame is first corrected for electronic bias by fitting and subtracting the **overscan level** independently for each amplifier.  Panacea excludes the first column of the overscan region and uses the remaining 31 or 63 pixels per row (depending on binning) to determine the row-by-row bias pedestal.  Residual two-dimensional bias structure is removed using a **master bias**, constructed from ∼100 bias frames across several nights to achieve high S/N while minimizing temporal drift.  This process removes amplifier offsets and pattern noise before flat-fielding.
 
 <p align="center">
-  <img src="images/bias_subtract.png" width="850"/>
+  <img src="docs/images/bias_subtract.png" width="850"/>
 </p>
 
 ---
@@ -242,7 +253,7 @@ Each CCD frame is first corrected for electronic bias by fitting and subtracting
 Using the master flat, Panacea identifies and traces each fiber’s centroid along the dispersion axis.  The fiber positions are modeled as smooth polynomials describing their curvature across the CCD.  1D spectra are then extracted using an **optimal extraction algorithm**, which weights by the spatial fiber profile and local variance.  Cosmic rays are flagged and rejected using a similar algorithm to that of Malte Tewes and Pieter van Dokkum.
 
 <p align="center">
-  <img src="images/trace_fibmodel.png" width="850"/>
+  <img src="https://raw.githubusercontent.com/grzeimann/Panacea/HEAD/docs/images/trace_fibmodel.png" width="850"/>
 </p>
 
 ---
@@ -316,7 +327,7 @@ These products form the complete foundation for LRS2 science analysis and are au
 
 ### 7. Reduction Flow Diagram
 
-```mermaid
+```text
 graph TD
     A[Raw CCD Frames] --> B[Overscan & Bias Subtraction]
     B --> C[Fiber Tracing & Extraction]
@@ -344,21 +355,22 @@ as well as the exposure throughput from guider images.
 
 
 ## Frequently Asked Questions
+Redirect: For common issues and answers, see docs/faq.md
 
 Q: Are the wavelength units in vacuum or air?
 
 A: Air
 
-Q: Do I need pyhetdex installed?
+Q: Is pyhetdex required?
 
-A: Not strictly. If pyhetdex is not installed, Panacea will still run and produce core products. Astrometric features that rely on the fplane (e.g., mapping IFU positions to RA/Dec and focal-plane coordinates) will be disabled gracefully; you will see a warning at runtime. If you do install pyhetdex, Panacea will automatically use the packaged fplane.txt to enable these features.
+A: No. Panacea no longer depends on pyhetdex. Astrometric mapping (e.g., focal-plane geometry to sky coordinates) is handled internally by panacea.astrometry using packaged configuration files. No external pyhetdex installation is needed.
 
 ## Contributing and community guidelines
 
 We welcome contributions of bug reports, feature requests, and pull requests.
 
-- CONTRIBUTING.md: Describes how to set up a development environment, coding style, and how to propose changes via issues and pull requests.
-- CODE_OF_CONDUCT.md: Outlines our expectations for a welcoming, inclusive community. By participating, you agree to abide by this code.
+- docs/community/contributing.md: Describes how to set up a development environment, coding style, and how to propose changes via issues and pull requests.
+- docs/community/code_of_conduct.md: Outlines our expectations for a welcoming, inclusive community. By participating, you agree to abide by this code.
 
 Please read both documents before opening an issue or submitting a PR.
 
@@ -385,8 +397,6 @@ Quickstart
 conda env create -f environment.yml
 conda activate panacea
 
-# Install optional dependency for astrometry (if needed)
-pip install --extra-index-url https://gate.mpe.mpg.de/pypi/simple/ pyhetdex
 
 # Install panacea in editable mode with test tools
 pip install -e .[dev]
@@ -418,6 +428,22 @@ pytest tests/test_cli.py -q
 
 # Collect coverage (optional)
 pytest --cov=panacea --cov-report=term-missing
+```
+
+Linting (what and how)
+- Linting is automated checking for common mistakes, style issues, and consistency (e.g., unused imports, undefined names, dead code).
+- We use ruff for fast linting. Run locally:
+
+```
+ruff check .
+```
+
+Coverage reporting (what and how)
+- Coverage measures what fraction of the code executes during tests, highlighting untested paths.
+- The command above prints a summary and shows missing lines per file. To generate XML for CI services:
+
+```
+pytest --cov=panacea --cov-report=xml
 ```
 
 Notes
