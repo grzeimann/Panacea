@@ -43,7 +43,7 @@ myst_heading_anchors = 3
 # Optional: enable extra MyST features if desired (linkify is optional)
 myst_enable_extensions = []
 try:
-    import linkify_it  # provided by linkify-it-py
+    pass  # provided by linkify-it-py
 except Exception:
     pass  # leave linkify disabled if backend isn't installed
 else:
