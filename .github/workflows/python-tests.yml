@@ -29,6 +29,7 @@ jobs:
 
       - name: Lint with ruff
         run: |
+          ruff --version
           ruff check .
 
       - name: Run tests with coverage

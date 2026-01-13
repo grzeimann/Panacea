@@ -51,7 +51,7 @@ include = ["panacea*"]
 dev = [
   "pytest>=7",
   "pytest-cov>=4",
-  "ruff>=0.5",
+  "ruff>=0.14,<0.15",
   "black>=24.0",
   "mypy>=1.8",
 ]
