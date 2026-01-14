@@ -13,7 +13,7 @@ authors:
 affiliations:
   - name: Hobby–Eberly Telescope, University of Texas, Austin
     index: 1
-date: 2025-11-12
+date: 2026-01-14
 bibliography: paper.bib
 ---
 
@@ -37,7 +37,7 @@ Modern IFU pipelines span observatory-maintained systems and general-purpose fra
 
 - **MUSE (ESO) pipeline.** The European Southern Observatory’s official MUSE pipeline [@Weilbacher:2020] provides an end-to-end reduction system for the 24-IFU image-slicer instrument.
 
-- **KCWI pipelines.** The Keck Cosmic Web Imager is supported by the KCWI Data Reduction Pipeline [@Morrissey:2018], implemented in Python and distributed via the Keck Observatory Archive, handles slicer geometry and calibration but generally defer source detection to post-cube analysis software.
+- **KCWI pipelines.** The Keck Cosmic Web Imager is supported by the KCWI Data Reduction Pipeline [@Morrissey:2018; @Neill:2023], implemented in Python and distributed via the Keck Observatory Archive, handles slicer geometry and calibration but generally defer source detection to post-cube analysis software.
 
 - **MaNGA (SDSS-IV) DRP.** The MaNGA pipeline [@Law:2016] processed thousands of fiber bundles per night, performing wavelength calibration, sky subtraction, flux calibration, and rectified cube assembly. Its architecture established a model for large-survey IFU reductions.
 
