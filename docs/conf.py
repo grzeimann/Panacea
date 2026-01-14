@@ -12,7 +12,7 @@ if os.path.isdir(SRC) and SRC not in sys.path:
 project = "Panacea"
 html_title = "Panacea"
 author = "Greg Zeimann"
-release = "1.0.0"
+release = "1.0.1"
 
 extensions = [
     "myst_parser",

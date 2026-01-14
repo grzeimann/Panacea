@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: If you use this software, please cite it using the metadata below.
 title: "Panacea: LRS2 data-reduction pipeline for the Hobby-Eberly Telescope"
-version: 1.0.0
+version: 1.0.1
 date-released: 2026-01-14
 license: BSD-3-Clause
 authors:

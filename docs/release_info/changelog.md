@@ -11,6 +11,17 @@ Example
 [unreleased]
 - Short bullets about things merged since the last tag.
 
+## [1.0.1] - 2026-01-14 — Patch: Zenodo/JOSS metadata fixes
+This patch release updates project metadata used by Zenodo and the documentation site. No runtime code changes.
+
+### Changed
+- Bump package version to 1.0.1 in pyproject.toml.
+- Update CITATION.cff version to 1.0.1 (date unchanged for this patch).
+- Update Sphinx docs version banner (docs/conf.py release = "1.0.1").
+
+### Docs
+- Changelog updated with this entry.
+
 ## [1.0.0] - 2026-01-14 — Initial release for Zenodo/JOSS
 This tag marks the first stable, citable Panacea release submitted to the Journal of Open Source Software (JOSS). It completes the refactor from a single monolithic script into a maintainable, modular Python package with basic tests, uniform documentation, and an open path for collaboration within the HET community.
 
