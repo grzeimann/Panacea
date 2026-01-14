@@ -36,6 +36,13 @@ repos:
       - id: pytest-coverage-pre-push
         name: pytest under coverage (pre-push)
         entry: bash -c 'coverage run -m pytest -q && coverage report -m && coverage xml -o coverage.xml'
-        language: system
+        language: python
         pass_filenames: false
         stages: [pre-push]
+        additional_dependencies:
+          - pytest>=7
+          - coverage
+          - pytest-cov>=4
+          - numpy<2.0
+          - scipy>=1.8
+          - astropy>=5,<6
