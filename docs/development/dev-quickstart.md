@@ -104,10 +104,75 @@ Linkify backend status (optional check)
   - <meta name="panacea-linkify" content="enabled"> or "disabled"
 - If DISABLED, this is okay: docs still build and render; only auto-linking of bare URLs is skipped. To enable, install docs extras: `pip install .[docs]`.
 
-Notes
-- The pre‑push hook runs tests under coverage in an isolated environment pinned to compatible versions (numpy<2.0 with astropy<6). If it’s too slow for your workflow, you can skip once with `git push --no-verify` (not recommended routinely).
-- Makefile targets mirror CI:
-  - `make lint` → ruff check
-  - `make test` → pytest -q
-  - `make coverage` → coverage run/report/xml
-  - `make ci` → lint + coverage (closest to CI)
+## Stage, commit, push (exact commands)
+
+These commands are safe to copy‑paste. They cover the common cases and a few handy fixes.
+
+Staging and committing tracked changes only
+
+```bash
+# Stage modifications and deletions to already-tracked files
+git add -u
+
+# Optional: review what will be committed
+git status -s
+git diff --staged
+
+# Commit
+git commit -m "Describe your change"
+```
+
+Including new, untracked files (additions)
+
+```bash
+# Stage everything, including new files and deletions
+git add -A
+
+# Optional: review
+git status -s
+git diff --staged
+
+# Commit
+git commit -m "Describe your change"
+```
+
+Pushing your branch
+
+```bash
+# Push current branch to origin
+git push
+
+# If this is a new local branch tracking a remote for the first time
+git push -u origin $(git branch --show-current)
+```
+
+If pre-commit modifies files during commit
+
+```bash
+# When hooks auto-fix (EOF newline, trailing whitespace, ruff --fix), re-stage and commit the fixes
+git add -u && git commit -m "Apply pre-commit auto-fixes"
+```
+
+Helpful one-offs
+
+```bash
+# See unstaged vs staged changes
+git status -s
+git diff          # unstaged
+git diff --staged # staged
+
+# Unstage everything (keep working tree changes)
+git restore --staged .
+
+# Amend the last commit message or include newly-staged changes
+git commit --amend --no-edit    # keep the same message
+
+# Bypass hooks once (not recommended routinely)
+git push --no-verify
+
+# Clean ignored build artifacts (safe preview first)
+git clean -ndX   # preview removal of ignored files
+git clean -fdX   # actually remove ignored files
+```
+
+Tip: If your push is blocked by the pre-push test hook and you’ve already run the full local CI (`make ci`), you can skip once with `git push --no-verify`. Prefer fixing failures so that hooks remain helpful.

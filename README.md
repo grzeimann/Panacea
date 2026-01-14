@@ -43,7 +43,7 @@ If you use the facility pipeline on TACC, start with [TACC overview](docs/tacc/o
 
 ## Troubleshooting
 - Import error mentioning `numpy.in1d` or Astropy: ensure your environment follows the pins above.
-- Need dev commands (pre‑commit, local CI, coverage)? See [Dev quickstart](docs/development/dev-quickstart.md).
+- Need dev commands (pre‑commit, local CI, coverage)? See [Dev quickstart](docs/development/dev-quickstart.md). For exact git workflow commands (stage/commit/push), see [Stage, commit, push](docs/development/dev-quickstart.md#stage-commit-push-exact-commands).
 - More help: [FAQ](docs/faq.md).
 
 ## Citing and License
