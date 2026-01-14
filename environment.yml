@@ -14,5 +14,6 @@ dependencies:
   - scikit-learn
   - pip
   - pip:
+    - linkify-it-py>=2
     - ruff==0.14.11
     - -e .

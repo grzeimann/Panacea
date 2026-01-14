@@ -19,6 +19,7 @@ data-products/overview.md
 algorithms/overview.md
 community/contributing.md
 community/code_of_conduct.md
+development/dev-quickstart.md
 release_info/changelog.md
 citation/citation.md
 api/index.md

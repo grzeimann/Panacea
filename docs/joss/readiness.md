@@ -137,18 +137,25 @@ References
 4. Trigger Zenodo: ensure GitHub–Zenodo integration is enabled, then re-create the release if needed so Zenodo captures it; add DOI badge to README and DOI to CITATION.cff and paper/paper.md.
 5. Run a DOI audit on paper/paper.bib (fill in missing DOIs) and re-run Sphinx build to confirm references render.
    - Commands (from repo root):
-     ```bash
-     # 5a) Dry-run DOI audit (report only)
-     python scripts/doi_audit.py paper/paper.bib
+   ```bash
+   # 5a) Dry-run DOI audit (report only)
+   python scripts/doi_audit.py paper/paper.bib
 
-     # 5b) Apply suggested DOIs (creates paper.bib.bak backup); review diff before commit
-     python scripts/doi_audit.py paper/paper.bib --write
+   # 5b) Apply suggested DOIs (creates paper.bib.bak backup); review diff before commit
+   python scripts/doi_audit.py paper/paper.bib --write
 
-     # 5c) Re-build Sphinx docs to verify references render
-     pip install .[docs]
-     sphinx-build -b html docs docs/_build/html
-     open docs/_build/html/index.html  # macOS (xdg-open on Linux)
-     ```
+   # 5c) Re-build Sphinx docs to verify references render (and linkify backend)
+   pip install -U .[docs]  # includes linkify-it-py backend
+   sphinx-build -b html docs docs/_build/html
+   open docs/_build/html/index.html  # macOS (xdg-open on Linux)
+   ```
+   - Verification steps for the linkify fix:
+     - Ensure the build completes without the error “ModuleNotFoundError: Linkify enabled but not installed”.
+     - Check the build log for a line: "[Panacea docs] MyST linkify backend: ENABLED|DISABLED".
+     - Open the built HTML and view page source; confirm a meta tag is present: <meta name="panacea-linkify" content="enabled|disabled">.
+     - If DISABLED, this is acceptable: docs still build and render; only auto-linking of bare URLs is skipped. Install docs extras to enable: `pip install .[docs]`.
+     - In the generated HTML, confirm that bare URLs in Markdown (e.g., plain https://example.com) are auto-linked only when the backend is enabled.
+     - You can also follow the concise checklist in docs/development/dev-quickstart.md under “Verify docs build (Sphinx)”.
    - Notes:
      - The audit uses the Crossref API and sleeps between requests to be polite.
      - Only high-confidence matches are auto-inserted; ambiguous cases are printed for manual review.
