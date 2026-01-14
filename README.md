@@ -16,6 +16,65 @@ Citation and License
 - Citation: CITATION.cff (also see docs/citation/citation.md)
 - License: LICENSE
 
+## Reproducible dev environment and test commands
+
+The following steps create a clean environment and run linting and tests. Run from the repository root.
+
+Option A: Conda (recommended)
+- Create and activate environment
+  - conda env create -f environment.yml
+  - conda activate panacea
+- Install package and developer/test tools (pytest, coverage, ruff, etc.)
+  - pip install .[dev]
+- Verify CLI installs
+  - panacea-lrs2 -h
+- Lint with ruff
+  - ruff check .
+- Run tests with coverage (terminal summary)
+  - pytest --cov=panacea --cov-report=term-missing
+- Generate coverage XML (for CI/services)
+  - pytest --cov=panacea --cov-report=xml:coverage.xml
+  - or equivalently:
+    - coverage run -m pytest -q
+    - coverage report -m
+    - coverage xml -o coverage.xml
+- Run a single test file or keyword
+  - pytest tests/test_datadir.py -q
+  - pytest -k datadir -q
+
+Option B: Pure Python venv (no conda)
+- python -m venv .venv
+- source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+- python -m pip install --upgrade pip
+- pip install .[dev]
+- ruff check .
+- pytest --cov=panacea --cov-report=term-missing
+- coverage xml -o coverage.xml  # optional XML output
+
+Notes
+- pytest.ini configures src/ on PYTHONPATH, so invoke pytest from the repo root.
+- environment.yml pins ruff and installs the package in editable mode; installing .[dev] adds pytest/pytest-cov and other dev tools declared in pyproject.toml.
+- If you prefer strict type checks, run: mypy src/panacea
+- To auto-format (optional): black .
+
+## Run CI checks locally (pre-commit + Makefile)
+
+To catch issues before pushing, you can run the same checks locally that GitHub Actions runs.
+
+Quick start
+- pip install .[dev]
+- pre-commit install            # enable commit-time hooks (ruff, etc.)
+- pre-commit install --hook-type pre-push  # run tests under coverage before pushing
+- make ci                       # run lint + tests with coverage (mirrors CI)
+
+Manual equivalents (without make)
+- ruff check .
+- coverage run -m pytest -q && coverage report -m && coverage xml -o coverage.xml
+
+Notes
+- The pre-push hook runs the test suite; if it's too slow for your workflow, you can skip it per push with: `git push --no-verify` (not recommended regularly), or uninstall just the pre-push hook and rely on `make ci`.
+- The CI workflow is defined in .github/workflows/python-tests.yml and uses the same commands as above.
+
 ---
 
 Below is the original long-form README, kept temporarily during the docs migration for reference.
@@ -62,7 +121,7 @@ panacea-lrs2 -d 20181108 -s uv
 ```
 
 Notes for local runs
-- The quicklook runner expects HET raw data in a TACC-like directory structure (tarballs with standard internal paths). Use the --baseraw option to point Panacea to your local mirror of the LRS2 raw data. For example: --baseraw /data/LRS2. 
+- The quicklook runner expects HET raw data in a TACC-like directory structure (tarballs with standard internal paths). Use the --baseraw option to point Panacea to your local mirror of the LRS2 raw data. For example: --baseraw /data/LRS2.
 - Packaged configuration files (line lists, DAR tables, fplane.txt, responses) are bundled with the package and found automatically via importlib.resources.
 
 Troubleshooting
@@ -102,8 +161,8 @@ scp username@ls6.tacc.utexas.edu:/work/03946/hetdex/maverick/LRS2/PROGRAM-ID/spe
 
 ## Data Products
 Redirect: For data product definitions and layout, see docs/data-products/overview.md
-There are three main data products: spectrum*.fits, multi*.fits, and *cube*.fits.  The first product, spectrum*.fits, 
-is produced for all exposures and all channels.  Within the fits image, lie rows corresponding to different attributes. 
+There are three main data products: spectrum*.fits, multi*.fits, and *cube*.fits.  The first product, spectrum*.fits,
+is produced for all exposures and all channels.  Within the fits image, lie rows corresponding to different attributes.
 ```text
 row1: wavelength (air)
 row2: extracted object spectrum (f_lambda: ergs/s/cm^2/A)
@@ -187,7 +246,7 @@ runlrs2general DATE TARGET_NAME
 You will see an immediate output like:
 ```
 ----------------------------------------------------------------
-          Welcome to the Maverick Supercomputer                 
+          Welcome to the Maverick Supercomputer
 ----------------------------------------------------------------
 
 No reservation for this job
@@ -203,9 +262,9 @@ No reservation for this job
 Submitted batch job 900134
 ```
 
-This means you successfully submitted your job to the supercomputer and the reductions are in progress.  You can see the log of the 
-reductions in the file "reductionlrs2daily.oXXXXXX" where the XXXXXX is the job number as shown above in the line 
-"Submitted batch job 900134".  The reductions should finish in 20 minutes or so depending on computer availability 
+This means you successfully submitted your job to the supercomputer and the reductions are in progress.  You can see the log of the
+reductions in the file "reductionlrs2daily.oXXXXXX" where the XXXXXX is the job number as shown above in the line
+"Submitted batch job 900134".  The reductions should finish in 20 minutes or so depending on computer availability
 and number of exposures of the target.  The simplest way to see the effectiveness of the reduction is look at the source extraction
 information in the log.
 
@@ -213,20 +272,20 @@ information in the log.
 cat reductionlrs2daily.oXXXXXX | grep source
 ```
 
-If you would like more flexibility in your batch processing, you can always edit "rlrs2_daily" to run any four reduction 
+If you would like more flexibility in your batch processing, you can always edit "rlrs2_daily" to run any four reduction
 call you may want and submit the job manually with:
 ```
 sbatch rgeneral_lrs2.slurm
 ```
 
 The reductions will be in "LRS2/ORPHANS" for reductions before 2018/07/01 and in "LRS2/PROGRAM-ID" for reductions after this date.
-The standard stars will be in "LRS2/STANDARDS" and the calibrations used are in "LRS2/CALS".  
+The standard stars will be in "LRS2/STANDARDS" and the calibrations used are in "LRS2/CALS".
 
 
 ## Code Description
 Redirect: For a high-level algorithm overview, see docs/algorithms/overview.md
 
-Panacea is a comprehensive, modular reduction pipeline for the **LRS2** integral-field spectrograph on the **Hobby–Eberly Telescope (HET)**.  
+Panacea is a comprehensive, modular reduction pipeline for the **LRS2** integral-field spectrograph on the **Hobby–Eberly Telescope (HET)**.
 It automates the complete CCD-to-calibrated-spectra workflow for all four channels (UV, Orange, Red, and Far Red) and is designed for parallel execution on TACC systems.  The pipeline implements CCD preprocessing, fiber tracing, extraction, wavelength calibration, and flux calibration tuned to the dual-arm, multi-amplifier, fiber-fed design of LRS2.
 
 ---
@@ -274,35 +333,35 @@ Panacea constructs a two-dimensional sky model for each exposure and subtracts i
 
 **Algorithm overview**
 
-1. **Identify sky fibers and build a median template**  
-   - The median flux is computed for each fiber, and those with the lowest background levels are flagged as “sky-like.”  
-   - These fibers are used to form an initial 1D median sky template across wavelength.  
-   - A smoothed continuum version of this template is created by convolving with a broad Gaussian kernel.  
+1. **Identify sky fibers and build a median template**
+   - The median flux is computed for each fiber, and those with the lowest background levels are flagged as “sky-like.”
+   - These fibers are used to form an initial 1D median sky template across wavelength.
+   - A smoothed continuum version of this template is created by convolving with a broad Gaussian kernel.
    - Significant deviations between the original and smoothed spectra identify bright sky-line regions.
 
-2. **Per-fiber scaling of the sky template**  
-   - For each fiber, Panacea determines a scalar that best scales the global sky template to match the fiber’s data at sky-line wavelengths.  
-   - A grid of trial scale factors (0.7–1.3) is tested, and the best value minimizes residuals between the observed and template spectra.  
+2. **Per-fiber scaling of the sky template**
+   - For each fiber, Panacea determines a scalar that best scales the global sky template to match the fiber’s data at sky-line wavelengths.
+   - A grid of trial scale factors (0.7–1.3) is tested, and the best value minimizes residuals between the observed and template spectra.
    - This yields a set of per-fiber scale factors that represent spatial variation of the sky intensity across the IFU.
 
-3. **Normalize by amplifier and fit a smooth 2D field model**  
-   - Since LRS2 channels are split into two amplifiers (140 fibers per amplifiers), Panacea normalizes scale factors within each arm separately to remove global offsets.  
-   - A 2D polynomial (degree 2) is then fit to the normalized scale factors as a function of the fibers’ focal-plane coordinates (x, y).  
+3. **Normalize by amplifier and fit a smooth 2D field model**
+   - Since LRS2 channels are split into two amplifiers (140 fibers per amplifiers), Panacea normalizes scale factors within each arm separately to remove global offsets.
+   - A 2D polynomial (degree 2) is then fit to the normalized scale factors as a function of the fibers’ focal-plane coordinates (x, y).
    - Outliers more than twice the median absolute deviation from the fit are rejected, and the model is refit for stability.
 
-4. **Construct the final fiber-resolved sky model**  
-   - The initial 1D sky template is multiplied by the fitted 2D surface to form a full fiber-by-fiber sky model.  
+4. **Construct the final fiber-resolved sky model**
+   - The initial 1D sky template is multiplied by the fitted 2D surface to form a full fiber-by-fiber sky model.
    - This reproduces both spectral and spatial variations in the background illumination.
 
-5. **Subtract and propagate**  
-   - The modeled sky spectrum is subtracted from each fiber’s rectified spectrum.  
-   - Errors are propagated consistently, and flagged bad fibers or masked pixels are set to zero.  
+5. **Subtract and propagate**
+   - The modeled sky spectrum is subtracted from each fiber’s rectified spectrum.
+   - Errors are propagated consistently, and flagged bad fibers or masked pixels are set to zero.
    - The resulting arrays include the observed spectra, modeled sky, and sky-subtracted spectra for downstream analysis.
 
 **Notes and diagnostics**
 
-- The method emphasizes sky-dominated fibers and bright sky lines, avoiding bias from object flux.  
-- The polynomial surface ensures smooth spatial variation across the IFU.   
+- The method emphasizes sky-dominated fibers and bright sky lines, avoiding bias from object flux.
+- The polynomial surface ensures smooth spatial variation across the IFU.
 - Panacea’s multi-extension FITS outputs include both the rectified sky model and the sky-subtracted spectra for quality assurance.
 
 ---
@@ -314,12 +373,12 @@ An initial **relative flux calibration** is computed using the default LRS2 resp
 
 ### 6. Final Data Products
 Each reduction produces multi-extension FITS files containing:
-- Fiber-extracted, wavelength- and flux-calibrated spectra  
-- Sky and sky-subtracted spectra  
-- Error frames and response curves  
-- Fiber position tables (IFU, focal-plane, and sky coordinates)  
-- Collapsed images and atmospheric differential refraction (ADR) tables  
-- Rectified and unrectified 2D spectra for visualization and diagnostics  
+- Fiber-extracted, wavelength- and flux-calibrated spectra
+- Sky and sky-subtracted spectra
+- Error frames and response curves
+- Fiber position tables (IFU, focal-plane, and sky coordinates)
+- Collapsed images and atmospheric differential refraction (ADR) tables
+- Rectified and unrectified 2D spectra for visualization and diagnostics
 
 These products form the complete foundation for LRS2 science analysis and are automatically archived and accessible via TACC.
 
@@ -444,6 +503,33 @@ Coverage reporting (what and how)
 
 ```
 pytest --cov=panacea --cov-report=xml
+```
+
+What does a coverage report tell you?
+- Big picture: The overall percentage (e.g., 85%) is the fraction of executed lines across the codebase during tests. Higher is generally better, but 100% is not required; quality and meaningful paths matter most.
+- Per-file breakdown: Each row corresponds to a module and typically includes columns like:
+  - Stmts: Count of executable lines detected.
+  - Miss: How many of those lines were not executed by tests.
+  - Cover: Percentage covered (computed from Stmts and Miss).
+  - Missing: Specific line numbers or ranges that were not executed.
+- How to use it:
+  - Start with critical modules that have low Cover or many Missing lines.
+  - Add tests that exercise those lines/branches; re-run coverage to confirm improvements.
+  - Focus on error-handling and edge-case paths that are easy to miss.
+- Branch coverage (optional): Line coverage can miss untested decision outcomes. To include branch coverage locally, you can run:
+
+```
+coverage run -m pytest -q
+coverage report -m --show-missing --skip-covered --precision=1 --fail-under=0
+# For branch details, enable branch=True in a .coveragerc or:
+coverage report -m --branch
+```
+
+- HTML report (easier to navigate):
+
+```
+coverage html
+# Then open htmlcov/index.html in a browser for a clickable view of files and missing lines.
 ```
 
 Notes

@@ -2,6 +2,7 @@
 
 Subset migrated from full_lrs2_reduction.py per function_map.md.
 """
+
 from __future__ import annotations
 
 import os.path as op
@@ -21,17 +22,50 @@ from scipy.ndimage import percentile_filter
 from .io import get_tarname_from_filename
 
 # Standard star canonical names used to identify calibration frames
-STANDARD_NAMES = ['HD_19445', 'SA95-42', 'GD50', 'G191B2B',
-                  'HILTNER_600', 'G193-74', 'PG0823+546', 'HD_84937',
-                  'GD108', 'FEIGE_34', 'HD93521', 'GD140', 'HZ_21',
-                  'FEIGE_66', 'FEIGE_67', 'G60-54', 'HZ_44', 'GRW+70_5824',
-                  'BD+26+2606', 'BD+33_2642', 'G138-31', 'WOLF_1346',
-                  'BD_+17_4708', 'FEIGE_110', 'GD248', 'HZ_4',
-                  'BD+40_4032', 'HILTNER_102',
-                  'BD_+26_2606', 'GD_248', 'FEIGE_56', 'FEIGE_92',
-                  'HZ_15', 'FEIGE_98', 'BD+08_2015', 'BD+25_3941',
-                  'FEIGE_15', 'FEIGE_25', 'SA_95-42', 'BD+28_4211',
-                  'HR6203']
+STANDARD_NAMES = [
+    "HD_19445",
+    "SA95-42",
+    "GD50",
+    "G191B2B",
+    "HILTNER_600",
+    "G193-74",
+    "PG0823+546",
+    "HD_84937",
+    "GD108",
+    "FEIGE_34",
+    "HD93521",
+    "GD140",
+    "HZ_21",
+    "FEIGE_66",
+    "FEIGE_67",
+    "G60-54",
+    "HZ_44",
+    "GRW+70_5824",
+    "BD+26+2606",
+    "BD+33_2642",
+    "G138-31",
+    "WOLF_1346",
+    "BD_+17_4708",
+    "FEIGE_110",
+    "GD248",
+    "HZ_4",
+    "BD+40_4032",
+    "HILTNER_102",
+    "BD_+26_2606",
+    "GD_248",
+    "FEIGE_56",
+    "FEIGE_92",
+    "HZ_15",
+    "FEIGE_98",
+    "BD+08_2015",
+    "BD+25_3941",
+    "FEIGE_15",
+    "FEIGE_25",
+    "SA_95-42",
+    "BD+28_4211",
+    "HR6203",
+]
+
 
 def check_if_standard(objname: str) -> bool:
     """Return True if objname matches a known spectrophotometric standard.
@@ -88,7 +122,6 @@ def safe_division(num, denom, eps=1e-8, fillval=0.0):
     return div
 
 
-
 def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     """Identify arc lines across fibers and align to reference line list.
 
@@ -114,6 +147,7 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     ph, pr = ([], [])
     lines = Table(nlines)
     from .wavelength import find_peaks
+
     for i, spec in enumerate(spectrum):
         px, ps, py = find_peaks(spec, thresh=thresh)
         sel = np.abs(px - 1032.0) > 0.0
@@ -121,49 +155,49 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
         ph.append(ps[sel])
         pr.append(py[sel])
 
-    if side == 'orange':
-        names = ['Hg', 'Cd']
+    if side == "orange":
+        names = ["Hg", "Cd"]
         v = []
         for name in names:
-            selhg = lines['col4'] == name
-            ma = np.argmax(lines['col3'][selhg])
-            sel = np.abs(loc[fib] - lines['col2'][selhg][ma]) < 50.0
+            selhg = lines["col4"] == name
+            ma = np.argmax(lines["col3"][selhg])
+            sel = np.abs(loc[fib] - lines["col2"][selhg][ma]) < 50.0
             v1 = np.max(pr[fib][sel]) if np.any(sel) else 0.0
-            v2 = lines['col3'][selhg][ma]
+            v2 = lines["col3"][selhg][ma]
             v.append([v1, v2])
         if v[0][0] > v[1][0]:
-            selhg = lines['col4'] == 'Hg'
-            ma = np.argmax(lines['col3'][selhg])
-            mxv = lines['col3'][selhg][ma]
-            lines['col3'][selhg] *= 1.0 / mxv
-            selhg = (lines['col4'] == 'Cd') + (lines['col4'] == 'Ar')
-            ma = np.argmax(lines['col3'][selhg])
-            mxv = lines['col3'][selhg][ma]
+            selhg = lines["col4"] == "Hg"
+            ma = np.argmax(lines["col3"][selhg])
+            mxv = lines["col3"][selhg][ma]
+            lines["col3"][selhg] *= 1.0 / mxv
+            selhg = (lines["col4"] == "Cd") + (lines["col4"] == "Ar")
+            ma = np.argmax(lines["col3"][selhg])
+            mxv = lines["col3"][selhg][ma]
             nrt = v[1][0] / max(v[0][0], 1e-6)
-            lines['col3'][selhg] *= nrt / mxv
+            lines["col3"][selhg] *= nrt / mxv
         else:
-            selhg = (lines['col4'] == 'Cd') + (lines['col4'] == 'Ar')
-            ma = np.argmax(lines['col3'][selhg])
-            mxv = lines['col3'][selhg][ma]
-            lines['col3'][selhg] *= 1.0 / mxv
-            selhg = lines['col4'] == 'Hg'
-            ma = np.argmax(lines['col3'][selhg])
-            mxv = lines['col3'][selhg][ma]
+            selhg = (lines["col4"] == "Cd") + (lines["col4"] == "Ar")
+            ma = np.argmax(lines["col3"][selhg])
+            mxv = lines["col3"][selhg][ma]
+            lines["col3"][selhg] *= 1.0 / mxv
+            selhg = lines["col4"] == "Hg"
+            ma = np.argmax(lines["col3"][selhg])
+            mxv = lines["col3"][selhg][ma]
             nrt = v[0][0] / max(v[1][0], 1e-6)
-            lines['col3'][selhg] *= nrt / mxv
+            lines["col3"][selhg] *= nrt / mxv
 
     found_lines = np.zeros((trace.shape[0], len(lines)))
-    ls = np.argsort(lines['col3'])[::-1]
-    distthresh = 15.0 if side == 'farred' else 50.0
-    sel = np.abs(loc[fib] - lines['col2'][ls[0]]) < distthresh
+    ls = np.argsort(lines["col3"])[::-1]
+    distthresh = 15.0 if side == "farred" else 50.0
+    sel = np.abs(loc[fib] - lines["col2"][ls[0]]) < distthresh
     if np.any(sel):
         ind = np.where(sel)[0][np.argmax(pr[fib][sel])]
-        off = loc[fib][ind] - lines['col2'][ls[0]]
+        off = loc[fib][ind] - lines["col2"][ls[0]]
         found_lines[fib, ls[0]] = loc[fib][ind]
     else:
         off = 0.0
         found_lines[fib, ls[0]] = 0.0
-    y = lines['col2'] + off
+    y = lines["col2"] + off
     s = np.zeros_like(y)
     pp = np.zeros_like(y)
     pph = np.zeros_like(y)
@@ -172,9 +206,12 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     for line_idx in ls[1:]:
         guess = y[line_idx]
         v = np.abs(guess - loc[fib])
-        ER = lines['col3'][line_idx] / lines['col3'][ls[0]]
-        MR = pr[fib] / max(pr[fib][ind] if 'ind' in locals() else 1.0, 1e-6)
-        EE = MR * np.sqrt(1.0 / np.array(ph[fib]) ** 2 + 1.0 / (ph[fib][ind] if 'ind' in locals() else 1.0))
+        ER = lines["col3"][line_idx] / lines["col3"][ls[0]]
+        MR = pr[fib] / max(pr[fib][ind] if "ind" in locals() else 1.0, 1e-6)
+        EE = MR * np.sqrt(
+            1.0 / np.array(ph[fib]) ** 2
+            + 1.0 / (ph[fib][ind] if "ind" in locals() else 1.0)
+        )
         EE = np.maximum(EE, 0.1 * MR)
         EE = np.maximum(EE, 0.001 * np.ones_like(MR))
         dist = v / 2.0 + np.abs(ER - MR) / EE / 2.0
@@ -183,9 +220,14 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
             found_lines[fib, line_idx] = loc[fib][ind1]
             ll = np.where(found_lines[fib] > 0.0)[0][0]
             lh = np.where(found_lines[fib] > 0.0)[0][-1]
-            diff0 = [found_lines[fib, ll] - lines['col2'][ll], found_lines[fib, lh] - lines['col2'][lh]]
-            m = ((diff0[1] - diff0[0]) / (lines['col2'][lh] - lines['col2'][ll]))
-            y = np.array(m * (lines['col2'] - lines['col2'][ll]) + diff0[0] + lines['col2'])
+            diff0 = [
+                found_lines[fib, ll] - lines["col2"][ll],
+                found_lines[fib, lh] - lines["col2"][lh],
+            ]
+            m = (diff0[1] - diff0[0]) / (lines["col2"][lh] - lines["col2"][ll])
+            y = np.array(
+                m * (lines["col2"] - lines["col2"][ll]) + diff0[0] + lines["col2"]
+            )
             s[line_idx] = MR[ind1]
             pp[line_idx] = dist[ind1]
             pph[line_idx] = ph[fib][ind1]
@@ -227,7 +269,6 @@ def find_lines(spectrum, trace, nlines, thresh, fib, side=None):
     return found_lines
 
 
-
 def create_header_objection(wave, image, func=None):
     """Create an ImageHDU-like object for a 2D spectrum image.
 
@@ -241,15 +282,15 @@ def create_header_objection(wave, image, func=None):
     """
     if func is None:
         func = fits.ImageHDU
-    hdu = func(np.array(image, dtype='float32'))
-    hdu.header['CRVAL1'] = wave[0]
-    hdu.header['CRVAL2'] = 1
-    hdu.header['CRPIX1'] = 1
-    hdu.header['CRPIX2'] = 1
-    hdu.header['CTYPE1'] = 'pixel'
-    hdu.header['CTYPE2'] = 'pixel'
-    hdu.header['CDELT2'] = 1
-    hdu.header['CDELT1'] = wave[1] - wave[0]
+    hdu = func(np.array(image, dtype="float32"))
+    hdu.header["CRVAL1"] = wave[0]
+    hdu.header["CRVAL2"] = 1
+    hdu.header["CRPIX1"] = 1
+    hdu.header["CRPIX2"] = 1
+    hdu.header["CTYPE1"] = "pixel"
+    hdu.header["CTYPE2"] = "pixel"
+    hdu.header["CDELT2"] = 1
+    hdu.header["CDELT1"] = wave[1] - wave[0]
     return hdu
 
 
@@ -264,8 +305,8 @@ def build_weight_matrix(x, y, sig=1.5):
     Returns:
         2D weight matrix normalized by columns.
     """
-    d = np.sqrt((x - x[:, np.newaxis])**2 + (y - y[:, np.newaxis])**2)
-    G = np.exp(-0.5 * (d / sig)**2)
+    d = np.sqrt((x - x[:, np.newaxis]) ** 2 + (y - y[:, np.newaxis]) ** 2)
+    G = np.exp(-0.5 * (d / sig) ** 2)
     G = G / G.sum(axis=0)[:, np.newaxis]
     return G.swapaxes(0, 1)
 
@@ -281,7 +322,7 @@ def get_config_file(filename):
     Returns:
         pathlib.Traversable: Traversable to the file.
     """
-    return resources.files('panacea') / 'lrs2_config' / filename
+    return resources.files("panacea") / "lrs2_config" / filename
 
 
 def read_arc_lines(file_obj):
@@ -302,7 +343,7 @@ def read_arc_lines(file_obj):
     rows = []
     for raw in file_obj:
         line = raw.strip()
-        if not line or line.startswith('#'):
+        if not line or line.startswith("#"):
             continue
         parts = line.split()
         # Require at least 4 columns: wavelength, approx_x, rel_intensity, name
@@ -317,7 +358,14 @@ def read_arc_lines(file_obj):
         except Exception:
             # Skip malformed lines gracefully
             continue
-    return Table(rows=rows, names=['col1', 'col2', 'col3', 'col4'])
+    t = Table(rows=rows, names=["col1", "col2", "col3", "col4"])
+    # Provide a numpy-like shape attribute for convenience in tests and callers
+    # Astropy Table does not define .shape by default, but it allows setting arbitrary attributes.
+    try:
+        t.shape = (len(t), len(t.colnames))
+    except Exception:
+        pass
+    return t
 
 
 def mask_skylines_cosmics(wave, rect_spec, name, error):
@@ -333,14 +381,14 @@ def mask_skylines_cosmics(wave, rect_spec, name, error):
         Boolean mask where True indicates masked pixels.
     """
     mask1 = rect_spec * 0.0
-    cfg = get_config_file(f'{name}_skylines.dat')
+    cfg = get_config_file(f"{name}_skylines.dat")
     try:
-        if hasattr(cfg, 'is_file') and cfg.is_file():
+        if hasattr(cfg, "is_file") and cfg.is_file():
             wavelengths = []
-            with cfg.open('r') as f:
+            with cfg.open("r") as f:
                 for raw in f:
                     line = raw.strip()
-                    if not line or line.startswith('#'):
+                    if not line or line.startswith("#"):
                         continue
                     parts = line.split()
                     try:
@@ -355,7 +403,7 @@ def mask_skylines_cosmics(wave, rect_spec, name, error):
     mask2[error == 0.0] = -1.0
     mask2[1:, :] += mask2[:-1, :]
     mask2[:-1, :] += mask2[1:, :]
-    if name == 'uv':
+    if name == "uv":
         mask1[79:83, 979:987] = -1.0
     mask = (mask1 + mask2) < 0
     return mask
@@ -372,7 +420,7 @@ def get_all_cosmics(x, y, ispec, error):
     Returns:
         Boolean mask where True indicates likely cosmics.
     """
-    D = np.sqrt((x - x[:, np.newaxis])**2 + (y - y[:, np.newaxis])**2)
+    D = np.sqrt((x - x[:, np.newaxis]) ** 2 + (y - y[:, np.newaxis]) ** 2)
     for i in np.arange(D.shape[0]):
         D[i, :] = np.array(D[i, :] < 1.5, dtype=float)
     ispec[error == 0.0] = 0.0
@@ -380,11 +428,15 @@ def get_all_cosmics(x, y, ispec, error):
     for i in np.arange(ispec.shape[1]):
         T[:, i] = np.dot(ispec[:, i], D)
     # Guard against division by zero/invalid to avoid RuntimeWarning and spurious inf/NaN
-    YY = np.divide(ispec, T, out=np.zeros_like(ispec), where=np.isfinite(T) & (np.abs(T) > 0))
+    YY = np.divide(
+        ispec, T, out=np.zeros_like(ispec), where=np.isfinite(T) & (np.abs(T) > 0)
+    )
     return YY > 0.2
 
 
-def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75, sig_wave=1.5):
+def convolve_spatially(
+    x, y, spec, wave, name, error, ispec, sig_spatial=0.75, sig_wave=1.5
+):
     """Spatially and spectrally convolve spectra, masking skylines and cosmics.
 
     Applies a 1D Gaussian convolution along wavelength and a spatial
@@ -415,12 +467,12 @@ def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75, s
             - sderror: 2D array (Nfibers, 51) of corresponding errors.
     """
     W = build_weight_matrix(x, y, sig=sig_spatial)
-    D = np.sqrt((x - x[:, np.newaxis])**2 + (y - y[:, np.newaxis])**2)
+    D = np.sqrt((x - x[:, np.newaxis]) ** 2 + (y - y[:, np.newaxis]) ** 2)
     for i in np.arange(D.shape[0]):
         D[i, :] = np.array(D[i, :] < 1.5, dtype=float)
     mask = mask_skylines_cosmics(wave, spec, name, error)
     Z = spec * 1.0
-    E = error ** 2
+    E = error**2
     Z[mask] = np.nan
     E[mask] = np.nan
     ispec[mask] = 0.0
@@ -428,13 +480,15 @@ def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75, s
     for i in np.arange(ispec.shape[1]):
         T[:, i] = np.dot(ispec[:, i], D)
     # Guard against division by zero/invalid to avoid RuntimeWarning and spurious inf/NaN
-    YY = np.divide(ispec, T, out=np.zeros_like(ispec), where=np.isfinite(T) & (np.abs(T) > 0))
+    YY = np.divide(
+        ispec, T, out=np.zeros_like(ispec), where=np.isfinite(T) & (np.abs(T) > 0)
+    )
     Z[YY > 0.2] = np.nan
     E[YY > 0.2] = np.nan
     G = Gaussian1DKernel(sig_wave)
     for i in np.arange(spec.shape[0]):
-        Z[i, :] = convolve(Z[i, :], G, nan_treatment='fill', fill_value=0.0)
-        E[i, :] = convolve(E[i, :], G, nan_treatment='fill', fill_value=0.0)
+        Z[i, :] = convolve(Z[i, :], G, nan_treatment="fill", fill_value=0.0)
+        E[i, :] = convolve(E[i, :], G, nan_treatment="fill", fill_value=0.0)
     Z_copy = Z * 1.0
     E_copy = np.sqrt(E)
     for i in np.arange(spec.shape[1]):
@@ -451,7 +505,20 @@ def convolve_spatially(x, y, spec, wave, name, error, ispec, sig_spatial=0.75, s
     return ind[1] + 50, Z_copy[:, l1:l2], E_copy[:, l1:l2]
 
 
-def make_frame(xloc, yloc, data, error, wave, dw, Dx, Dy, wstart=5700., wend=5800., scale=0.4, seeing_fac=1.3):
+def make_frame(
+    xloc,
+    yloc,
+    data,
+    error,
+    wave,
+    dw,
+    Dx,
+    Dy,
+    wstart=5700.0,
+    wend=5800.0,
+    scale=0.4,
+    seeing_fac=1.3,
+):
     """Create a collapsed spatial image over a wavelength window.
 
     Builds per-wavelength model images by distributing fiber fluxes onto a
@@ -481,19 +548,26 @@ def make_frame(xloc, yloc, data, error, wave, dw, Dx, Dy, wstart=5700., wend=580
             - ygrid: 2D y coordinate grid.
     """
     a, b = data.shape
-    x = np.arange(xloc.min()-scale, xloc.max()+1*scale, scale)
-    y = np.arange(yloc.min()-scale, yloc.max()+1*scale, scale)
+    x = np.arange(xloc.min() - scale, xloc.max() + 1 * scale, scale)
+    y = np.arange(yloc.min() - scale, yloc.max() + 1 * scale, scale)
     xgrid, ygrid = np.meshgrid(x, y)
     zgrid = np.zeros((b,) + xgrid.shape)
-    area = 3. / 4. * np.sqrt(3.) * 0.59**2
+    area = 3.0 / 4.0 * np.sqrt(3.0) * 0.59**2
     for k in np.arange(b):
-        sel = np.isfinite(data[:, k]) * (error[:, k] != 0.)
-        D = np.sqrt((xloc[:, np.newaxis, np.newaxis] - Dx[k] - xgrid)**2 + (yloc[:, np.newaxis, np.newaxis] - Dy[k] - ygrid)**2)
-        W = np.exp(-0.5 / (seeing_fac/2.35)**2 * D**2)
-        zgrid[k, :, :] = ((data[sel, k][:, np.newaxis, np.newaxis] * W[sel]).sum(axis=0) / W[sel].sum(axis=0) * (scale**2 / area))
-    wi = np.searchsorted(wave, wstart, side='left')
-    we = np.searchsorted(wave, wend, side='right')
-    zimage = np.median(zgrid[wi:we+1], axis=(0,))
+        sel = np.isfinite(data[:, k]) * (error[:, k] != 0.0)
+        D = np.sqrt(
+            (xloc[:, np.newaxis, np.newaxis] - Dx[k] - xgrid) ** 2
+            + (yloc[:, np.newaxis, np.newaxis] - Dy[k] - ygrid) ** 2
+        )
+        W = np.exp(-0.5 / (seeing_fac / 2.35) ** 2 * D**2)
+        zgrid[k, :, :] = (
+            (data[sel, k][:, np.newaxis, np.newaxis] * W[sel]).sum(axis=0)
+            / W[sel].sum(axis=0)
+            * (scale**2 / area)
+        )
+    wi = np.searchsorted(wave, wstart, side="left")
+    we = np.searchsorted(wave, wend, side="right")
+    zimage = np.median(zgrid[wi : we + 1], axis=(0,))
     return zgrid, zimage, xgrid, ygrid
 
 
@@ -518,13 +592,14 @@ def get_objects(basefiles, attrs, full=False):
     s = []
     for fn in basefiles:
         tarname = get_tarname_from_filename(fn)
-        t = tarfile.open(tarname, 'r')
-        F = fits.open(t.extractfile('/'.join(fn.split('/')[-4:])))
+        t = tarfile.open(tarname, "r")
+        F = fits.open(t.extractfile("/".join(fn.split("/")[-4:])))
         s.append([])
         for att in attrs:
             s[-1].append(F[0].header[att])
         if full:
             from .routine import get_mirror_illumination_guider, get_throughput
+
             area = get_mirror_illumination_guider(fn, s[-1][1])
             try:
                 throughput = get_throughput(fn, s[-1][1])
@@ -564,9 +639,10 @@ def get_previous_night(daten):
     Returns:
         str: Previous date in YYYYMMDD format.
     """
-    daten_ = datetime(int(daten[:4]), int(daten[4:6]), int(daten[6:])) - timedelta(days=1)
+    daten_ = datetime(int(daten[:4]), int(daten[4:6]), int(daten[6:])) - timedelta(
+        days=1
+    )
     return f"{daten_.year:04d}{daten_.month:02d}{daten_.day:02d}"
-
 
 
 def get_script_path():
@@ -582,8 +658,7 @@ def get_script_path():
     return op.dirname(op.realpath(sys.argv[0]))
 
 
-
-def count_matches(lines, loc, fib, cnt = 5):
+def count_matches(lines, loc, fib, cnt=5):
     """Score edge-anchored linear mappings to count peak/line matches.
 
     Emulates the legacy heuristic that tries simple linear mappings between the
@@ -606,7 +681,7 @@ def count_matches(lines, loc, fib, cnt = 5):
         the offset from the start and j from the end in ``loc[fib]`` used to
         anchor the mapping.
     """
-    x = lines['col2']
+    x = lines["col2"]
     M = np.zeros((cnt, cnt))
     peaks = np.array(loc[fib])
     if peaks.size == 0 or len(x) == 0:
@@ -683,7 +758,6 @@ def get_standard_star_params(data, commonwave, xloc, yloc):
     return xoff[mid], yoff[mid], xstd, ystd, xoff - xoff[mid], yoff - yoff[mid]
 
 
-
 def get_bigarray(xloc, yloc):
     """Build a tiled grid of IFU fiber positions expanded in all directions.
 
@@ -709,13 +783,21 @@ def get_bigarray(xloc, yloc):
         dy = 0.0
     for _ in np.arange(1, 10):
         ny = dy + np.max(np.hstack(BigY))
-        x = np.hstack(BigX)[np.where(uy[-2] == np.hstack(BigY))[0]] if len(uy) > 1 else np.hstack(BigX)
+        x = (
+            np.hstack(BigX)[np.where(uy[-2] == np.hstack(BigY))[0]]
+            if len(uy) > 1
+            else np.hstack(BigX)
+        )
         y = ny * np.ones(x.shape)
         BigY.append(y)
         BigX.append(x)
         uy = np.unique(np.hstack(BigY))
         ny = -dy + np.min(np.hstack(BigY))
-        x = np.hstack(BigX)[np.where(uy[1] == np.hstack(BigY))[0]] if len(uy) > 1 else np.hstack(BigX)
+        x = (
+            np.hstack(BigX)[np.where(uy[1] == np.hstack(BigY))[0]]
+            if len(uy) > 1
+            else np.hstack(BigX)
+        )
         y = ny * np.ones(x.shape)
         BigY.append(y)
         BigX.append(x)
@@ -740,7 +822,6 @@ def get_bigarray(xloc, yloc):
     BigX = np.hstack(NX)
     BigY = np.hstack(NY)
     return BigX, BigY
-
 
 
 def robust_polyfit(x, y, order=3, niter=3):

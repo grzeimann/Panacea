@@ -54,6 +54,7 @@ dev = [
   "ruff>=0.14,<0.15",
   "black>=24.0",
   "mypy>=1.8",
+  "pre-commit>=3.6",
 ]
 docs = [
   "sphinx>=7",

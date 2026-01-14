@@ -1,0 +1,41 @@
+# Pre-commit hooks to catch issues locally before committing/pushing.
+# Install and enable:
+#   pip install .[dev]
+#   pre-commit install
+#   pre-commit install --hook-type pre-push
+# Run all hooks on demand:
+#   pre-commit run --all-files
+---
+repos:
+  # Basic hygiene hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: ["--markdown-linebreak-ext=md,markdown,rst"]
+      - id: check-merge-conflict
+
+  # Ruff: fast Python linter (matches CI configuration)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.9
+    hooks:
+      - id: ruff
+        args: ["--fix"]  # auto-fix where safe; remove if you prefer warnings only
+
+  # Optional: Black for code style formatting (kept optional but useful)
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3
+
+  # Run tests under coverage on pre-push to mirror CI (can be slower)
+  - repo: local
+    hooks:
+      - id: pytest-coverage-pre-push
+        name: pytest under coverage (pre-push)
+        entry: bash -c 'coverage run -m pytest -q && coverage report -m && coverage xml -o coverage.xml'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

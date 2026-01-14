@@ -31,25 +31,37 @@ def setup_parser():
     """
     parser = ap.ArgumentParser(add_help=True)
 
-    parser.add_argument("-sd", "--start_date",
-                        help='''Start date YYYYMMDD''',
-                        type=str, default=None)
+    parser.add_argument(
+        "-sd", "--start_date", help="""Start date YYYYMMDD""", type=str, default=None
+    )
 
-    parser.add_argument("-ed", "--end_date",
-                        help='''End date YYYYMMDD''',
-                        type=str, default=None)
+    parser.add_argument(
+        "-ed", "--end_date", help="""End date YYYYMMDD""", type=str, default=None
+    )
 
-    parser.add_argument("-dl", "--date_length",
-                        help='''Number of days to include''',
-                        type=int, default=None)
+    parser.add_argument(
+        "-dl",
+        "--date_length",
+        help="""Number of days to include""",
+        type=int,
+        default=None,
+    )
 
-    parser.add_argument("-r", "--rootdir",
-                        help='''Root directory for date tree''',
-                        type=str, default='/work/03946/hetdex/maverick')
+    parser.add_argument(
+        "-r",
+        "--rootdir",
+        help="""Root directory for date tree""",
+        type=str,
+        default="/work/03946/hetdex/maverick",
+    )
 
-    parser.add_argument("-in", "--instrument",
-                        help='''Instrument name (e.g., virus)''',
-                        type=str, default='virus')
+    parser.add_argument(
+        "-in",
+        "--instrument",
+        help="""Instrument name (e.g., virus)""",
+        type=str,
+        default="virus",
+    )
 
     return parser
 
@@ -69,38 +81,54 @@ def setup_basic_parser():
     """
     parser = ap.ArgumentParser(add_help=True)
 
-    parser.add_argument("-d", "--date",
-                        help='''Observation date YYYYMMDD''',
-                        type=str, default=None)
+    parser.add_argument(
+        "-d", "--date", help="""Observation date YYYYMMDD""", type=str, default=None
+    )
 
-    parser.add_argument("-o", "--observation",
-                        help='''Observation number (e.g., 7 or 0000007)''',
-                        type=str, default=None)
+    parser.add_argument(
+        "-o",
+        "--observation",
+        help="""Observation number (e.g., 7 or 0000007)""",
+        type=str,
+        default=None,
+    )
 
-    parser.add_argument("-e", "--exposure_number",
-                        help='''Exposure number (e.g., 10)''',
-                        type=int, default=None)
+    parser.add_argument(
+        "-e",
+        "--exposure_number",
+        help="""Exposure number (e.g., 10)""",
+        type=int,
+        default=None,
+    )
 
-    parser.add_argument("-r", "--rootdir",
-                        help='''Root directory for reductions''',
-                        type=str, default='/work/03946/hetdex/maverick')
+    parser.add_argument(
+        "-r",
+        "--rootdir",
+        help="""Root directory for reductions""",
+        type=str,
+        default="/work/03946/hetdex/maverick",
+    )
 
-    parser.add_argument("-in", "--instrument",
-                        help='''Instrument name (e.g., lrs2)''',
-                        type=str, default='lrs2')
+    parser.add_argument(
+        "-in",
+        "--instrument",
+        help="""Instrument name (e.g., lrs2)""",
+        type=str,
+        default="lrs2",
+    )
 
-    parser.add_argument("-i", "--ifuslot",
-                        help='''IFU slot (e.g., 066)''',
-                        type=str, default='066')
+    parser.add_argument(
+        "-i", "--ifuslot", help="""IFU slot (e.g., 066)""", type=str, default="066"
+    )
 
-    parser.add_argument("-s", "--side",
-                        help='''Instrument side (e.g., L)''',
-                        type=str, default='L')
+    parser.add_argument(
+        "-s", "--side", help="""Instrument side (e.g., L)""", type=str, default="L"
+    )
 
     return parser
 
 
-def setup_logging(logname='input_utils'):
+def setup_logging(logname="input_utils"):
     """Create and configure a module logger writing to stdout.
 
     The logger is created only once per process (subsequent calls reuse the
@@ -115,9 +143,9 @@ def setup_logging(logname='input_utils'):
     Returns:
         logging.Logger: Configured logger instance.
     """
-    log = logging.getLogger('input_utils')
+    log = logging.getLogger("input_utils")
     if not len(log.handlers):
-        fmt = '[%(levelname)s - %(asctime)s] %(message)s'
+        fmt = "[%(levelname)s - %(asctime)s] %(message)s"
         fmt = logging.Formatter(fmt)
 
         level = logging.INFO
@@ -126,7 +154,7 @@ def setup_logging(logname='input_utils'):
         handler.setFormatter(fmt)
         handler.setLevel(level)
 
-        log = logging.getLogger('input_utils')
+        log = logging.getLogger("input_utils")
         log.setLevel(logging.DEBUG)
         log.addHandler(handler)
     return log
@@ -152,43 +180,56 @@ def set_daterange(args):
         The same args namespace with an added ``daterange`` attribute, a list of
         datetime.date objects representing the selected dates.
     """
-    dateatt = ['start_date', 'end_date']
+    dateatt = ["start_date", "end_date"]
     if args.date_length is None:
         if args.start_date is None:
-            args.log.error('You must include two of the following: '
-                           '"start_date", "end_date", or "date_length"')
+            args.log.error(
+                "You must include two of the following: "
+                '"start_date", "end_date", or "date_length"'
+            )
             sys.exit(1)
         if args.end_date is None:
-            args.log.error('You must include two of the following: '
-                           '"start_date", "end_date", or "date_length"')
+            args.log.error(
+                "You must include two of the following: "
+                '"start_date", "end_date", or "date_length"'
+            )
             sys.exit(1)
         dates = {}
         for da in dateatt:
-            dates[da] = dt(int(getattr(args, da)[:4]),
-                           int(getattr(args, da)[4:6]),
-                           int(getattr(args, da)[6:]))
+            dates[da] = dt(
+                int(getattr(args, da)[:4]),
+                int(getattr(args, da)[4:6]),
+                int(getattr(args, da)[6:]),
+            )
 
-        args.daterange = [datetime.date.fromordinal(i)
-                          for i in range(dates[dateatt[0]].toordinal(),
-                                         dates[dateatt[1]].toordinal())]
+        args.daterange = [
+            datetime.date.fromordinal(i)
+            for i in range(dates[dateatt[0]].toordinal(), dates[dateatt[1]].toordinal())
+        ]
     else:
         if args.start_date is not None and args.end_date is not None:
-            args.log.warning('Using "start_date" and "date_length", '
-                             'however, you specified "end_date" as well '
-                             'which will not be used.')
+            args.log.warning(
+                'Using "start_date" and "date_length", '
+                'however, you specified "end_date" as well '
+                "which will not be used."
+            )
             args.end_date = None
         if args.start_date is not None:
-            base = dt(int(args.start_date[:4]),
-                      int(args.start_date[4:6]),
-                      int(args.start_date[6:]))
-            args.daterange = [base + datetime.timedelta(days=x)
-                              for x in range(0, args.date_length)]
+            base = datetime.date(
+                int(args.start_date[:4]),
+                int(args.start_date[4:6]),
+                int(args.start_date[6:]),
+            )
+            args.daterange = [
+                base + datetime.timedelta(days=x) for x in range(0, args.date_length)
+            ]
 
         if args.end_date is not None:
-            base = dt(int(args.end_date[:4]),
-                      int(args.end_date[4:6]),
-                      int(args.end_date[6:]))
-            args.daterange = [base - datetime.timedelta(days=x)
-                              for x in range(0, args.date_length)]
+            base = datetime.date(
+                int(args.end_date[:4]), int(args.end_date[4:6]), int(args.end_date[6:])
+            )
+            args.daterange = [
+                base - datetime.timedelta(days=x) for x in range(0, args.date_length)
+            ]
 
     return args
