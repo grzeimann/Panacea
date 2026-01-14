@@ -1,7 +1,7 @@
 # Contributing to Panacea
 
-Thank you for your interest in contributing to Panacea! 
-This document explains how to set up a development environment, 
+Thank you for your interest in contributing to Panacea!
+This document explains how to set up a development environment,
 coding standards, testing, and our pull request process.
 
 Since this is a Hobby-Eberly Telescope reduction pipeline,

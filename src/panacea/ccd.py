@@ -119,7 +119,9 @@ def base_reduction(filename, tarname=None, get_header=False):
     gain = np.where(gain > 0.0, gain, 0.85)
     rdnoise = a[0].header.get("RDNOISE", 3.0)
     rdnoise = np.where(rdnoise > 0.0, rdnoise, 3.0)
-    amp = (a[0].header["CCDPOS"].replace(" ", "") + a[0].header["CCDHALF"].replace(" ", ""))
+    amp = a[0].header["CCDPOS"].replace(" ", "") + a[0].header["CCDHALF"].replace(
+        " ", ""
+    )
     ampname = a[0].header.get("AMPNAME", None)
     header = a[0].header
     aimg = orient_image(image, amp, ampname) * gain
@@ -170,12 +172,20 @@ def get_powerlaw(image, trace, spec):
             y0 = int(trace[s, xi])
             for i in np.arange(-4, 6, 2):
                 d = np.sqrt(((y0 + i) - trace) ** 2 + (xi - XM2) ** 2)
-                plaw.append(np.nansum(spec * power_law(d, 1.4e-5, c3=2.0, c4=1.0, sig=1.5)))
+                plaw.append(
+                    np.nansum(spec * power_law(d, 1.4e-5, c3=2.0, c4=1.0, sig=1.5))
+                )
                 YY.append(y0 + i)
                 XX.append(xi)
     plaw, XX, YY = [np.hstack(j) for j in [plaw, XX, YY]]
     grid_x, grid_y = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
-    C = griddata(np.array([XX, YY]).swapaxes(0, 1), plaw, (grid_x, grid_y), method="cubic", fill_value=0.0)
+    C = griddata(
+        np.array([XX, YY]).swapaxes(0, 1),
+        plaw,
+        (grid_x, grid_y),
+        method="cubic",
+        fill_value=0.0,
+    )
     norm = np.zeros((image.shape[1],))
     for b in np.arange(image.shape[1]):
         selb = x == b
@@ -365,7 +375,9 @@ def get_twiflat_field(files, amps, array_wave, array_trace, bigW, masterbias, sp
     smooth = savgol_filter(spectrum, 315, 1, axis=1)
     avg = biweight_location(smooth, axis=(0,))
     norm = biweight_location(smooth / avg, axis=(1,))
-    nw, ns = make_avg_spec(array_wave, spectrum / norm[:, np.newaxis], binsize=41, per=50)
+    nw, ns = make_avg_spec(
+        array_wave, spectrum / norm[:, np.newaxis], binsize=41, per=50
+    )
     interp_fn = interp1d(nw, ns, kind="linear", fill_value="extrapolate")
     ftf = spectrum * 0.0
     for fiber in np.arange(array_wave.shape[0]):

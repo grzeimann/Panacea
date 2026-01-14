@@ -2,7 +2,7 @@
 
 This page tracks Panacea’s readiness for submission to the Journal of Open Source Software (JOSS). It summarizes the JOSS checklist, what’s already done, and what remains.
 
-Status last updated: 2026-01-12
+Status last updated: 2026-01-13
 
 References
 - JOSS Author Guide: https://joss.theoj.org/about
@@ -70,9 +70,9 @@ References
   - Where: docs/getting-started/quickstart.md, docs/user-guide/cli.md
 
 - API documentation (as appropriate) and explanation of core concepts
-  - Status: IN PROGRESS
-  - Where: docs/api (skeleton), docs/algorithms/overview.md
-  - Notes: Expand API stubs or provide minimal docstrings for public functions.
+  - Status: DONE
+  - Where: docs/api (utils, routine, astrometry, io), docs/algorithms/overview.md, docs/user-guide/examples.md
+  - Notes: Expanded API coverage using Sphinx autodoc blocks embedded in MyST Markdown; added concrete examples in the User Guide.
 
 - Community guidelines (how to contribute, report issues, and code of conduct)
   - Status: DONE
@@ -83,11 +83,13 @@ References
 - Automated tests that exercise major functionality
   - Status: IN PROGRESS
   - Where: tests/
-  - Notes: Synthetic sample dataset available (tests/fixtures/sample_data.py); 12 tests pass locally as of 2026-01-12. Added CLI help and pipeline smoke tests (tests/test_cli_smoke.py, tests/test_pipeline_smoke.py). Expand coverage to core calibration utilities.
+  - Notes: Synthetic sample dataset available (tests/fixtures/sample_data.py). Tests cover core calibration utilities, parsers, packaged resources, and environment/data-presence checks. Suite runs under CI with coverage; continue expanding end-to-end pipeline tests.
 
 - Continuous integration (CI) running tests
-  - Status: IN PROGRESS
-  - Notes: GitHub Actions workflow at .github/workflows/python-tests.yml now runs ruff linting (ruff check .) and pytest on Python 3.10/3.11. Consider adding coverage reporting next.
+  - Status: DONE
+  - Notes: GitHub Actions workflow (.github/workflows/python-tests.yml) runs Ruff lint (pinned 0.14.x) and the test suite under coverage.py on Python 3.11. Coverage XML is generated and uploaded as an artifact. A separate workflow checks external links with Lychee, and MkDocs deploys the brochure site to GitHub Pages on docs changes.
+
+  - Canonical local commands: For exact, copy‑paste steps to create a clean environment and run lint/tests/coverage, see README.md sections “Reproducible dev environment and test commands” and “Run CI checks locally (pre‑commit + Makefile)”. This readiness page summarizes and links only.
 
 ### What are “linting” and “coverage reporting”?
 - Linting: Automated checks that look for common mistakes, inconsistencies, and style issues in code (e.g., unused imports, undefined names, dead code, formatting). Linters catch problems early and keep the codebase readable and consistent. In this project we use ruff for fast linting. Typical local command: `ruff check .`.
@@ -116,15 +118,25 @@ References
 
 ## Action Items Before Submission
 
-- [ ] Add/expand tests to cover CLI and core utilities; ensure tests pass locally and in CI.
+- [x] Add/expand tests to cover CLI and core utilities; ensure tests pass locally and in CI.
 - [x] Add GitHub Actions workflow for tests (see .github/workflows/python-tests.yml).
 - [x] Add linting to CI (ruff) — see .github/workflows/python-tests.yml.
-- [x] Add coverage reporting in CI (pytest-cov) and publish summary/artifact.
-  - Implemented: GitHub Actions runs `pytest --cov=panacea --cov-report=term-missing --cov-report=xml` and uploads `coverage.xml` as an artifact per Python version.
+- [x] Add coverage reporting in CI and publish summary/artifact.
+  - Implemented: GitHub Actions runs tests under `coverage run -m pytest -q`, then generates reports with `coverage xml -o coverage.xml` and `coverage report -m`. The `coverage.xml` is uploaded as an artifact per Python version.
+- [x] Add link checking in CI (Lychee) and fix broken links (see .github/workflows/link-check.yml, lychee.toml).
+- [x] Ensure docs build without warnings in MkDocs; deploy site from main (see .github/workflows/mkdocs-deploy.yml).
 - [ ] Publish v1.0.0 (or appropriate) release; ensure CHANGELOG and pyproject.toml version match.
 - [ ] Enable Zenodo archiving; mint DOI on release; add DOI badge to README and CITATION.cff.
 - [ ] Audit paper.bib for DOIs; update entries.
 - [ ] Sanity-check installation from a clean environment and basic CLI run with bundled configs.
+
+### Next steps (recommended sequence)
+1. Cut a release candidate branch (e.g., rc/v1.0.0); update pyproject.toml and docs/release_info/changelog.md accordingly.
+2. Build and test from a clean environment (conda env create -f environment.yml; pip install .[dev]; run ruff, pytest, coverage, and a minimal CLI smoke test with --smoke-test).
+3. Tag and publish v1.0.0 on GitHub; verify GitHub Actions green and that coverage.xml artifacts are attached.
+4. Trigger Zenodo: ensure GitHub–Zenodo integration is enabled, then re-create the release if needed so Zenodo captures it; add DOI badge to README and DOI to CITATION.cff and paper/paper.md.
+5. Run a DOI audit on paper/paper.bib (fill in missing DOIs) and re-run Sphinx build to confirm references render.
+6. Optional: Add badges (PyPI if applicable, DOI, CI, docs) to README; consider Codecov or Coveralls if you want a coverage badge.
 
 ## Nice-to-haves (not strictly required but helpful)
 
@@ -136,7 +148,7 @@ References
 
 ## Addendum: Role of AI in This Project
 
-Status last updated: 2026-01-12
+Status last updated: 2026-01-13
 
 This project was originally developed and authored 100% by a human (Greg Zeimann). In preparation for the JOSS submission during January 2026, limited AI assistance was used as follows:
 

@@ -42,7 +42,7 @@ panacea-lrs2 -d 20181108 -s orange
 ```bash
 panacea-lrs2 -d 20181108  -cf
 ```
-- Reduce all four channels using internal flats 
+- Reduce all four channels using internal flats
 ```bash
 panacea-lrs2 -d 20181108 -uf
 ```

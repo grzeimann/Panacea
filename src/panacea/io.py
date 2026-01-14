@@ -2,6 +2,7 @@
 
 Functions gradually migrated from full_lrs2_reduction.py per function_map.md.
 """
+
 from __future__ import annotations
 
 import os
@@ -35,7 +36,6 @@ def get_tarname_from_filename(filename):
     return tarname
 
 
-
 def get_filenames_from_tarfolder(tarfolder, path):
     """List member paths in the tar that match the given pattern.
 
@@ -47,7 +47,6 @@ def get_filenames_from_tarfolder(tarfolder, path):
         Sorted list of pseudo-paths pointing to matched members.
     """
 
-
     T = tarfile.open(tarfolder, "r")
     names = T.getnames()
     matches = fnmatch.filter(names, op.join("*", op.basename(path)))
@@ -57,7 +56,7 @@ def get_filenames_from_tarfolder(tarfolder, path):
     return matches
 
 
-def get_cal_path(pathname, date, ndays = 31):
+def get_cal_path(pathname, date, ndays=31):
     """Find calibration files around a date window, respecting controller swap.
 
     Args:
@@ -68,7 +67,6 @@ def get_cal_path(pathname, date, ndays = 31):
     Returns:
         Sorted list of matching file paths extracted from tar archives.
     """
-
 
     date_ = dt(int(date[:4]), int(date[4:6]), int(date[6:]))
     date_controller_swap = dt(2024, 7, 22)
@@ -156,8 +154,14 @@ def write_cube(wave, xgrid, ygrid, zgrid, outname, he):
     hdu.writeto(outname, overwrite=True)
 
 
-def panstarrs_query(ra_deg, dec_deg, rad_deg, mindet=1, maxsources=30000,
-                    server=("https://archive.stsci.edu/panstarrs/search.php")):
+def panstarrs_query(
+    ra_deg,
+    dec_deg,
+    rad_deg,
+    mindet=1,
+    maxsources=30000,
+    server=("https://archive.stsci.edu/panstarrs/search.php"),
+):
     """Query Pan-STARRS DR1 @ MAST and return an Astropy Table.
 
     Args:
@@ -171,7 +175,6 @@ def panstarrs_query(ra_deg, dec_deg, rad_deg, mindet=1, maxsources=30000,
     Returns:
         astropy.table.Table with results.
     """
-
 
     r = requests.get(
         server,

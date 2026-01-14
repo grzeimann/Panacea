@@ -40,97 +40,173 @@ from .routine import get_ifucenfile, big_reduction
 from .fiber import get_spectra, weighted_extraction
 from .utils import get_objects, check_if_standard, get_config_file, read_arc_lines
 
-log = setup_logging('panacea_quicklook')
+log = setup_logging("panacea_quicklook")
+
 
 def main():
     parser = ap.ArgumentParser(add_help=True)
 
-    parser.add_argument("-d", "--date",
-                        help='''Observation date YYYYMMDD''',
-                        type=str, default='20181108')
+    parser.add_argument(
+        "-d",
+        "--date",
+        help="""Observation date YYYYMMDD""",
+        type=str,
+        default="20181108",
+    )
 
-    parser.add_argument("-s", "--sides",
-                        help='''Comma-separated channels or just a single channel''',
-                        type=str, default="uv,orange,red,farred")
+    parser.add_argument(
+        "-s",
+        "--sides",
+        help="""Comma-separated channels or just a single channel""",
+        type=str,
+        default="uv,orange,red,farred",
+    )
 
-    parser.add_argument("-o", "--object",
-                        help='''Substring to match OBJECT header (omit to reduce all)''',
-                        type=str, default=None)
+    parser.add_argument(
+        "-o",
+        "--object",
+        help="""Substring to match OBJECT header (omit to reduce all)""",
+        type=str,
+        default=None,
+    )
 
-    parser.add_argument("-uf", "--use_flat",
-                        help='''Use internal flat (FLT) instead of twilight flats''',
-                        action="count", default=0)
+    parser.add_argument(
+        "-uf",
+        "--use_flat",
+        help="""Use internal flat (FLT) instead of twilight flats""",
+        action="count",
+        default=0,
+    )
 
-    parser.add_argument("-cf", "--correct_ftf",
-                        help='''Enable additional fiber-to-fiber correction using sky emission''',
-                        action="count", default=0)
+    parser.add_argument(
+        "-cf",
+        "--correct_ftf",
+        help="""Enable additional fiber-to-fiber correction using sky emission""",
+        action="count",
+        default=0,
+    )
 
-    parser.add_argument("-cw", "--central_wave",
-                        help='''Center wavelength (Å) for collapsed image''',
-                        type=float, default=None)
+    parser.add_argument(
+        "-cw",
+        "--central_wave",
+        help="""Center wavelength (Å) for collapsed image""",
+        type=float,
+        default=None,
+    )
 
-    parser.add_argument("-wb", "--wavelength_bin",
-                        help='''Half-width (Å) of collapse window around center''',
-                        type=float, default=10.)
+    parser.add_argument(
+        "-wb",
+        "--wavelength_bin",
+        help="""Half-width (Å) of collapse window around center""",
+        type=float,
+        default=10.0,
+    )
 
-    parser.add_argument("-re", "--reduce_eng",
-                        help='''Use engineering (ENG) exposures instead of SCI''',
-                        action="count", default=0)
+    parser.add_argument(
+        "-re",
+        "--reduce_eng",
+        help="""Use engineering (ENG) exposures instead of SCI""",
+        action="count",
+        default=0,
+    )
 
-    parser.add_argument("-rf", "--reduce_flt",
-                        help='''Use flat (FLT) frames as science''',
-                        action="count", default=0)
+    parser.add_argument(
+        "-rf",
+        "--reduce_flt",
+        help="""Use flat (FLT) frames as science""",
+        action="count",
+        default=0,
+    )
 
-    parser.add_argument("-rd", "--reduce_drk",
-                        help='''Use dark (DRK) frames as science''',
-                        action="count", default=0)
+    parser.add_argument(
+        "-rd",
+        "--reduce_drk",
+        help="""Use dark (DRK) frames as science""",
+        action="count",
+        default=0,
+    )
 
-    parser.add_argument("--baseraw",
-                        help='''Base directory containing LRS2 raw data (tarballs). Overrides the built-in default.''',
-                        type=str, default='/Users/grz85/data/LRS2')
+    parser.add_argument(
+        "--baseraw",
+        help="""Base directory containing LRS2 raw data (tarballs). Overrides the built-in default.""",
+        type=str,
+        default="/Users/grz85/data/LRS2",
+    )
 
     # Hidden flag for CI/local smoke testing without raw data
-    parser.add_argument("--smoke-test", dest="smoke_test", action="store_true", help=ap.SUPPRESS)
+    parser.add_argument(
+        "--smoke-test", dest="smoke_test", action="store_true", help=ap.SUPPRESS
+    )
 
     args = parser.parse_args(args=None)
 
-    args.sides = [x.replace(' ', '') for x in args.sides.split(',')]
+    args.sides = [x.replace(" ", "") for x in args.sides.split(",")]
 
     # Channel metadata: [tag, name, multi-id, wavelength limits, amps, collapse window, arc sequence]
-    blueinfo = [['BL', 'uv', '503_056_7001', [3640., 4645.], ['LL', 'LU'],
-                 [4350., 4375.], ['hg_b', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']],
-                ['BR', 'orange', '503_056_7001',
-                 [4635., 6950.], ['RU', 'RL'], [6270., 6470.],
-                 ['hg_b', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']]]
-    redinfo = [['RL', 'red', '502_066_7002', [6450., 8400.], ['LL', 'LU'],
-                [7225., 7425.], ['hg_r', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']],
-               ['RR', 'farred', '502_066_7002',
-                [8275., 10500.], ['RU', 'RL'], [9280., 9530.],
-                ['hg_r', 'cd-a_b', 'fear_r', 'cd_b', 'hg', 'cd', 'fear']]]
+    blueinfo = [
+        [
+            "BL",
+            "uv",
+            "503_056_7001",
+            [3640.0, 4645.0],
+            ["LL", "LU"],
+            [4350.0, 4375.0],
+            ["hg_b", "cd-a_b", "fear_r", "cd_b", "hg", "cd", "fear"],
+        ],
+        [
+            "BR",
+            "orange",
+            "503_056_7001",
+            [4635.0, 6950.0],
+            ["RU", "RL"],
+            [6270.0, 6470.0],
+            ["hg_b", "cd-a_b", "fear_r", "cd_b", "hg", "cd", "fear"],
+        ],
+    ]
+    redinfo = [
+        [
+            "RL",
+            "red",
+            "502_066_7002",
+            [6450.0, 8400.0],
+            ["LL", "LU"],
+            [7225.0, 7425.0],
+            ["hg_r", "cd-a_b", "fear_r", "cd_b", "hg", "cd", "fear"],
+        ],
+        [
+            "RR",
+            "farred",
+            "502_066_7002",
+            [8275.0, 10500.0],
+            ["RU", "RL"],
+            [9280.0, 9530.0],
+            ["hg_r", "cd-a_b", "fear_r", "cd_b", "hg", "cd", "fear"],
+        ],
+    ]
 
     # Select channel descriptors based on requested --sides
     listinfo = []
     for side in args.sides:
-        if side.lower() == 'uv':
+        if side.lower() == "uv":
             listinfo.append(blueinfo[0])
-        if side.lower() == 'orange':
+        if side.lower() == "orange":
             listinfo.append(blueinfo[1])
-        if side.lower() == 'red':
+        if side.lower() == "red":
             listinfo.append(redinfo[0])
-        if side.lower() == 'farred':
+        if side.lower() == "farred":
             listinfo.append(redinfo[1])
 
     # Locate packaged config directory and files
-    lrs2config_dir = resources.files('panacea') / 'lrs2_config'
+    lrs2config_dir = resources.files("panacea") / "lrs2_config"
 
     # Defaults for this environment (paths may be site-specific)
     # Use packaged fplane.txt via importlib.resources and convert to filesystem path
-    fplane_file = str(get_config_file('fplane.txt'))
+    fplane_file = str(get_config_file("fplane.txt"))
     _twi_date = args.date
     sci_date = args.date
 
     # Instrument tag used in path templates
-    instrument = 'lrs2'
+    instrument = "lrs2"
 
     # Placeholder: dither offsets (not currently used in quicklook path)
     _dither_pattern = np.zeros((50, 2))
@@ -142,43 +218,56 @@ def main():
     if args.smoke_test:
         try:
             # Must be able to resolve fplane and per-side line lists and responses
-            _ = get_config_file('fplane.txt')
+            _ = get_config_file("fplane.txt")
             for side in args.sides:
                 s = side.lower()
                 # Historical aliasing does not change filenames for our packaged resources
-                _ = get_config_file(f'lines_{s}.dat')
-                _ = get_config_file(f'response_{s}.fits')
-            print('Panacea smoke test: packaged resources are available; CLI wiring OK.')
+                _ = get_config_file(f"lines_{s}.dat")
+                _ = get_config_file(f"response_{s}.fits")
+            print(
+                "Panacea smoke test: packaged resources are available; CLI wiring OK."
+            )
             sys.exit(0)
         except Exception as e:
-            print(f'Panacea smoke test failed: {e}', file=sys.stderr)
+            print(f"Panacea smoke test failed: {e}", file=sys.stderr)
             sys.exit(2)
 
     # Tarball glob and internal FITS path templates (filled per IFU slot/exp)
-    _sci_tar = op.join(baseraw, sci_date, '%s', '%s000*.tar')
-    sci_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp%s',
-                       '%s', '2*_%sLL*sci.fits')
-    cmp_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp*',
-                       '%s', '2*_%sLL_cmp.fits')
-    twi_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp*',
-                       '%s', '2*_%sLL_twi.fits')
-    bias_path = op.join(baseraw, sci_date, '%s', '%s%s', 'exp*',
-                        '%s', '2*_%sLL_zro.fits')
+    _sci_tar = op.join(baseraw, sci_date, "%s", "%s000*.tar")
+    sci_path = op.join(
+        baseraw, sci_date, "%s", "%s%s", "exp%s", "%s", "2*_%sLL*sci.fits"
+    )
+    cmp_path = op.join(
+        baseraw, sci_date, "%s", "%s%s", "exp*", "%s", "2*_%sLL_cmp.fits"
+    )
+    twi_path = op.join(
+        baseraw, sci_date, "%s", "%s%s", "exp*", "%s", "2*_%sLL_twi.fits"
+    )
+    bias_path = op.join(
+        baseraw, sci_date, "%s", "%s%s", "exp*", "%s", "2*_%sLL_zro.fits"
+    )
 
     # Optional switches: repoint science pattern to engineering/flat/dark
     if args.reduce_eng:
-        sci_path = sci_path.replace('sci', 'eng')
+        sci_path = sci_path.replace("sci", "eng")
 
     if args.reduce_flt:
-        sci_path = sci_path.replace('sci', 'flt')
+        sci_path = sci_path.replace("sci", "flt")
 
     if args.reduce_drk:
-        sci_path = sci_path.replace('sci', 'drk')
+        sci_path = sci_path.replace("sci", "drk")
     # Accumulators (legacy placeholders for extended products/logging)
     _fiberpos, _fiberspec = ([], [])
-    log.info('Beginning the long haul.')
-    _allflatspec, _allspec, _allra, _alldec, _allx, _ally, _allsub = ([], [], [], [], [], [], [])
-
+    log.info("Beginning the long haul.")
+    _allflatspec, _allspec, _allra, _alldec, _allx, _ally, _allsub = (
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    )
 
     # Per-channel processing loop (each entry corresponds to one spectrograph arm)
     for info in listinfo:
@@ -188,17 +277,21 @@ def main():
         else:
             nnn = specname
         # Load arc line list via package resources
-        with get_config_file(f'lines_{nnn}.dat').open('r') as f:
+        with get_config_file(f"lines_{nnn}.dat").open("r") as f:
             arc_lines = read_arc_lines(f)
         commonwave = np.linspace(lims[0], lims[1], 2064)
-        specid, ifuslot, ifuid = multi.split('_')
+        specid, ifuslot, ifuid = multi.split("_")
         package = []
         marc, mtwi, mflt = ([], [], [])
-        twipath = twi_path % (instrument, instrument, '00000*', instrument,
-                              ifuslot)
+        twipath = twi_path % (instrument, instrument, "00000*", instrument, ifuslot)
         twifiles = get_cal_path(twipath, args.date, ndays=15)
-        flt_path = (twi_path.replace('twi', 'flt') %
-                    (instrument, instrument, '00000*', instrument, ifuslot))
+        flt_path = twi_path.replace("twi", "flt") % (
+            instrument,
+            instrument,
+            "00000*",
+            instrument,
+            ifuslot,
+        )
         fltfiles = get_cal_path(flt_path, args.date, ndays=15)
         if args.use_flat:
             twifiles = fltfiles
@@ -208,57 +301,78 @@ def main():
             ##############
             # MASTERBIAS #
             ##############
-            log.info('Getting Masterbias for ifuslot, %s, and amp, %s' %
-                     (ifuslot, amp))
-            zro_path = bias_path % (instrument, instrument, '00000*', instrument,
-                                    ifuslot)
+            log.info("Getting Masterbias for ifuslot, %s, and amp, %s" % (ifuslot, amp))
+            zro_path = bias_path % (
+                instrument,
+                instrument,
+                "00000*",
+                instrument,
+                ifuslot,
+            )
             zrofiles = get_cal_path(zro_path, args.date, ndays=2)
             masterbias = get_masterbias(zrofiles, amp)
 
             #####################
             # MASTERTWI [TRACE] #
             #####################
-            log.info('Getting MasterFlat for ifuslot, %s, and amp, %s' %
-                     (ifuslot, amp))
-            log.info('Getting Trace for ifuslot, %s, and amp, %s' %
-                     (ifuslot, amp))
-            log.info('Number of twi files: %i' % len(twifiles))
+            log.info("Getting MasterFlat for ifuslot, %s, and amp, %s" % (ifuslot, amp))
+            log.info("Getting Trace for ifuslot, %s, and amp, %s" % (ifuslot, amp))
+            log.info("Number of twi files: %i" % len(twifiles))
 
             masterflt = get_mastertwi(twifiles, amp, masterbias)
-            trace, dead = get_trace(masterflt, specid, ifuslot, ifuid, amp,
-                                    args.date, lrs2config=str(lrs2config_dir))
+            trace, dead = get_trace(
+                masterflt,
+                specid,
+                ifuslot,
+                ifuid,
+                amp,
+                args.date,
+                lrs2config=str(lrs2config_dir),
+            )
 
             ##########################
             # MASTERARC [WAVELENGTH] #
             ##########################
-            log.info('Getting MasterArc for ifuslot, %s, and amp, %s' %
-                     (ifuslot, amp))
-            lamp_path = cmp_path % (instrument, instrument, '00000*', instrument,
-                                    ifuslot)
+            log.info("Getting MasterArc for ifuslot, %s, and amp, %s" % (ifuslot, amp))
+            lamp_path = cmp_path % (
+                instrument,
+                instrument,
+                "00000*",
+                instrument,
+                ifuslot,
+            )
             lampfiles = get_cal_path(lamp_path, args.date, ndays=15)
-            log.info('Number of arc files: %i' % len(lampfiles))
-            masterarc = get_masterarc(lampfiles, amp, arc_names, masterbias,
-                                      specname, trace)
+            log.info("Number of arc files: %i" % len(lampfiles))
+            masterarc = get_masterarc(
+                lampfiles, amp, arc_names, masterbias, specname, trace
+            )
 
-            lampfiles = get_cal_path(lamp_path.replace(args.date, '20181201'),
-                                     '20181201', ndays=3)
-            def_arc = get_masterarc(lampfiles, amp,
-                                    arc_names, masterbias, specname, trace)
+            lampfiles = get_cal_path(
+                lamp_path.replace(args.date, "20181201"), "20181201", ndays=3
+            )
+            def_arc = get_masterarc(
+                lampfiles, amp, arc_names, masterbias, specname, trace
+            )
 
-            log.info('Getting Wavelength for ifuslot, %s, and amp, %s' %
-                     (ifuslot, amp))
+            log.info("Getting Wavelength for ifuslot, %s, and amp, %s" % (ifuslot, amp))
 
-            wave = get_wavelength_from_arc(masterarc, trace, arc_lines, specname,
-                                           amp, int(args.date), otherimage=def_arc)
+            wave = get_wavelength_from_arc(
+                masterarc,
+                trace,
+                arc_lines,
+                specname,
+                amp,
+                int(args.date),
+                otherimage=def_arc,
+            )
 
             #################################
             # TWILIGHT FLAT [FIBER PROFILE] #
             #################################
-            log.info('Getting bigW for ifuslot, %s, and amp, %s' %
-                     (ifuslot, amp))
+            log.info("Getting bigW for ifuslot, %s, and amp, %s" % (ifuslot, amp))
             bigW = get_bigW(amp, wave, trace, masterbias)
             package.append([wave, trace, bigW, masterbias, amppos, dead])
-            log.info('Number of flt files: %i' % len(fltfiles))
+            log.info("Number of flt files: %i" % len(fltfiles))
 
             masterFlat = get_mastertwi(fltfiles, amp, masterbias)
 
@@ -266,28 +380,35 @@ def main():
             mtwi.append(masterflt)
             mflt.append(masterFlat)
         # Combine per-amp calibrations into single arrays ordered by fiber index
-        calinfo = [np.vstack([package[0][i], package[1][i]])
-                   for i in np.arange(len(package[0]))]
+        calinfo = [
+            np.vstack([package[0][i], package[1][i]])
+            for i in np.arange(len(package[0]))
+        ]
         masterarc, masterflt, masterFlat = [np.vstack(x) for x in [marc, mtwi, mflt]]
         # Offset trace rows for the upper amp by the number of lower-amp fibers
-        calinfo[1][package[0][1].shape[0]:, :] += package[0][2].shape[0]
-        log.info('Getting flat for ifuslot, %s, side, %s' % (ifuslot, specname))
+        calinfo[1][package[0][1].shape[0] :, :] += package[0][2].shape[0]
+        log.info("Getting flat for ifuslot, %s, side, %s" % (ifuslot, specname))
         # Build twilight flat field (fiber profile) used for extractions
-        twiflat = get_twiflat_field(twifiles, amps, calinfo[0], calinfo[1],
-                                    calinfo[2], calinfo[3], specname)
+        twiflat = get_twiflat_field(
+            twifiles, amps, calinfo[0], calinfo[1], calinfo[2], calinfo[3], specname
+        )
         calinfo.insert(2, twiflat)
         _flatspec = get_spectra(calinfo[2], calinfo[1])
         for mfile in [masterarc, masterflt, masterFlat]:
             # Extract per-fiber arc spectra for each calibration image and
             # interpolate them onto the common wavelength grid used downstream.
-            masterarcerror = np.sqrt(3. ** 2 + np.where(mfile > 0., mfile, 0.))
+            masterarcerror = np.sqrt(3.0**2 + np.where(mfile > 0.0, mfile, 0.0))
             arcspec, ae, Cc, Yyy, Fff = weighted_extraction(
                 mfile, masterarcerror, calinfo[2], calinfo[1], cthresh=500
             )
             arc_interp_to_common = np.zeros((calinfo[0].shape[0], len(commonwave)))
             for fiber in np.arange(calinfo[0].shape[0]):
-                interp = interp1d(calinfo[0][fiber], arcspec[fiber],
-                                  kind='linear', fill_value='extrapolate')
+                interp = interp1d(
+                    calinfo[0][fiber],
+                    arcspec[fiber],
+                    kind="linear",
+                    fill_value="extrapolate",
+                )
                 arc_interp_to_common[fiber] = interp(commonwave)
             calinfo.append(arc_interp_to_common)
         bigF = get_bigF(calinfo[1], calinfo[2])
@@ -299,7 +420,14 @@ def main():
         # Locate the first exposure (exp01) per science observation for this IFU slot.
         # We then iterate observations and run the per-exposure reduction.
         response = None
-        sci_glob = sci_path % (instrument, instrument, '0000*', '01', instrument, ifuslot)
+        sci_glob = sci_path % (
+            instrument,
+            instrument,
+            "0000*",
+            "01",
+            instrument,
+            ifuslot,
+        )
         base_files_nested = []
         for tarname in glob.glob(get_tarname_from_filename(sci_glob)):
             base_files_nested.append(get_filenames_from_tarfolder(tarname, sci_glob))
@@ -307,61 +435,111 @@ def main():
         base_files = [f for f in sorted(flat_list) if "exp01" in f]
 
         # Derive 7-digit obsid from folder structure and read object headers
-        all_sci_obs = [op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
-                       for fn in base_files]
-        objects = get_objects(base_files, ['OBJECT', 'EXPTIME'])
+        all_sci_obs = [
+            op.basename(op.dirname(op.dirname(op.dirname(fn))))[-7:]
+            for fn in base_files
+        ]
+        objects = get_objects(base_files, ["OBJECT", "EXPTIME"])
 
         # Load a packaged average response if none provided
         if response is None:
-            log.info('Getting average response')
-            basename = 'LRS2/CALS'
-            with get_config_file(f'response_{specname}.fits').open('rb') as fh:
+            log.info("Getting average response")
+            basename = "LRS2/CALS"
+            with get_config_file(f"response_{specname}.fits").open("rb") as fh:
                 R = fits.open(fh)
-                response = R[0].data[1] * 1.
+                response = R[0].data[1] * 1.0
 
         # Assemble a CALS bundle capturing key calibration products for this channel
         hdus = []
-        hdu_names = ['wavelength', 'trace', 'flat', 'bigW', 'masterbias',
-                     'xypos', 'dead', 'arcspec', 'fltspec', 'Flatspec', 'bigF']
+        hdu_names = [
+            "wavelength",
+            "trace",
+            "flat",
+            "bigW",
+            "masterbias",
+            "xypos",
+            "dead",
+            "arcspec",
+            "fltspec",
+            "Flatspec",
+            "bigF",
+        ]
         for i, cal in enumerate(calinfo):
             hdu_class = fits.PrimaryHDU if i == 0 else fits.ImageHDU
             hdus.append(hdu_class(cal))
         hdus.append(fits.ImageHDU(masterarc))
-        hdu_names.append('masterarc')
+        hdu_names.append("masterarc")
         hdus.append(fits.ImageHDU(masterFlat))
-        hdu_names.append('masterFlat')
+        hdu_names.append("masterFlat")
         if response is not None:
             hdus.append(fits.ImageHDU(np.array([commonwave, response], dtype=float)))
-            hdu_names.append('response')
+            hdu_names.append("response")
         for hdu, name in zip(hdus, hdu_names):
-            hdu.header['EXTNAME'] = name
-        basename = 'LRS2/CALS'
+            hdu.header["EXTNAME"] = name
+        basename = "LRS2/CALS"
         Path(basename).mkdir(parents=True, exist_ok=True)
         fits.HDUList(hdus).writeto(
-            op.join(basename, 'cal_%s_%s.fits' % (args.date, specname)),
-            overwrite=True
+            op.join(basename, "cal_%s_%s.fits" % (args.date, specname)), overwrite=True
         )
         # Iterate per observation base file; filter by --object or include standards
         for sci_obs, obj, bf in zip(all_sci_obs, objects, base_files):
-            log.info('Checkpoint --- Working on %s, %s' % (bf, specname))
+            log.info("Checkpoint --- Working on %s, %s" % (bf, specname))
             if args.object is None:
-                big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                              ifuslot, specname, response=response, central_wave=args.central_wave,
-                              wavelength_bin=args.wavelength_bin, correct_ftf_flag=args.correct_ftf,
-                              fplane_file=fplane_file, date_str=args.date)
+                big_reduction(
+                    obj,
+                    bf,
+                    instrument,
+                    sci_obs,
+                    calinfo,
+                    amps,
+                    commonwave,
+                    ifuslot,
+                    specname,
+                    response=response,
+                    central_wave=args.central_wave,
+                    wavelength_bin=args.wavelength_bin,
+                    correct_ftf_flag=args.correct_ftf,
+                    fplane_file=fplane_file,
+                    date_str=args.date,
+                )
             else:
                 if args.object.lower() in obj[0].lower():
-                    big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                                  ifuslot, specname, response=response, central_wave=args.central_wave,
-                                  wavelength_bin=args.wavelength_bin, correct_ftf_flag=args.correct_ftf,
-                                  fplane_file=fplane_file, date_str=args.date)
+                    big_reduction(
+                        obj,
+                        bf,
+                        instrument,
+                        sci_obs,
+                        calinfo,
+                        amps,
+                        commonwave,
+                        ifuslot,
+                        specname,
+                        response=response,
+                        central_wave=args.central_wave,
+                        wavelength_bin=args.wavelength_bin,
+                        correct_ftf_flag=args.correct_ftf,
+                        fplane_file=fplane_file,
+                        date_str=args.date,
+                    )
                 if check_if_standard(obj[0]) and (ifuslot in obj[0]):
-                    big_reduction(obj, bf, instrument, sci_obs, calinfo, amps, commonwave,
-                                  ifuslot, specname, response=response,
-                                  central_wave=args.central_wave, wavelength_bin=args.wavelength_bin,
-                                  correct_ftf_flag=args.correct_ftf,
-                                  fplane_file=fplane_file, date_str=args.date)
+                    big_reduction(
+                        obj,
+                        bf,
+                        instrument,
+                        sci_obs,
+                        calinfo,
+                        amps,
+                        commonwave,
+                        ifuslot,
+                        specname,
+                        response=response,
+                        central_wave=args.central_wave,
+                        wavelength_bin=args.wavelength_bin,
+                        correct_ftf_flag=args.correct_ftf,
+                        fplane_file=fplane_file,
+                        date_str=args.date,
+                    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

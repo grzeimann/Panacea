@@ -2,6 +2,7 @@
 
 Functions migrated per function_map.md.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -10,7 +11,8 @@ import logging
 from astropy.convolution import Gaussian1DKernel, convolve
 from .utils import find_lines, robust_polyfit
 
-def find_peaks(y, thresh = 8.0):
+
+def find_peaks(y, thresh=8.0):
     """Locate significant peaks in a 1D array using slope changes and S/N.
 
     Mirrors legacy implementation: detects zero-crossings in the derivative,
@@ -27,6 +29,7 @@ def find_peaks(y, thresh = 8.0):
         - normalized_peaks: Peak heights divided by robust sigma.
         - peaks: Raw peak heights at rounded peak_loc indices.
     """
+
     def _get_peaks(flat, XN):
         YM = np.arange(flat.shape[0])
         inds = np.zeros((3, len(XN)))
@@ -34,8 +37,9 @@ def find_peaks(y, thresh = 8.0):
         inds[1] = XN + 0.0
         inds[2] = XN + 1.0
         inds = np.array(inds, dtype=int)
-        Peaks = (YM[inds[1]] - (flat[inds[2]] - flat[inds[0]]) /
-                 (2.0 * (flat[inds[2]] - 2.0 * flat[inds[1]] + flat[inds[0]])))
+        Peaks = YM[inds[1]] - (flat[inds[2]] - flat[inds[0]]) / (
+            2.0 * (flat[inds[2]] - 2.0 * flat[inds[1]] + flat[inds[0]])
+        )
         return Peaks
 
     diff_array = y[1:] - y[:-1]
@@ -46,7 +50,6 @@ def find_peaks(y, thresh = 8.0):
     peak_loc = _get_peaks(y, loc)
     peaks = y[np.round(peak_loc).astype(int)]
     return peak_loc, peaks / std, peaks
-
 
 
 def get_wavelength_from_arc(image, trace, lines, side, amp, date, otherimage=None):
@@ -73,14 +76,14 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, date, otherimage=Non
         along columns per fiber.
     """
 
-
     log = logging.getLogger(__name__)
 
     # Local import to avoid circular import: wavelength -> fiber -> ccd -> sky -> wavelength
     from .fiber import get_spectra
+
     spectrum = get_spectra(image, trace)
     fib = int(np.argmax(np.median(spectrum, axis=1)))
-    if side == 'uv' and int(date) > 20161101:
+    if side == "uv" and int(date) > 20161101:
         thresh = 5.0
         spectrum2 = spectrum * 0.0
         for i in np.arange(trace.shape[0]):
@@ -105,9 +108,8 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, date, otherimage=Non
             found_lines1 = find_lines(spectrum1, trace, lines, thresh, fib)
             sel = (found_lines > 0.0) * (found_lines1 > 0.0)
             for i in np.arange(found_lines.shape[0]):
-                found_lines[i] = (
-                    found_lines1[i]
-                    + np.median(found_lines[i][sel[i]] - found_lines1[i][sel[i]])
+                found_lines[i] = found_lines1[i] + np.median(
+                    found_lines[i][sel[i]] - found_lines1[i][sel[i]]
                 )
                 found_lines[i][found_lines1[i] == 0.0] = 0.0
         else:
@@ -141,8 +143,8 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, date, otherimage=Non
         sel = found_lines[j, :] > 0.0
         if sel.sum() < 3:
             continue
-        wave[j] = np.polyval(np.polyfit(found_lines[j, sel], lines['col1'][sel], 3), x)
-        res[j] = np.std(np.interp(found_lines[j, sel], x, wave[j]) - lines['col1'][sel])
+        wave[j] = np.polyval(np.polyfit(found_lines[j, sel], lines["col1"][sel], 3), x)
+        res[j] = np.std(np.interp(found_lines[j, sel], x, wave[j]) - lines["col1"][sel])
 
     missing = np.where(np.all(wave == 0.0, axis=1))[0]
     if len(missing):
@@ -152,6 +154,6 @@ def get_wavelength_from_arc(image, trace, lines, side, amp, date, otherimage=Non
             yy = wave[good, j]
             wave[missing, j] = np.polyval(np.polyfit(xx, yy, 3), trace[missing, j])
 
-    log.info('Min, Max Wave: %0.2f, %0.2f', wave.min(), wave.max())
-    log.info('Mean Res, Median Res: %0.3f, %0.3f', np.mean(res), np.median(res))
+    log.info("Min, Max Wave: %0.2f, %0.2f", wave.min(), wave.max())
+    log.info("Mean Res, Median Res: %0.3f, %0.3f", np.mean(res), np.median(res))
     return wave

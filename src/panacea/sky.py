@@ -105,7 +105,7 @@ def sky_subtraction(rect, error, xloc, yloc):
     for j in np.arange(rect.shape[1]):
         E = error[:, j] * 1.0
         E[E == 0.0] = 1e9
-        W = 1.0 / E ** 2
+        W = 1.0 / E**2
         W = np.sqrt(np.diag(W))
         A = model[:, np.newaxis]
         B = skysub[:, j]

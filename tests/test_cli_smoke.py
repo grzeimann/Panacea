@@ -23,4 +23,4 @@ def test_cli_help_exits_zero(capsys, monkeypatch):
 
     out, err = capsys.readouterr()
     # Expect some help text mentioning options or usage
-    assert ("-d" in out or "--date" in out or "usage" in out.lower())
+    assert "-d" in out or "--date" in out or "usage" in out.lower()

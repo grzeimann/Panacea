@@ -3,11 +3,11 @@
 
 .. automodule:: panacea.utils
 
-   
+
    .. rubric:: Functions
 
    .. autosummary::
-   
+
       build_weight_matrix
       check_if_standard
       convolve_spatially
@@ -28,4 +28,3 @@
       robust_polyfit
       safe_division
       truncate_list
-   

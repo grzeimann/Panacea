@@ -34,13 +34,15 @@ def test_baseraw_has_night_data():
     """
     baseraw = _guess_baseraw()
     if baseraw is None:
-        pytest.skip("No base raw-data directory available; set PANACEA_BASERAW to enable this test.")
+        pytest.skip(
+            "No base raw-data directory available; set PANACEA_BASERAW to enable this test."
+        )
 
     # Consider either subdirectories (e.g., YYYYMMDD or program folders)
     # or tarballs as evidence of data presence.
     subdirs = [p for p in baseraw.iterdir() if p.is_dir()]
     tarballs = list(baseraw.rglob("*.tar"))
 
-    assert (len(subdirs) > 0) or (len(tarballs) > 0), (
-        f"No data found under {baseraw}. Expected at least one subdirectory or .tar file."
-    )
+    assert (len(subdirs) > 0) or (
+        len(tarballs) > 0
+    ), f"No data found under {baseraw}. Expected at least one subdirectory or .tar file."

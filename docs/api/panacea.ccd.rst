@@ -3,11 +3,11 @@
 
 .. automodule:: panacea.ccd
 
-   
+
    .. rubric:: Functions
 
    .. autosummary::
-   
+
       base_reduction
       find_cosmics
       get_bigF
@@ -18,4 +18,3 @@
       get_powerlaw
       get_twiflat_field
       orient_image
-   

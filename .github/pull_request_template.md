@@ -3,8 +3,8 @@
 Provide a concise description of the change. What problem does it solve? Why is it needed?
 
 # Changes
-- 
-- 
+-
+-
 
 # Documentation impact
 - [ ] Updated docs/ where applicable

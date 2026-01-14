@@ -18,7 +18,9 @@ def test_pipeline_smoke_resources_and_wiring(capsys, monkeypatch):
     monkeypatch.setenv("COLUMNS", "100")
 
     # Default sides in the CLI are uv,orange,red,farred; rely on defaults here
-    monkeypatch.setattr(sys, "argv", ["panacea-lrs2", "--smoke-test"])  # early exit path
+    monkeypatch.setattr(
+        sys, "argv", ["panacea-lrs2", "--smoke-test"]
+    )  # early exit path
 
     from panacea.cli import main
 

@@ -7,12 +7,12 @@ from panacea.utils import get_config_file, read_arc_lines
 
 def test_packaged_resource_exists_and_is_readable():
     # Pick one of the known packaged files
-    traversable = get_config_file('lines_uv.dat')
+    traversable = get_config_file("lines_uv.dat")
     assert traversable is not None
-    assert hasattr(traversable, 'is_file') and traversable.is_file()
+    assert hasattr(traversable, "is_file") and traversable.is_file()
 
     # Open and read a few bytes to ensure packaging works in both dev and installed modes
-    with traversable.open('r') as f:
+    with traversable.open("r") as f:
         head = f.read(128)
         assert isinstance(head, str)
         assert len(head) > 0
@@ -30,6 +30,6 @@ bad line
     tbl = read_arc_lines(io.StringIO(content))
     # Should parse 3 valid data rows, 4 named columns
     assert tbl.shape == (3, 4)
-    assert list(tbl.colnames) == ['col1', 'col2', 'col3', 'col4']
+    assert list(tbl.colnames) == ["col1", "col2", "col3", "col4"]
     # Check a value
-    assert tbl['col1'][0] == 4000.0
+    assert tbl["col1"][0] == 4000.0

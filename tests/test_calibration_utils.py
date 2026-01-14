@@ -93,4 +93,6 @@ def test_fit_response_cont_smooths_and_preserves_shape():
     mae = np.mean(np.abs(cont_est[core] - cont_true[core]))
     assert mae < 0.05
     # Smoothing should reduce variance relative to original
-    assert np.var(cont_est[core] - np.mean(cont_est[core])) < np.var(sky[core] - np.mean(sky[core]))
+    assert np.var(cont_est[core] - np.mean(cont_est[core])) < np.var(
+        sky[core] - np.mean(sky[core])
+    )

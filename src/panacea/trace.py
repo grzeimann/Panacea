@@ -41,16 +41,26 @@ def get_trace_shift(sci_array, flat, array_trace, Yx):
     for i in np.arange(Trace.shape[0]):
         sel = YM[inds[0, i, :], x] >= 0.0
         sel = sel * (YM[inds[2, i, :], x] < N)
-        xmax = (
-            YM[inds[1, i, sel], x[sel]]
-            - (sci_array[inds[2, i, sel], x[sel]] - sci_array[inds[0, i, sel], x[sel]])
-            / (2.0 * (sci_array[inds[2, i, sel], x[sel]] - 2.0 * sci_array[inds[1, i, sel], x[sel]] + sci_array[inds[0, i, sel], x[sel]]))
+        xmax = YM[inds[1, i, sel], x[sel]] - (
+            sci_array[inds[2, i, sel], x[sel]] - sci_array[inds[0, i, sel], x[sel]]
+        ) / (
+            2.0
+            * (
+                sci_array[inds[2, i, sel], x[sel]]
+                - 2.0 * sci_array[inds[1, i, sel], x[sel]]
+                + sci_array[inds[0, i, sel], x[sel]]
+            )
         )
         Trace[i, sel] = xmax
-        xmax = (
-            YM[inds[1, i, sel], x[sel]]
-            - (flat[inds[2, i, sel], x[sel]] - flat[inds[0, i, sel], x[sel]])
-            / (2.0 * (flat[inds[2, i, sel], x[sel]] - 2.0 * flat[inds[1, i, sel], x[sel]] + flat[inds[0, i, sel], x[sel]]))
+        xmax = YM[inds[1, i, sel], x[sel]] - (
+            flat[inds[2, i, sel], x[sel]] - flat[inds[0, i, sel], x[sel]]
+        ) / (
+            2.0
+            * (
+                flat[inds[2, i, sel], x[sel]]
+                - 2.0 * flat[inds[1, i, sel], x[sel]]
+                + flat[inds[0, i, sel], x[sel]]
+            )
         )
         FlatTrace[i, sel] = xmax
     mid = int(Trace.shape[1] / 2)
@@ -59,8 +69,7 @@ def get_trace_shift(sci_array, flat, array_trace, Yx):
     return shifts
 
 
-
-def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate, lrs2config='lrs2_config'):
+def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate, lrs2config="lrs2_config"):
     """Locate and load the closest-in-time reference trace file.
 
     Args:
@@ -74,7 +83,14 @@ def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate, lrs2config='lrs2_c
     Returns:
         ndarray with reference trace rows: columns [col, flag] per fiber.
     """
-    files = glob.glob(op.join(lrs2config, 'Fiber_Locations', '*', f'fiber_loc_{specid}_{ifuslot}_{ifuid}_{amp}.txt'))
+    files = glob.glob(
+        op.join(
+            lrs2config,
+            "Fiber_Locations",
+            "*",
+            f"fiber_loc_{specid}_{ifuslot}_{ifuid}_{amp}.txt",
+        )
+    )
     dates = [op.basename(op.dirname(fn)) for fn in files]
     obsdate_dt = datetime(int(obsdate[:4]), int(obsdate[4:6]), int(obsdate[6:]))
     timediff = np.zeros((len(dates),))
@@ -85,8 +101,7 @@ def get_trace_reference(specid, ifuslot, ifuid, amp, obsdate, lrs2config='lrs2_c
     return ref_file
 
 
-def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate,
-              lrs2config='lrs2_config'):
+def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate, lrs2config="lrs2_config"):
     """Compute per-fiber trace positions across detector columns.
 
     Args:
@@ -104,7 +119,9 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate,
     """
     import numpy as np
 
-    ref = get_trace_reference(specid, ifuslot, ifuid, amp, obsdate, lrs2config=lrs2config)
+    ref = get_trace_reference(
+        specid, ifuslot, ifuid, amp, obsdate, lrs2config=lrs2config
+    )
     N1 = int((ref[:, 1] == 0.0).sum())
     good = np.where(ref[:, 1] == 0.0)[0]
 
@@ -115,16 +132,16 @@ def get_trace(twilight, specid, ifuslot, ifuid, amp, obsdate,
         inds[1] = XN + 0.0
         inds[2] = XN + 1.0
         inds = np.array(inds, dtype=int)
-        Trace = (
-            YM[inds[1]]
-            - (flat[inds[2]] - flat[inds[0]])
-            / (2.0 * (flat[inds[2]] - 2.0 * flat[inds[1]] + flat[inds[0]]))
+        Trace = YM[inds[1]] - (flat[inds[2]] - flat[inds[0]]) / (
+            2.0 * (flat[inds[2]] - 2.0 * flat[inds[1]] + flat[inds[0]])
         )
         return Trace
 
     image = twilight
     N = 40
-    xchunks = np.array([np.mean(x) for x in np.array_split(np.arange(image.shape[1]), N)])
+    xchunks = np.array(
+        [np.mean(x) for x in np.array_split(np.arange(image.shape[1]), N)]
+    )
     chunks = np.array_split(image, N, axis=1)
     flats = [np.median(chunk, axis=1) for chunk in chunks]
     Trace = np.zeros((len(ref), len(chunks)))

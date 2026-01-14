@@ -66,6 +66,7 @@ def weighted_extraction(image, error, flat, trace, cthresh=8.0):
     C = np.array(Y * 0.0, dtype=bool)
     # Local import to avoid circular import at module load time
     from .ccd import find_cosmics
+
     for _ in np.arange(1):
         cosmics = find_cosmics(nY, E, trace, thresh=cthresh, ran=1)
         C = C + cosmics
@@ -136,7 +137,9 @@ def modify_spectrum(spectrum, error, w):
     dw = np.hstack([dw[0], dw])
     for i in np.arange(spectrum.shape[0]):
         sel = spectrum[i] == 0.0
-        interp_fn = interp1d(w[i][~sel], spectrum[i][~sel], kind="quadratic", fill_value="extrapolate")
+        interp_fn = interp1d(
+            w[i][~sel], spectrum[i][~sel], kind="quadratic", fill_value="extrapolate"
+        )
         spectrum[i] = interp_fn(w[i]) / dw
         error[i] /= dw
     bad = error == 0.0
@@ -160,7 +163,6 @@ def correct_ftf(rect, error):
     Returns:
         Tuple of (rect, error) corrected, or original arrays if skipped.
     """
-
 
     def outlier(y, y1, oi):
         m = np.abs(y[oi] - y1[oi])

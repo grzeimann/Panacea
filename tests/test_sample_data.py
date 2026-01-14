@@ -28,6 +28,7 @@ def test_arc_has_bright_columns(sample_dataset):
     with fits.open(path) as hdul:
         img = hdul[0].data
     import numpy as np
+
     col_sums = img.sum(axis=0)
     med = np.median(col_sums)
     mad = np.median(np.abs(col_sums - med)) + 1e-6

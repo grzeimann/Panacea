@@ -47,7 +47,9 @@ def _base_header(channel: str = "LRS2-R") -> fits.Header:
     return hdr
 
 
-def _fiber_traces(ny: int, nx: int, n_fibers: int = 10) -> Tuple[np.ndarray, np.ndarray]:
+def _fiber_traces(
+    ny: int, nx: int, n_fibers: int = 10
+) -> Tuple[np.ndarray, np.ndarray]:
     """Generate simple near-horizontal Gaussian fiber profiles.
 
     Returns (y_centers, sigma) arrays per fiber.
@@ -57,7 +59,9 @@ def _fiber_traces(ny: int, nx: int, n_fibers: int = 10) -> Tuple[np.ndarray, np.
     return y_centers, sigma
 
 
-def _render_fibers(ny: int, nx: int, amp: float = 1000.0, n_fibers: int = 10) -> np.ndarray:
+def _render_fibers(
+    ny: int, nx: int, amp: float = 1000.0, n_fibers: int = 10
+) -> np.ndarray:
     y = np.arange(ny)[:, None]
     y0, sig = _fiber_traces(ny, nx, n_fibers)
     img = np.zeros((ny, nx), dtype=np.float32)
@@ -69,7 +73,9 @@ def _render_fibers(ny: int, nx: int, amp: float = 1000.0, n_fibers: int = 10) ->
     return img
 
 
-def _add_lines(img: np.ndarray, wavelengths: np.ndarray, hdr: fits.Header, strength: float = 2000.0) -> None:
+def _add_lines(
+    img: np.ndarray, wavelengths: np.ndarray, hdr: fits.Header, strength: float = 2000.0
+) -> None:
     nx = img.shape[1]
     crval = float(hdr.get("CRVAL1", 6500.0))
     cdelt = float(hdr.get("CDELT1", 1.5))
@@ -134,7 +140,9 @@ def _science_frame(shape: Tuple[int, int]) -> np.ndarray:
     return img
 
 
-def write_sample_dataset(outdir: Path, channel: str = "LRS2-R", shape: Tuple[int, int] = DEFAULT_SIZE) -> Dict[str, Path]:
+def write_sample_dataset(
+    outdir: Path, channel: str = "LRS2-R", shape: Tuple[int, int] = DEFAULT_SIZE
+) -> Dict[str, Path]:
     """Create small synthetic frames into outdir. Returns dict of paths.
 
     Files created (FITS, float32 primary):
@@ -154,7 +162,9 @@ def write_sample_dataset(outdir: Path, channel: str = "LRS2-R", shape: Tuple[int
     def _write(name: str, data: np.ndarray):
         h = hdr.copy()
         h["IMAGETYP"] = name
-        fits.PrimaryHDU(data=data.astype(np.float32), header=h).writeto(outdir / f"{name}.fits", overwrite=True)
+        fits.PrimaryHDU(data=data.astype(np.float32), header=h).writeto(
+            outdir / f"{name}.fits", overwrite=True
+        )
         paths[name] = outdir / f"{name}.fits"
 
     _write("bias", _bias_frame(shape))

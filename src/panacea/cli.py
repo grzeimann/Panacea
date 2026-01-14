@@ -3,6 +3,7 @@
 Decoupled from the legacy full_lrs2_reduction script so that help and argument parsing
 work without the previous monolithic module.
 """
+
 from __future__ import annotations
 
 

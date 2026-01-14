@@ -3,11 +3,11 @@
 
 .. automodule:: panacea.routine
 
-   
+
    .. rubric:: Functions
 
    .. autosummary::
-   
+
       big_reduction
       extract_sci
       extract_source
@@ -18,4 +18,3 @@
       get_mirror_illumination_guider
       get_response
       get_throughput
-   
