@@ -14,7 +14,6 @@ user-guide/cli.md
 user-guide/configuration.md
 user-guide/examples.md
 migration/sphinx.md
-joss/readiness.md
 data-products/overview.md
 algorithms/overview.md
 community/contributing.md

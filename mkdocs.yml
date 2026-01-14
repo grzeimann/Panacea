@@ -26,7 +26,6 @@ nav:
   - Community:
       - Contributing: community/contributing.md
       - Code of Conduct: community/code_of_conduct.md
-  - JOSS Readiness: joss/readiness.md
   - Release Info:
       - Changelog: release_info/changelog.md
   - Citation: citation/citation.md
