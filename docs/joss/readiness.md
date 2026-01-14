@@ -89,7 +89,7 @@ References
   - Status: DONE
   - Notes: GitHub Actions workflow (.github/workflows/python-tests.yml) runs Ruff lint (pinned 0.14.x) and the test suite under coverage.py on Python 3.11. Coverage XML is generated and uploaded as an artifact. A separate workflow checks external links with Lychee, and MkDocs deploys the brochure site to GitHub Pages on docs changes.
 
-  - Canonical local commands: For exact, copy‑paste steps to create a clean environment and run lint/tests/coverage, see README.md sections “Reproducible dev environment and test commands” and “Run CI checks locally (pre‑commit + Makefile)”. This readiness page summarizes and links only.
+  - Canonical local commands: For exact, copy‑paste steps to create a clean environment and run lint/tests/coverage, see README.md sections “Reproducible dev environment and test commands” and “Run CI checks locally (pre‑commit + Makefile)”. For exact git stage/commit/push commands, see “Stage, commit, push (exact commands)” in docs/development/dev-quickstart.md. This readiness page summarizes and links only.
 
 ### What are “linting” and “coverage reporting”?
 - Linting: Automated checks that look for common mistakes, inconsistencies, and style issues in code (e.g., unused imports, undefined names, dead code, formatting). Linters catch problems early and keep the codebase readable and consistent. In this project we use ruff for fast linting. Typical local command: `ruff check .`.
@@ -130,37 +130,136 @@ References
 - [ ] Audit paper.bib for DOIs; update entries.
 - [ ] Sanity-check installation from a clean environment and basic CLI run with bundled configs.
 
-### Next steps (recommended sequence)
-1. Cut a release candidate branch (e.g., rc/v1.0.0); update pyproject.toml and docs/release_info/changelog.md accordingly.
-2. Build and test from a clean environment (conda env create -f environment.yml; pip install .[dev]; run ruff, pytest, coverage, and a minimal CLI smoke test with --smoke-test).
-3. Tag and publish v1.0.0 on GitHub; verify GitHub Actions green and that coverage.xml artifacts are attached.
-4. Trigger Zenodo: ensure GitHub–Zenodo integration is enabled, then re-create the release if needed so Zenodo captures it; add DOI badge to README and DOI to CITATION.cff and paper/paper.md.
-5. Run a DOI audit on paper/paper.bib (fill in missing DOIs) and re-run Sphinx build to confirm references render.
-   - Commands (from repo root):
-   ```bash
-   # 5a) Dry-run DOI audit (report only)
-   python scripts/doi_audit.py paper/paper.bib
+## Exact walkthrough: Cut release, archive on Zenodo, submit to JOSS
 
-   # 5b) Apply suggested DOIs (creates paper.bib.bak backup); review diff before commit
-   python scripts/doi_audit.py paper/paper.bib --write
+This section gives a precise, copy‑pasteable sequence to: 1) prepare a tagged release, 2) archive it on Zenodo and capture a DOI, and 3) submit to JOSS with the correct metadata.
 
-   # 5c) Re-build Sphinx docs to verify references render (and linkify backend)
-   pip install -U .[docs]  # includes linkify-it-py backend
-   sphinx-build -b html docs docs/_build/html
-   open docs/_build/html/index.html  # macOS (xdg-open on Linux)
-   ```
-   - Verification steps for the linkify fix:
-     - Ensure the build completes without the error “ModuleNotFoundError: Linkify enabled but not installed”.
-     - Check the build log for a line: "[Panacea docs] MyST linkify backend: ENABLED|DISABLED".
-     - Open the built HTML and view page source; confirm a meta tag is present: <meta name="panacea-linkify" content="enabled|disabled">.
-     - If DISABLED, this is acceptable: docs still build and render; only auto-linking of bare URLs is skipped. Install docs extras to enable: `pip install .[docs]`.
-     - In the generated HTML, confirm that bare URLs in Markdown (e.g., plain https://example.com) are auto-linked only when the backend is enabled.
-     - You can also follow the concise checklist in docs/development/dev-quickstart.md under “Verify docs build (Sphinx)”.
-   - Notes:
-     - The audit uses the Crossref API and sleeps between requests to be polite.
-     - Only high-confidence matches are auto-inserted; ambiguous cases are printed for manual review.
-     - Sphinx build relies on docs extras defined in pyproject.toml.
-6. Optional: Add badges (PyPI if applicable, DOI, CI, docs) to README; consider Codecov or Coveralls if you want a coverage badge.
+Prerequisites
+- You have push rights on GitHub and a Zenodo account (https://zenodo.org) with GitHub integration enabled.
+- Local tests pass and docs build cleanly. See Dev Quickstart for commands.
+
+Step 1 — Prepare the release candidate branch and version
+```bash
+# Create a release candidate branch
+git checkout -b rc/v1.0.0
+
+# Update project version and changelog (edit files)
+# - pyproject.toml: set [project].version = "1.0.0"
+# - docs/release_info/changelog.md: ensure a 1.0.0 section with today’s date and summary
+# - paper/paper.md: confirm date and content
+# - CITATION.cff: ensure version and metadata are current (DOI added in Step 3)
+
+# Commit your edits
+git add pyproject.toml docs/release_info/changelog.md paper/paper.md CITATION.cff
+git commit -m "Prepare v1.0.0: bump version, update changelog and paper metadata"
+```
+
+Step 2 — Verify from a clean environment (matches CI)
+```bash
+# Optional: fresh env
+conda env remove -n panacea || true
+conda env create -f environment.yml
+conda activate panacea
+pip install .[dev]
+
+# Lint + tests + coverage
+ruff check .
+coverage run -m pytest -q && coverage report -m && coverage xml -o coverage.xml
+
+# CLI smoke test
+panacea-lrs2 -h
+panacea-lrs2 --smoke-test
+
+# Docs build (HTML)
+pip install -U .[docs]
+sphinx-build -b html docs docs/_build/html
+```
+
+Step 3 — Tag and publish the GitHub Release
+```bash
+# Tag the exact commit that passed verification
+git tag -a v1.0.0 -m "Panacea v1.0.0"
+
+git push origin rc/v1.0.0
+git push origin v1.0.0
+```
+- Create a GitHub Release from tag v1.0.0 (on the web UI) and paste the 1.0.0 notes from docs/release_info/changelog.md. Publish the release.
+- Wait for GitHub Actions to finish and show green.
+
+Step 4 — Archive on Zenodo and mint DOI
+1) Enable GitHub repository in Zenodo (one‑time)
+- Log in to https://zenodo.org with your ORCID or GitHub.
+- Go to Account → GitHub and flip the switch to enable archiving for grzeimann/Panacea.
+
+2) Trigger the Zenodo snapshot
+- After enabling, re‑publish the GitHub Release (edit → publish) if Zenodo didn’t capture it automatically.
+- Zenodo will create:
+  - A concept DOI (stable across versions)
+  - A version‑specific DOI for v1.0.0
+
+3) Complete Zenodo metadata for this release
+- Title: Panacea v1.0.0
+- Upload type: Software
+- Creators: include full names and ORCID for the author(s)
+- License: BSD‑3‑Clause (matches LICENSE)
+- Related identifiers: add the GitHub release URL (isSupplementTo) and the software repository URL (isSupplementTo/compiles)
+- Keywords: astronomy; spectroscopy; IFU; HET; LRS2; pipeline
+- Save and publish. Copy both DOIs (concept and version).
+
+Step 5 — Add DOI everywhere in the repository
+```bash
+# README.md: add a DOI badge using the concept DOI
+# Example badge (replace with your concept DOI):
+# [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
+
+# CITATION.cff: set doi: 10.5281/zenodo.XXXXXXX (concept DOI)
+# paper/paper.md: add the archive DOI in the header if desired by JOSS, or cite in text
+
+git add README.md CITATION.cff paper/paper.md
+git commit -m "Add Zenodo DOI badge and citation metadata"
+```
+
+Step 6 — Run a DOI audit on references and rebuild docs (optional but recommended)
+```bash
+# Dry-run
+python scripts/doi_audit.py paper/paper.bib
+# Apply updates (creates paper/paper.bib.bak)
+python scripts/doi_audit.py paper/paper.bib --write
+# Rebuild docs
+pip install -U .[docs]
+sphinx-build -b html docs docs/_build/html
+```
+Notes
+- The audit uses Crossref; only high‑confidence matches are written automatically.
+
+Step 7 — Submit to JOSS
+A) Quick checks with Whedon (optional but useful)
+```bash
+# In a GitHub issue on your repo, post these comments for Whedon (the JOSS bot):
+# @whedon generate pdf
+# @whedon check references
+```
+- Whedon will build a draft PDF of paper/paper.md and report any reference issues.
+
+B) Submit via JOSS web form
+- Open https://joss.theoj.org/papers/new
+- Fill in:
+  - Repository URL: https://github.com/grzeimann/Panacea
+  - Version: 1.0.0 (must match the Git tag)
+  - Archive DOI: the Zenodo version‑specific DOI for v1.0.0
+  - Title: matches paper/paper.md
+  - Authors with ORCIDs and affiliations
+  - Keywords and summary
+- Submit and note the tracking issue URL.
+
+Step 8 — After acceptance (later)
+- Update README.md badges with the JOSS DOI.
+- Add the JOSS article DOI to CITATION.cff and docs/citation page.
+
+Troubleshooting
+- Zenodo didn’t capture my release: ensure the repo is enabled in Zenodo, then edit and re‑publish the GitHub Release to retrigger.
+- DOI badge shows 404: concept DOI may take a minute to propagate. Verify the badge URL matches Zenodo’s provided snippet.
+- JOSS reference checks fail: fix DOIs in paper/paper.bib and re‑run Whedon.
 
 ## Nice-to-haves (not strictly required but helpful)
 

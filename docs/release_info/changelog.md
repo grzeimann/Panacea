@@ -11,7 +11,7 @@ Example
 [unreleased]
 - Short bullets about things merged since the last tag.
 
-## [1.0.0] - 2025-11-11 — Initial public release for JOSS
+## [1.0.0] - 2026-01-14 — Initial release for Zenodo/JOSS
 This tag marks the first stable, citable Panacea release submitted to the Journal of Open Source Software (JOSS). It completes the refactor from a single monolithic script into a maintainable, modular Python package with basic tests, uniform documentation, and an open path for collaboration within the HET community.
 
 ### Highlights
