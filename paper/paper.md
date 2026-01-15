@@ -67,4 +67,4 @@ Performance validation is conducted through repeat observations of spectrophotom
 The author thanks the Hobby–Eberly Telescope operations staff and administrators at the Texas Advanced Computing Center (TACC) for their support of the automated reduction system. Additional thanks go to HET instrument scientists and LRS2 observers for their feedback that guided Panacea’s development.
 
 # References
-See `paper.bib`.
+See `paper.bib`. The archived software release corresponding to this paper is Panacea v1.0.1 (Zenodo DOI: 10.5281/zenodo.18250411).

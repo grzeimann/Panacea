@@ -6,9 +6,10 @@ If you use Panacea in your research, please cite it. The citation metadata is pr
 cff-version: 1.2.0
 message: If you use this software, please cite it using the metadata below.
 title: "Panacea: LRS2 data-reduction pipeline for the Hobby-Eberly Telescope"
-version: 0.9.0
-date-released: 2025-10-17
+version: 1.0.1
+date-released: 2026-01-14
 license: BSD-3-Clause
+doi: 10.5281/zenodo.18250411
 authors:
   - family-names: Zeimann
     given-names: Greg
@@ -27,13 +28,13 @@ preferred-citation:
   authors:
     - family-names: Zeimann
       given-names: Greg
-  year: 2025
-  notes: Placeholder citation until JOSS paper DOI is minted.
-# TODO: After making a tagged release and Zenodo archive, add 'doi: 10.xxxx/zenodo.xxxxx' here.
+  year: 2026
+  doi: 10.5281/zenodo.18250411
+  notes: Versioned release (v1.0.1), but the doi above is for all versions.
 ```
 
 Notes
 - The canonical file still lives at the repository root: [CITATION.cff](https://github.com/grzeimann/Panacea/blob/HEAD/CITATION.cff). Keep the two in sync.
-- After a tagged release with a DOI (e.g., Zenodo), add the DOI to both places.
+- DOIs have been added: concept DOI for the project and version DOI for v1.0.1.
 
 See also: [Changelog](../release_info/changelog.md), [Contributing](../community/contributing.md)

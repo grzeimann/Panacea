@@ -4,6 +4,7 @@ title: "Panacea: LRS2 data-reduction pipeline for the Hobby-Eberly Telescope"
 version: 1.0.1
 date-released: 2026-01-14
 license: BSD-3-Clause
+doi: 10.5281/zenodo.18250411
 authors:
   - family-names: Zeimann
     given-names: Greg
@@ -23,5 +24,5 @@ preferred-citation:
     - family-names: Zeimann
       given-names: Greg
   year: 2026
-  notes: Placeholder citation until JOSS paper DOI is minted.
-# TODO: After making a tagged release and Zenodo archive, add 'doi: 10.xxxx/zenodo.xxxxx' here.
+  doi: 10.5281/zenodo.18250411
+  notes: Versioned release (v1.0.1), but the doi above is for all versions.

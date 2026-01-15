@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/grzeimann/Panacea/actions/workflows/python-tests.yml/badge.svg)](https://github.com/grzeimann/Panacea/actions/workflows/python-tests.yml)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18250411.svg)](https://doi.org/10.5281/zenodo.18250411)
 
 Panacea reduces LRS2 raw CCD frames into science‑ready spectra and data cubes for the Hobby–Eberly Telescope (HET). It powers the daily automated reductions on TACC and can be installed locally for development or small analyses. For a structured overview, see [Project documentation index](docs/index.md).
 
@@ -48,6 +49,8 @@ If you use the facility pipeline on TACC, start with [TACC overview](docs/tacc/o
 
 ## Citing and License
 - Citation: [CITATION.cff](CITATION.cff) (see also [Citation docs](docs/citation/citation.md))
+- DOI (concept, stable): https://doi.org/10.5281/zenodo.18250411
+- DOI (version v1.0.1): https://doi.org/10.5281/zenodo.18250412
 - License: BSD‑3‑Clause ([LICENSE](LICENSE))
 
 ## Contributing
