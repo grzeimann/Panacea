@@ -22,6 +22,8 @@ Compatibility note: The environment is pinned to numpy<2.0 with astropy<6 (see [
 
 ## Quickstart (CLI)
 
+For a step-by-step walkthrough, sample data download, and additional options, see the full Quickstart guide. It complements and expands the brief commands shown here: [docs/getting-started/quickstart.md](docs/getting-started/quickstart.md)
+
 ```bash
 # Show help and verify installation
 panacea-lrs2 -h
@@ -29,8 +31,10 @@ panacea-lrs2 -h
 # Smoke test: verify packaged resources without raw data
 panacea-lrs2 --smoke-test
 
+# See the full Quickstart guide for sample data and more options:
+# docs/getting-started/quickstart.md
 # Example run (adjust to your data)
-panacea-lrs2 -d 20181108 -s uv
+panacea-lrs2 -d 20260115 -s uv
 ```
 
 More examples and options: [CLI user guide](docs/user-guide/cli.md) and [Examples](docs/user-guide/examples.md).
@@ -45,6 +49,7 @@ If you use the facility pipeline on TACC, start with [TACC overview](docs/tacc/o
 ## Troubleshooting
 - Import error mentioning `numpy.in1d` or Astropy: ensure your environment follows the pins above.
 - Need dev commands (pre‑commit, local CI, coverage)? See [Dev quickstart](docs/development/dev-quickstart.md). For exact git workflow commands (stage/commit/push), see [Stage, commit, push](docs/development/dev-quickstart.md#stage-commit-push-exact-commands).
+- Where are tests described (including tests/test_sample_data.py)? See [Tests overview](docs/development/tests-overview.md).
 - More help: [FAQ](docs/faq.md).
 
 ## Citing and License

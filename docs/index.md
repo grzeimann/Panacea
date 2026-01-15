@@ -1,6 +1,6 @@
 # Panacea Documentation
 
-Welcome to the Panacea docs. This site organizes the long README into topic-focused pages.
+Welcome to the Panacea docs. This site organizes the previous long README into topic-focused pages.
 
 ```{toctree}
 :hidden:
@@ -19,6 +19,7 @@ algorithms/overview.md
 community/contributing.md
 community/code_of_conduct.md
 development/dev-quickstart.md
+development/tests-overview.md
 release_info/changelog.md
 citation/citation.md
 api/index.md

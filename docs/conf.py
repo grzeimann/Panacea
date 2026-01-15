@@ -40,8 +40,10 @@ source_suffix = {
 # Root document (our docs/ already has index.md)
 master_doc = "index"
 # Exclude stale autosummary .rst stubs that can cause duplicate indexing
+# Also exclude local meta page that is intentionally not part of the docs nav
 exclude_patterns = [
     "api/panacea.*.rst",
+    "joss/readiness.md",
 ]
 # Optional: add anchors to headings so #section links work
 myst_heading_anchors = 3
