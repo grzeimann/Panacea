@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>Algorithms - Panacea Documentation</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../css/brands.min.css" rel="stylesheet">
+        <link href="../../css/solid.min.css" rel="stylesheet">
+        <link href="../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">Panacea Documentation</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../.." class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Getting started</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../getting-started/installation/" class="dropdown-item">Installation</a>
+</li>
+                                    
+<li>
+    <a href="../../getting-started/quickstart/" class="dropdown-item">Quickstart</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">TACC</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../tacc/overview/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../tacc/running/" class="dropdown-item">Running on TACC</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">User Guide</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../user-guide/cli/" class="dropdown-item">CLI Usage</a>
+</li>
+                                    
+<li>
+    <a href="../../user-guide/configuration/" class="dropdown-item">Configuration</a>
+</li>
+                                    
+<li>
+    <a href="../../user-guide/examples/" class="dropdown-item">Examples</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../data-products/overview/" class="nav-link">Data Products</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="./" class="nav-link active" aria-current="page">Algorithms</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">API</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../api/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../api/utils/" class="dropdown-item">Utilities</a>
+</li>
+                                    
+<li>
+    <a href="../../api/routine/" class="dropdown-item">Routine</a>
+</li>
+                                    
+<li>
+    <a href="../../api/astrometry/" class="dropdown-item">Astrometry</a>
+</li>
+                                    
+<li>
+    <a href="../../api/io/" class="dropdown-item">I/O</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../faq/" class="nav-link">FAQ</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Community</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../community/contributing/" class="dropdown-item">Contributing</a>
+</li>
+                                    
+<li>
+    <a href="../../community/code_of_conduct/" class="dropdown-item">Code of Conduct</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Release Info</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../release_info/changelog/" class="dropdown-item">Changelog</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../citation/citation/" class="nav-link">Citation</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../../data-products/overview/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../../api/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/grzeimann/Panacea/edit/master/docs/algorithms/overview.md" class="nav-link"><i class="fa-brands fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#algorithms-overview" class="nav-link">Algorithms Overview</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#lrs2-layout" class="nav-link">LRS2 Layout</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#1-overscan-and-bias-subtraction" class="nav-link">1. Overscan and Bias Subtraction</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#2-fiber-tracing-and-extraction" class="nav-link">2. Fiber Tracing and Extraction</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#3-wavelength-calibration" class="nav-link">3. Wavelength Calibration</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#4-flat-fielding-and-fiber-normalization" class="nav-link">4. Flat-Fielding and Fiber Normalization</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#5-sky-subtraction" class="nav-link">5. Sky Subtraction</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#6-relative-flux-calibration" class="nav-link">6. Relative Flux Calibration</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#7-final-data-products-and-flow-diagram" class="nav-link">7. Final Data Products and Flow Diagram</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="algorithms-overview">Algorithms Overview</h1>
+<p>This page provides a high-level overview of the reduction steps implemented in Panacea. Detailed implementation notes live in the code; this page is intended as a conceptual guide.</p>
+<hr />
+<h2 id="lrs2-layout">LRS2 Layout</h2>
+<p>LRS2 provides integral-field-unit (IFU) spectroscopy using 280 0.6"-diameter lenslets that cover a 12"×6" field of view (FOV) on the sky. LRS2 is composed of two arms: blue (LRS2-B) and red (LRS2-R). The LRS2-B arm employs a dichroic beamsplitter to send light simultaneously into two spectrograph units: the "UV" channel (covering 3640–4645 Å at resolving power 1910), and the "Orange" channel (covering 4635–6950 Å at resolving power 1140). The LRS2-R is also split into two spectrograph units: the "Red" channel (covering 6450–8450 Å at resolving power 1760), and the "Far Red" channel (covering 8250–10500 Å at resolving power 1920).</p>
+<p><img alt="LRS2 mapping" src="../../images/lrs2_mapping_visual.png" /></p>
+<hr />
+<h2 id="1-overscan-and-bias-subtraction">1. Overscan and Bias Subtraction</h2>
+<p>Each CCD frame is first corrected for electronic bias by fitting and subtracting the overscan level independently for each amplifier. Panacea excludes the first column of the overscan region and uses the remaining 31 or 63 pixels per row (depending on binning) to determine the row-by-row bias pedestal. Residual two-dimensional bias structure is removed using a master bias, constructed from ~100 bias frames across several nights to achieve high S/N while minimizing temporal drift. This process removes amplifier offsets and pattern noise before flat-fielding.</p>
+<p><img alt="Bias subtraction example" src="../../images/bias_subtract.png" /></p>
+<hr />
+<h2 id="2-fiber-tracing-and-extraction">2. Fiber Tracing and Extraction</h2>
+<p>Using the master flat, Panacea identifies and traces each fiber’s centroid along the dispersion axis. The fiber positions are modeled as smooth polynomials describing their curvature across the CCD. 1D spectra are extracted following the "flat-relative optimal extraction" (Zechmeister et al. 2014, A&amp;A, 561, A59), in which the science frame is divided by a normalized flat before extraction to mitigate pixel-response variations and achieve optimal weighting. Cosmic rays are flagged and rejected using a similar algorithm to that of Malte Tewes and Pieter van Dokkum.</p>
+<p><img alt="Fiber tracing model" src="../../images/trace_fibmodel.png" /></p>
+<hr />
+<h2 id="3-wavelength-calibration">3. Wavelength Calibration</h2>
+<p>Wavelength solutions are derived from arc-lamp exposures (Hg, Cd, Ne, Ar, Fe) taken near in time to the science frames. Line identifications for each fiber are matched to laboratory wavelengths, and Panacea fits a polynomial dispersion solution (typically 3rd order). These solutions are refined per amplifier and per spectrograph channel, ensuring internal consistency between the LRS2 arms. The wavelength calibration is applied to all extracted spectra and rectified data products.</p>
+<hr />
+<h2 id="4-flat-fielding-and-fiber-normalization">4. Flat-Fielding and Fiber Normalization</h2>
+<p>Twilight or internal flat exposures are used to model the fiber profiles and correct both pixel-to-pixel and fiber-to-fiber throughput variations. The normalized flat defines a fiber profile model that traces the flux distribution of each fiber across the CCD. Panacea supports both fiber-to-fiber (FTF) correction and optional use_flat flags for selecting twilight versus internal flats. Flat-fielding also corrects for wavelength-dependent sensitivity variations within each fiber.</p>
+<hr />
+<h2 id="5-sky-subtraction">5. Sky Subtraction</h2>
+<p>Panacea constructs a two-dimensional sky model for each exposure and subtracts it from the rectified fiber spectra. The approach is empirical and robust against faint sources, using only sky-dominated pixels to model spatial and spectral structure.</p>
+<p>Algorithm overview
+1. Identify sky fibers and build a median template
+   - The median flux is computed for each fiber, and those with the lowest background levels are flagged as “sky-like.”
+   - These fibers are used to form an initial 1D median sky template across wavelength.
+   - A smoothed continuum version of this template is created by convolving with a broad Gaussian kernel.
+   - Significant deviations between the original and smoothed spectra identify bright sky-line regions.
+2. Per-fiber scaling of the sky template
+   - For each fiber, Panacea determines a scalar that best scales the global sky template to match the fiber’s data at sky-line wavelengths.
+   - A grid of trial scale factors (0.7–1.3) is tested, and the best value minimizes residuals between the observed and template spectra.
+   - This yields a set of per-fiber scale factors that represent spatial variation of the sky intensity across the IFU.
+3. Normalize by amplifier and fit a smooth 2D field model
+   - Since LRS2 channels are split into two amplifiers (140 fibers per amplifier), Panacea normalizes scale factors within each arm separately to remove global offsets.
+   - A 2D polynomial (degree 2) is then fit to the normalized scale factors as a function of the fibers’ focal-plane coordinates (x, y).
+   - Outliers more than twice the median absolute deviation from the fit are rejected, and the model is refit for stability.
+4. Construct the final fiber-resolved sky model
+   - The initial 1D sky template is multiplied by the fitted 2D surface to form a full fiber-by-fiber sky model.
+   - This reproduces both spectral and spatial variations in the background illumination.
+5. Subtract and propagate
+   - The modeled sky spectrum is subtracted from each fiber’s rectified spectrum.
+   - Errors are propagated consistently, and flagged bad fibers or masked pixels are set to zero.
+   - The resulting arrays include the observed spectra, modeled sky, and sky-subtracted spectra for downstream analysis.</p>
+<p>Notes and diagnostics
+- The method emphasizes sky-dominated fibers and bright sky lines, avoiding bias from object flux.
+- The polynomial surface ensures smooth spatial variation across the IFU.
+- Panacea’s multi-extension FITS outputs include both the rectified sky model and the sky-subtracted spectra for quality assurance.</p>
+<hr />
+<h2 id="6-relative-flux-calibration">6. Relative Flux Calibration</h2>
+<p>An initial relative flux calibration is computed using the default LRS2 response curves derived from spectrophotometric standard stars. Panacea scales these curves based on estimates of telescope illumination and exposure throughput, as measured from guide-camera photometry of field stars. This process compensates for night-to-night transparency and mirror reflectivity variations, yielding consistent relative flux scales between nights and between channels.</p>
+<hr />
+<h2 id="7-final-data-products-and-flow-diagram">7. Final Data Products and Flow Diagram</h2>
+<p>Each reduction produces multi-extension FITS files containing:
+- Fiber-extracted, wavelength- and flux-calibrated spectra
+- Sky and sky-subtracted spectra
+- Error frames and response curves
+- Fiber position tables (IFU, focal-plane, and sky coordinates)
+- Collapsed images and atmospheric differential refraction (ADR) tables
+- Rectified and unrectified 2D spectra for visualization and diagnostics</p>
+<p>These products form the complete foundation for LRS2 science analysis and are automatically archived and accessible via TACC.</p>
+<pre><code class="language-text">graph TD
+    A[Raw CCD Frames] --&gt; B[Overscan &amp; Bias Subtraction]
+    B --&gt; C[Fiber Tracing &amp; Extraction]
+    C --&gt; D[Wavelength Calibration]
+    D --&gt; E[Flat-Fielding &amp; Fiber Normalization]
+    E --&gt; F[Sky Subtraction]
+    F --&gt; G[Relative Flux Calibration]
+    G --&gt; H[Science Data Products]
+    H --&gt; I[Multi-extension FITS files: spectra, sky, error, ADR, positions]
+
+    style A fill:#d3e8ff,stroke:#003366,stroke-width:1px
+    style H fill:#d3ffd3,stroke:#006600,stroke-width:1px
+</code></pre>
+<p>See also: <a href="../../data-products/overview/">Data Products</a>, <a href="../../user-guide/configuration/">Configuration</a></p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

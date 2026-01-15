@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>Using Sphinx with Markdown (MyST) - Panacea Documentation</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../css/brands.min.css" rel="stylesheet">
+        <link href="../../css/solid.min.css" rel="stylesheet">
+        <link href="../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">Panacea Documentation</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../.." class="nav-link">Home</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Getting started</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../getting-started/installation/" class="dropdown-item">Installation</a>
+</li>
+                                    
+<li>
+    <a href="../../getting-started/quickstart/" class="dropdown-item">Quickstart</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">TACC</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../tacc/overview/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../tacc/running/" class="dropdown-item">Running on TACC</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">User Guide</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../user-guide/cli/" class="dropdown-item">CLI Usage</a>
+</li>
+                                    
+<li>
+    <a href="../../user-guide/configuration/" class="dropdown-item">Configuration</a>
+</li>
+                                    
+<li>
+    <a href="../../user-guide/examples/" class="dropdown-item">Examples</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../data-products/overview/" class="nav-link">Data Products</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../algorithms/overview/" class="nav-link">Algorithms</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">API</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../api/" class="dropdown-item">Overview</a>
+</li>
+                                    
+<li>
+    <a href="../../api/utils/" class="dropdown-item">Utilities</a>
+</li>
+                                    
+<li>
+    <a href="../../api/routine/" class="dropdown-item">Routine</a>
+</li>
+                                    
+<li>
+    <a href="../../api/astrometry/" class="dropdown-item">Astrometry</a>
+</li>
+                                    
+<li>
+    <a href="../../api/io/" class="dropdown-item">I/O</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../faq/" class="nav-link">FAQ</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Community</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../community/contributing/" class="dropdown-item">Contributing</a>
+</li>
+                                    
+<li>
+    <a href="../../community/code_of_conduct/" class="dropdown-item">Code of Conduct</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Release Info</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../release_info/changelog/" class="dropdown-item">Changelog</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href="../../citation/citation/" class="nav-link">Citation</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/grzeimann/Panacea/edit/master/docs/migration/sphinx.md" class="nav-link"><i class="fa-brands fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#using-sphinx-with-markdown-myst" class="nav-link">Using Sphinx with Markdown (MyST)</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#why-relative-links-are-fine" class="nav-link">Why relative links are fine</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#minimal-sphinx-setup-keeping-markdown" class="nav-link">Minimal Sphinx setup (keeping Markdown)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#notes-and-caveats" class="nav-link">Notes and caveats</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="using-sphinx-with-markdown-myst">Using Sphinx with Markdown (MyST)</h1>
+<p>This repo’s documentation is written in plain Markdown with relative links (./ and ../). It renders correctly on GitHub and with MkDocs. If you prefer Sphinx, you can keep the same Markdown files and relative links by enabling the MyST parser.</p>
+<h2 id="why-relative-links-are-fine">Why relative links are fine</h2>
+<ul>
+<li>GitHub: relative links are resolved based on the current file’s path.</li>
+<li>MkDocs: relative links are resolved against the docs/ directory and work as expected.</li>
+<li>Sphinx + MyST: relative Markdown links between project files are supported and will resolve as document references, provided the linked files are included in Sphinx’s source tree (e.g., under docs/).</li>
+</ul>
+<p>For maximum robustness in Sphinx, you may also use Sphinx roles like <code>{doc}</code> and section labels, but this is optional if your links are simple <code>./file.md</code> or <code>../path/file.md</code> references.</p>
+<h2 id="minimal-sphinx-setup-keeping-markdown">Minimal Sphinx setup (keeping Markdown)</h2>
+<p>1) Install Sphinx and MyST</p>
+<pre><code class="language-bash">pip install sphinx myst-parser
+# Optional: if you enable MyST's 'linkify' feature, install its backend:
+pip install linkify-it-py
+# Optional: to get a persistent sidebar/navigation like the docs site, install the RTD theme:
+pip install sphinx_rtd_theme
+</code></pre>
+<p>2) Create docs/conf.py (example)</p>
+<pre><code class="language-python"># docs/conf.py
+project = 'Panacea Documentation'
+extensions = [
+    'myst_parser',
+]
+# Treat .md files as source
+source_suffix = {
+    '.md': 'markdown',
+    '.rst': 'restructuredtext',
+}
+# Root document (our docs/ already has index.md)
+master_doc = 'index'
+# Optional: add anchors to headings so #section links work
+myst_heading_anchors = 3
+# Optional: enable extra MyST features if desired
+myst_enable_extensions = [
+    'linkify',  # autolink URLs in text
+]
+# If using relative image paths, Sphinx resolves them like Markdown
+html_theme = 'alabaster'  # or any installed Sphinx theme
+</code></pre>
+<p>3) Ensure your index
+- You already have <code>docs/index.md</code>. Sphinx will use it as the root (<code>master_doc = 'index'</code>).
+- Make sure all pages you want included are reachable from <code>index.md</code> via links, or list them in a toctree (see below).</p>
+<p>4) (Optional) Add an index toctree if you want sidebar navigation
+Add this block somewhere in <code>docs/index.md</code> to drive Sphinx nav (MkDocs will ignore it). NOTE: This is an example shown as a literal code block so it does not affect your build from this page.</p>
+<pre><code class="language-text">{toctree}
+:hidden:
+:maxdepth: 2
+
+getting-started/installation.md
+getting-started/quickstart.md
+tacc/overview.md
+tacc/running.md
+user-guide/cli.md
+user-guide/configuration.md
+data-products/overview.md
+algorithms/overview.md
+faq.md
+community/contributing.md
+community/code_of_conduct.md
+release_info/changelog.md
+citation/citation.md
+</code></pre>
+<p>5) Build</p>
+<pre><code class="language-bash">sphinx-build -b html docs/ _build/html
+</code></pre>
+<p>Open <code>_build/html/index.html</code> in your browser.</p>
+<h2 id="notes-and-caveats">Notes and caveats</h2>
+<ul>
+<li>Relative links like <code>./tacc/overview.md</code> or <code>../data-products/overview.md</code> will resolve under MyST so long as the target files are in the Sphinx source (<code>docs/</code>).</li>
+<li>For cross-page section anchors (e.g., <code>overview.md#where-to-find-data-products</code>), set <code>myst_heading_anchors</code> (as above) so Sphinx creates stable IDs for headings.</li>
+<li>For advanced cross-references, prefer MyST/Sphinx roles, e.g., <code>[{doc}](/path)</code> → <code>[TACC Overview]({doc}</code>tacc/overview<code>)</code> or labeled headings with <code>{#my-label}</code> and use <code>{ref}</code> roles. This increases resilience to file renames.</li>
+<li>If you later mix <code>.rst</code> and <code>.md</code>, both are supported with the <code>source_suffix</code> mapping shown above.</li>
+<li>Our existing MkDocs config (<code>mkdocs.yml</code>) continues to work independently; you can keep both builders side-by-side.</li>
+</ul>
+<h3 id="optional-api-docs-from-source-code">Optional: API docs from source code</h3>
+<ul>
+<li>Sphinx: Already configured. We enabled <code>autodoc</code>, <code>autosummary</code>, and <code>napoleon</code> in <code>docs/conf.py</code> and added <code>docs/api/index.md</code>. Build with <code>sphinx-build -b html docs/ _build/html</code> to generate API pages under the sidebar "API Reference".</li>
+<li>MkDocs: If you prefer API under MkDocs, install <code>mkdocstrings[python]</code> and add an <code>API</code> section to <code>mkdocs.yml</code>. Example snippet:</li>
+</ul>
+<pre><code class="language-yaml">plugins:
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+nav:
+  - API:
+      - panacea: api/panacea.md
+</code></pre>
+<p>Then create a page like <code>docs/api/panacea.md</code> with:</p>
+<pre><code class="language-markdown"># panacea
+
+::: panacea
+</code></pre>
+<p>See also: <a href="../../guide/">Docs Guide</a>, <a href="../../">Home</a></p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
